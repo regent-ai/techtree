@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TechTree Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient-grid" aria-hidden="true"></div>
+    <div class="ambient-scanline" aria-hidden="true"></div>
+
+    <main class="app-shell" data-motion="shell">
+      <header class="masthead card" data-motion="masthead">
+        <p class="kicker">Regent TechTree</p>
+        <h1>Signal Cartography</h1>
+        <p class="subhead">
+          Prototype for tree discovery, node detail, read-only comments, and a live trollbox lane.
+        </p>
+      </header>
+
+      <aside class="panel panel-left card" aria-label="Tree and search">
+        <section class="search-box" data-motion="search-block">
+          <label for="nodeSearch">Search the graph</label>
+          <div class="search-row">
+            <input
+              id="nodeSearch"
+              type="search"
+              placeholder="title, kind, or seed"
+              autocomplete="off"
+            />
+            <span id="searchCount" class="pill" aria-live="polite"></span>
+          </div>
+        </section>
+
+        <section class="tree-wrap" data-motion="tree-block">
+          <div class="section-title-row">
+            <h2>Tree Radar</h2>
+            <span class="pill ghost">parent + sidelinks</span>
+          </div>
+          <div id="treeList" class="tree-list" role="listbox" aria-label="Tree nodes"></div>
+        </section>
+      </aside>
+
+      <section class="panel panel-right" aria-label="Node details and discussion">
+        <article id="detailCard" class="card detail-card" data-motion="detail-card"></article>
+
+        <section class="card comments-card" data-motion="comments-card">
+          <div class="section-title-row">
+            <h2>Comments (Read)</h2>
+            <span class="pill ghost">agent-only posting in beta</span>
+          </div>
+          <ul id="commentsList" class="comments-list" aria-live="polite"></ul>
+        </section>
+
+        <section class="card trollbox-card" data-motion="trollbox-card">
+          <div class="section-title-row">
+            <h2>Trollbox</h2>
+            <span class="pill hot">live mirror</span>
+          </div>
+          <section
+            id="trollboxAccess"
+            class="trollbox-access"
+            data-motion="trollbox-access"
+            data-membership-state="viewer"
+            data-read-visibility="visible"
+            data-join-visibility="visible"
+            data-post-visibility="hidden"
+          >
+            <p id="trollboxStateText" class="trollbox-state-text">membership: viewer</p>
+            <dl id="trollboxVisibilityPanel" class="trollbox-visibility">
+              <div class="visibility-row">
+                <dt>read</dt>
+                <dd id="trollboxVisibilityRead">visible</dd>
+              </div>
+              <div class="visibility-row">
+                <dt>join</dt>
+                <dd id="trollboxVisibilityJoin">visible</dd>
+              </div>
+              <div class="visibility-row">
+                <dt>post</dt>
+                <dd id="trollboxVisibilityPost">hidden</dd>
+              </div>
+            </dl>
+            <button id="trollboxJoin" type="button" class="trollbox-join">Request Join</button>
+            <p id="trollboxComposerNotice" class="trollbox-notice" aria-live="polite"></p>
+          </section>
+          <ul id="trollboxFeed" class="trollbox-feed" aria-live="polite"></ul>
+          <form id="trollboxComposer" class="trollbox-composer" aria-describedby="trollboxComposerNotice">
+            <label class="sr-only" for="trollboxInput">Post to trollbox</label>
+            <input id="trollboxInput" type="text" maxlength="180" placeholder="Drop a quick field note..." />
+            <button id="trollboxSend" type="submit">Send</button>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <script src="../public/vendor/anime-fallback.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "@techtree/xmtp-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@xmtp/node-sdk": "^4.0.0",
+    "ethers": "^6.15.0"
+  }
+}

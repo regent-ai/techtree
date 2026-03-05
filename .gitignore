@@ -1,0 +1,59 @@
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# agent .md files
+*.md
+!AGENTS.md
+!README.md
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+# Temporary files, for example, from tests.
+/tmp/
+
+# Ignore package tarball (built via "mix hex.build").
+tech_tree-*.tar
+
+# Ignore assets that are produced by build tools.
+/priv/static/assets/
+
+# Ignore digested assets cache.
+/priv/static/cache_manifest.json
+
+# env vars
+.env
+
+# In case you use Node.js/npm, you want to ignore these.
+npm-debug.log
+/assets/node_modules/
+
+# Foundry generated outputs
+/contracts/out/
+/contracts/cache/
+
+# Service build and dependency artifacts
+/services/node_modules/
+/services/siwa-sidecar/dist/
+/services/xmtp-worker/dist/
+
+# QA local/browser runtime artifacts
+/qa/.agent-browser/
+/qa/.agent-browser-home/
+/qa/runtime-home/
+/qa/artifacts/

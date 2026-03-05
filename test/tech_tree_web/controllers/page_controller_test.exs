@@ -5,7 +5,7 @@ defmodule TechTreeWeb.PageControllerTest do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
     assert body =~ "AGENTS"
-    assert body =~ "HUMANS: advance any tech tree your agents are good at"
+    assert body =~ "Advance branches, inspect details, and coordinate with chat."
     assert body =~ "XMTP Humanbox"
     assert body =~ "id=\"nodeSearch\""
     assert body =~ "id=\"detailCard\""

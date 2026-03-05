@@ -2,21 +2,6 @@
 // to get started and then uncomment the line below.
 // import "./user_socket.js"
 
-// You can include dependencies in two ways.
-//
-// The simplest option is to put them in assets/vendor and
-// import them using relative paths:
-//
-//     import "../vendor/some-package.js"
-//
-// Alternatively, you can `npm install some-package --prefix assets` and import
-// them using a path starting with the package name:
-//
-//     import "some-package"
-//
-// If you have dependencies that try to import CSS, esbuild will generate a separate `app.css` file.
-// To load it, simply add a second `<link>` to your `root.html.heex` file.
-
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
@@ -30,12 +15,24 @@ import {Privy, LocalStorage} from "../vendor/privy-core.esm.js"
 const SEARCH_DEBOUNCE_MS = 180
 const TROLLBOX_POLL_MS = 12000
 const MEMBERSHIP_POLL_MS = 14000
+const ORB_SLOT_COUNT = 7
+const THEME_STORAGE_KEY = "phx:theme"
+const EXPLICIT_THEME_KEY = "techtree:theme:explicit"
 const shortDateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
 })
+const ORB_TONES = [
+  "sky",
+  "mint",
+  "rose",
+  "orange",
+  "violet",
+  "sun",
+  "sky",
+]
 
 const LandingHero = {
   async mounted() {
@@ -46,6 +43,7 @@ const LandingHero = {
     this.selectedSeed = null
     this.selectedNodeId = null
     this.selectedNode = null
+    this.selectedOrbKey = null
     this.trollboxMessages = []
     this.trollboxMembership = "viewer"
     this.trollboxMembershipState = "not_joined"
@@ -55,14 +53,33 @@ const LandingHero = {
     this.membershipTimer = null
     this.currentUser = null
     this.autoJoinAttemptedUsers = new Set()
+    this.currentView = "room"
+    this.userExplicitTheme = window.localStorage.getItem(EXPLICIT_THEME_KEY) === "1"
+
+    this.motionReducedMedia = window.matchMedia("(prefers-reduced-motion: reduce)")
+    this.mobileMedia = window.matchMedia("(max-width: 980px)")
+    this.reduceMotion = this.motionReducedMedia.matches
 
     this.boundLogin = () => this.onPrivyClick()
     this.boundJoinFlow = () => this.onTrollboxJoin()
     this.boundSeedClick = (event) => this.onSeedClick(event)
+    this.boundSeedOver = (event) => this.onSeedHover(event)
+    this.boundSeedOut = (event) => this.onSeedLeave(event)
     this.boundSearchInput = (event) => this.onSearchInput(event)
     this.boundNodeClick = (event) => this.onNodeClick(event)
     this.boundWatchToggle = () => this.onWatchToggle()
     this.boundSend = () => this.onTrollboxSend()
+    this.boundThemeToggle = (event) => this.onThemeToggle(event)
+    this.boundCopyCurl = () => this.onCopyCurl()
+    this.boundReturnToRoom = () => this.setView("room")
+    this.boundDrawerHandle = () => this.toggleDrawerFromHandle()
+    this.boundDrawerClose = () => this.setChatDrawer(false)
+    this.boundDrawerChange = () => this.onDrawerToggle()
+    this.boundMediaChange = () => this.applyResponsiveMode()
+    this.boundMotionPreference = (event) => {
+      this.reduceMotion = event.matches
+      this.startAmbientMotion()
+    }
 
     this.loginButton = this.el.querySelector("[data-privy-action='login']")
     this.joinButton = this.el.querySelector("#trollboxJoin")
@@ -89,44 +106,293 @@ const LandingHero = {
     this.trollboxFeed = this.el.querySelector("#trollboxFeed")
     this.trollboxInput = this.el.querySelector("#trollboxInput")
     this.trollboxSend = this.el.querySelector("#trollboxSend")
+    this.stageTrack = this.el.querySelector("[data-stage-track]")
+    this.returnRoomButton = this.el.querySelector("[data-return-room]")
+    this.drawerToggle = this.el.querySelector("#tt-chat-drawer-toggle")
+    this.chatHandles = this.el.querySelectorAll("[data-chat-handle]")
+    this.chatCloseButton = this.el.querySelector("[data-chat-close]")
+    this.humanbox = this.el.querySelector("[data-humanbox]")
+    this.themeToggle = this.el.querySelector("#themeToggle")
+    this.copyCurlButton = this.el.querySelector("#copyCurl")
+    this.curlTarget = this.el.querySelector("[data-curl-target]")
+    this.skyTreeGraph = this.el.querySelector("#skyTreeGraph")
+    this.skySeed = this.el.querySelector("[data-sky-seed]")
+    this.skyTitle = this.el.querySelector("[data-sky-title]")
+    this.skySummary = this.el.querySelector("[data-sky-summary]")
+    this.treeHints = this.el.querySelector("[data-tree-hints]")
+    this.roomZone = this.el.querySelector("[data-view='room']")
+    this.skyZone = this.el.querySelector("[data-view='sky']")
 
     this.loginButton?.addEventListener("click", this.boundLogin)
     this.joinButton?.addEventListener("click", this.boundJoinFlow)
     this.seedRoots?.addEventListener("click", this.boundSeedClick)
+    this.seedRoots?.addEventListener("mouseover", this.boundSeedOver)
+    this.seedRoots?.addEventListener("focusin", this.boundSeedOver)
+    this.seedRoots?.addEventListener("mouseout", this.boundSeedOut)
+    this.seedRoots?.addEventListener("focusout", this.boundSeedOut)
     this.nodeSearch?.addEventListener("input", this.boundSearchInput)
     this.nodeList?.addEventListener("click", this.boundNodeClick)
+    this.skyTreeGraph?.addEventListener("click", this.boundNodeClick)
     this.watchButton?.addEventListener("click", this.boundWatchToggle)
     this.trollboxSend?.addEventListener("click", this.boundSend)
+    this.themeToggle?.addEventListener("change", this.boundThemeToggle)
+    this.copyCurlButton?.addEventListener("click", this.boundCopyCurl)
+    this.returnRoomButton?.addEventListener("click", this.boundReturnToRoom)
+    this.chatHandles?.forEach((handle) => handle.addEventListener("click", this.boundDrawerHandle))
+    this.chatCloseButton?.addEventListener("click", this.boundDrawerClose)
+    this.drawerToggle?.addEventListener("change", this.boundDrawerChange)
+    this.mobileMedia.addEventListener("change", this.boundMediaChange)
+    this.motionReducedMedia.addEventListener("change", this.boundMotionPreference)
 
-    this.animateHero()
+    document.body.classList.add("tt-no-scroll")
+
+    this.setupThemeControl()
+    this.applyResponsiveMode({initial: true})
+    this.updateViewA11y("room")
+    this.setView("room", {immediate: true})
+    this.animateHeroIntro()
+    this.startAmbientMotion()
+
     await this.setupPrivy()
     await Promise.all([this.bootstrapGraph(), this.bootstrapTrollbox()])
     this.startPolling()
+    this.onDrawerToggle()
   },
 
   destroyed() {
     this.loginButton?.removeEventListener("click", this.boundLogin)
     this.joinButton?.removeEventListener("click", this.boundJoinFlow)
     this.seedRoots?.removeEventListener("click", this.boundSeedClick)
+    this.seedRoots?.removeEventListener("mouseover", this.boundSeedOver)
+    this.seedRoots?.removeEventListener("focusin", this.boundSeedOver)
+    this.seedRoots?.removeEventListener("mouseout", this.boundSeedOut)
+    this.seedRoots?.removeEventListener("focusout", this.boundSeedOut)
     this.nodeSearch?.removeEventListener("input", this.boundSearchInput)
     this.nodeList?.removeEventListener("click", this.boundNodeClick)
+    this.skyTreeGraph?.removeEventListener("click", this.boundNodeClick)
     this.watchButton?.removeEventListener("click", this.boundWatchToggle)
     this.trollboxSend?.removeEventListener("click", this.boundSend)
+    this.themeToggle?.removeEventListener("change", this.boundThemeToggle)
+    this.copyCurlButton?.removeEventListener("click", this.boundCopyCurl)
+    this.returnRoomButton?.removeEventListener("click", this.boundReturnToRoom)
+    this.chatHandles?.forEach((handle) => handle.removeEventListener("click", this.boundDrawerHandle))
+    this.chatCloseButton?.removeEventListener("click", this.boundDrawerClose)
+    this.drawerToggle?.removeEventListener("change", this.boundDrawerChange)
+    this.mobileMedia.removeEventListener("change", this.boundMediaChange)
+    this.motionReducedMedia.removeEventListener("change", this.boundMotionPreference)
+
     window.clearTimeout(this.searchDebounce)
     window.clearInterval(this.pollTimer)
     window.clearInterval(this.membershipTimer)
+    document.body.classList.remove("tt-no-scroll")
   },
 
-  animateHero() {
+  animateHeroIntro() {
     const enterTargets = this.el.querySelectorAll("[data-animate='enter']")
-    if (enterTargets.length > 0) {
-      animate(enterTargets, {
-        opacity: [0, 1],
-        translateY: [20, 0],
-        duration: 760,
-        delay: stagger(130, {start: 70}),
-        ease: "outExpo",
+    if (enterTargets.length === 0) {
+      return
+    }
+
+    if (this.reduceMotion) {
+      enterTargets.forEach((target) => {
+        target.style.opacity = "1"
+        target.style.transform = "none"
       })
+      return
+    }
+
+    animate(enterTargets, {
+      opacity: [0, 1],
+      translateY: [20, 0],
+      duration: 720,
+      delay: stagger(100, {start: 50}),
+      ease: "outCubic",
+    })
+  },
+
+  startAmbientMotion() {
+    if (this.reduceMotion) {
+      return
+    }
+
+    const hintLines = this.treeHints?.querySelectorAll(".tt-tree-hint-line") || []
+    const hintNodes = this.treeHints?.querySelectorAll(".tt-tree-hint-node") || []
+
+    if (hintLines.length > 0) {
+      animate(hintLines, {
+        opacity: [0.2, 0.55],
+        translateY: [0, -6],
+        duration: 2600,
+        loop: true,
+        alternate: true,
+        delay: stagger(180),
+        ease: "inOutSine",
+      })
+    }
+
+    if (hintNodes.length > 0) {
+      animate(hintNodes, {
+        opacity: [0.35, 0.85],
+        scale: [0.96, 1.03],
+        duration: 2200,
+        loop: true,
+        alternate: true,
+        delay: stagger(140),
+        ease: "inOutSine",
+      })
+    }
+  },
+
+  setupThemeControl() {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+    const initialTheme =
+      storedTheme === "light" || storedTheme === "dark"
+        ? storedTheme
+        : systemPrefersDark
+          ? "dark"
+          : "light"
+
+    this.applyTheme(initialTheme, {persist: false, explicit: storedTheme === "light" || storedTheme === "dark"})
+  },
+
+  onThemeToggle(event) {
+    const darkMode = Boolean(event.target?.checked)
+    this.applyTheme(darkMode ? "dark" : "light", {persist: true, explicit: true})
+
+    if (!this.reduceMotion && event.target) {
+      animate(event.target, {
+        scale: [0.9, 1.08, 1],
+        duration: 260,
+        ease: "outBack",
+      })
+    }
+  },
+
+  applyTheme(theme, options = {}) {
+    const persist = options.persist === true
+    const explicit = options.explicit === true
+
+    if (theme !== "light" && theme !== "dark") {
+      return
+    }
+
+    document.documentElement.setAttribute("data-theme", theme)
+    if (this.themeToggle) {
+      this.themeToggle.checked = theme === "dark"
+    }
+
+    if (persist) {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+    }
+
+    if (explicit) {
+      window.localStorage.setItem(EXPLICIT_THEME_KEY, "1")
+      this.userExplicitTheme = true
+    }
+  },
+
+  applyResponsiveMode(options = {}) {
+    const initial = options.initial === true
+    const mobile = this.mobileMedia.matches
+
+    this.el.dataset.layout = mobile ? "mobile" : "desktop"
+
+    if (this.drawerToggle && initial) {
+      this.drawerToggle.checked = true
+    }
+
+    if (!mobile) {
+      document.body.classList.add("tt-no-scroll")
+    } else {
+      document.body.classList.remove("tt-no-scroll")
+    }
+  },
+
+  toggleDrawerFromHandle() {
+    if (!this.drawerToggle) {
+      return
+    }
+
+    this.setChatDrawer(!this.drawerToggle.checked)
+  },
+
+  setChatDrawer(open) {
+    if (!this.drawerToggle) {
+      return
+    }
+
+    const nextState = Boolean(open)
+    if (this.drawerToggle.checked === nextState) {
+      this.onDrawerToggle()
+      return
+    }
+
+    this.drawerToggle.checked = nextState
+    this.onDrawerToggle()
+  },
+
+  onDrawerToggle() {
+    if (!this.drawerToggle) {
+      return
+    }
+
+    const open = this.drawerToggle.checked
+    this.el.dataset.chatOpen = open ? "true" : "false"
+
+    if (this.reduceMotion || !this.humanbox) {
+      return
+    }
+
+    const mobile = this.mobileMedia.matches
+    animate(this.humanbox, {
+      opacity: open ? [0.72, 1] : [1, 0.88],
+      translateX: mobile ? [0, 0] : open ? [40, 0] : [0, 20],
+      translateY: mobile ? (open ? [36, 0] : [0, 16]) : [0, 0],
+      duration: 260,
+      ease: "outCubic",
+    })
+  },
+
+  setView(view, options = {}) {
+    if (!this.stageTrack || (view !== "room" && view !== "sky")) {
+      return
+    }
+
+    const immediate = options.immediate === true
+    if (this.currentView === view && !immediate) {
+      return
+    }
+
+    const targetTransform = view === "sky" ? "translateY(-100%)" : "translateY(0%)"
+    this.currentView = view
+    this.el.dataset.stage = view
+    this.updateViewA11y(view)
+
+    if (immediate || this.reduceMotion) {
+      this.stageTrack.style.transform = targetTransform
+      return
+    }
+
+    const from = view === "sky" ? ["0%", "-100%"] : ["-100%", "0%"]
+    animate(this.stageTrack, {
+      translateY: from,
+      duration: 720,
+      ease: "inOutCubic",
+    })
+  },
+
+  updateViewA11y(view) {
+    const roomActive = view === "room"
+
+    if (this.roomZone) {
+      this.roomZone.setAttribute("aria-hidden", String(!roomActive))
+      this.roomZone.style.pointerEvents = roomActive ? "auto" : "none"
+    }
+
+    if (this.skyZone) {
+      this.skyZone.setAttribute("aria-hidden", String(roomActive))
+      this.skyZone.style.pointerEvents = roomActive ? "none" : "auto"
     }
   },
 
@@ -288,15 +554,17 @@ const LandingHero = {
       if (seeds.length === 0) {
         this.renderNodeList([], "No live nodes available yet.")
         this.setDetailLoading("No nodes found from /v1/nodes.")
+        this.renderSkyTree([])
         return
       }
 
-      await this.activateSeed(seeds[0])
+      await this.activateSeed(seeds[0], {skipSkyLift: true})
     } catch (error) {
       console.error("Node bootstrap failed", error)
       this.renderSeedRoots([])
       this.renderNodeList([], "Unable to load node graph right now.")
       this.setDetailLoading("Graph API unavailable.")
+      this.renderSkyTree([])
     }
   },
 
@@ -321,6 +589,8 @@ const LandingHero = {
 
     this.visibleNodes = nodes
     this.renderNodeList(nodes, `No nodes published for ${seed} yet.`)
+    this.renderSkyTree(nodes)
+    this.renderSkyMeta()
 
     const keepNodeId = options.keepCurrent === true ? this.selectedNodeId : null
     const selectableNode =
@@ -341,11 +611,60 @@ const LandingHero = {
     }
 
     const seed = target.getAttribute("data-seed")
-    if (!seed || seed === this.selectedSeed) {
+    const orbKey = target.getAttribute("data-orb-key")
+    if (!seed) {
+      return
+    }
+
+    this.selectedOrbKey = orbKey
+
+    if (seed === this.selectedSeed) {
+      this.highlightSelectedSeedOrb()
+      this.setView("sky")
       return
     }
 
     this.activateSeed(seed)
+      .then(() => this.setView("sky"))
+      .catch((error) => {
+        console.error("Seed activation failed", error)
+      })
+  },
+
+  onSeedHover(event) {
+    if (this.reduceMotion) {
+      return
+    }
+
+    const target = event.target.closest(".tt-seed-orb")
+    if (!target) {
+      return
+    }
+
+    animate(target, {
+      scale: [1, 1.08],
+      translateY: [0, -2],
+      duration: 220,
+      ease: "outQuad",
+    })
+  },
+
+  onSeedLeave(event) {
+    if (this.reduceMotion) {
+      return
+    }
+
+    const target = event.target.closest(".tt-seed-orb")
+    if (!target) {
+      return
+    }
+
+    animate(target, {
+      scale: [1.08, 1],
+      translateY: [-2, 0],
+      duration: 220,
+      ease: "outQuad",
+    })
   },
 
   onSearchInput(event) {
@@ -368,6 +687,7 @@ const LandingHero = {
       const searchNodes = this.normalizeNodes(data?.nodes || [])
       this.visibleNodes = searchNodes
       this.renderNodeList(searchNodes, "No node matches that query.")
+      this.renderSkyTree(searchNodes)
 
       if (searchNodes.length > 0) {
         await this.selectNode(searchNodes[0].id)
@@ -378,6 +698,7 @@ const LandingHero = {
     } catch (error) {
       console.error("Node search failed", error)
       this.renderNodeList([], "Search temporarily unavailable.")
+      this.renderSkyTree([])
     }
   },
 
@@ -423,8 +744,8 @@ const LandingHero = {
 
       animate(this.detailCard, {
         opacity: [0.45, 1],
-        translateY: [14, 0],
-        duration: 360,
+        translateY: [12, 0],
+        duration: 320,
         ease: "outQuad",
       })
     } catch (error) {
@@ -450,13 +771,21 @@ const LandingHero = {
 
   normalizeNode(node) {
     const source = node || {}
+    const path = cleanText(source.path, "")
 
     return {
       id: source.id == null ? null : String(source.id),
-      seed: String(source.seed || "Unknown"),
-      kind: String(source.kind || "node"),
+      parent_id: source.parent_id == null ? null : String(source.parent_id),
+      seed: cleanText(source.seed, "Unknown"),
+      kind: cleanText(source.kind, "node"),
       title: cleanText(source.title, "Untitled node"),
       summary: cleanText(source.summary, "No summary provided."),
+      path,
+      depth: Number.isFinite(Number(source.depth))
+        ? Number(source.depth)
+        : path
+          ? Math.max(0, path.split(".").length - 1)
+          : 0,
       child_count: Number(source.child_count || 0),
       comment_count: Number(source.comment_count || 0),
       watcher_count: Number(source.watcher_count || 0),
@@ -477,29 +806,97 @@ const LandingHero = {
     }))
   },
 
+  buildSeedSlots(seeds) {
+    const uniqueSeeds = Array.from(new Set((seeds || []).filter(Boolean)))
+
+    if (uniqueSeeds.length === 0) {
+      return Array.from({length: ORB_SLOT_COUNT}, (_, index) => ({
+        seed: `Seed ${index + 1}`,
+        tone: ORB_TONES[index % ORB_TONES.length],
+        disabled: true,
+        orbKey: `empty:${index}`,
+      }))
+    }
+
+    const filled = [...uniqueSeeds.slice(0, ORB_SLOT_COUNT)]
+    let index = 0
+    while (filled.length < ORB_SLOT_COUNT) {
+      filled.push(uniqueSeeds[index % uniqueSeeds.length])
+      index += 1
+    }
+
+    return filled.map((seed, slotIndex) => ({
+      seed,
+      tone: ORB_TONES[slotIndex % ORB_TONES.length],
+      disabled: false,
+      orbKey: `${seed}:${slotIndex}`,
+    }))
+  },
+
   renderSeedRoots(seeds) {
     if (!this.seedRoots) {
       return
     }
 
+    const slots = this.buildSeedSlots(seeds)
     this.seedRoots.replaceChildren()
 
-    if (!Array.isArray(seeds) || seeds.length === 0) {
-      const empty = document.createElement("p")
-      empty.className = "tt-empty-state"
-      empty.textContent = "Seed roots unavailable."
-      this.seedRoots.append(empty)
-      return
-    }
-
-    seeds.forEach((seed) => {
+    slots.forEach((slot) => {
       const button = document.createElement("button")
       button.type = "button"
-      button.className = "tt-seed-pill"
-      button.setAttribute("data-seed", seed)
-      button.setAttribute("data-active", String(seed === this.selectedSeed))
-      button.textContent = seed
+      button.className = "tt-seed-orb tooltip"
+      button.setAttribute("data-tip", slot.seed)
+      button.setAttribute("data-seed", slot.seed)
+      button.setAttribute("data-tone", slot.tone)
+      button.setAttribute("data-orb-key", slot.orbKey)
+      button.setAttribute("data-active", "false")
+      button.setAttribute("aria-label", `Select seed ${slot.seed}`)
+
+      if (slot.disabled) {
+        button.setAttribute("disabled", "disabled")
+      }
+
       this.seedRoots.append(button)
+    })
+
+    if (this.selectedSeed) {
+      const hasOrbKey = slots.some((slot) => slot.orbKey === this.selectedOrbKey)
+      if (!hasOrbKey) {
+        const firstForSeed = slots.find((slot) => slot.seed === this.selectedSeed)
+        this.selectedOrbKey = firstForSeed?.orbKey || null
+      }
+    }
+
+    this.highlightSelectedSeedOrb()
+
+    const seedButtons = this.seedRoots.querySelectorAll(".tt-seed-orb")
+    if (seedButtons.length > 0 && !this.reduceMotion) {
+      animate(seedButtons, {
+        opacity: [0, 1],
+        scale: [0.86, 1],
+        duration: 420,
+        delay: stagger(70),
+        ease: "outCubic",
+      })
+
+      animate(seedButtons, {
+        translateY: [0, -4],
+        duration: 2400,
+        delay: stagger(130),
+        direction: "alternate",
+        loop: true,
+        ease: "inOutSine",
+      })
+    }
+  },
+
+  highlightSelectedSeedOrb() {
+    const orbs = this.seedRoots?.querySelectorAll(".tt-seed-orb") || []
+    orbs.forEach((orb) => {
+      const sameOrb = this.selectedOrbKey && orb.getAttribute("data-orb-key") === this.selectedOrbKey
+      const sameSeed = orb.getAttribute("data-seed") === this.selectedSeed
+      const active = this.selectedOrbKey ? sameOrb : sameSeed
+      orb.setAttribute("data-active", String(Boolean(active)))
     })
   },
 
@@ -521,6 +918,7 @@ const LandingHero = {
     nodes.forEach((node) => {
       const item = document.createElement("li")
       const button = document.createElement("button")
+      const head = document.createElement("span")
       const title = document.createElement("span")
 
       button.type = "button"
@@ -528,10 +926,14 @@ const LandingHero = {
       button.setAttribute("data-node-id", String(node.id))
       button.setAttribute("data-active", String(String(node.id) === String(this.selectedNodeId)))
       button.setAttribute("aria-label", `${node.seed} ${node.kind} ${node.title}`)
+
+      head.className = "tt-node-meta"
+      head.textContent = `${node.kind} • ${node.seed}`
+
       title.className = "tt-node-title"
       title.textContent = node.title
 
-      button.append(title)
+      button.append(head, title)
       item.append(button)
       this.nodeList.append(item)
     })
@@ -540,9 +942,90 @@ const LandingHero = {
     if (items.length > 0) {
       animate(items, {
         opacity: [0, 1],
-        translateY: [10, 0],
-        duration: 340,
-        delay: stagger(40),
+        translateY: [8, 0],
+        duration: 280,
+        delay: stagger(28),
+        ease: "outQuad",
+      })
+    }
+  },
+
+  renderSkyMeta() {
+    if (this.skySeed) {
+      this.skySeed.textContent = this.selectedSeed ? `Seed • ${this.selectedSeed}` : "Seed • None"
+    }
+  },
+
+  renderSkyTree(nodes) {
+    if (!this.skyTreeGraph) {
+      return
+    }
+
+    this.skyTreeGraph.replaceChildren()
+
+    if (!Array.isArray(nodes) || nodes.length === 0) {
+      const placeholder = document.createElement("div")
+      placeholder.className = "tt-sky-placeholder"
+      placeholder.innerHTML = '<span class="loading loading-ring loading-lg"></span><p>No tree nodes available for this view.</p>'
+      this.skyTreeGraph.append(placeholder)
+      return
+    }
+
+    const list = document.createElement("ul")
+    list.className = "tt-sky-tree-list"
+
+    const visibleNodes = nodes.slice(0, 48)
+
+    visibleNodes.forEach((node) => {
+      const item = document.createElement("li")
+      item.className = "tt-sky-node-row"
+      item.style.setProperty("--node-depth", String(Math.max(0, Number(node.depth || 0))))
+
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "tt-sky-node"
+      button.setAttribute("data-node-id", String(node.id))
+      button.setAttribute("data-active", String(String(node.id) === String(this.selectedNodeId)))
+
+      const kindBadge = document.createElement("span")
+      kindBadge.className = "badge badge-ghost badge-xs"
+      kindBadge.textContent = node.kind
+
+      const titleText = document.createElement("span")
+      titleText.textContent = node.title
+
+      button.append(kindBadge, titleText)
+
+      item.append(button)
+      list.append(item)
+    })
+
+    if (visibleNodes.length > 0 && visibleNodes.length < 7) {
+      const ghostCount = 7 - visibleNodes.length
+      const seedLabel = this.selectedSeed || visibleNodes[0].seed || "seed"
+
+      Array.from({length: ghostCount}, (_, index) => index).forEach((index) => {
+        const row = document.createElement("li")
+        row.className = "tt-sky-node-row"
+        row.style.setProperty("--node-depth", String((index % 3) + 1))
+
+        const ghost = document.createElement("span")
+        ghost.className = "tt-sky-node tt-sky-node-ghost"
+        ghost.textContent = `${seedLabel} branch ${index + 1}`
+        row.append(ghost)
+        list.append(row)
+      })
+    }
+
+    this.skyTreeGraph.append(list)
+
+    if (!this.reduceMotion) {
+      const rows = list.querySelectorAll(".tt-sky-node")
+      animate(rows, {
+        opacity: [0, 1],
+        translateX: [-10, 0],
+        duration: 380,
+        delay: stagger(24),
         ease: "outQuad",
       })
     }
@@ -550,6 +1033,9 @@ const LandingHero = {
 
   highlightSelectedNode() {
     this.nodeList?.querySelectorAll("[data-node-id]").forEach((el) => {
+      el.setAttribute("data-active", String(el.getAttribute("data-node-id") === this.selectedNodeId))
+    })
+    this.skyTreeGraph?.querySelectorAll("[data-node-id]").forEach((el) => {
       el.setAttribute("data-active", String(el.getAttribute("data-node-id") === this.selectedNodeId))
     })
   },
@@ -566,7 +1052,16 @@ const LandingHero = {
     this.detailCommentCount.textContent = String(node.comment_count)
     this.detailWatcherCount.textContent = String(node.watcher_count)
     this.detailUpdated.textContent = formatTimestamp(node.updated_at)
+
+    if (this.skyTitle) {
+      this.skyTitle.textContent = node.title
+    }
+    if (this.skySummary) {
+      this.skySummary.textContent = node.summary
+    }
+
     this.updateWatchUi()
+    this.highlightSelectedNode()
   },
 
   setDetailLoading(message) {
@@ -577,6 +1072,14 @@ const LandingHero = {
     this.detailCommentCount.textContent = "-"
     this.detailWatcherCount.textContent = "-"
     this.detailUpdated.textContent = "-"
+
+    if (this.skyTitle) {
+      this.skyTitle.textContent = "Tree Canopy"
+    }
+    if (this.skySummary) {
+      this.skySummary.textContent = message
+    }
+
     this.updateWatchUi()
   },
 
@@ -612,12 +1115,52 @@ const LandingHero = {
     if (commentItems.length > 0) {
       animate(commentItems, {
         opacity: [0, 1],
-        translateX: [-10, 0],
-        duration: 300,
-        delay: stagger(35),
+        translateX: [-8, 0],
+        duration: 260,
+        delay: stagger(24),
         ease: "outQuad",
       })
     }
+  },
+
+  onCopyCurl() {
+    const code = this.curlTarget?.querySelector("pre code")
+    if (!code?.textContent) {
+      return
+    }
+
+    const value = code.textContent.trim()
+    if (value.length === 0) {
+      return
+    }
+
+    navigator.clipboard?.writeText(value).then(() => {
+      if (!this.copyCurlButton) {
+        return
+      }
+
+      const previous = this.copyCurlButton.textContent
+      this.copyCurlButton.textContent = "Copied"
+
+      if (!this.reduceMotion) {
+        animate(this.copyCurlButton, {
+          scale: [0.92, 1.07, 1],
+          duration: 280,
+          ease: "outBack",
+        })
+      }
+
+      window.setTimeout(() => {
+        this.copyCurlButton.textContent = previous || "Copy"
+      }, 1400)
+    }).catch(() => {
+      if (this.copyCurlButton) {
+        this.copyCurlButton.textContent = "Copy failed"
+        window.setTimeout(() => {
+          this.copyCurlButton.textContent = "Copy"
+        }, 1400)
+      }
+    })
   },
 
   async onWatchToggle() {
@@ -782,7 +1325,7 @@ const LandingHero = {
         opacity: [0, 1],
         translateY: [8, 0],
         duration: 280,
-        delay: stagger(30),
+        delay: stagger(24),
         ease: "outQuad",
       })
     }
@@ -1062,7 +1605,7 @@ const LandingHero = {
             : "Read is public. Login with Privy to join Human Chat."
 
     if (this.trollboxAccess) {
-      this.trollboxAccess.textContent = `membership: ${membership} | state: ${state} | read: ${readVisibility} | join: ${joinVisibility} | post: ${postVisibility} | ${notice}`
+      this.trollboxAccess.textContent = `membership: ${membership} | state: ${state}`
     }
     if (this.trollboxVisibilityRead) this.trollboxVisibilityRead.textContent = readVisibility
     if (this.trollboxVisibilityJoin) this.trollboxVisibilityJoin.textContent = joinVisibility
@@ -1185,22 +1728,10 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-// The lines below enable quality of life phoenix_live_reload
-// development features:
-//
-//     1. stream server logs to the browser console
-//     2. click on elements to jump to their definitions in your code editor
-//
 if (process.env.NODE_ENV === "development") {
   window.addEventListener("phx:live_reload:attached", ({detail: reloader}) => {
-    // Enable server log streaming to client.
-    // Disable with reloader.disableServerLogs()
     reloader.enableServerLogs()
 
-    // Open configured PLUG_EDITOR at file:line of the clicked element's HEEx component
-    //
-    //   * click with "c" key pressed to open at caller location
-    //   * click with "d" key pressed to open at function component definition location
     let keyDown
     window.addEventListener("keydown", e => keyDown = e.key)
     window.addEventListener("keyup", _e => keyDown = null)

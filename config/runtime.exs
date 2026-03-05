@@ -64,8 +64,11 @@ end
 config :tech_tree, TechTreeWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
-config :tech_tree, :dragonfly_host, System.get_env("DRAGONFLY_HOST", "localhost")
-config :tech_tree, :dragonfly_port, String.to_integer(System.get_env("DRAGONFLY_PORT", "6379"))
+dragonfly_enabled_env = env_or_dotenv.("DRAGONFLY_ENABLED", "true") |> String.downcase()
+
+config :tech_tree, :dragonfly_host, env_or_dotenv.("DRAGONFLY_HOST", "localhost")
+config :tech_tree, :dragonfly_port, String.to_integer(env_or_dotenv.("DRAGONFLY_PORT", "6379"))
+config :tech_tree, :dragonfly_enabled, dragonfly_enabled_env in ["1", "true", "yes", "on"]
 
 config :tech_tree, :privy,
   app_id: env_or_dotenv.("PRIVY_APP_ID", ""),

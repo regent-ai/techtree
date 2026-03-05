@@ -11,16 +11,17 @@ defmodule TechTree.Application do
   @impl true
   def start(_type, _args) do
     :ok = enforce_siwa_http_verify_runtime_guard!()
+    dragonfly_children = if dragonfly_enabled?(), do: [dragonfly_child_spec()], else: []
 
-    children = [
-      TechTreeWeb.Telemetry,
-      TechTree.Repo,
-      {DNSCluster, query: Application.get_env(:tech_tree, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: TechTree.PubSub},
-      dragonfly_child_spec(),
-      {Oban, Application.fetch_env!(:tech_tree, Oban)},
-      TechTreeWeb.Endpoint
-    ]
+    children =
+      [
+        TechTreeWeb.Telemetry,
+        TechTree.Repo,
+        {DNSCluster, query: Application.get_env(:tech_tree, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: TechTree.PubSub},
+        {Oban, Application.fetch_env!(:tech_tree, Oban)},
+        TechTreeWeb.Endpoint
+      ] ++ dragonfly_children
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -57,6 +58,11 @@ defmodule TechTree.Application do
   @spec dragonfly_child_spec() :: Supervisor.child_spec()
   defp dragonfly_child_spec do
     {Redix, name: :dragonfly, host: dragonfly_host(), port: dragonfly_port()}
+  end
+
+  @spec dragonfly_enabled?() :: boolean()
+  defp dragonfly_enabled? do
+    Application.get_env(:tech_tree, :dragonfly_enabled, true) == true
   end
 
   @spec dragonfly_host() :: String.t()

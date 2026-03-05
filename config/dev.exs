@@ -1,7 +1,48 @@
 import Config
 
+dotenv_values =
+  Path.expand("../.env", __DIR__)
+  |> File.read()
+  |> case do
+    {:ok, contents} ->
+      contents
+      |> String.split("\n")
+      |> Enum.reduce(%{}, fn line, acc ->
+        trimmed = String.trim(line)
+
+        cond do
+          trimmed == "" or String.starts_with?(trimmed, "#") ->
+            acc
+
+          true ->
+            case String.split(trimmed, "=", parts: 2) do
+              [key, value] ->
+                normalized =
+                  value
+                  |> String.trim()
+                  |> String.trim_leading("\"")
+                  |> String.trim_trailing("\"")
+                  |> String.trim_leading("'")
+                  |> String.trim_trailing("'")
+
+                Map.put(acc, String.trim(key), normalized)
+
+              _ ->
+                acc
+            end
+        end
+      end)
+
+    _ ->
+      %{}
+  end
+
+env_or_dotenv = fn key, default ->
+  System.get_env(key) || Map.get(dotenv_values, key, default)
+end
+
 # Configure your database
-database_url = System.get_env("DATABASE_URL")
+database_url = env_or_dotenv.("LOCAL_DATABASE_URL", env_or_dotenv.("DATABASE_URL", ""))
 
 if is_binary(database_url) and String.trim(database_url) != "" do
   neon_ssl_required =
@@ -15,11 +56,13 @@ if is_binary(database_url) and String.trim(database_url) != "" do
     show_sensitive_data_on_connection_error: true,
     pool_size: 10
 else
-  db_user = System.get_env("DB_USER") || System.get_env("PGUSER") || System.get_env("USER") || "postgres"
-  db_pass = System.get_env("DB_PASS") || System.get_env("PGPASSWORD") || ""
-  db_host = System.get_env("DB_HOST") || System.get_env("PGHOST") || "localhost"
-  db_port = System.get_env("DB_PORT") || System.get_env("PGPORT") || "5432"
-  db_name = System.get_env("DB_NAME") || "tech_tree_dev"
+  db_user =
+    env_or_dotenv.("DB_USER", env_or_dotenv.("PGUSER", System.get_env("USER") || "postgres"))
+
+  db_pass = env_or_dotenv.("DB_PASS", env_or_dotenv.("PGPASSWORD", ""))
+  db_host = env_or_dotenv.("DB_HOST", env_or_dotenv.("PGHOST", "localhost"))
+  db_port = env_or_dotenv.("DB_PORT", env_or_dotenv.("PGPORT", "5432"))
+  db_name = env_or_dotenv.("DB_NAME", "tech_tree_dev")
 
   config :tech_tree, TechTree.Repo,
     username: db_user,

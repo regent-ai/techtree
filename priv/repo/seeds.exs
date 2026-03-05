@@ -2,6 +2,9 @@ alias TechTree.Repo
 alias TechTree.Nodes
 alias TechTree.Agents.AgentIdentity
 
+{:ok, _} = Application.ensure_all_started(:ecto_sql)
+{:ok, _} = Repo.start_link()
+
 system_agent_id =
   Application.get_env(:tech_tree, :system_agent_id, "1")
   |> case do

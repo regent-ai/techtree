@@ -2,12 +2,50 @@
 
 To start your Phoenix server:
 
-* Run `mix setup` to install and setup dependencies
+* Run `./scripts/dev_setup.sh` to install deps, migrate, seed, and build assets using `LOCAL_DATABASE_URL`
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+
+## Local setup notes
+
+- `config/dev.exs` now resolves database configuration from `.env` for local tasks.
+- `LOCAL_DATABASE_URL` is preferred for local dev tasks (`mix setup`, `mix ecto.setup`).
+- If `.env` is missing `LOCAL_DATABASE_URL`, the setup script falls back to:
+  `ecto://$USER:@localhost/tech_tree_dev`.
+
+## Fly.io deployment (managed Postgres)
+
+Prereqs:
+
+```bash
+curl -L https://fly.io/install.sh | sh
+export PATH="$HOME/.fly/bin:$PATH"
+flyctl auth login
+```
+
+Deploy:
+
+```bash
+# optional overrides
+export FLY_APP_NAME=techtree-regent
+export FLY_REGION=iad
+export FLY_MPG_PLAN=development
+# optional org (if not using your personal org)
+export FLY_ORG=your-org-slug
+
+./scripts/fly_deploy.sh
+```
+
+What the script does:
+
+- creates the Fly app if missing
+- creates a Fly Managed Postgres cluster if missing
+- attaches managed Postgres to the app
+- sets required secrets (`SECRET_KEY_BASE`, `PHX_SERVER`, `PHX_HOST`, `PORT`)
+- deploys using `fly.toml`
 
 ## Base anchoring runtime config
 

@@ -1,0 +1,13 @@
+.git
+.gitignore
+_build
+deps
+cover
+tmp
+node_modules
+npm-debug.log
+assets/node_modules
+priv/static/assets
+.env
+.env.*
+fly.toml.bak

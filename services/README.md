@@ -9,7 +9,7 @@ Strict TypeScript workspace for sidecar services under `techtree/services`.
   - `POST /v1/verify`
   - `POST /v1/http-verify` (internal trusted path with HMAC middleware)
 - `xmtp-worker`: XMTP mirror worker with a single ingestion `for await` loop in `src/sync.ts`.
-  - Uses Phoenix internal endpoints under `/api/internal/xmtp/*` for room sync, message mirroring, and membership command lease/complete/fail.
+  - Uses Phoenix internal endpoints under `/api/internal/xmtp/*` for room ensure, message ingest, and membership command lease/resolve.
   - Supports:
     - Built-in real XMTP transport via `@xmtp/node-sdk` + signer private key.
     - External real transport adapter module (`XMTP_REAL_TRANSPORT_MODULE`).
@@ -42,12 +42,16 @@ cd siwa-sidecar && bun run validate:vectors
 - `XMTP_REAL_TRANSPORT_MODULE` (optional external adapter module path)
 - `XMTP_ENV` (`dev` \| `production`, default: `dev`)
 - `XMTP_WALLET_PRIVATE_KEY` (required for built-in real transport)
-- `XMTP_DB_ENCRYPTION_KEY` (required for built-in real transport)
+- `XMTP_DB_ENCRYPTION_KEY` (required for built-in real transport; keep this stable so the XMTP local DB remains readable across restarts)
 - `XMTP_SDK_MODULE` (default: `@xmtp/node-sdk`)
 - `XMTP_ETHERS_MODULE` (default: `ethers`)
 - `XMTP_CREATE_GROUP_IF_MISSING` (default: `true`)
 - `XMTP_REQUIRE_CONSENT` (default: `false`)
 - `XMTP_CONSENT_PROOF_ENDPOINT` (optional HTTP endpoint for inbox consent checks)
+- `XMTP_ROOM_ENSURE_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/rooms/ensure`)
+- `XMTP_MESSAGE_INGEST_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/messages/ingest`)
+- `XMTP_LEASE_MEMBERSHIP_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/commands/lease`)
+- `XMTP_RESOLVE_MEMBERSHIP_ENDPOINT_TEMPLATE` (default: `${PHOENIX_INTERNAL_URL}/xmtp/commands/:id/resolve`)
 
 ## SIWA Sidecar Env
 

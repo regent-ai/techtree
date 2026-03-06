@@ -4,9 +4,11 @@ import type {
   Decoder,
   MembershipCommand,
   MembershipOp,
+  MembershipResolutionStatus,
+  MirrorIngestPayload,
   MirrorResult,
-  MirrorUpsertPayload,
-  RoomUpsertPayload,
+  RoomEnsurePayload,
+  TrollboxShard,
 } from "./types.js";
 
 interface RequestOptions {
@@ -16,9 +18,11 @@ interface RequestOptions {
 
 interface RoomWire {
   room_key: string;
+  shard_key?: string;
   xmtp_group_id: string | null;
   name: string;
   status: string;
+  presence_ttl_seconds?: number;
 }
 
 interface MembershipWire {
@@ -81,17 +85,38 @@ const decodeRoom = (value: unknown): CanonicalRoom => {
 
   const room = value as Partial<RoomWire>;
 
+  const presenceTtlSeconds =
+    typeof room.presence_ttl_seconds === "number" && Number.isFinite(room.presence_ttl_seconds)
+      ? Math.trunc(room.presence_ttl_seconds)
+      : null;
+
   return {
     roomKey: getString(room.room_key, "room_key"),
     xmtpGroupId: getNullableString(room.xmtp_group_id, "xmtp_group_id"),
     name: getString(room.name, "name"),
     status: getString(room.status, "status"),
+    ...(presenceTtlSeconds === null ? {} : { presenceTtlSeconds }),
   };
 };
 
-const decodeOptionalRoom = (value: unknown): CanonicalRoom | null => {
-  if (value === null) return null;
-  return decodeRoom(value);
+const decodeShards = (value: unknown): TrollboxShard[] => {
+  if (!Array.isArray(value)) {
+    throw new Error("invalid shard list payload");
+  }
+
+  return value.map((item) => {
+    const decoded = decodeRoom(item);
+    const record = isRecord(item) ? (item as Partial<RoomWire>) : {};
+    const shardKeyCandidate =
+      typeof record.shard_key === "string" && record.shard_key.length > 0
+        ? record.shard_key
+        : decoded.roomKey;
+
+    return {
+      ...decoded,
+      shardKey: shardKeyCandidate,
+    };
+  });
 };
 
 const decodeMembershipCommand = (value: unknown): MembershipCommand | null => {
@@ -132,7 +157,7 @@ const decodeMirror = (value: unknown): MirrorResult => {
 };
 
 const resolveTemplate = (template: string, value: string): string => {
-  return template.replace(":id", encodeURIComponent(value)).replace(":roomKey", encodeURIComponent(value));
+  return template.replace(":id", encodeURIComponent(value));
 };
 
 const request = async <T>(
@@ -190,22 +215,21 @@ const request = async <T>(
   return decodeEnvelope(payload, decodeData);
 };
 
-export const getCanonicalRoom = async (roomKey: string): Promise<CanonicalRoom | null> => {
-  const endpoint = resolveTemplate(config.roomLookupEndpointTemplate, roomKey);
-  return request(endpoint, "GET", decodeOptionalRoom);
+export const ensureCanonicalRoom = async (
+  payload: RoomEnsurePayload,
+): Promise<CanonicalRoom> => {
+  return request(config.roomEnsureEndpoint, "POST", decodeRoom, payload);
 };
 
-export const upsertCanonicalRoom = async (
-  payload: RoomUpsertPayload,
-): Promise<CanonicalRoom> => {
-  return request(config.roomUpsertEndpoint, "POST", decodeRoom, payload);
+export const listShardRooms = async (): Promise<TrollboxShard[]> => {
+  return request(config.shardListEndpoint, "GET", decodeShards);
 };
 
 export const postMirroredMessage = async (
-  payload: MirrorUpsertPayload,
+  payload: MirrorIngestPayload,
 ): Promise<MirrorResult> => {
   try {
-    const mirrored = await request(config.mirrorEndpoint, "POST", decodeMirror, payload, {
+    const mirrored = await request(config.messageIngestEndpoint, "POST", decodeMirror, payload, {
       allowStatuses: [409],
     });
 
@@ -231,24 +255,21 @@ export const leaseMembershipCommand = async (
   });
 };
 
-export const completeMembershipCommand = async (commandId: string): Promise<void> => {
-  const endpoint = resolveTemplate(config.completeMembershipEndpointTemplate, commandId);
-  await request(endpoint, "POST", () => undefined, undefined, {
+export const resolveMembershipCommand = async (
+  commandId: string,
+  status: MembershipResolutionStatus,
+  error?: string,
+): Promise<void> => {
+  const endpoint = resolveTemplate(config.resolveMembershipEndpointTemplate, commandId);
+  const payload: { status: MembershipResolutionStatus; error?: string } =
+    status === "failed"
+      ? typeof error === "string"
+        ? { status, error }
+        : { status }
+      : { status };
+
+  await request(endpoint, "POST", () => undefined, payload, {
     allowStatuses: [404, 409],
     expectEnvelope: false,
   });
-};
-
-export const failMembershipCommand = async (
-  commandId: string,
-  message: string,
-): Promise<void> => {
-  const endpoint = resolveTemplate(config.failMembershipEndpointTemplate, commandId);
-  await request(
-    endpoint,
-    "POST",
-    () => undefined,
-    { error: message },
-    { allowStatuses: [404, 409], expectEnvelope: false },
-  );
 };

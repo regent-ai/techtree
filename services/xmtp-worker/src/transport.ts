@@ -92,6 +92,7 @@ class DeterministicMockTransport implements IngestionTransport {
           receivedAtMs: Date.now(),
           payload: {
             topic: this.config.canonicalRoomKey,
+            roomKey: this.config.canonicalRoomKey,
             sender: `mock-inbox-${(this.messageSequence % 3) + 1}`,
             body: `mock message ${this.messageSequence}`,
           },

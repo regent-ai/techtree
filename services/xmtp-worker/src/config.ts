@@ -81,23 +81,20 @@ export const loadConfig = (): WorkerConfig => {
     canonicalRoomName: process.env.XMTP_CANONICAL_ROOM_NAME || "Tech Tree Trollbox",
     canonicalRoomGroupId: process.env.XMTP_CANONICAL_ROOM_GROUP_ID || `xmtp-${canonicalRoomKey}`,
     internalSharedSecret: process.env.INTERNAL_SHARED_SECRET || "",
-    roomLookupEndpointTemplate:
-      process.env.XMTP_ROOM_LOOKUP_ENDPOINT ||
-      `${phoenixInternalUrl}/xmtp/rooms/:roomKey`,
-    roomUpsertEndpoint:
-      process.env.XMTP_ROOM_UPSERT_ENDPOINT ||
-      `${phoenixInternalUrl}/xmtp/rooms/upsert`,
-    mirrorEndpoint:
-      process.env.XMTP_MIRROR_ENDPOINT ||
-      `${phoenixInternalUrl}/xmtp/messages/upsert`,
+    roomEnsureEndpoint:
+      process.env.XMTP_ROOM_ENSURE_ENDPOINT ||
+      `${phoenixInternalUrl}/xmtp/rooms/ensure`,
+    shardListEndpoint:
+      process.env.XMTP_SHARD_LIST_ENDPOINT ||
+      `${phoenixInternalUrl}/xmtp/shards`,
+    messageIngestEndpoint:
+      process.env.XMTP_MESSAGE_INGEST_ENDPOINT ||
+      `${phoenixInternalUrl}/xmtp/messages/ingest`,
     leaseMembershipEndpoint:
       process.env.XMTP_LEASE_MEMBERSHIP_ENDPOINT ||
       `${phoenixInternalUrl}/xmtp/commands/lease`,
-    completeMembershipEndpointTemplate:
-      process.env.XMTP_COMPLETE_MEMBERSHIP_ENDPOINT_TEMPLATE ||
-      `${phoenixInternalUrl}/xmtp/commands/:id/complete`,
-    failMembershipEndpointTemplate:
-      process.env.XMTP_FAIL_MEMBERSHIP_ENDPOINT_TEMPLATE ||
-      `${phoenixInternalUrl}/xmtp/commands/:id/fail`,
+    resolveMembershipEndpointTemplate:
+      process.env.XMTP_RESOLVE_MEMBERSHIP_ENDPOINT_TEMPLATE ||
+      `${phoenixInternalUrl}/xmtp/commands/:id/resolve`,
   };
 };

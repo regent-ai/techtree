@@ -241,7 +241,7 @@ const verifySignedSiwaMessage = async (
 
 const parseReceiptFromHeaders = (
   headers: Record<string, string>,
-): Result<{ token: string; source: "x-siwa-receipt" | "authorization" }, "invalid"> => {
+): Result<{ token: string }, "invalid"> => {
   const siwaReceipt = headers["x-siwa-receipt"];
   if (typeof siwaReceipt === "string" && siwaReceipt.trim() !== "") {
     const trimmed = siwaReceipt.trim();
@@ -250,7 +250,6 @@ const parseReceiptFromHeaders = (
       ok: true,
       value: {
         token: parsedFromReceiptHeader.ok ? parsedFromReceiptHeader.value : trimmed,
-        source: "x-siwa-receipt",
       },
     };
   }
@@ -269,7 +268,6 @@ const parseReceiptFromHeaders = (
     ok: true,
     value: {
       token: parsed.value,
-      source: "authorization",
     },
   };
 };

@@ -1,5 +1,6 @@
 export type StreamSource = "xmtp";
 export type MembershipOp = "add_member" | "remove_member";
+export type MembershipResolutionStatus = "done" | "failed";
 export type SenderType = "human" | "agent" | "system";
 export type TransportMode = "auto" | "mock" | "real";
 export type RuntimeTransportMode = "mock" | "real";
@@ -11,6 +12,9 @@ export interface IngestionMessageEvent {
   receivedAtMs: number;
   payload: {
     topic: string;
+    roomKey?: string;
+    replyToMessageId?: string | null;
+    reactions?: Record<string, number>;
     sender: string;
     body: string;
   };
@@ -45,16 +49,22 @@ export interface CanonicalRoom {
   xmtpGroupId: string | null;
   name: string;
   status: string;
+  presenceTtlSeconds?: number;
 }
 
-export interface RoomUpsertPayload {
+export interface TrollboxShard extends CanonicalRoom {
+  shardKey: string;
+}
+
+export interface RoomEnsurePayload {
   room_key: string;
   xmtp_group_id: string;
   name: string;
   status: "active" | "inactive";
+  presence_ttl_seconds?: number;
 }
 
-export interface MirrorUpsertPayload {
+export interface MirrorIngestPayload {
   room_key: string;
   xmtp_message_id: string;
   sender_inbox_id: string;
@@ -63,24 +73,18 @@ export interface MirrorUpsertPayload {
   sender_type: SenderType;
   body: string;
   sent_at: string;
+  reply_to_message_id?: string | number | null;
+  reactions?: Record<string, number>;
   raw_payload: {
     source: StreamSource;
     topic: string;
+    roomKey?: string;
+    replyToMessageId?: string | null;
+    reactions?: Record<string, number>;
     sender: string;
     body: string;
     receivedAtMs: number;
   };
-}
-
-export interface PhoenixApiErrorPayload {
-  message?: string;
-}
-
-export interface PhoenixApiEnvelope<T> {
-  data: T;
-  code?: string;
-  ok?: boolean;
-  error?: PhoenixApiErrorPayload;
 }
 
 export type Decoder<T> = (value: unknown) => T;
@@ -105,12 +109,11 @@ export interface WorkerConfig {
   canonicalRoomName: string;
   canonicalRoomGroupId: string;
   internalSharedSecret: string;
-  roomLookupEndpointTemplate: string;
-  roomUpsertEndpoint: string;
-  mirrorEndpoint: string;
+  roomEnsureEndpoint: string;
+  shardListEndpoint: string;
+  messageIngestEndpoint: string;
   leaseMembershipEndpoint: string;
-  completeMembershipEndpointTemplate: string;
-  failMembershipEndpointTemplate: string;
+  resolveMembershipEndpointTemplate: string;
 }
 
 export interface CreateEventStreamOptions {

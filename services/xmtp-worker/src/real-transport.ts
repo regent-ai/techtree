@@ -119,7 +119,11 @@ const toUnixMs = (value: unknown): number => {
   return Date.now();
 };
 
-const toMessageEvent = (message: unknown, expectedConversationId: string): IngestionMessageEvent | null => {
+const toMessageEvent = (
+  message: unknown,
+  expectedConversationId: string,
+  roomKey: string,
+): IngestionMessageEvent | null => {
   const record = asRecord(message);
   if (!record) {
     return null;
@@ -174,6 +178,7 @@ const toMessageEvent = (message: unknown, expectedConversationId: string): Inges
     receivedAtMs,
     payload: {
       topic: expectedConversationId,
+      roomKey,
       sender,
       body,
     },
@@ -267,6 +272,7 @@ class RealXmtpTransport implements IngestionTransport {
   public readonly name = "xmtp-node-sdk";
 
   private seenMessageIds = new Set<string>();
+  private readonly conversationsById = new Map<string, XmtpConversationLike>();
 
   public constructor(
     private readonly config: WorkerConfig,
@@ -274,7 +280,9 @@ class RealXmtpTransport implements IngestionTransport {
     private readonly client: XmtpClientLike,
     private readonly canonicalConversation: XmtpConversationLike,
     private readonly canonicalConversationId: string,
-  ) {}
+  ) {
+    this.conversationsById.set(canonicalConversationId, canonicalConversation);
+  }
 
   public getCanonicalGroupId(): string {
     return this.canonicalConversationId;
@@ -288,7 +296,11 @@ class RealXmtpTransport implements IngestionTransport {
           break;
         }
 
-        const event = toMessageEvent(message, this.canonicalConversationId);
+        const event = toMessageEvent(
+          message,
+          this.canonicalConversationId,
+          this.config.canonicalRoomKey,
+        );
         if (event && !this.markSeen(event.id)) {
           yield event;
         }
@@ -302,15 +314,15 @@ class RealXmtpTransport implements IngestionTransport {
 
   public async applyMembershipCommand(input: MembershipApplyInput): Promise<MembershipApplyResult> {
     if (this.config.xmtpRequireConsent && this.config.xmtpConsentProofEndpoint) {
-      const consentAllowed = await this.verifyConsent(input.command.inboxId);
+      const consentAllowed = await this.verifyConsent(input.command.inboxId, input.room.roomKey);
       if (!consentAllowed) {
         throw new Error(`consent denied for inbox ${input.command.inboxId}`);
       }
     }
 
-    const conversation = await this.resolveCanonicalConversation();
+    const conversation = await this.resolveConversationForRoom(input.room);
     if (!conversation) {
-      throw new Error("unable to resolve canonical XMTP conversation");
+      throw new Error(`unable to resolve XMTP conversation for room ${input.room.roomKey}`);
     }
 
     if (input.command.op === "add_member") {
@@ -385,7 +397,11 @@ class RealXmtpTransport implements IngestionTransport {
         const result = await fetchMessages.call(conversation, { limit: 100 });
         const messages = asArray(result) ?? [];
         for (const message of messages) {
-          const event = toMessageEvent(message, this.canonicalConversationId);
+          const event = toMessageEvent(
+            message,
+            this.canonicalConversationId,
+            this.config.canonicalRoomKey,
+          );
           if (event && !this.markSeen(event.id)) {
             yield event;
           }
@@ -420,6 +436,8 @@ class RealXmtpTransport implements IngestionTransport {
   }
 
   private async resolveCanonicalConversation(): Promise<XmtpConversationLike | null> {
+    this.conversationsById.set(this.canonicalConversationId, this.canonicalConversation);
+
     const getById = toMethod(this.client.conversations, "getConversationById");
     if (!getById) {
       return this.canonicalConversation;
@@ -427,13 +445,49 @@ class RealXmtpTransport implements IngestionTransport {
 
     try {
       const fetched = await getById.call(this.client.conversations, this.canonicalConversationId);
-      return toConversation(fetched) ?? this.canonicalConversation;
+      const resolved = toConversation(fetched) ?? this.canonicalConversation;
+      this.conversationsById.set(this.canonicalConversationId, resolved);
+      return resolved;
     } catch {
       return this.canonicalConversation;
     }
   }
 
-  private async verifyConsent(inboxId: string): Promise<boolean> {
+  private async resolveConversationForRoom(
+    room: MembershipApplyInput["room"],
+  ): Promise<XmtpConversationLike | null> {
+    const roomGroupId =
+      typeof room.xmtpGroupId === "string" && room.xmtpGroupId.length > 0
+        ? room.xmtpGroupId
+        : null;
+
+    if (!roomGroupId || roomGroupId === this.canonicalConversationId) {
+      return this.resolveCanonicalConversation();
+    }
+
+    const cachedConversation = this.conversationsById.get(roomGroupId);
+    if (cachedConversation) {
+      return cachedConversation;
+    }
+
+    const getById = toMethod(this.client.conversations, "getConversationById");
+    if (!getById) {
+      return null;
+    }
+
+    try {
+      const fetched = await getById.call(this.client.conversations, roomGroupId);
+      const conversation = toConversation(fetched);
+      if (conversation) {
+        this.conversationsById.set(roomGroupId, conversation);
+      }
+      return conversation;
+    } catch {
+      return null;
+    }
+  }
+
+  private async verifyConsent(inboxId: string, roomKey: string): Promise<boolean> {
     if (!this.config.xmtpConsentProofEndpoint) {
       return true;
     }
@@ -446,7 +500,7 @@ class RealXmtpTransport implements IngestionTransport {
         },
         body: JSON.stringify({
           inbox_id: inboxId,
-          room_key: this.config.canonicalRoomKey,
+          room_key: roomKey,
         }),
       });
 

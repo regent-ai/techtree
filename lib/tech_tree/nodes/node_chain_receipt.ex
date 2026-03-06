@@ -29,8 +29,23 @@ defmodule TechTree.Nodes.NodeChainReceipt do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(receipt, attrs) do
     receipt
-    |> cast(attrs, [:node_id, :chain_id, :contract_address, :tx_hash, :block_number, :log_index, :confirmed_at])
-    |> validate_required([:node_id, :chain_id, :contract_address, :tx_hash, :block_number, :log_index])
+    |> cast(attrs, [
+      :node_id,
+      :chain_id,
+      :contract_address,
+      :tx_hash,
+      :block_number,
+      :log_index,
+      :confirmed_at
+    ])
+    |> validate_required([
+      :node_id,
+      :chain_id,
+      :contract_address,
+      :tx_hash,
+      :block_number,
+      :log_index
+    ])
     |> foreign_key_constraint(:node_id)
     |> unique_constraint(:node_id)
     |> unique_constraint([:tx_hash, :log_index], name: :node_chain_receipts_tx_log_uidx)

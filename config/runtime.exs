@@ -64,6 +64,24 @@ end
 config :tech_tree, TechTreeWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+promex_metrics_enabled =
+  env_or_dotenv.("PROMEX_METRICS_ENABLED", if(config_env() == :test, do: "false", else: "true"))
+  |> String.downcase()
+  |> then(&(&1 in ["1", "true", "yes", "on"]))
+
+if promex_metrics_enabled do
+  config :tech_tree, TechTree.Observability,
+    metrics_server: [
+      port: env_or_dotenv.("PROMEX_METRICS_PORT", "9568"),
+      path: env_or_dotenv.("PROMEX_METRICS_PATH", "/metrics"),
+      protocol: :http,
+      pool_size: String.to_integer(env_or_dotenv.("PROMEX_METRICS_POOL_SIZE", "5")),
+      auth_strategy: :none
+    ]
+else
+  config :tech_tree, TechTree.Observability, metrics_server: :disabled
+end
+
 dragonfly_enabled_env = env_or_dotenv.("DRAGONFLY_ENABLED", "true") |> String.downcase()
 
 config :tech_tree, :dragonfly_host, env_or_dotenv.("DRAGONFLY_HOST", "localhost")
@@ -73,6 +91,41 @@ config :tech_tree, :dragonfly_enabled, dragonfly_enabled_env in ["1", "true", "y
 config :tech_tree, :privy,
   app_id: env_or_dotenv.("PRIVY_APP_ID", ""),
   verification_key: env_or_dotenv.("PRIVY_VERIFICATION_KEY", "")
+
+config :tech_tree, :internal_shared_secret, env_or_dotenv.("INTERNAL_SHARED_SECRET", "")
+
+config :tech_tree, :siwa,
+  internal_url: env_or_dotenv.("SIWA_INTERNAL_URL", "http://siwa-sidecar:4100"),
+  shared_secret: env_or_dotenv.("SIWA_SHARED_SECRET", ""),
+  http_connect_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_CONNECT_TIMEOUT_MS", "2000")),
+  http_receive_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_RECEIVE_TIMEOUT_MS", "5000"))
+
+base_chain_id = env_or_dotenv.("TECHTREE_CHAIN_ID", env_or_dotenv.("BASE_CHAIN_ID", nil))
+
+config :tech_tree, :base,
+  mode: env_or_dotenv.("TECHTREE_BASE_MODE", "auto"),
+  rpc_url:
+    env_or_dotenv.(
+      "BASE_RPC_URL",
+      env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+    ),
+  registry_address:
+    env_or_dotenv.("REGISTRY_CONTRACT_ADDRESS", env_or_dotenv.("TECHTREE_REGISTRY", nil)),
+  writer_private_key:
+    env_or_dotenv.(
+      "REGISTRY_WRITER_PRIVATE_KEY",
+      env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+    ),
+  chain_id: base_chain_id,
+  cast_bin: env_or_dotenv.("CAST_BIN", "cast")
+
+config :tech_tree, TechTree.IPFS.LighthouseClient,
+  api_key: env_or_dotenv.("LIGHTHOUSE_API_KEY", ""),
+  base_url: env_or_dotenv.("LIGHTHOUSE_BASE_URL", "https://upload.lighthouse.storage"),
+  gateway_base:
+    env_or_dotenv.("LIGHTHOUSE_GATEWAY_BASE", "https://gateway.lighthouse.storage/ipfs"),
+  storage_type: env_or_dotenv.("LIGHTHOUSE_STORAGE_TYPE", "annual"),
+  mock_uploads: false
 
 if config_env() == :prod do
   database_url =

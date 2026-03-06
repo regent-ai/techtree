@@ -7,6 +7,7 @@ defmodule TechTree.XMTPMirror.XmtpMessage do
   @type t :: %__MODULE__{
           id: integer() | nil,
           room_id: integer() | nil,
+          reply_to_message_id: integer() | nil,
           xmtp_message_id: String.t() | nil,
           sender_inbox_id: String.t() | nil,
           sender_wallet_address: String.t() | nil,
@@ -15,7 +16,8 @@ defmodule TechTree.XMTPMirror.XmtpMessage do
           body: String.t() | nil,
           sent_at: DateTime.t() | nil,
           raw_payload: map(),
-          moderation_state: String.t() | nil
+          moderation_state: String.t() | nil,
+          reactions: map()
         }
 
   schema "xmtp_messages" do
@@ -28,8 +30,10 @@ defmodule TechTree.XMTPMirror.XmtpMessage do
     field :sent_at, :utc_datetime_usec
     field :raw_payload, :map, default: %{}
     field :moderation_state, :string, default: "visible"
+    field :reactions, :map, default: %{}
 
     belongs_to :room, TechTree.XMTPMirror.XmtpRoom
+    belongs_to :reply_to_message, __MODULE__
 
     timestamps(updated_at: false)
   end
@@ -47,10 +51,13 @@ defmodule TechTree.XMTPMirror.XmtpMessage do
       :body,
       :sent_at,
       :raw_payload,
-      :moderation_state
+      :moderation_state,
+      :reply_to_message_id,
+      :reactions
     ])
     |> validate_required([:room_id, :xmtp_message_id, :sender_inbox_id, :body, :sent_at])
     |> foreign_key_constraint(:room_id)
+    |> foreign_key_constraint(:reply_to_message_id)
     |> unique_constraint(:xmtp_message_id)
   end
 end

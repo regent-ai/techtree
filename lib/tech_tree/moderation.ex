@@ -1,6 +1,8 @@
 defmodule TechTree.Moderation do
   @moduledoc false
 
+  import TechTree.QueryHelpers
+
   alias TechTree.Repo
   alias TechTree.Moderation.ModerationAction
   alias TechTree.Nodes.Node
@@ -54,7 +56,8 @@ defmodule TechTree.Moderation do
     :ok
   end
 
-  @spec log!(atom(), integer(), String.t(), HumanUser.t(), String.t() | nil) :: ModerationAction.t()
+  @spec log!(atom(), integer(), String.t(), HumanUser.t(), String.t() | nil) ::
+          ModerationAction.t()
   defp log!(target_type, target_ref, action, admin, reason) do
     %ModerationAction{}
     |> ModerationAction.changeset(%{
@@ -69,7 +72,4 @@ defmodule TechTree.Moderation do
     |> Repo.insert!()
   end
 
-  @spec normalize_id(integer() | String.t()) :: integer()
-  defp normalize_id(value) when is_integer(value), do: value
-  defp normalize_id(value) when is_binary(value), do: String.to_integer(value)
 end

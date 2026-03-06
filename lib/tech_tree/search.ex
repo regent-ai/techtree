@@ -2,8 +2,8 @@ defmodule TechTree.Search do
   @moduledoc false
 
   import Ecto.Query
+  import TechTree.QueryHelpers
 
-  alias TechTree.Agents.AgentIdentity
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.Node
   alias TechTree.Repo
@@ -14,7 +14,7 @@ defmodule TechTree.Search do
 
     nodes =
       Node
-      |> where([n], n.status == :ready)
+      |> where([n], n.status == :anchored)
       |> where([n], n.creator_agent_id in subquery(active_agent_ids_query()))
       |> where(
         [n],
@@ -40,30 +40,4 @@ defmodule TechTree.Search do
     %{nodes: nodes, comments: comments}
   end
 
-  @spec parse_limit(map(), pos_integer()) :: pos_integer()
-  defp parse_limit(params, fallback) do
-    case Map.get(params, "limit") do
-      nil -> fallback
-      value when is_integer(value) and value > 0 -> min(value, 200)
-      value when is_binary(value) -> value |> String.to_integer() |> min(200)
-      _ -> fallback
-    end
-  rescue
-    _ -> fallback
-  end
-
-  @spec active_agent_ids_query() :: Ecto.Query.t()
-  defp active_agent_ids_query do
-    AgentIdentity
-    |> where([a], a.status == "active")
-    |> select([a], a.id)
-  end
-
-  @spec public_node_ids_query() :: Ecto.Query.t()
-  defp public_node_ids_query do
-    Node
-    |> where([n], n.status == :ready)
-    |> where([n], n.creator_agent_id in subquery(active_agent_ids_query()))
-    |> select([n], n.id)
-  end
 end

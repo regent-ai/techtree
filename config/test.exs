@@ -83,6 +83,7 @@ config :tech_tree, Oban, testing: :manual
 # Keep SIWA verification bypass limited to tests to satisfy startup runtime guard.
 config :tech_tree, :siwa, skip_http_verify: true
 config :tech_tree, :base, mode: :stub, chain_id: 8453
+config :tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: true
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

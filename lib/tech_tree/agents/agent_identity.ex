@@ -31,7 +31,15 @@ defmodule TechTree.Agents.AgentIdentity do
   @spec upsert_changeset(t(), map()) :: Ecto.Changeset.t()
   def upsert_changeset(agent, attrs) do
     agent
-    |> cast(attrs, [:chain_id, :registry_address, :token_id, :wallet_address, :label, :status, :last_verified_at])
+    |> cast(attrs, [
+      :chain_id,
+      :registry_address,
+      :token_id,
+      :wallet_address,
+      :label,
+      :status,
+      :last_verified_at
+    ])
     |> validate_required([:chain_id, :registry_address, :token_id, :wallet_address])
     |> validate_number(:chain_id, greater_than: 0)
     |> unique_constraint([:chain_id, :registry_address, :token_id],

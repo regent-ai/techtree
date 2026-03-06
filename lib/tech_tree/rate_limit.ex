@@ -56,10 +56,17 @@ defmodule TechTree.RateLimit do
   @spec do_set_once(String.t(), pos_integer(), non_neg_integer()) :: :ok | {:error, :rate_limited}
   defp do_set_once(key, ttl_seconds, retries_left) do
     case Redix.command(:dragonfly, ["SET", key, "1", "NX", "EX", ttl_seconds]) do
-      {:ok, "OK"} -> :ok
-      {:ok, nil} -> {:error, :rate_limited}
-      {:error, %Redix.ConnectionError{}} when retries_left > 0 -> do_set_once(key, ttl_seconds, retries_left - 1)
-      _ -> {:error, :rate_limited}
+      {:ok, "OK"} ->
+        :ok
+
+      {:ok, nil} ->
+        {:error, :rate_limited}
+
+      {:error, %Redix.ConnectionError{}} when retries_left > 0 ->
+        do_set_once(key, ttl_seconds, retries_left - 1)
+
+      _ ->
+        {:error, :rate_limited}
     end
   end
 

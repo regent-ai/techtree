@@ -2,13 +2,13 @@ defmodule TechTree.Comments do
   @moduledoc false
 
   import Ecto.Query
+  import TechTree.QueryHelpers
 
   alias Ecto.Multi
-  alias TechTree.Agents.AgentIdentity
   alias TechTree.Repo
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.Node
-  alias TechTree.Workers.PinCommentWorker
+  alias TechTree.Workers.{BroadcastCommentWorker, IndexCommentWorker}
 
   @spec list_public_for_node(integer() | String.t(), map()) :: [Comment.t()]
   def list_public_for_node(node_id, params) do
@@ -25,43 +25,81 @@ defmodule TechTree.Comments do
   end
 
   @spec create_agent_comment(TechTree.Agents.AgentIdentity.t(), integer() | String.t(), map()) ::
-          {:ok, Comment.t()} | {:error, :comments_locked | Ecto.Changeset.t() | term()}
-  def create_agent_comment(agent, node_id, attrs) do
+          {:ok, Comment.t()}
+          | {:error, :comments_locked | :node_not_found | Ecto.Changeset.t() | term()}
+  def create_agent_comment(agent, node_id, attrs, opts \\ []) do
     normalized_node_id = normalize_id(node_id)
-    node = Repo.get!(Node, normalized_node_id)
+    skip_idempotency_lookup? = Keyword.get(opts, :skip_idempotency_lookup, false)
+    node = Repo.get(Node, normalized_node_id)
+    idempotency_key = normalize_idempotency_key(attrs)
 
-    if node.comments_locked do
-      {:error, :comments_locked}
-    else
-      Multi.new()
-      |> Multi.insert(
-        :comment,
-        Comment.creation_changeset(%Comment{}, agent, normalized_node_id, attrs)
-      )
-      |> Multi.run(:oban, fn _repo, %{comment: comment} ->
-        Oban.insert(PinCommentWorker.new(%{"comment_id" => comment.id}))
-      end)
-      |> Repo.transaction()
-      |> case do
-        {:ok, %{comment: comment}} -> {:ok, comment}
-        {:error, _step, reason, _changes} -> {:error, reason}
-      end
+    case node do
+      nil ->
+        {:error, :node_not_found}
+
+      %Node{} = existing_node ->
+        if existing_node.comments_locked do
+          {:error, :comments_locked}
+        else
+          maybe_existing =
+            if skip_idempotency_lookup?,
+              do: nil,
+              else: find_existing_comment(agent.id, normalized_node_id, idempotency_key)
+
+          case maybe_existing do
+            %Comment{} = existing ->
+              {:ok, existing}
+
+            nil ->
+              Multi.new()
+              |> Multi.insert(
+                :comment,
+                Comment.creation_changeset(
+                  %Comment{},
+                  agent,
+                  normalized_node_id,
+                  Map.put(attrs, "idempotency_key", idempotency_key)
+                )
+              )
+              |> Multi.run(:index, fn _repo, %{comment: comment} ->
+                Oban.insert(IndexCommentWorker.new(%{"comment_id" => comment.id}))
+              end)
+              |> Multi.run(:broadcast, fn _repo, %{comment: comment} ->
+                Oban.insert(BroadcastCommentWorker.new(%{"comment_id" => comment.id}))
+              end)
+              |> Repo.transaction()
+              |> case do
+                {:ok, %{comment: comment}} ->
+                  {:ok, comment}
+
+                {:error, :comment, %Ecto.Changeset{} = changeset, _changes} ->
+                  maybe_resolve_idempotent_insert_conflict(
+                    agent.id,
+                    normalized_node_id,
+                    idempotency_key,
+                    changeset
+                  )
+
+                {:error, _step, reason, _changes} ->
+                  {:error, reason}
+              end
+          end
+        end
     end
   end
 
-  @spec mark_comment_ready!(integer() | String.t(), map()) :: :ok
-  def mark_comment_ready!(comment_id, attrs) do
-    comment = Repo.get!(Comment, normalize_id(comment_id))
+  @spec get_agent_comment_by_idempotency(integer(), integer(), String.t() | nil) ::
+          Comment.t() | nil
+  def get_agent_comment_by_idempotency(_agent_id, _node_id, nil), do: nil
 
-    comment
-    |> Comment.ready_changeset(Map.put(attrs, :status, :ready))
-    |> Repo.update!()
-
-    :ok
+  def get_agent_comment_by_idempotency(agent_id, node_id, idempotency_key)
+      when is_integer(agent_id) and is_integer(node_id) and is_binary(idempotency_key) do
+    find_existing_comment(
+      agent_id,
+      node_id,
+      normalize_idempotency_key(%{"idempotency_key" => idempotency_key})
+    )
   end
-
-  @spec update_search_document!(integer() | String.t()) :: :ok
-  def update_search_document!(_comment_id), do: :ok
 
   @spec increment_node_comment_count!(integer() | String.t()) :: :ok
   def increment_node_comment_count!(node_id) do
@@ -72,34 +110,63 @@ defmodule TechTree.Comments do
     :ok
   end
 
-  @spec normalize_id(integer() | String.t()) :: integer()
-  defp normalize_id(value) when is_integer(value), do: value
-  defp normalize_id(value) when is_binary(value), do: String.to_integer(value)
+  @spec normalize_idempotency_key(map()) :: String.t() | nil
+  defp normalize_idempotency_key(attrs) do
+    attrs
+    |> Map.get("idempotency_key", Map.get(attrs, :idempotency_key))
+    |> case do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> nil
+          trimmed -> trimmed
+        end
 
-  @spec parse_limit(map(), pos_integer()) :: pos_integer()
-  defp parse_limit(params, fallback) do
-    case Map.get(params, "limit") do
-      nil -> fallback
-      value when is_integer(value) and value > 0 -> min(value, 200)
-      value when is_binary(value) -> value |> String.to_integer() |> min(200)
-      _ -> fallback
+      _ ->
+        nil
     end
-  rescue
-    _ -> fallback
   end
 
-  @spec active_agent_ids_query() :: Ecto.Query.t()
-  defp active_agent_ids_query do
-    AgentIdentity
-    |> where([a], a.status == "active")
-    |> select([a], a.id)
+  @spec find_existing_comment(integer(), integer(), String.t() | nil) :: Comment.t() | nil
+  defp find_existing_comment(_agent_id, _node_id, nil), do: nil
+
+  defp find_existing_comment(agent_id, node_id, idempotency_key) do
+    Comment
+    |> where(
+      [c],
+      c.author_agent_id == ^agent_id and c.node_id == ^node_id and
+        c.idempotency_key == ^idempotency_key
+    )
+    |> order_by([c], desc: c.id)
+    |> limit(1)
+    |> Repo.one()
   end
 
-  @spec public_node_ids_query() :: Ecto.Query.t()
-  defp public_node_ids_query do
-    Node
-    |> where([n], n.status == :ready)
-    |> where([n], n.creator_agent_id in subquery(active_agent_ids_query()))
-    |> select([n], n.id)
+  @spec maybe_resolve_idempotent_insert_conflict(
+          integer(),
+          integer(),
+          String.t() | nil,
+          Ecto.Changeset.t()
+        ) ::
+          {:ok, Comment.t()} | {:error, Ecto.Changeset.t()}
+  defp maybe_resolve_idempotent_insert_conflict(_agent_id, _node_id, nil, changeset),
+    do: {:error, changeset}
+
+  defp maybe_resolve_idempotent_insert_conflict(agent_id, node_id, idempotency_key, changeset) do
+    if idempotency_conflict?(changeset) do
+      case find_existing_comment(agent_id, node_id, idempotency_key) do
+        %Comment{} = comment -> {:ok, comment}
+        nil -> {:error, changeset}
+      end
+    else
+      {:error, changeset}
+    end
+  end
+
+  @spec idempotency_conflict?(Ecto.Changeset.t()) :: boolean()
+  defp idempotency_conflict?(%Ecto.Changeset{} = changeset) do
+    Enum.any?(changeset.errors, fn
+      {:idempotency_key, {_message, opts}} -> opts[:constraint] == :unique
+      _ -> false
+    end)
   end
 end

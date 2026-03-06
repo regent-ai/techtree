@@ -1,8 +1,6 @@
 defmodule TechTree.Base do
   @moduledoc false
 
-  require Logger
-
   @required_create_node_keys [
     :node_id,
     :parent_id,
@@ -63,9 +61,6 @@ defmodule TechTree.Base do
 
   def create_node(_params), do: {:error, :invalid_params}
 
-  @spec fetch_receipt(String.t()) :: {:ok, receipt()} | :not_found | {:error, term()}
-  def fetch_receipt(tx_hash), do: fetch_receipt(tx_hash, nil)
-
   @spec fetch_receipt(String.t(), node_created_verification() | nil) ::
           {:ok, receipt()} | :not_found | {:error, term()}
   def fetch_receipt(tx_hash, verification_input) do
@@ -79,32 +74,6 @@ defmodule TechTree.Base do
         with {:ok, verification} <- normalize_node_created_verification(verification_input) do
           fetch_receipt_rpc(tx_hash, cfg, verification)
         end
-    end
-  end
-
-  @spec reconcile_recent_nodes!() :: :ok
-  def reconcile_recent_nodes! do
-    case config() do
-      %{mode: :stub} ->
-        # In fallback mode there is no chain transport configured, so reconciliation is a safe no-op.
-        :ok
-
-      %{mode: :rpc} = cfg ->
-        case rpc_request(cfg, "eth_blockNumber", []) do
-          {:ok, block_hex} ->
-            case parse_hex_quantity(block_hex) do
-              {:ok, block_number} ->
-                Logger.debug("base reconcile heartbeat at block #{block_number}")
-
-              {:error, reason} ->
-                Logger.warning("base reconcile block parse failed: #{inspect(reason)}")
-            end
-
-          {:error, reason} ->
-            Logger.warning("base reconcile heartbeat failed: #{inspect(reason)}")
-        end
-
-        :ok
     end
   end
 
@@ -527,7 +496,8 @@ defmodule TechTree.Base do
   defp decode_node_created_topics(log) do
     case map_fetch(log, "topics") do
       [topic0, node_id, parent_id, creator]
-      when is_binary(topic0) and is_binary(node_id) and is_binary(parent_id) and is_binary(creator) ->
+      when is_binary(topic0) and is_binary(node_id) and is_binary(parent_id) and
+             is_binary(creator) ->
         if String.downcase(topic0) == @node_created_topic0 do
           {:ok, [topic0, node_id, parent_id, creator]}
         else
@@ -587,7 +557,8 @@ defmodule TechTree.Base do
     end
   end
 
-  @spec parse_word_uint8(String.t(), non_neg_integer()) :: {:ok, non_neg_integer()} | {:error, term()}
+  @spec parse_word_uint8(String.t(), non_neg_integer()) ::
+          {:ok, non_neg_integer()} | {:error, term()}
   defp parse_word_uint8(data_hex, word_index) do
     with {:ok, word_hex} <- extract_word(data_hex, word_index),
          {:ok, kind} <- parse_hex_quantity("0x" <> word_hex),

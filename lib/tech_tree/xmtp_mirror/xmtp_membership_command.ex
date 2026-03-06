@@ -29,7 +29,15 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
   @spec enqueue_changeset(t(), map()) :: Ecto.Changeset.t()
   def enqueue_changeset(command, attrs) do
     command
-    |> cast(attrs, [:room_id, :human_user_id, :op, :xmtp_inbox_id, :status, :attempt_count, :last_error])
+    |> cast(attrs, [
+      :room_id,
+      :human_user_id,
+      :op,
+      :xmtp_inbox_id,
+      :status,
+      :attempt_count,
+      :last_error
+    ])
     |> validate_required([:room_id, :op, :xmtp_inbox_id])
     |> validate_inclusion(:op, ["add_member", "remove_member"])
     |> validate_inclusion(:status, ["pending", "processing", "done", "failed"])
@@ -46,9 +54,17 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
     )
   end
 
-  @spec done_changeset(t()) :: Ecto.Changeset.t()
-  def done_changeset(command), do: change(command, status: "done")
+  @spec resolve_changeset(t(), map()) :: Ecto.Changeset.t()
+  def resolve_changeset(command, attrs) do
+    status = attrs[:status] || attrs["status"]
+    error = attrs[:error] || attrs["error"]
 
-  @spec failed_changeset(t(), String.t()) :: Ecto.Changeset.t()
-  def failed_changeset(command, error), do: change(command, status: "failed", last_error: error)
+    case status do
+      "done" ->
+        change(command, status: "done", last_error: nil)
+
+      "failed" ->
+        change(command, status: "failed", last_error: error)
+    end
+  end
 end

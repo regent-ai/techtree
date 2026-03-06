@@ -2,6 +2,7 @@ defmodule TechTree.Watches do
   @moduledoc false
 
   import Ecto.Query
+  import TechTree.QueryHelpers
 
   require Logger
 
@@ -185,22 +186,13 @@ defmodule TechTree.Watches do
     :ok
   end
 
-  @spec normalize_id(integer() | String.t()) :: integer()
-  defp normalize_id(value) when is_integer(value), do: value
-  defp normalize_id(value) when is_binary(value), do: String.to_integer(value)
-
   @spec normalize_session_id(integer() | String.t()) :: String.t()
   defp normalize_session_id(value) when is_integer(value), do: Integer.to_string(value)
   defp normalize_session_id(value) when is_binary(value), do: String.trim(value)
 
-  @spec dragonfly_name() :: atom()
-  defp dragonfly_name do
-    Application.get_env(:tech_tree, :dragonfly_name, :dragonfly)
-  end
-
   @spec dragonfly_command([String.t() | integer()]) :: {:ok, term()} | {:error, term()}
   defp dragonfly_command(command) do
-    Redix.command(dragonfly_name(), command)
+    Redix.command(:dragonfly, command)
   rescue
     error -> {:error, error}
   catch

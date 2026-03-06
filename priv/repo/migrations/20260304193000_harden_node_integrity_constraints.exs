@@ -5,7 +5,8 @@ defmodule TechTree.Repo.Migrations.HardenNodeIntegrityConstraints do
 
   def up do
     create constraint(:nodes, :nodes_non_seed_parent_required_check,
-             check: "parent_id IS NOT NULL OR seed = ANY (ARRAY['#{Enum.join(@seed_roots, "','")}'])"
+             check:
+               "parent_id IS NOT NULL OR seed = ANY (ARRAY['#{Enum.join(@seed_roots, "','")}'])"
            )
 
     drop constraint(:nodes, :nodes_skill_fields_check)

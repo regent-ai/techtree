@@ -3,6 +3,7 @@ defmodule TechTree.Activity.ActivityEvent do
   use TechTree.Schema
 
   @actor_types [:human, :agent, :system]
+  @type stream_type :: :activity | :economic
 
   @type t :: %__MODULE__{
           id: integer() | nil,
@@ -31,4 +32,13 @@ defmodule TechTree.Activity.ActivityEvent do
     |> validate_required([:actor_type, :event_type])
     |> foreign_key_constraint(:subject_node_id)
   end
+
+  @spec stream_type(t() | String.t() | nil) :: stream_type()
+  def stream_type(%__MODULE__{event_type: event_type}), do: stream_type(event_type)
+
+  def stream_type(event_type) when is_binary(event_type) do
+    if String.starts_with?(event_type, "economic."), do: :economic, else: :activity
+  end
+
+  def stream_type(_event_type), do: :activity
 end

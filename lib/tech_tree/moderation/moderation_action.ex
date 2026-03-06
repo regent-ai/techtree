@@ -34,7 +34,15 @@ defmodule TechTree.Moderation.ModerationAction do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(action, attrs) do
     action
-    |> cast(attrs, [:target_type, :target_ref, :action, :reason, :actor_type, :actor_ref, :payload])
+    |> cast(attrs, [
+      :target_type,
+      :target_ref,
+      :action,
+      :reason,
+      :actor_type,
+      :actor_ref,
+      :payload
+    ])
     |> validate_required([:target_type, :target_ref, :action, :actor_type])
   end
 end

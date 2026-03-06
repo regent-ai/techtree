@@ -6,93 +6,24 @@ defmodule TechTree.WorkersPhase3MaintenanceTest do
   alias TechTree.Nodes.Node
   alias TechTree.Repo
 
-  alias TechTree.Workers.{
-    AnchorNodeWorker,
-    AwaitNodeReceiptWorker,
-    PackageAndPinNodeWorker,
-    ReconcileBaseNodesWorker,
-    UpdateMetricsWorker,
-    VerifyPinnedArtifactsWorker
-  }
+  alias TechTree.Workers.UpdateMetricsWorker
 
-  test "ReconcileBaseNodesWorker idempotently enqueues await jobs for pending chain receipts" do
-    creator = create_agent!("reconcile")
-
-    node =
-      create_node!(creator, %{
-        status: :pending_chain,
-        manifest_cid: "manifest-reconcile",
-        manifest_uri: "ipfs://manifest-reconcile",
-        manifest_hash: "hash-reconcile",
-        notebook_cid: "notebook-reconcile",
-        tx_hash: "0xreconciletx"
-      })
-
-    assert :ok = ReconcileBaseNodesWorker.perform(%Job{args: %{}})
-    assert :ok = ReconcileBaseNodesWorker.perform(%Job{args: %{}})
-
-    assert count_jobs(AwaitNodeReceiptWorker, node.id) == 1
-  end
-
-  test "VerifyPinnedArtifactsWorker repairs invalid artifacts and anchors valid pending chain nodes" do
-    creator = create_agent!("verify")
-
-    valid_node =
-      create_node!(creator, %{
-        status: :pending_chain,
-        manifest_cid: "manifest-verify",
-        manifest_uri: "ipfs://manifest-verify",
-        manifest_hash: "hash-verify",
-        notebook_cid: "notebook-verify",
-        tx_hash: nil
-      })
-
-    invalid_node =
-      create_node!(creator, %{
-        status: :pending_chain,
-        manifest_cid: "manifest-invalid",
-        manifest_uri: nil,
-        manifest_hash: nil,
-        notebook_cid: nil,
-        tx_hash: nil
-      })
-
-    assert :ok = VerifyPinnedArtifactsWorker.perform(%Job{args: %{}})
-    assert :ok = VerifyPinnedArtifactsWorker.perform(%Job{args: %{}})
-
-    assert count_jobs(AnchorNodeWorker, valid_node.id) == 1
-    assert count_jobs(PackageAndPinNodeWorker, invalid_node.id) == 1
-  end
-
-  test "UpdateMetricsWorker updates ready nodes and skips non-ready nodes safely" do
+  test "UpdateMetricsWorker refreshes anchored node activity scores" do
     creator = create_agent!("metrics")
 
-    ready_node =
+    anchored_node =
       create_node!(creator, %{
-        status: :ready,
+        status: :anchored,
         child_count: 2,
         comment_count: 1,
         watcher_count: 1,
         activity_score: Decimal.new("0")
       })
 
-    pending_node =
-      create_node!(creator, %{
-        status: :pending_ipfs,
-        child_count: 5,
-        comment_count: 5,
-        watcher_count: 5,
-        activity_score: Decimal.new("7")
-      })
+    assert :ok = UpdateMetricsWorker.perform(%Job{args: %{"node_id" => anchored_node.id}})
 
-    assert :ok = UpdateMetricsWorker.perform(%Job{args: %{"node_id" => ready_node.id}})
-    assert :ok = UpdateMetricsWorker.perform(%Job{args: %{"node_id" => pending_node.id}})
-
-    refreshed_ready_node = Repo.get!(Node, ready_node.id)
-    refreshed_pending_node = Repo.get!(Node, pending_node.id)
-
-    assert Decimal.gt?(refreshed_ready_node.activity_score, Decimal.new("0"))
-    assert Decimal.equal?(refreshed_pending_node.activity_score, Decimal.new("7"))
+    refreshed = Repo.get!(Node, anchored_node.id)
+    assert Decimal.gt?(refreshed.activity_score, Decimal.new("0"))
   end
 
   defp create_agent!(label_prefix) do
@@ -116,22 +47,14 @@ defmodule TechTree.WorkersPhase3MaintenanceTest do
       seed: "ML",
       kind: :hypothesis,
       title: "phase3-node-#{unique}",
-      status: :pending_chain,
+      status: :pinned,
       notebook_source: "print('node')",
-      creator_agent_id: creator.id
+      creator_agent_id: creator.id,
+      publish_idempotency_key: "node:#{unique}:default"
     }
 
     %Node{}
     |> Ecto.Changeset.change(Map.merge(base_attrs, attrs))
     |> Repo.insert!()
-  end
-
-  defp count_jobs(worker_module, node_id) do
-    worker_name = worker_module |> Module.split() |> Enum.join(".")
-
-    Job
-    |> where([j], j.worker == ^worker_name)
-    |> where([j], fragment("? ->> 'node_id' = ?", j.args, ^to_string(node_id)))
-    |> Repo.aggregate(:count, :id)
   end
 end

@@ -58,7 +58,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     assert %{"data" => index_nodes} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes")
+             |> get("/v1/tree/nodes")
              |> json_response(200)
 
     assert Enum.any?(index_nodes, &(&1["id"] == root_node.id))
@@ -66,7 +66,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     assert %{"data" => %{"id" => root_id}} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{root_node.id}")
+             |> get("/v1/tree/nodes/#{root_node.id}")
              |> json_response(200)
 
     assert root_id == root_node.id
@@ -74,30 +74,54 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     assert %{"data" => []} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{root_node.id}/children")
+             |> get("/v1/tree/nodes/#{root_node.id}/children")
              |> json_response(200)
 
     assert %{"data" => []} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{root_node.id}/comments")
+             |> get("/v1/tree/nodes/#{root_node.id}/comments")
              |> json_response(200)
 
-    assert %{"data" => %{"id" => child_node_id, "status" => "pending_ipfs"}} =
+    node_idempotency_key = "phase-d-e2e-node:#{unique_suffix()}"
+
+    assert %{
+             "data" => %{
+               "node_id" => child_node_id,
+               "artifact_cid" => artifact_cid,
+               "status" => "pinned",
+               "anchor_status" => "pending"
+             }
+           } =
              writer_conn.()
-             |> post("/v1/agent/nodes", %{
+             |> post("/v1/tree/nodes", %{
                "seed" => "ML",
                "kind" => "hypothesis",
                "title" => "phase-d-child-#{unique_suffix()}",
                "parent_id" => root_node.id,
-               "notebook_source" => "print('phase d e2e child')"
+               "notebook_source" => "print('phase d e2e child')",
+               "idempotency_key" => node_idempotency_key
              })
-             |> json_response(202)
+             |> json_response(201)
+
+    assert is_binary(artifact_cid) and artifact_cid != ""
+
+    assert %{"data" => %{"node_id" => ^child_node_id}} =
+             writer_conn.()
+             |> post("/v1/tree/nodes", %{
+               "seed" => "ML",
+               "kind" => "hypothesis",
+               "title" => "phase-d-child-retry-#{unique_suffix()}",
+               "parent_id" => root_node.id,
+               "notebook_source" => "print('phase d e2e child retry')",
+               "idempotency_key" => node_idempotency_key
+             })
+             |> json_response(201)
 
     assert %{"data" => []} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{root_node.id}/children")
+             |> get("/v1/tree/nodes/#{root_node.id}/children")
              |> json_response(200)
 
     assert :ok = mark_node_ready_for_public!(child_node_id)
@@ -108,49 +132,56 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
         response =
           Phoenix.ConnTest.build_conn()
           |> put_req_header("accept", "application/json")
-          |> get("/v1/nodes/#{root_node.id}/children")
+          |> get("/v1/tree/nodes/#{root_node.id}/children")
           |> json_response(200)
 
         data = Map.get(response, "data", [])
 
-        if Enum.any?(data, &(&1["id"] == child_node_id and &1["status"] == "ready")) do
+        if Enum.any?(data, &(&1["id"] == child_node_id and &1["status"] == "anchored")) do
           {:ok, data}
         else
           {:retry, data}
         end
       end)
 
-    assert Enum.any?(ready_children, &(&1["id"] == child_node_id and &1["status"] == "ready"))
+    assert Enum.any?(ready_children, &(&1["id"] == child_node_id and &1["status"] == "anchored"))
 
-    assert %{"data" => %{"id" => shown_child_id, "status" => "ready"}} =
+    assert %{"data" => %{"id" => shown_child_id, "status" => "anchored"}} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{child_node_id}")
+             |> get("/v1/tree/nodes/#{child_node_id}")
              |> json_response(200)
 
     assert shown_child_id == child_node_id
 
-    assert %{"data" => %{"id" => comment_id, "status" => "pending_ipfs"}} =
+    comment_idempotency_key = "phase-d-e2e-comment:#{unique_suffix()}"
+
+    assert %{"data" => %{"comment_id" => comment_id, "node_id" => ^child_node_id}} =
              writer_conn.()
-             |> post("/v1/agent/nodes/#{child_node_id}/comments", %{
-               "body_markdown" => "phase-d-comment-#{unique_suffix()}"
+             |> post("/v1/tree/comments", %{
+               "node_id" => child_node_id,
+               "body_markdown" => "phase-d-comment-#{unique_suffix()}",
+               "body_plaintext" => "phase-d-comment",
+               "idempotency_key" => comment_idempotency_key
              })
-             |> json_response(202)
+             |> json_response(201)
 
-    assert %{"data" => []} =
-             Phoenix.ConnTest.build_conn()
-             |> put_req_header("accept", "application/json")
-             |> get("/v1/nodes/#{child_node_id}/comments")
-             |> json_response(200)
-
-    assert :ok = mark_comment_ready_for_public!(comment_id)
+    assert %{"data" => %{"comment_id" => ^comment_id}} =
+             writer_conn.()
+             |> post("/v1/tree/comments", %{
+               "node_id" => child_node_id,
+               "body_markdown" => "phase-d-comment-retry-#{unique_suffix()}",
+               "body_plaintext" => "phase-d-comment-retry",
+               "idempotency_key" => comment_idempotency_key
+             })
+             |> json_response(201)
 
     ready_comments =
       await_ok("comment should become visible in public comments feed", fn ->
         response =
           Phoenix.ConnTest.build_conn()
           |> put_req_header("accept", "application/json")
-          |> get("/v1/nodes/#{child_node_id}/comments")
+          |> get("/v1/tree/nodes/#{child_node_id}/comments")
           |> json_response(200)
 
         data = Map.get(response, "data", [])
@@ -164,39 +195,11 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     assert Enum.any?(ready_comments, &(&1["id"] == comment_id and &1["status"] == "ready"))
 
-    assert %{"data" => %{"watcher_type" => "human", "watcher_ref" => human_ref}} =
-             human_conn.()
-             |> post("/v1/nodes/#{child_node_id}/watch", %{})
-             |> json_response(200)
-
-    assert human_ref == human.id
-
-    assert Repo.exists?(
-             from(w in NodeWatcher,
-               where:
-                 w.node_id == ^child_node_id and w.watcher_type == :human and
-                   w.watcher_ref == ^human.id
-             )
-           )
-
-    assert %{"ok" => true} =
-             human_conn.()
-             |> delete("/v1/nodes/#{child_node_id}/watch")
-             |> json_response(200)
-
-    refute Repo.exists?(
-             from(w in NodeWatcher,
-               where:
-                 w.node_id == ^child_node_id and w.watcher_type == :human and
-                   w.watcher_ref == ^human.id
-             )
-           )
-
     writer_agent_id = Repo.get!(Node, child_node_id).creator_agent_id
 
     assert %{"data" => %{"watcher_type" => "agent", "watcher_ref" => agent_ref}} =
              writer_conn.()
-             |> post("/v1/agent/nodes/#{child_node_id}/watch", %{})
+             |> post("/v1/tree/nodes/#{child_node_id}/watch", %{})
              |> json_response(200)
 
     assert agent_ref == writer_agent_id
@@ -211,7 +214,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     assert %{"ok" => true} =
              writer_conn.()
-             |> delete("/v1/agent/nodes/#{child_node_id}/watch")
+             |> delete("/v1/tree/nodes/#{child_node_id}/watch")
              |> json_response(200)
 
     refute Repo.exists?(
@@ -351,7 +354,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
         response =
           Phoenix.ConnTest.build_conn()
           |> put_req_header("accept", "application/json")
-          |> get("/v1/nodes/#{root_node.id}/children")
+          |> get("/v1/tree/nodes/#{root_node.id}/children")
           |> json_response(200)
 
         data = Map.get(response, "data", [])
@@ -369,7 +372,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
       hidden_node_conn =
         Phoenix.ConnTest.build_conn()
         |> put_req_header("accept", "application/json")
-        |> get("/v1/nodes/#{child_node_id}")
+        |> get("/v1/tree/nodes/#{child_node_id}")
 
       if hidden_node_conn.status == 404 do
         {:ok, :not_found}
@@ -383,7 +386,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
                response =
                  Phoenix.ConnTest.build_conn()
                  |> put_req_header("accept", "application/json")
-                 |> get("/v1/nodes/#{child_node_id}/comments")
+                 |> get("/v1/tree/nodes/#{child_node_id}/comments")
                  |> json_response(200)
 
                data = Map.get(response, "data", [])
@@ -396,7 +399,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     Node
     |> where([n], n.id == ^node_id)
-    |> Repo.update_all(set: [status: :ready])
+    |> Repo.update_all(set: [status: :anchored])
 
     AgentIdentity
     |> where([a], a.id == ^node.creator_agent_id)
@@ -406,10 +409,15 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
   end
 
   defp assert_eventually_true(description, fun, attempts \\ 20, delay_ms \\ 40)
-      when is_function(fun, 0) do
-    await_ok(description, fn ->
-      if fun.(), do: {:ok, true}, else: {:retry, false}
-    end, attempts, delay_ms)
+       when is_function(fun, 0) do
+    await_ok(
+      description,
+      fn ->
+        if fun.(), do: {:ok, true}, else: {:retry, false}
+      end,
+      attempts,
+      delay_ms
+    )
 
     :ok
   end

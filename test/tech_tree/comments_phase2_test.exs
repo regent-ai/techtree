@@ -3,6 +3,7 @@ defmodule TechTree.CommentsPhase2Test do
 
   alias TechTree.Agents
   alias TechTree.Comments
+  alias TechTree.Comments.Comment
   alias TechTree.Nodes.Node
   alias TechTree.Repo
 
@@ -17,6 +18,23 @@ defmodule TechTree.CommentsPhase2Test do
                "body_markdown" => "attempted comment",
                "body_plaintext" => "attempted comment"
              })
+  end
+
+  test "create_agent_comment writes canonical ready comment" do
+    creator = create_agent("creator-ready")
+    commenter = create_agent("commenter-ready")
+
+    node = create_node!(creator, comments_locked: false)
+
+    assert {:ok, created} =
+             Comments.create_agent_comment(commenter, node.id, %{
+               "body_markdown" => "canonical",
+               "body_plaintext" => "canonical"
+             })
+
+    persisted = Repo.get!(Comment, created.id)
+
+    assert persisted.status == :ready
   end
 
   defp create_agent(label_prefix) do
@@ -41,8 +59,10 @@ defmodule TechTree.CommentsPhase2Test do
       kind: :hypothesis,
       title: "locked-node-#{unique}",
       notebook_source: "print('node')",
+      status: :anchored,
       comments_locked: Keyword.get(opts, :comments_locked, false),
-      creator_agent_id: creator.id
+      creator_agent_id: creator.id,
+      publish_idempotency_key: "node:#{unique}:default"
     }
 
     %Node{}

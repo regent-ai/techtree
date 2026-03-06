@@ -10,8 +10,7 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
   alias TechTree.Workers.{
     AnchorNodeWorker,
-    AwaitNodeReceiptWorker,
-    ReconcileBaseNodesWorker
+    AwaitNodeReceiptWorker
   }
 
   alias TechTree.XMTPMirror
@@ -69,38 +68,33 @@ defmodule TechTree.PhaseDSecurityPerfTest do
   end
 
   describe "queue failure and retry paths" do
-    test "AnchorNodeWorker returns error on payload mismatch and succeeds on corrected retry" do
+    test "AnchorNodeWorker returns error on missing manifest payload and succeeds on corrected retry" do
       creator = create_agent!("anchor-retry")
 
       node =
         create_node!(creator, %{
-          status: :pending_chain,
+          status: :pinned,
           manifest_uri: "ipfs://phase-d-anchor-manifest",
-          manifest_hash: "phase-d-anchor-hash"
+          manifest_hash: nil
         })
 
-      mismatch_args = %{
-        "node_id" => node.id,
-        "manifest_uri" => node.manifest_uri,
-        "manifest_hash" => "tampered-manifest-hash"
-      }
+      args = %{"node_id" => node.id, "idempotency_key" => node.publish_idempotency_key}
 
-      assert {:error, %ArgumentError{}} = AnchorNodeWorker.perform(%Job{args: mismatch_args})
+      assert {:error, %ArgumentError{}} = AnchorNodeWorker.perform(%Job{args: args})
       assert count_jobs(AwaitNodeReceiptWorker, node.id) == 0
 
-      valid_args = %{
-        "node_id" => node.id,
-        "manifest_uri" => node.manifest_uri,
-        "manifest_hash" => node.manifest_hash
-      }
+      _ =
+        node
+        |> Ecto.Changeset.change(manifest_hash: "phase-d-anchor-hash")
+        |> Repo.update!()
 
-      assert :ok = AnchorNodeWorker.perform(%Job{args: valid_args})
+      assert :ok = AnchorNodeWorker.perform(%Job{args: args})
       assert count_jobs(AwaitNodeReceiptWorker, node.id) == 1
     end
 
     test "membership command failure can be retried without duplicate in-flight queueing" do
       {:ok, _room} =
-        XMTPMirror.upsert_room(%{
+        XMTPMirror.ensure_room(%{
           room_key: "public-trollbox",
           xmtp_group_id: "phase-d-group-#{System.unique_integer([:positive])}",
           name: "Public Trollbox",
@@ -123,7 +117,12 @@ defmodule TechTree.PhaseDSecurityPerfTest do
       assert leased_1.status == "processing"
       assert leased_1.attempt_count == 1
 
-      assert :ok = XMTPMirror.fail_command(leased_1.id, "simulated transport timeout")
+      assert :ok =
+               XMTPMirror.resolve_command(leased_1.id, %{
+                 "status" => "failed",
+                 "error" => "simulated transport timeout"
+               })
+
       failed_1 = Repo.get!(XmtpMembershipCommand, leased_1.id)
       assert failed_1.status == "failed"
 
@@ -135,24 +134,6 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
       assert {:ok, %{status: "pending"}} = XMTPMirror.request_join(human)
       assert count_membership_commands(human.id, "add_member") == 2
-    end
-  end
-
-  describe "queue throughput guardrail" do
-    test "ReconcileBaseNodesWorker processes at most the batch cap under flood conditions" do
-      creator = create_agent!("reconcile-batch")
-
-      Enum.each(1..205, fn index ->
-        create_node!(creator, %{
-          status: :pending_chain,
-          manifest_uri: "ipfs://phase-d-manifest-#{index}",
-          manifest_hash: "phase-d-manifest-hash-#{index}",
-          tx_hash: "0xphaseD#{index}"
-        })
-      end)
-
-      assert :ok = ReconcileBaseNodesWorker.perform(%Job{args: %{}})
-      assert count_jobs(AwaitNodeReceiptWorker) == 200
     end
   end
 
@@ -169,8 +150,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
           seed: "NotASeedRoot",
           kind: :hypothesis,
           title: "invalid-root-#{unique}",
-          status: :pending_ipfs,
+          status: :pinned,
           notebook_source: "print('invalid root')",
+          publish_idempotency_key: "constraint-parent:#{unique}",
           parent_id: nil,
           creator_agent_id: creator.id
         })
@@ -190,8 +172,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
           seed: "ML",
           kind: :hypothesis,
           title: "invalid-skill-fields-#{unique}",
-          status: :pending_ipfs,
+          status: :pinned,
           notebook_source: "print('invalid skill fields')",
+          publish_idempotency_key: "constraint-skill:#{unique}",
           creator_agent_id: creator.id,
           skill_slug: "should-not-exist",
           skill_version: "1.0.0",
@@ -213,8 +196,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
           seed: "ML",
           kind: :skill,
           title: "invalid-skill-node-#{unique}",
-          status: :pending_ipfs,
+          status: :pinned,
           notebook_source: "print('invalid skill node')",
+          publish_idempotency_key: "constraint-skill-required:#{unique}",
           creator_agent_id: creator.id,
           skill_slug: "skill-#{unique}",
           skill_version: nil,
@@ -250,22 +234,15 @@ defmodule TechTree.PhaseDSecurityPerfTest do
       seed: "ML",
       kind: :hypothesis,
       title: "phase-d-node-#{unique}",
-      status: :pending_chain,
+      status: :pinned,
       notebook_source: "print('phase_d')",
+      publish_idempotency_key: "phase-d-node:#{unique}",
       creator_agent_id: creator.id
     }
 
     %Node{}
     |> Ecto.Changeset.change(Map.merge(base_attrs, attrs))
     |> Repo.insert!()
-  end
-
-  defp count_jobs(worker_module) do
-    worker_name = worker_module |> Module.split() |> Enum.join(".")
-
-    Job
-    |> where([j], j.worker == ^worker_name)
-    |> Repo.aggregate(:count, :id)
   end
 
   defp count_jobs(worker_module, node_id) do

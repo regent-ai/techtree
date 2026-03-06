@@ -82,7 +82,9 @@ defmodule TechTree.WorkersWatcherFanoutTest do
              watcher_ref: 303
            }
 
-    assert_receive {:fanout_worker_telemetry, @fanout_worker_event, %{duration: duration}, metadata}
+    assert_receive {:fanout_worker_telemetry, @fanout_worker_event, %{duration: duration},
+                    metadata}
+
     assert duration > 0
     assert metadata.node_id == node_id
   end
@@ -220,8 +222,9 @@ defmodule TechTree.WorkersWatcherFanoutTest do
       seed: "ML",
       kind: :hypothesis,
       title: "watcher-node-#{unique}",
-      status: :pending_chain,
+      status: :pinned,
       notebook_source: "print('node')",
+      publish_idempotency_key: "watcher-node:#{unique}",
       creator_agent_id: creator.id
     }
 

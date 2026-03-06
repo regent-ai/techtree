@@ -33,8 +33,10 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
 
         body =
           case status do
-            200 -> ~s({"ok":true})
-            _ -> ~s({"ok":false})
+            200 -> ~s({"ok":true,"code":"http_envelope_valid"})
+            401 -> ~s({"ok":false,"code":"receipt_invalid"})
+            422 -> ~s({"ok":false,"code":"http_signature_input_invalid"})
+            _ -> ~s({"ok":false,"code":"internal_error"})
           end
 
         conn

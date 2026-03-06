@@ -13,82 +13,87 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
     BroadcastNodeReadyWorker,
     FanoutWatcherNotificationsWorker,
     IndexNodeWorker,
-    PackageAndPinNodeWorker,
     UpdateMetricsWorker
   }
 
-  test "PackageAndPinNodeWorker is idempotent when node already has manifest payload" do
-    creator = create_agent!("package-pin")
-
-    node =
-      create_node!(creator, %{
-        status: :pending_chain,
-        manifest_cid: "bafy-manifest-package-pin",
-        manifest_uri: "ipfs://manifest-package-pin",
-        manifest_hash: "deadbeefpackagepin",
-        notebook_cid: "bafy-notebook-package-pin"
-      })
-
-    assert :ok = PackageAndPinNodeWorker.perform(%Job{args: %{"node_id" => node.id}})
-    assert :ok = PackageAndPinNodeWorker.perform(%Job{args: %{"node_id" => node.id}})
-
-    assert count_jobs(AnchorNodeWorker, node.id) == 1
-  end
-
-  test "AnchorNodeWorker is idempotent when tx_hash is already assigned" do
+  test "AnchorNodeWorker is idempotent and tracks a single submitted publish attempt" do
     creator = create_agent!("anchor")
 
     node =
       create_node!(creator, %{
-        status: :pending_chain,
+        status: :pinned,
         manifest_uri: "ipfs://manifest-anchor",
         manifest_hash: "deadbeefanchor",
-        tx_hash: "0x" <> String.duplicate("a", 64)
+        tx_hash: "0x" <> String.duplicate("a", 64),
+        publish_idempotency_key: "node:#{System.unique_integer([:positive])}:deadbeefanchor"
       })
 
     args = %{
       "node_id" => node.id,
-      "manifest_uri" => node.manifest_uri,
-      "manifest_hash" => node.manifest_hash
+      "idempotency_key" => node.publish_idempotency_key
     }
 
     assert :ok = AnchorNodeWorker.perform(%Job{args: args})
     assert :ok = AnchorNodeWorker.perform(%Job{args: args})
 
     assert count_jobs(AwaitNodeReceiptWorker, node.id) == 1
+
+    attempt = fetch_publish_attempt!(node.publish_idempotency_key)
+    assert attempt["tx_hash"] == node.tx_hash
+    assert attempt["attempt_count"] == 1
+    assert attempt["status"] == "awaiting_receipt"
   end
 
-  test "AwaitNodeReceiptWorker is idempotent after node becomes ready" do
+  test "AwaitNodeReceiptWorker is idempotent after node becomes anchored" do
     creator = create_agent!("await")
 
     node =
       create_node!(creator, %{
-        status: :pending_chain,
+        status: :pinned,
         manifest_cid: "bafy-manifest-await",
         manifest_uri: "ipfs://manifest-await",
         manifest_hash: "deadbeefawait",
         notebook_cid: "bafy-notebook-await",
-        tx_hash: "0x" <> String.duplicate("b", 64)
+        tx_hash: "0x" <> String.duplicate("b", 64),
+        publish_idempotency_key: "node:#{System.unique_integer([:positive])}:deadbeefawait"
       })
+
+    _ =
+      Repo.insert_all("node_publish_attempts", [
+        %{
+          node_id: node.id,
+          idempotency_key: node.publish_idempotency_key,
+          manifest_uri: node.manifest_uri,
+          manifest_hash: node.manifest_hash,
+          tx_hash: node.tx_hash,
+          status: "awaiting_receipt",
+          attempt_count: 1,
+          inserted_at: DateTime.utc_now(),
+          updated_at: DateTime.utc_now()
+        }
+      ])
 
     args = %{
       "node_id" => node.id,
       "tx_hash" => node.tx_hash,
-      "manifest_uri" => node.manifest_uri,
-      "manifest_hash" => node.manifest_hash
+      "idempotency_key" => node.publish_idempotency_key
     }
 
     assert :ok = AwaitNodeReceiptWorker.perform(%Job{args: args})
     assert :ok = AwaitNodeReceiptWorker.perform(%Job{args: args})
 
-    ready_node = Repo.get!(Node, node.id)
-    assert ready_node.status == :ready
+    anchored_node = Repo.get!(Node, node.id)
+    assert anchored_node.status == :anchored
     assert count_receipts(node.id) == 1
 
     assert count_jobs(IndexNodeWorker, node.id) == 1
     assert count_jobs(UpdateMetricsWorker, node.id) == 1
     assert count_jobs(BroadcastNodeReadyWorker, node.id) == 1
     assert count_jobs(FanoutWatcherNotificationsWorker, node.id) == 1
+
+    attempt = fetch_publish_attempt!(node.publish_idempotency_key)
+    assert attempt["status"] == "anchored"
+    assert attempt["tx_hash"] == node.tx_hash
   end
 
   defp create_agent!(label_prefix) do
@@ -112,9 +117,10 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
       seed: "ML",
       kind: :hypothesis,
       title: "worker-node-#{unique}",
-      status: :pending_chain,
+      status: :pinned,
       notebook_source: "print('node')",
-      creator_agent_id: creator.id
+      creator_agent_id: creator.id,
+      publish_idempotency_key: "node:#{unique}:default"
     }
 
     %Node{}
@@ -135,5 +141,17 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
     NodeChainReceipt
     |> where([receipt], receipt.node_id == ^node_id)
     |> Repo.aggregate(:count, :id)
+  end
+
+  defp fetch_publish_attempt!(idempotency_key) do
+    from(p in "node_publish_attempts",
+      where: p.idempotency_key == ^idempotency_key,
+      select: %{
+        "tx_hash" => p.tx_hash,
+        "attempt_count" => p.attempt_count,
+        "status" => p.status
+      }
+    )
+    |> Repo.one!()
   end
 end

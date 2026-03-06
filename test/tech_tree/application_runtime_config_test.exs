@@ -34,7 +34,9 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
       assert_raise ArgumentError,
                    ~r/expected :siwa to be a keyword list/,
                    fn ->
-                     TechTree.Application.validate_siwa_runtime_config!(:test, %{skip_http_verify: true})
+                     TechTree.Application.validate_siwa_runtime_config!(:test, %{
+                       skip_http_verify: true
+                     })
                    end
     end
   end

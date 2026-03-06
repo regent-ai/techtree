@@ -3,7 +3,7 @@ defmodule TechTree.PhaseDApiSupport do
 
   import Plug.Conn
 
-  alias TechTree.{Accounts, Agents, Comments, Nodes, Repo, XMTPMirror}
+  alias TechTree.{Accounts, Agents, Nodes, Repo, XMTPMirror}
   alias TechTree.Nodes.Node
   alias TechTree.XMTPMirror.XmtpMessage
 
@@ -107,9 +107,10 @@ defmodule TechTree.PhaseDApiSupport do
       kind: Keyword.get(opts, :kind, :hypothesis),
       title: Keyword.get(opts, :title, "ready-node-#{unique}"),
       notebook_source: Keyword.get(opts, :notebook_source, "print('ready node')"),
-      status: :ready,
+      status: :anchored,
       parent_id: parent_id,
-      creator_agent_id: creator.id
+      creator_agent_id: creator.id,
+      publish_idempotency_key: "node:#{unique}:phase-d"
     })
     |> Repo.insert!()
   end
@@ -118,16 +119,8 @@ defmodule TechTree.PhaseDApiSupport do
   def mark_node_ready_for_public!(node_id) do
     unique = unique_suffix()
 
-    pending_result =
-      Nodes.mark_node_pending_chain!(node_id, %{
-        manifest_cid: "bafy-manifest-#{unique}",
-        manifest_uri: "ipfs://bafy-manifest-#{unique}",
-        manifest_hash: "manifest-hash-#{unique}",
-        notebook_cid: "bafy-notebook-#{unique}"
-      })
-
     ready_result =
-      Nodes.mark_node_ready!(node_id, %{
+      Nodes.mark_node_anchored!(node_id, %{
         tx_hash: "0xtx-#{unique}",
         chain_id: 8453,
         contract_address: "0xcontract-#{unique}",
@@ -135,18 +128,11 @@ defmodule TechTree.PhaseDApiSupport do
         log_index: 0
       })
 
-    if pending_result in [:transitioned, :already_transitioned] and
-         ready_result in [:transitioned, :already_transitioned] do
+    if ready_result in [:transitioned, :already_transitioned] do
       :ok
     else
       raise "failed to transition node #{node_id} to ready"
     end
-  end
-
-  @spec mark_comment_ready_for_public!(integer()) :: :ok
-  def mark_comment_ready_for_public!(comment_id) do
-    unique = unique_suffix()
-    Comments.mark_comment_ready!(comment_id, %{body_cid: "bafy-comment-#{unique}"})
   end
 
   @spec create_canonical_room!() :: TechTree.XMTPMirror.XmtpRoom.t()
@@ -154,7 +140,7 @@ defmodule TechTree.PhaseDApiSupport do
     unique = unique_suffix()
 
     {:ok, room} =
-      XMTPMirror.upsert_room(%{
+      XMTPMirror.ensure_room(%{
         room_key: "public-trollbox",
         xmtp_group_id: "xmtp-public-trollbox-#{unique}",
         name: "Public Trollbox #{unique}",

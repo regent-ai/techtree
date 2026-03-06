@@ -4,7 +4,7 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
   alias TechTree.Accounts
   alias TechTree.Repo
   alias TechTree.XMTPMirror
-  alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage, XmtpRoom}
+  alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage, XmtpPresence, XmtpRoom}
 
   @canonical_room_key "public-trollbox"
 
@@ -39,6 +39,71 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert Repo.get!(XmtpMembershipCommand, done_add.id).status == "done"
   end
 
+  test "request_join allocates next shard when canonical shard is full" do
+    canonical_room = create_canonical_room!()
+    saturate_room!(canonical_room, 200)
+    human = create_human!("overflow")
+
+    assert {:ok, %{room_key: room_key, shard_key: shard_key, status: "pending"}} =
+             XMTPMirror.request_join(human)
+
+    assert room_key == "public-trollbox-shard-2"
+    assert shard_key == room_key
+    assert Repo.get_by!(XmtpRoom, room_key: room_key)
+    assert command_count(canonical_room.id, human.id, "add_member") == 0
+  end
+
+  test "list_shards includes capacity and joinability state" do
+    canonical_room = create_canonical_room!()
+    _second_room = create_room!("public-trollbox-shard-2")
+    saturate_room!(canonical_room, 200)
+
+    shards = XMTPMirror.list_shards()
+
+    assert Enum.any?(shards, fn shard ->
+             shard.room_key == "public-trollbox" and shard.capacity == 200 and
+               shard.active_members == 200 and shard.joinable == false
+           end)
+
+    assert Enum.any?(shards, fn shard ->
+             shard.room_key == "public-trollbox-shard-2" and shard.capacity == 200 and
+               shard.joinable == true
+           end)
+  end
+
+  test "heartbeat enqueues stale membership eviction for expired presences" do
+    room = create_canonical_room!()
+    live_human = create_human!("live")
+    stale_human = create_human!("stale")
+
+    insert_membership_command!(room, live_human, "add_member", "done")
+    insert_membership_command!(room, stale_human, "add_member", "done")
+
+    insert_stale_presence!(room, stale_human)
+
+    assert {:ok, %{status: "alive", eviction_enqueued: eviction_enqueued}} =
+             XMTPMirror.heartbeat_presence(live_human)
+
+    assert eviction_enqueued == 1
+
+    assert %XmtpMembershipCommand{op: "remove_member", status: "pending"} =
+             XmtpMembershipCommand
+             |> where(
+               [c],
+               c.room_id == ^room.id and c.human_user_id == ^stale_human.id and
+                 c.op == "remove_member"
+             )
+             |> order_by([c], desc: c.inserted_at, desc: c.id)
+             |> limit(1)
+             |> Repo.one!()
+
+    assert %XmtpPresence{evicted_at: %DateTime{}} =
+             Repo.get_by!(XmtpPresence,
+               room_id: room.id,
+               xmtp_inbox_id: stale_human.xmtp_inbox_id
+             )
+  end
+
   test "membership_for reflects room presence and latest command state" do
     human = create_human!("membership")
 
@@ -58,17 +123,22 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     add_pending = insert_membership_command!(room, human, "add_member", "pending")
     assert %{state: "join_pending"} = XMTPMirror.membership_for(human)
 
-    assert :ok = XMTPMirror.complete_command(add_pending.id)
+    assert :ok = XMTPMirror.resolve_command(add_pending.id, %{status: "done"})
     assert %{state: "joined"} = XMTPMirror.membership_for(human)
 
     remove_pending = insert_membership_command!(room, human, "remove_member", "pending")
     assert %{state: "leave_pending"} = XMTPMirror.membership_for(human)
 
-    assert :ok = XMTPMirror.fail_command(remove_pending.id, "membership op failed")
+    assert :ok =
+             XMTPMirror.resolve_command(remove_pending.id, %{
+               status: "failed",
+               error: "membership op failed"
+             })
+
     assert %{state: "leave_failed"} = XMTPMirror.membership_for(human)
 
     remove_done = insert_membership_command!(room, human, "remove_member", "pending")
-    assert :ok = XMTPMirror.complete_command(remove_done.id)
+    assert :ok = XMTPMirror.resolve_command(remove_done.id, %{status: "done"})
     assert %{state: "not_joined"} = XMTPMirror.membership_for(human)
   end
 
@@ -86,7 +156,12 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert :ok = XMTPMirror.add_human_to_canonical_room(human.id)
     assert command_count(room.id, human.id, "add_member") == 1
 
-    assert :ok = XMTPMirror.complete_command(latest_command_id!(room.id, human.id, "add_member"))
+    assert :ok =
+             XMTPMirror.resolve_command(
+               latest_command_id!(room.id, human.id, "add_member"),
+               %{status: "done"}
+             )
+
     assert :ok = XMTPMirror.remove_human_from_canonical_room(human.id)
     assert command_count(room.id, human.id, "remove_member") == 1
 
@@ -183,5 +258,33 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     |> limit(1)
     |> Repo.one!()
     |> Map.fetch!(:id)
+  end
+
+  defp saturate_room!(room, count) when is_integer(count) and count > 0 do
+    Enum.each(1..count, fn idx ->
+      %XmtpMembershipCommand{}
+      |> XmtpMembershipCommand.enqueue_changeset(%{
+        room_id: room.id,
+        op: "add_member",
+        xmtp_inbox_id: "saturated-inbox-#{room.id}-#{idx}",
+        status: "done"
+      })
+      |> Repo.insert!()
+    end)
+  end
+
+  defp insert_stale_presence!(room, human) do
+    now = DateTime.utc_now()
+
+    %XmtpPresence{}
+    |> XmtpPresence.changeset(%{
+      room_id: room.id,
+      human_user_id: human.id,
+      xmtp_inbox_id: human.xmtp_inbox_id,
+      last_seen_at: DateTime.add(now, -240, :second),
+      expires_at: DateTime.add(now, -120, :second),
+      evicted_at: nil
+    })
+    |> Repo.insert!()
   end
 end

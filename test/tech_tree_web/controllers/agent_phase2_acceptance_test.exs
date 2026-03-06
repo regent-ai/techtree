@@ -20,7 +20,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
     conn =
       conn
       |> put_req_header("accept", "application/json")
-      |> post("/v1/agent/nodes", %{})
+      |> post("/v1/tree/nodes", %{})
 
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
   end
@@ -29,7 +29,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
     conn =
       conn
       |> with_siwa_headers()
-      |> post("/v1/agent/nodes", %{
+      |> post("/v1/tree/nodes", %{
         "seed" => "ML",
         "kind" => "hypothesis",
         "title" => "Phase 2 notebook check",
@@ -41,6 +41,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
 
   test "agent node creation returns rate_limited after initial write attempt" do
     Process.delete(:tech_tree_disable_rate_limits)
+
     try do
       wallet = random_eth_address()
       registry = random_eth_address()
@@ -57,7 +58,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
       first_conn =
         Phoenix.ConnTest.build_conn()
         |> with_siwa_headers(wallet: wallet, registry_address: registry, token_id: token_id)
-        |> post("/v1/agent/nodes", params)
+        |> post("/v1/tree/nodes", params)
 
       if dragonfly_available?() do
         assert %{"error" => %{"code" => "parent_not_found"}} = json_response(first_conn, 422)
@@ -66,7 +67,8 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
           Repo.one!(
             from(a in AgentIdentity,
               where:
-                a.wallet_address == ^wallet and a.chain_id == 8453 and a.registry_address == ^registry,
+                a.wallet_address == ^wallet and a.chain_id == 8453 and
+                  a.registry_address == ^registry,
               order_by: [desc: a.inserted_at],
               limit: 1
             )
@@ -75,7 +77,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
         second_conn =
           Phoenix.ConnTest.build_conn()
           |> with_siwa_headers(wallet: wallet, registry_address: registry, token_id: token_id)
-          |> post("/v1/agent/nodes", params)
+          |> post("/v1/tree/nodes", params)
 
         assert %{"error" => %{"code" => "rate_limited"}} = json_response(second_conn, 429)
 

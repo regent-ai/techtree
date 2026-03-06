@@ -85,7 +85,7 @@ defmodule TechTree.BaseTest do
       end
     )
 
-    assert :not_found = Base.fetch_receipt("0x" <> String.duplicate("9", 64))
+    assert :not_found = Base.fetch_receipt("0x" <> String.duplicate("9", 64), nil)
     assert_receive {:rpc_method, "eth_getTransactionReceipt"}
   end
 
@@ -131,7 +131,7 @@ defmodule TechTree.BaseTest do
       end
     )
 
-    assert {:ok, receipt} = Base.fetch_receipt("0x" <> String.duplicate("8", 64))
+    assert {:ok, receipt} = Base.fetch_receipt("0x" <> String.duplicate("8", 64), nil)
     assert receipt.block_number == 42
     assert receipt.chain_id == 8453
     assert receipt.contract_address == registry
@@ -147,7 +147,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, {:rpc_config_missing, :registry_address}} =
-             Base.fetch_receipt("0x" <> String.duplicate("7", 64))
+             Base.fetch_receipt("0x" <> String.duplicate("7", 64), nil)
   end
 
   test "fetch_receipt rejects failed receipt status" do
@@ -187,7 +187,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, {:failed_transaction_receipt, 0}} =
-             Base.fetch_receipt("0x" <> String.duplicate("6", 64))
+             Base.fetch_receipt("0x" <> String.duplicate("6", 64), nil)
   end
 
   test "fetch_receipt rejects ambiguous node-created logs" do
@@ -232,7 +232,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, :ambiguous_node_created_logs} =
-             Base.fetch_receipt("0x" <> String.duplicate("5", 64))
+             Base.fetch_receipt("0x" <> String.duplicate("5", 64), nil)
   end
 
   test "fetch_receipt rejects removed node-created logs" do
@@ -273,7 +273,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, :node_created_log_removed} =
-             Base.fetch_receipt("0x" <> String.duplicate("4", 64))
+             Base.fetch_receipt("0x" <> String.duplicate("4", 64), nil)
   end
 
   test "fetch_receipt rejects configured chain id mismatch" do
@@ -314,7 +314,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, {:chain_id_mismatch, [configured: 1, resolved: 8453]}} =
-             Base.fetch_receipt("0x" <> String.duplicate("3", 64))
+             Base.fetch_receipt("0x" <> String.duplicate("3", 64), nil)
   end
 
   test "fetch_receipt with verification rejects node-created field mismatch" do

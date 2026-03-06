@@ -135,8 +135,12 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
     banned_agent = create_agent!("trollbox-agent")
 
-    human_message = create_message_for_human!(room, banned_human, unique_text("human trollbox msg"))
-    agent_message = create_message_for_agent!(room, banned_agent, unique_text("agent trollbox msg"))
+    human_message =
+      create_message_for_human!(room, banned_human, unique_text("human trollbox msg"))
+
+    agent_message =
+      create_message_for_agent!(room, banned_agent, unique_text("agent trollbox msg"))
+
     visible_message = create_visible_message!(room, unique_text("visible trollbox msg"))
 
     assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == human_message.id))
@@ -196,23 +200,21 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
       kind: Keyword.get(opts, :kind, :hypothesis),
       title: Keyword.get(opts, :title, unique_text("node")),
       notebook_source: "print('node')",
-      status: :ready,
+      status: :anchored,
       parent_id: parent_id,
+      publish_idempotency_key: "moderation-node:#{unique}",
       creator_agent_id: creator.id
     })
     |> Repo.insert!()
   end
 
   defp create_ready_comment!(node_id, author_agent_id, body_plaintext) do
-    unique = unique_suffix()
-
     %Comment{}
     |> Ecto.Changeset.change(%{
       node_id: node_id,
       author_agent_id: author_agent_id,
       body_markdown: body_plaintext,
       body_plaintext: body_plaintext,
-      body_cid: "bafy-comment-#{unique}",
       status: :ready
     })
     |> Repo.insert!()

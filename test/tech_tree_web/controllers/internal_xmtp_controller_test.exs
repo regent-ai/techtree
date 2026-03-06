@@ -19,7 +19,12 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
     conn =
       conn
       |> put_req_header("accept", "application/json")
-      |> get("/api/internal/xmtp/rooms/public-trollbox")
+      |> post("/api/internal/xmtp/rooms/ensure", %{
+        "room_key" => "public-trollbox",
+        "xmtp_group_id" => "xmtp-public-trollbox",
+        "name" => "Public Trollbox",
+        "status" => "active"
+      })
 
     assert %{"error" => %{"code" => "internal_auth_required"}} = json_response(conn, 401)
   end
@@ -34,16 +39,21 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
     conn =
       conn
       |> put_req_header("accept", "application/json")
-      |> get("/api/internal/xmtp/rooms/public-trollbox")
+      |> post("/api/internal/xmtp/rooms/ensure", %{
+        "room_key" => "public-trollbox",
+        "xmtp_group_id" => "xmtp-public-trollbox",
+        "name" => "Public Trollbox",
+        "status" => "active"
+      })
 
     assert %{"error" => %{"code" => "internal_auth_required"}} = json_response(conn, 401)
   end
 
-  test "room and message upsert flow works with secret", %{conn: conn} do
+  test "room ensure and message ingest flow works with secret", %{conn: conn} do
     authed_conn = with_secret(conn)
 
     room_conn =
-      post(authed_conn, "/api/internal/xmtp/rooms/upsert", %{
+      post(authed_conn, "/api/internal/xmtp/rooms/ensure", %{
         "room_key" => "public-trollbox",
         "xmtp_group_id" => "xmtp-public-trollbox",
         "name" => "Public Trollbox",
@@ -59,11 +69,8 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
              }
            } = json_response(room_conn, 200)
 
-    get_room_conn = get(authed_conn, "/api/internal/xmtp/rooms/public-trollbox")
-    assert %{"data" => %{"room_key" => "public-trollbox"}} = json_response(get_room_conn, 200)
-
     message_conn =
-      post(authed_conn, "/api/internal/xmtp/messages/upsert", %{
+      post(authed_conn, "/api/internal/xmtp/messages/ingest", %{
         "room_key" => "public-trollbox",
         "xmtp_message_id" => "msg-1",
         "sender_inbox_id" => "inbox-1",
@@ -79,11 +86,11 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
     assert %{"data" => %{"id" => _id}} = json_response(message_conn, 200)
   end
 
-  test "lease, complete, and fail command flow", %{conn: conn} do
+  test "lease and resolve command flow", %{conn: conn} do
     authed_conn = with_secret(conn)
 
     {:ok, room_conn} =
-      upsert_room_and_seed_command(authed_conn, %{
+      ensure_room_and_seed_command(authed_conn, %{
         "op" => "add_member",
         "xmtp_inbox_id" => "inbox-lease"
       })
@@ -103,15 +110,19 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
              }
            } = json_response(lease_conn, 200)
 
-    complete_conn = post(authed_conn, "/api/internal/xmtp/commands/#{leased_id}/complete", %{})
-    assert %{"ok" => true} = json_response(complete_conn, 200)
+    resolve_done_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id}/resolve", %{
+        "status" => "done"
+      })
+
+    assert %{"ok" => true} = json_response(resolve_done_conn, 200)
 
     completed = Repo.get!(XmtpMembershipCommand, leased_id)
     assert completed.status == "done"
     assert completed.room_id == room_id
 
     {:ok, _room} =
-      upsert_room_and_seed_command(authed_conn, %{
+      ensure_room_and_seed_command(authed_conn, %{
         "op" => "remove_member",
         "xmtp_inbox_id" => "inbox-fail"
       })
@@ -123,12 +134,13 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     assert %{"data" => %{"id" => leased_id2}} = json_response(lease_conn2, 200)
 
-    fail_conn =
-      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id2}/fail", %{
+    resolve_failed_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id2}/resolve", %{
+        "status" => "failed",
         "error" => "simulated failure"
       })
 
-    assert %{"ok" => true} = json_response(fail_conn, 200)
+    assert %{"ok" => true} = json_response(resolve_failed_conn, 200)
 
     failed = Repo.get!(XmtpMembershipCommand, leased_id2)
     assert failed.status == "failed"
@@ -144,25 +156,33 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
     assert %{"error" => %{"code" => "room_key_required"}} = json_response(conn, 422)
   end
 
-  test "complete and fail return command_not_found for missing command ids", %{conn: conn} do
+  test "resolve returns command_not_found for missing command ids", %{conn: conn} do
     authed_conn = with_secret(conn)
 
-    complete_conn = post(authed_conn, "/api/internal/xmtp/commands/999999/complete", %{})
-    assert %{"error" => %{"code" => "command_not_found"}} = json_response(complete_conn, 404)
-
-    fail_conn =
-      post(authed_conn, "/api/internal/xmtp/commands/999999/fail", %{
-        "error" => "ignored"
+    resolve_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/999999/resolve", %{
+        "status" => "done"
       })
 
-    assert %{"error" => %{"code" => "command_not_found"}} = json_response(fail_conn, 404)
+    assert %{"error" => %{"code" => "command_not_found"}} = json_response(resolve_conn, 404)
   end
 
-  test "fail command defaults blank errors to membership_command_failed", %{conn: conn} do
+  test "resolve rejects invalid command id format", %{conn: conn} do
+    authed_conn = with_secret(conn)
+
+    resolve_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/not-an-id/resolve", %{
+        "status" => "done"
+      })
+
+    assert %{"error" => %{"code" => "invalid_command_id"}} = json_response(resolve_conn, 422)
+  end
+
+  test "resolve command defaults blank errors to membership_command_failed", %{conn: conn} do
     authed_conn = with_secret(conn)
 
     {:ok, _room} =
-      upsert_room_and_seed_command(authed_conn, %{
+      ensure_room_and_seed_command(authed_conn, %{
         "op" => "remove_member",
         "xmtp_inbox_id" => "inbox-default-error"
       })
@@ -174,15 +194,41 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     assert %{"data" => %{"id" => leased_id}} = json_response(lease_conn, 200)
 
-    fail_conn =
-      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id}/fail", %{
+    resolve_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id}/resolve", %{
+        "status" => "failed",
         "error" => ""
       })
 
-    assert %{"ok" => true} = json_response(fail_conn, 200)
+    assert %{"ok" => true} = json_response(resolve_conn, 200)
 
     failed = Repo.get!(XmtpMembershipCommand, leased_id)
     assert failed.last_error == "membership_command_failed"
+  end
+
+  test "resolve command rejects invalid status", %{conn: conn} do
+    authed_conn = with_secret(conn)
+
+    {:ok, _room} =
+      ensure_room_and_seed_command(authed_conn, %{
+        "op" => "remove_member",
+        "xmtp_inbox_id" => "inbox-invalid-status"
+      })
+
+    lease_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/lease", %{
+        "room_key" => "public-trollbox"
+      })
+
+    assert %{"data" => %{"id" => leased_id}} = json_response(lease_conn, 200)
+
+    resolve_conn =
+      post(authed_conn, "/api/internal/xmtp/commands/#{leased_id}/resolve", %{
+        "status" => "bogus"
+      })
+
+    assert %{"error" => %{"code" => "command_resolution_status_invalid"}} =
+             json_response(resolve_conn, 422)
   end
 
   defp with_secret(conn) do
@@ -191,9 +237,9 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
     |> put_req_header("x-tech-tree-secret", "test-internal-secret")
   end
 
-  defp upsert_room_and_seed_command(conn, command_attrs) do
+  defp ensure_room_and_seed_command(conn, command_attrs) do
     room_conn =
-      post(conn, "/api/internal/xmtp/rooms/upsert", %{
+      post(conn, "/api/internal/xmtp/rooms/ensure", %{
         "room_key" => "public-trollbox",
         "xmtp_group_id" => "xmtp-public-trollbox",
         "name" => "Public Trollbox",

@@ -3,6 +3,7 @@ defmodule TechTreeWeb.PublicNodeController do
 
   alias TechTree.Nodes
   alias TechTree.Comments
+  alias TechTree.Activity
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.PublicEncoding
 
@@ -59,6 +60,33 @@ defmodule TechTreeWeb.PublicNodeController do
 
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+    end
+  end
+
+  @spec work_packet(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def work_packet(conn, %{"id" => id} = params) do
+    with {:ok, normalized_id} <- parse_id(id),
+         {:ok, node} <- fetch_public_node(normalized_id) do
+      comments = Comments.list_public_for_node(normalized_id, params)
+      events = Activity.list_public_events_for_node(normalized_id, params)
+
+      json(
+        conn,
+        %{
+          data:
+            PublicEncoding.encode_node_work_packet(%{
+              node: node,
+              comments: comments,
+              activity_events: events
+            })
+        }
+      )
+    else
+      {:error, :invalid_id} ->
+        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+
+      :error ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
     end
   end
 

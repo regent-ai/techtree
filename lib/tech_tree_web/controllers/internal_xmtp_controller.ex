@@ -1,40 +1,42 @@
 defmodule TechTreeWeb.InternalXmtpController do
   use TechTreeWeb, :controller
 
-  alias TechTreeWeb.ApiError
   alias TechTree.XMTPMirror
+  alias TechTreeWeb.ApiError
+  alias TechTreeWeb.ControllerHelpers
 
-  @spec show_room(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def show_room(conn, %{"room_key" => room_key}) do
-    room =
-      room_key
-      |> XMTPMirror.get_room_by_key()
-      |> encode_room()
-
-    json(conn, %{data: room})
+  @spec list_shards(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def list_shards(conn, _params) do
+    json(conn, %{data: XMTPMirror.list_shards()})
   end
 
-  @spec upsert_room(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def upsert_room(conn, params) do
+  @spec ensure_room(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def ensure_room(conn, params) do
+    room_attrs =
+      %{
+        room_key: params["room_key"],
+        xmtp_group_id: params["xmtp_group_id"],
+        name: params["name"],
+        status: params["status"] || "active",
+        presence_ttl_seconds: params["presence_ttl_seconds"]
+      }
+      |> Enum.reject(fn {_key, value} -> is_nil(value) end)
+      |> Map.new()
+
     with {:ok, room} <-
-           XMTPMirror.upsert_room(%{
-             room_key: params["room_key"],
-             xmtp_group_id: params["xmtp_group_id"],
-             name: params["name"],
-             status: params["status"] || "active"
-           }) do
+           XMTPMirror.ensure_room(room_attrs) do
       json(conn, %{data: encode_room(room)})
     else
       {:error, %Ecto.Changeset{} = changeset} ->
-        render_changeset_error(conn, "room_upsert_failed", changeset)
+        render_changeset_error(conn, "room_ensure_failed", changeset)
     end
   end
 
-  @spec upsert_message(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def upsert_message(conn, params) do
+  @spec ingest_message(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def ingest_message(conn, params) do
     with {:ok, room} <- fetch_room(params["room_key"]),
          {:ok, message} <-
-           XMTPMirror.upsert_message(%{
+           XMTPMirror.ingest_message(%{
              room_id: room.id,
              xmtp_message_id: params["xmtp_message_id"],
              sender_inbox_id: params["sender_inbox_id"],
@@ -44,15 +46,23 @@ defmodule TechTreeWeb.InternalXmtpController do
              body: params["body"],
              sent_at: params["sent_at"],
              raw_payload: params["raw_payload"] || %{},
-             moderation_state: params["moderation_state"] || "visible"
+             moderation_state: params["moderation_state"] || "visible",
+             reply_to_message_id: params["reply_to_message_id"],
+             reactions: params["reactions"]
            }) do
       json(conn, %{data: %{id: message.id}})
     else
       {:error, :room_not_found} ->
         render_unprocessable(conn, "room_not_found")
 
+      {:error, :invalid_reply_to_message} ->
+        render_unprocessable(conn, "invalid_reply_to_message")
+
+      {:error, :invalid_reactions} ->
+        render_unprocessable(conn, "invalid_reactions")
+
       {:error, %Ecto.Changeset{} = changeset} ->
-        render_changeset_error(conn, "message_upsert_failed", changeset)
+        render_changeset_error(conn, "message_ingest_failed", changeset)
     end
   end
 
@@ -78,21 +88,27 @@ defmodule TechTreeWeb.InternalXmtpController do
     render_unprocessable(conn, "room_key_required")
   end
 
-  @spec complete_command(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def complete_command(conn, %{"id" => id}) do
-    with_existing_command(conn, fn -> XMTPMirror.complete_command(id) end)
+  @spec resolve_command(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def resolve_command(conn, %{"id" => id} = params) do
+    case ControllerHelpers.parse_positive_int(id) do
+      {:ok, normalized_id} ->
+        with_existing_command(conn, fn ->
+          case XMTPMirror.resolve_command(normalized_id, %{
+                 status: params["status"],
+                 error: params["error"]
+               }) do
+            :ok -> :ok
+            {:error, :invalid_resolution_status} -> {:error, :invalid_resolution_status}
+          end
+        end)
+
+      {:error, _reason} ->
+        render_unprocessable(conn, "invalid_command_id")
+    end
   end
 
-  @spec fail_command(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def fail_command(conn, %{"id" => id} = params) do
-    error_message =
-      params["error"]
-      |> normalize_error_message()
-
-    with_existing_command(conn, fn -> XMTPMirror.fail_command(id, error_message) end)
-  end
-
-  @spec fetch_room(String.t() | nil) :: {:ok, TechTree.XMTPMirror.XmtpRoom.t()} | {:error, :room_not_found}
+  @spec fetch_room(String.t() | nil) ::
+          {:ok, TechTree.XMTPMirror.XmtpRoom.t()} | {:error, :room_not_found}
   defp fetch_room(room_key) when is_binary(room_key) do
     case XMTPMirror.get_room_by_key(room_key) do
       nil -> {:error, :room_not_found}
@@ -111,7 +127,8 @@ defmodule TechTreeWeb.InternalXmtpController do
       room_key: room.room_key,
       xmtp_group_id: room.xmtp_group_id,
       name: room.name,
-      status: room.status
+      status: room.status,
+      presence_ttl_seconds: room.presence_ttl_seconds
     }
   end
 
@@ -128,15 +145,17 @@ defmodule TechTreeWeb.InternalXmtpController do
     })
   end
 
-  @spec with_existing_command(Plug.Conn.t(), (() -> :ok)) :: Plug.Conn.t()
+  @spec with_existing_command(Plug.Conn.t(), (-> :ok | {:error, :invalid_resolution_status})) ::
+          Plug.Conn.t()
   defp with_existing_command(conn, command_fun) when is_function(command_fun, 0) do
-    :ok = command_fun.()
-    json(conn, %{ok: true})
+    case command_fun.() do
+      :ok ->
+        json(conn, %{ok: true})
+
+      {:error, :invalid_resolution_status} ->
+        render_unprocessable(conn, "command_resolution_status_invalid")
+    end
   rescue
     Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{code: "command_not_found"})
   end
-
-  @spec normalize_error_message(String.t() | nil) :: String.t()
-  defp normalize_error_message(value) when is_binary(value) and value != "", do: value
-  defp normalize_error_message(_value), do: "membership_command_failed"
 end

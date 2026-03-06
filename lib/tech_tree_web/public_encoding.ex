@@ -1,11 +1,11 @@
 defmodule TechTreeWeb.PublicEncoding do
   @moduledoc false
 
+  alias TechTree.Activity
   alias TechTree.Activity.ActivityEvent
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
   alias TechTree.Watches.NodeWatcher
-  alias TechTree.XMTPMirror.XmtpMessage
 
   @spec encode_nodes([Node.t()]) :: [map()]
   def encode_nodes(nodes) when is_list(nodes), do: Enum.map(nodes, &encode_node/1)
@@ -65,7 +65,6 @@ defmodule TechTreeWeb.PublicEncoding do
       author_agent_id: comment.author_agent_id,
       body_markdown: comment.body_markdown,
       body_plaintext: comment.body_plaintext,
-      body_cid: comment.body_cid,
       status: enum_to_string(comment.status),
       inserted_at: comment.inserted_at
     }
@@ -83,28 +82,9 @@ defmodule TechTreeWeb.PublicEncoding do
       actor_type: enum_to_string(event.actor_type),
       actor_ref: event.actor_ref,
       event_type: event.event_type,
+      stream: event |> Activity.classify_stream() |> Atom.to_string(),
       payload: event.payload,
       inserted_at: event.inserted_at
-    }
-  end
-
-  @spec encode_messages([XmtpMessage.t()]) :: [map()]
-  def encode_messages(messages) when is_list(messages), do: Enum.map(messages, &encode_message/1)
-
-  @spec encode_message(XmtpMessage.t()) :: map()
-  def encode_message(%XmtpMessage{} = message) do
-    %{
-      id: message.id,
-      room_id: message.room_id,
-      xmtp_message_id: message.xmtp_message_id,
-      sender_inbox_id: message.sender_inbox_id,
-      sender_wallet_address: message.sender_wallet_address,
-      sender_label: message.sender_label,
-      sender_type: enum_to_string(message.sender_type),
-      body: message.body,
-      sent_at: message.sent_at,
-      moderation_state: message.moderation_state,
-      inserted_at: message.inserted_at
     }
   end
 
@@ -125,6 +105,41 @@ defmodule TechTreeWeb.PublicEncoding do
       nodes: encode_nodes(nodes),
       comments: encode_comments(comments)
     }
+  end
+
+  @spec encode_node_work_packet(%{
+          node: Node.t(),
+          comments: [Comment.t()],
+          activity_events: [ActivityEvent.t()]
+        }) :: map()
+  def encode_node_work_packet(%{node: node, comments: comments, activity_events: activity_events}) do
+    %{
+      node: encode_node(node),
+      comments: encode_comments(comments),
+      activity_events: encode_activity_events(activity_events)
+    }
+  end
+
+  @spec encode_agent_inbox(%{
+          events: [ActivityEvent.t()],
+          next_cursor: integer() | nil
+        }) :: %{
+          events: [map()],
+          next_cursor: integer() | nil
+        }
+  def encode_agent_inbox(%{events: events, next_cursor: next_cursor}) do
+    %{
+      events: encode_activity_events(events),
+      next_cursor: next_cursor
+    }
+  end
+
+  @spec encode_opportunities([map()]) :: [map()]
+  def encode_opportunities(opportunities) when is_list(opportunities) do
+    Enum.map(opportunities, fn opportunity ->
+      opportunity
+      |> Map.new(fn {key, value} -> {key, encode_opportunity_value(value)} end)
+    end)
   end
 
   @spec maybe_put_creator_agent(map(), Node.t()) :: map()
@@ -148,4 +163,8 @@ defmodule TechTreeWeb.PublicEncoding do
   defp enum_to_string(nil), do: nil
   defp enum_to_string(value) when is_atom(value), do: Atom.to_string(value)
   defp enum_to_string(value) when is_binary(value), do: value
+
+  @spec encode_opportunity_value(term()) :: term()
+  defp encode_opportunity_value(%Decimal{} = value), do: Decimal.to_string(value)
+  defp encode_opportunity_value(value), do: value
 end

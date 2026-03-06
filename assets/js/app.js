@@ -7,17 +7,21 @@ import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/tech_tree"
 import topbar from "../vendor/topbar"
 import {animate, stagger} from "../vendor/anime.esm.js"
 import {Privy, LocalStorage} from "../vendor/privy-core.esm.js"
 
 const SEARCH_DEBOUNCE_MS = 180
 const TROLLBOX_POLL_MS = 12000
-const MEMBERSHIP_POLL_MS = 14000
+const MEMBERSHIP_POLL_MS = 30000
+const PRESENCE_HEARTBEAT_MS = 45000
+const SHARD_ENDPOINTS = {
+  list: ["/v1/trollbox/shards", "/v1/trollbox/shard-index"],
+  select: ["/v1/trollbox/shards/select", "/v1/trollbox/select-shard"],
+}
+const SHARD_ENDPOINT_FALLBACK_STATUSES = [404, 405]
 const ORB_SLOT_COUNT = 7
 const THEME_STORAGE_KEY = "phx:theme"
-const EXPLICIT_THEME_KEY = "techtree:theme:explicit"
 const shortDateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -40,6 +44,7 @@ const LandingHero = {
     this.watchedNodeIds = new Set()
     this.visibleNodes = []
     this.allNodes = []
+    this.allSeeds = []
     this.selectedSeed = null
     this.selectedNodeId = null
     this.selectedNode = null
@@ -47,18 +52,25 @@ const LandingHero = {
     this.trollboxMessages = []
     this.trollboxMembership = "viewer"
     this.trollboxMembershipState = "not_joined"
+    this.activeShardKey = "public-trollbox"
+    this.knownShards = []
+    this.shardRailFace = "front"
     this.detailRequestId = 0
     this.searchDebounce = null
     this.pollTimer = null
     this.membershipTimer = null
+    this.lastPresenceHeartbeatMs = 0
     this.currentUser = null
     this.autoJoinAttemptedUsers = new Set()
     this.currentView = "room"
-    this.userExplicitTheme = window.localStorage.getItem(EXPLICIT_THEME_KEY) === "1"
-
     this.motionReducedMedia = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.mobileMedia = window.matchMedia("(max-width: 980px)")
     this.reduceMotion = this.motionReducedMedia.matches
+    this.hintLineAnimation = null
+    this.hintNodeAnimation = null
+    this.seedFloatAnimation = null
+    this.privyFetchUserErrorLogged = false
+    this.privyTokenErrorLogged = false
 
     this.boundLogin = () => this.onPrivyClick()
     this.boundJoinFlow = () => this.onTrollboxJoin()
@@ -76,9 +88,11 @@ const LandingHero = {
     this.boundDrawerClose = () => this.setChatDrawer(false)
     this.boundDrawerChange = () => this.onDrawerToggle()
     this.boundMediaChange = () => this.applyResponsiveMode()
+    this.boundShardRailClick = (event) => this.onShardRailClick(event)
     this.boundMotionPreference = (event) => {
       this.reduceMotion = event.matches
       this.startAmbientMotion()
+      this.startSeedOrbMotion(this.seedRoots?.querySelectorAll(".tt-seed-orb") || [])
     }
 
     this.loginButton = this.el.querySelector("[data-privy-action='login']")
@@ -103,6 +117,7 @@ const LandingHero = {
     this.trollboxVisibilityJoin = this.el.querySelector("#trollboxVisibilityJoin")
     this.trollboxVisibilityPost = this.el.querySelector("#trollboxVisibilityPost")
     this.trollboxNotice = this.el.querySelector("#trollboxNotice")
+    this.trollboxPanel = this.el.querySelector(".tt-trollbox-panel")
     this.trollboxFeed = this.el.querySelector("#trollboxFeed")
     this.trollboxInput = this.el.querySelector("#trollboxInput")
     this.trollboxSend = this.el.querySelector("#trollboxSend")
@@ -143,8 +158,10 @@ const LandingHero = {
     this.drawerToggle?.addEventListener("change", this.boundDrawerChange)
     this.mobileMedia.addEventListener("change", this.boundMediaChange)
     this.motionReducedMedia.addEventListener("change", this.boundMotionPreference)
+    this.trollboxPanel?.addEventListener("click", this.boundShardRailClick)
 
     document.body.classList.add("tt-no-scroll")
+    this.ensureShardRail()
 
     this.setupThemeControl()
     this.applyResponsiveMode({initial: true})
@@ -154,7 +171,7 @@ const LandingHero = {
     this.startAmbientMotion()
 
     await this.setupPrivy()
-    await Promise.all([this.bootstrapGraph(), this.bootstrapTrollbox()])
+    await Promise.all([this.bootstrapGraph(), this.bootstrapTrollbox(), this.fetchShardDirectory()])
     this.startPolling()
     this.onDrawerToggle()
   },
@@ -180,10 +197,13 @@ const LandingHero = {
     this.drawerToggle?.removeEventListener("change", this.boundDrawerChange)
     this.mobileMedia.removeEventListener("change", this.boundMediaChange)
     this.motionReducedMedia.removeEventListener("change", this.boundMotionPreference)
+    this.trollboxPanel?.removeEventListener("click", this.boundShardRailClick)
 
     window.clearTimeout(this.searchDebounce)
     window.clearInterval(this.pollTimer)
     window.clearInterval(this.membershipTimer)
+    this.stopAmbientMotion()
+    this.stopSeedOrbMotion()
     document.body.classList.remove("tt-no-scroll")
   },
 
@@ -211,6 +231,8 @@ const LandingHero = {
   },
 
   startAmbientMotion() {
+    this.stopAmbientMotion()
+
     if (this.reduceMotion) {
       return
     }
@@ -219,7 +241,7 @@ const LandingHero = {
     const hintNodes = this.treeHints?.querySelectorAll(".tt-tree-hint-node") || []
 
     if (hintLines.length > 0) {
-      animate(hintLines, {
+      this.hintLineAnimation = animate(hintLines, {
         opacity: [0.2, 0.55],
         translateY: [0, -6],
         duration: 2600,
@@ -231,7 +253,7 @@ const LandingHero = {
     }
 
     if (hintNodes.length > 0) {
-      animate(hintNodes, {
+      this.hintNodeAnimation = animate(hintNodes, {
         opacity: [0.35, 0.85],
         scale: [0.96, 1.03],
         duration: 2200,
@@ -240,6 +262,50 @@ const LandingHero = {
         delay: stagger(140),
         ease: "inOutSine",
       })
+    }
+  },
+
+  stopAmbientMotion() {
+    this.stopAnimation(this.hintLineAnimation)
+    this.stopAnimation(this.hintNodeAnimation)
+    this.hintLineAnimation = null
+    this.hintNodeAnimation = null
+  },
+
+  startSeedOrbMotion(seedButtons) {
+    this.stopSeedOrbMotion()
+
+    if (this.reduceMotion || !seedButtons || seedButtons.length === 0) {
+      return
+    }
+
+    this.seedFloatAnimation = animate(seedButtons, {
+      translateY: [0, -4],
+      duration: 2400,
+      delay: stagger(130),
+      direction: "alternate",
+      loop: true,
+      ease: "inOutSine",
+    })
+  },
+
+  stopSeedOrbMotion() {
+    this.stopAnimation(this.seedFloatAnimation)
+    this.seedFloatAnimation = null
+  },
+
+  stopAnimation(animationRef) {
+    if (!animationRef) {
+      return
+    }
+
+    if (typeof animationRef.cancel === "function") {
+      animationRef.cancel()
+      return
+    }
+
+    if (typeof animationRef.pause === "function") {
+      animationRef.pause()
     }
   },
 
@@ -253,12 +319,12 @@ const LandingHero = {
           ? "dark"
           : "light"
 
-    this.applyTheme(initialTheme, {persist: false, explicit: storedTheme === "light" || storedTheme === "dark"})
+    this.applyTheme(initialTheme, {persist: false})
   },
 
   onThemeToggle(event) {
     const darkMode = Boolean(event.target?.checked)
-    this.applyTheme(darkMode ? "dark" : "light", {persist: true, explicit: true})
+    this.applyTheme(darkMode ? "dark" : "light", {persist: true})
 
     if (!this.reduceMotion && event.target) {
       animate(event.target, {
@@ -271,7 +337,6 @@ const LandingHero = {
 
   applyTheme(theme, options = {}) {
     const persist = options.persist === true
-    const explicit = options.explicit === true
 
     if (theme !== "light" && theme !== "dark") {
       return
@@ -284,11 +349,6 @@ const LandingHero = {
 
     if (persist) {
       window.localStorage.setItem(THEME_STORAGE_KEY, theme)
-    }
-
-    if (explicit) {
-      window.localStorage.setItem(EXPLICIT_THEME_KEY, "1")
-      this.userExplicitTheme = true
     }
   },
 
@@ -488,8 +548,13 @@ const LandingHero = {
 
     try {
       const {user} = await this.privy.user.get()
+      this.privyFetchUserErrorLogged = false
       return user || null
-    } catch {
+    } catch (error) {
+      if (!this.privyFetchUserErrorLogged) {
+        console.error("Privy user lookup failed", error)
+        this.privyFetchUserErrorLogged = true
+      }
       return null
     }
   },
@@ -502,12 +567,76 @@ const LandingHero = {
     try {
       const token = await this.privy.getAccessToken()
       if (typeof token === "string" && token.trim().length > 0) {
+        this.privyTokenErrorLogged = false
         return token
       }
       return null
-    } catch {
+    } catch (error) {
+      if (!this.privyTokenErrorLogged) {
+        console.error("Privy access token lookup failed", error)
+        this.privyTokenErrorLogged = true
+      }
       return null
     }
+  },
+
+  deriveSeeds(nodes) {
+    if (!Array.isArray(nodes)) {
+      return []
+    }
+
+    return Array.from(new Set(nodes.map((node) => node.seed).filter(Boolean)))
+  },
+
+  isAuthFailure(error) {
+    return error?.status === 401
+  },
+
+  handlePrivyAuthFailure(message = "Privy session expired. Login with Privy again.") {
+    this.updateAuthUi(null, message)
+    this.setTrollboxAccess("viewer", "not_joined")
+  },
+
+  resolveShardKey(shardKey) {
+    const normalized = cleanText(shardKey, "")
+    if (normalized.length > 0) {
+      return normalized
+    }
+    return cleanText(this.activeShardKey, "public-trollbox")
+  },
+
+  withShardQuery(path, shardKey, extraParams = {}) {
+    const params = new URLSearchParams()
+    const normalizedShard = this.resolveShardKey(shardKey)
+
+    if (normalizedShard.length > 0) {
+      params.set("shard_key", normalizedShard)
+    }
+
+    Object.entries(extraParams).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value) !== "") {
+        params.set(key, String(value))
+      }
+    })
+
+    const query = params.toString()
+    return query.length > 0 ? `${path}?${query}` : path
+  },
+
+  async authorizedJsonFetch(path, init = {}, options = {}) {
+    const token = options.token || (await this.getPrivyAccessToken())
+    if (!token) {
+      const error = new Error("http_401")
+      error.status = 401
+      throw error
+    }
+
+    const headers = {
+      ...(init.headers || {}),
+      authorization: `Bearer ${token}`,
+    }
+
+    return this.jsonFetch(path, {...init, headers})
   },
 
   getOrCreateXmtpIdentity(user) {
@@ -547,7 +676,8 @@ const LandingHero = {
     try {
       const nodes = await this.jsonFetch("/v1/nodes?limit=120")
       this.allNodes = this.normalizeNodes(nodes)
-      const seeds = Array.from(new Set(this.allNodes.map((node) => node.seed).filter(Boolean)))
+      const seeds = this.deriveSeeds(this.allNodes)
+      this.allSeeds = seeds
 
       this.renderSeedRoots(seeds)
 
@@ -561,6 +691,7 @@ const LandingHero = {
       await this.activateSeed(seeds[0], {skipSkyLift: true})
     } catch (error) {
       console.error("Node bootstrap failed", error)
+      this.allSeeds = []
       this.renderSeedRoots([])
       this.renderNodeList([], "Unable to load node graph right now.")
       this.setDetailLoading("Graph API unavailable.")
@@ -574,13 +705,14 @@ const LandingHero = {
     }
 
     this.selectedSeed = seed
-    this.renderSeedRoots(Array.from(new Set(this.allNodes.map((node) => node.seed).filter(Boolean))))
+    this.renderSeedRoots(this.allSeeds)
 
     let nodes = this.seedNodeCache.get(seed)
     if (!nodes || options.force === true) {
       try {
         nodes = this.normalizeNodes(await this.jsonFetch(`/v1/seeds/${encodeURIComponent(seed)}/hot?limit=60`))
-      } catch {
+      } catch (error) {
+        console.warn("Seed hot list unavailable, using cached node list fallback", error)
         nodes = this.allNodes.filter((node) => node.seed === seed)
       }
 
@@ -699,6 +831,8 @@ const LandingHero = {
       console.error("Node search failed", error)
       this.renderNodeList([], "Search temporarily unavailable.")
       this.renderSkyTree([])
+      this.setDetailLoading("Search temporarily unavailable.")
+      this.renderComments([], "Comments unavailable during search.")
     }
   },
 
@@ -742,12 +876,14 @@ const LandingHero = {
       this.renderDetail(this.selectedNode)
       this.renderComments(this.normalizeComments(comments))
 
-      animate(this.detailCard, {
-        opacity: [0.45, 1],
-        translateY: [12, 0],
-        duration: 320,
-        ease: "outQuad",
-      })
+      if (this.detailCard && !this.reduceMotion) {
+        animate(this.detailCard, {
+          opacity: [0.45, 1],
+          translateY: [12, 0],
+          duration: 320,
+          ease: "outQuad",
+        })
+      }
     } catch (error) {
       if (requestId !== this.detailRequestId) {
         return
@@ -878,16 +1014,9 @@ const LandingHero = {
         delay: stagger(70),
         ease: "outCubic",
       })
-
-      animate(seedButtons, {
-        translateY: [0, -4],
-        duration: 2400,
-        delay: stagger(130),
-        direction: "alternate",
-        loop: true,
-        ease: "inOutSine",
-      })
     }
+
+    this.startSeedOrbMotion(seedButtons)
   },
 
   highlightSelectedSeedOrb() {
@@ -1123,7 +1252,7 @@ const LandingHero = {
     }
   },
 
-  onCopyCurl() {
+  async onCopyCurl() {
     const code = this.curlTarget?.querySelector("pre code")
     if (!code?.textContent) {
       return
@@ -1134,33 +1263,35 @@ const LandingHero = {
       return
     }
 
-    navigator.clipboard?.writeText(value).then(() => {
-      if (!this.copyCurlButton) {
-        return
-      }
-
-      const previous = this.copyCurlButton.textContent
-      this.copyCurlButton.textContent = "Copied"
-
-      if (!this.reduceMotion) {
-        animate(this.copyCurlButton, {
-          scale: [0.92, 1.07, 1],
-          duration: 280,
-          ease: "outBack",
-        })
-      }
-
-      window.setTimeout(() => {
-        this.copyCurlButton.textContent = previous || "Copy"
-      }, 1400)
-    }).catch(() => {
+    const previous = this.copyCurlButton?.textContent || "Copy"
+    const copied = await copyTextToClipboard(value)
+    if (!copied) {
       if (this.copyCurlButton) {
         this.copyCurlButton.textContent = "Copy failed"
         window.setTimeout(() => {
-          this.copyCurlButton.textContent = "Copy"
+          this.copyCurlButton.textContent = previous
         }, 1400)
       }
-    })
+      return
+    }
+
+    if (!this.copyCurlButton) {
+      return
+    }
+
+    this.copyCurlButton.textContent = "Copied"
+
+    if (!this.reduceMotion) {
+      animate(this.copyCurlButton, {
+        scale: [0.92, 1.07, 1],
+        duration: 280,
+        ease: "outBack",
+      })
+    }
+
+    window.setTimeout(() => {
+      this.copyCurlButton.textContent = previous
+    }, 1400)
   },
 
   async onWatchToggle() {
@@ -1251,17 +1382,331 @@ const LandingHero = {
     this.watchButton.dataset.state = watched ? "watched" : "idle"
   },
 
+  ensureShardRail() {
+    if (!this.trollboxPanel) {
+      return
+    }
+
+    let rail = this.trollboxPanel.querySelector("[data-shard-rail]")
+    if (!rail) {
+      rail = document.createElement("section")
+      rail.className = "tt-shard-rail"
+      rail.setAttribute("data-shard-rail", "")
+      rail.setAttribute("data-shard-face", "front")
+      rail.innerHTML = `
+        <div class="tt-shard-rail-head">
+          <p class="tt-mini-label">Shard rail</p>
+          <button type="button" class="btn btn-xs btn-ghost tt-shard-flip-btn" data-shard-flip-toggle>Flip</button>
+        </div>
+        <div class="tt-shard-flip-stage">
+          <article class="tt-shard-face tt-shard-face-front" data-shard-face-panel="front">
+            <p class="tt-shard-label">Active shard</p>
+            <p class="tt-shard-key" data-shard-active>public-trollbox</p>
+            <p class="tt-shard-meta" data-shard-meta>state: not_joined</p>
+          </article>
+          <article class="tt-shard-face tt-shard-face-back" data-shard-face-panel="back">
+            <p class="tt-shard-label">Known shards</p>
+            <ul class="tt-shard-list" data-shard-list>
+              <li class="tt-shard-list-item">public-trollbox</li>
+            </ul>
+          </article>
+        </div>
+      `
+
+      this.trollboxNotice?.insertAdjacentElement("afterend", rail)
+    }
+
+    this.shardRail = rail
+    this.shardActiveLabel = rail.querySelector("[data-shard-active]")
+    this.shardMetaLabel = rail.querySelector("[data-shard-meta]")
+    this.shardList = rail.querySelector("[data-shard-list]")
+    this.setShardRailFace(this.shardRailFace, {immediate: true})
+    this.renderShardRail()
+  },
+
+  onShardRailClick(event) {
+    const flip = event.target?.closest?.("[data-shard-flip-toggle]")
+    if (flip) {
+      this.flipShardRail()
+      return
+    }
+
+    const shardButton = event.target?.closest?.("[data-shard-select]")
+    if (!shardButton) {
+      return
+    }
+
+    const shardKey = cleanText(shardButton.dataset.shardSelect, "")
+    if (shardKey.length === 0) {
+      return
+    }
+
+    this.selectShard(shardKey)
+  },
+
+  flipShardRail() {
+    const next = this.shardRailFace === "front" ? "back" : "front"
+    this.setShardRailFace(next)
+  },
+
+  setShardRailFace(face, options = {}) {
+    this.shardRailFace = face === "back" ? "back" : "front"
+
+    if (!this.shardRail) {
+      return
+    }
+
+    this.shardRail.dataset.shardFace = this.shardRailFace
+
+    if (this.reduceMotion || options.immediate === true) {
+      return
+    }
+
+    animate(this.shardRail, {
+      opacity: [0.72, 1],
+      scale: [0.985, 1],
+      duration: 260,
+      ease: "outCubic",
+    })
+  },
+
+  renderShardRail() {
+    if (!this.shardRail) {
+      return
+    }
+
+    const activeShard = this.activeShardKey || "public-trollbox"
+    const shardCount = this.knownShards.length
+
+    if (this.shardActiveLabel) {
+      this.shardActiveLabel.textContent = activeShard
+    }
+    if (this.shardMetaLabel) {
+      this.shardMetaLabel.textContent = `state: ${this.trollboxMembershipState} | known: ${shardCount}`
+    }
+
+    if (!this.shardList) {
+      return
+    }
+
+    this.shardList.replaceChildren()
+    const shards = this.knownShards.length > 0 ? this.knownShards : [{key: activeShard, label: activeShard}]
+
+    shards.forEach((shard) => {
+      const item = document.createElement("li")
+      item.className = "tt-shard-list-item"
+
+      const button = document.createElement("button")
+      button.type = "button"
+      button.className = "tt-shard-select"
+      button.dataset.shardSelect = shard.key
+      button.textContent = shard.label || shard.key
+      if (shard.key === activeShard) {
+        button.dataset.active = "true"
+      }
+
+      item.append(button)
+      this.shardList.append(item)
+    })
+  },
+
+  normalizeShardPayload(payload) {
+    if (!payload || typeof payload !== "object") {
+      return null
+    }
+
+    const activeShard = cleanText(
+      payload.active_shard || payload.shard_key || payload.room_key || payload?.shard?.key || payload?.shard?.shard_key,
+      "",
+    )
+    const shardCandidates = payload.shards || payload.rooms || payload?.data?.shards
+
+    return {
+      activeShard,
+      shards: this.normalizeShardList(shardCandidates),
+    }
+  },
+
+  normalizeShardList(items) {
+    if (!Array.isArray(items)) {
+      return []
+    }
+
+    const normalized = items
+      .map((item) => {
+        const key = cleanText(item?.key || item?.shard_key || item?.room_key || item?.id, "")
+        if (key.length === 0) {
+          return null
+        }
+
+        const label = cleanText(item?.label || item?.name || key, key)
+        return {key, label}
+      })
+      .filter(Boolean)
+
+    const uniqueByKey = new Map()
+    normalized.forEach((item) => uniqueByKey.set(item.key, item))
+    return Array.from(uniqueByKey.values())
+  },
+
+  updateShardState(payload) {
+    const normalized = this.normalizeShardPayload(payload)
+    if (!normalized) {
+      this.renderShardRail()
+      return
+    }
+
+    if (normalized.activeShard.length > 0) {
+      this.activeShardKey = normalized.activeShard
+    }
+    if (normalized.shards.length > 0) {
+      this.knownShards = normalized.shards
+    }
+
+    if (this.knownShards.length === 0 && this.activeShardKey) {
+      this.knownShards = [{key: this.activeShardKey, label: this.activeShardKey}]
+    }
+
+    this.renderShardRail()
+  },
+
+  async fetchShardDirectory() {
+    for (const path of SHARD_ENDPOINTS.list) {
+      try {
+        const data = await this.jsonFetch(path)
+        this.updateShardState(data)
+        return
+      } catch (error) {
+        if (!SHARD_ENDPOINT_FALLBACK_STATUSES.includes(error?.status)) {
+          console.error("Shard directory lookup failed", error)
+        }
+      }
+    }
+
+    this.updateShardState({active_shard: this.activeShardKey})
+  },
+
+  async selectShard(shardKey) {
+    const normalizedKey = cleanText(shardKey, "")
+    if (normalizedKey.length === 0) {
+      return
+    }
+
+    if (normalizedKey === this.activeShardKey) {
+      await Promise.all([
+        this.fetchTrollboxMessages({shardKey: normalizedKey}),
+        this.refreshTrollboxMembership({shardKey: normalizedKey, silent: true}),
+      ])
+      return
+    }
+
+    const token = await this.getPrivyAccessToken()
+
+    if (token) {
+      for (const path of SHARD_ENDPOINTS.select) {
+        try {
+          const payload = await this.authorizedJsonFetch(
+            path,
+            {
+              method: "POST",
+              headers: {"content-type": "application/json"},
+              body: JSON.stringify({shard_key: normalizedKey}),
+            },
+            {token},
+          )
+          this.updateShardState(payload)
+          await Promise.all([
+            this.fetchTrollboxMessages(),
+            this.refreshTrollboxMembership({silent: true}),
+          ])
+          return
+        } catch (error) {
+          if (this.isAuthFailure(error)) {
+            this.handlePrivyAuthFailure("Privy session expired while selecting a shard.")
+            return
+          }
+
+          if (!SHARD_ENDPOINT_FALLBACK_STATUSES.includes(error?.status)) {
+            console.error("Shard select failed", error)
+          }
+        }
+      }
+    }
+
+    this.updateShardState({
+      active_shard: normalizedKey,
+      shards: [...this.knownShards, {key: normalizedKey, label: normalizedKey}],
+    })
+
+    if (this.currentUser?.id) {
+      const identity = this.getStoredXmtpIdentity(this.currentUser)
+      if (identity) {
+        try {
+          await this.requestHumanChatJoin(this.currentUser, identity, {
+            auto: true,
+            created: false,
+            shardKey: normalizedKey,
+            silent: true,
+          })
+        } catch (error) {
+          if (this.isAuthFailure(error)) {
+            this.handlePrivyAuthFailure("Privy session expired while joining the selected shard.")
+            return
+          }
+
+          console.error("Fallback shard join failed", error)
+        }
+      }
+    }
+
+    await Promise.all([
+      this.fetchTrollboxMessages({shardKey: normalizedKey}),
+      this.refreshTrollboxMembership({shardKey: normalizedKey, silent: true}),
+    ])
+
+    if (this.xmtpState) {
+      this.xmtpState.textContent = `Viewing shard ${this.activeShardKey}.`
+    }
+  },
+
   async bootstrapTrollbox() {
     await this.fetchTrollboxMessages()
     await this.refreshTrollboxMembership()
   },
 
-  async fetchTrollboxMessages() {
+  unwrapTrollboxPayload(payload) {
+    if (Array.isArray(payload)) {
+      return {messages: payload, meta: null}
+    }
+
+    if (payload && typeof payload === "object") {
+      if (Array.isArray(payload.messages)) {
+        return {messages: payload.messages, meta: payload}
+      }
+      if (Array.isArray(payload.items)) {
+        return {messages: payload.items, meta: payload}
+      }
+    }
+
+    return {messages: [], meta: payload}
+  },
+
+  async fetchTrollboxMessages(options = {}) {
+    const shardKey = this.resolveShardKey(options.shardKey)
+    const path = this.withShardQuery("/v1/trollbox/messages", shardKey, {limit: 80})
+
     try {
-      const data = await this.jsonFetch("/v1/trollbox/messages?limit=80")
-      this.trollboxMessages = this.normalizeTrollboxMessages(data)
+      const payload = await this.jsonFetch(path)
+      const {messages, meta} = this.unwrapTrollboxPayload(payload)
+      this.updateShardState(meta)
+      this.trollboxMessages = this.normalizeTrollboxMessages(messages)
       this.renderTrollboxMessages()
     } catch (error) {
+      if (this.isAuthFailure(error)) {
+        this.handlePrivyAuthFailure("Privy session expired while loading messages.")
+        return
+      }
+
       console.error("Trollbox feed load failed", error)
       this.renderTrollboxMessages("Trollbox feed unavailable.")
     }
@@ -1320,7 +1765,7 @@ const LandingHero = {
     })
 
     const feedItems = this.trollboxFeed.querySelectorAll(".tt-trollbox-item")
-    if (feedItems.length > 0) {
+    if (feedItems.length > 0 && !this.reduceMotion) {
       animate(feedItems, {
         opacity: [0, 1],
         translateY: [8, 0],
@@ -1333,7 +1778,10 @@ const LandingHero = {
     this.trollboxFeed.scrollTop = this.trollboxFeed.scrollHeight
   },
 
-  async refreshTrollboxMembership() {
+  async refreshTrollboxMembership(options = {}) {
+    const shardKey = this.resolveShardKey(options.shardKey)
+    const silent = options.silent === true
+
     if (!this.privy) {
       this.currentUser = null
       this.setTrollboxAccess("viewer", "not_joined")
@@ -1352,18 +1800,19 @@ const LandingHero = {
     const token = await this.getPrivyAccessToken()
     if (!token) {
       this.setTrollboxAccess("viewer", "not_joined")
-      if (this.xmtpState) {
+      if (!silent && this.xmtpState) {
         this.xmtpState.textContent = "Privy session is not ready yet. Try Join Human Chat again."
       }
       return
     }
 
     try {
-      const membership = await this.jsonFetch("/v1/trollbox/membership", {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
-      })
+      const membership = await this.authorizedJsonFetch(
+        this.withShardQuery("/v1/trollbox/membership", shardKey),
+        {},
+        {token},
+      )
+      this.updateShardState(membership)
       const state = String(membership?.state || "unknown")
       this.applyMembershipState(state)
 
@@ -1374,14 +1823,58 @@ const LandingHero = {
           await this.requestHumanChatJoin(user, identity, {
             auto: true,
             created: false,
+            shardKey,
+            silent: true,
           })
         }
       }
     } catch (error) {
-      if (error?.status === 401) {
+      if (this.isAuthFailure(error)) {
+        this.handlePrivyAuthFailure("Privy session expired while refreshing chat membership.")
+        return
+      }
+
+      if (!silent) {
+        console.error("Trollbox membership refresh failed", error)
+        if (this.xmtpState) {
+          this.xmtpState.textContent = "Unable to refresh Human Chat membership right now."
+        }
+      }
+      this.setTrollboxAccess("pending", "join_pending")
+    }
+  },
+
+  async sendPresenceHeartbeat(options = {}) {
+    if (this.trollboxMembership !== "member" || !this.currentUser) {
+      return
+    }
+
+    const silent = options.silent === true
+    const shardKey = this.resolveShardKey(options.shardKey)
+
+    try {
+      const heartbeat = await this.authorizedJsonFetch("/v1/trollbox/presence/heartbeat", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          shard_key: shardKey,
+        }),
+      })
+
+      this.updateShardState(heartbeat)
+      this.lastPresenceHeartbeatMs = Date.now()
+    } catch (error) {
+      if (this.isAuthFailure(error)) {
+        this.handlePrivyAuthFailure("Privy session expired while sending presence heartbeat.")
+        return
+      }
+
+      if (error?.status === 403) {
         this.setTrollboxAccess("pending", "join_pending")
-      } else {
-        this.setTrollboxAccess("pending", "join_pending")
+      } else if (!silent) {
+        console.error("Trollbox heartbeat failed", error)
       }
     }
   },
@@ -1398,7 +1891,11 @@ const LandingHero = {
         this.setTrollboxAccess("viewer", "not_joined")
         break
       case "missing_inbox_id":
+        this.setTrollboxAccess("viewer", "missing_inbox_id")
+        break
       case "room_unavailable":
+        this.setTrollboxAccess("viewer", "room_unavailable")
+        break
       case "join_failed":
       case "leave_failed":
       case "leave_pending":
@@ -1428,6 +1925,8 @@ const LandingHero = {
   async requestHumanChatJoin(user, identity, options = {}) {
     const auto = options.auto === true
     const created = options.created === true
+    const silent = options.silent === true
+    const shardKey = this.resolveShardKey(options.shardKey)
 
     if (!identity) {
       return false
@@ -1435,34 +1934,38 @@ const LandingHero = {
 
     const token = await this.getPrivyAccessToken()
     if (!token) {
-      if (!auto && this.xmtpState) {
+      if (!auto && !silent && this.xmtpState) {
         this.xmtpState.textContent = "Privy login required before requesting chat join."
       }
       return false
     }
 
-    const response = await this.jsonFetch("/v1/trollbox/request-join", {
+    const response = await this.authorizedJsonFetch("/v1/trollbox/request-join", {
       method: "POST",
       headers: {
-        authorization: `Bearer ${token}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({xmtp_inbox_id: identity}),
-    })
+      body: JSON.stringify({
+        xmtp_inbox_id: identity,
+        shard_key: shardKey,
+      }),
+    }, {token})
 
+    this.updateShardState(response)
     const status = String(response?.status || "pending")
-    const shard = String(response?.shard_key || response?.room_key || "public-trollbox")
+    const shard = this.activeShardKey || String(response?.shard_key || response?.room_key || "public-trollbox")
 
     if (status === "joined") {
       this.setTrollboxAccess("member", "joined")
-      if (this.xmtpState) {
+      await this.sendPresenceHeartbeat({silent: true, shardKey})
+      if (!silent && this.xmtpState) {
         this.xmtpState.textContent = auto
           ? `Joined Human Chat shard ${shard}.`
           : `Joined Human Chat shard ${shard} as ${identity}.`
       }
     } else {
       this.setTrollboxAccess("pending", "join_pending")
-      if (this.xmtpState) {
+      if (!silent && this.xmtpState) {
         this.xmtpState.textContent = created
           ? `Created XMTP identity ${identity}. Join request sent to shard ${shard}.`
           : `Join request sent to Human Chat shard ${shard}.`
@@ -1498,6 +2001,10 @@ const LandingHero = {
       await this.refreshTrollboxMembership()
     } catch (error) {
       console.error("Trollbox join failed", error)
+      if (this.isAuthFailure(error)) {
+        this.handlePrivyAuthFailure("Privy session expired while joining Human Chat.")
+        return
+      }
       this.setTrollboxAccess("pending", "join_pending")
       this.updateAuthUi(await this.fetchUser(), "Human chat join request pending")
     } finally {
@@ -1525,30 +2032,24 @@ const LandingHero = {
     }
 
     const identity = this.getStoredXmtpIdentity(this.currentUser)
-    const token = await this.getPrivyAccessToken()
-
-    if (!token) {
-      if (this.xmtpState) {
-        this.xmtpState.textContent = "Unable to fetch Privy access token."
-      }
-      return
-    }
+    const shardKey = this.resolveShardKey()
 
     this.trollboxSend?.setAttribute("disabled", "disabled")
 
     try {
-      const posted = await this.jsonFetch("/v1/trollbox/messages", {
+      const posted = await this.authorizedJsonFetch("/v1/trollbox/messages", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${token}`,
           "content-type": "application/json",
         },
         body: JSON.stringify({
           body,
           xmtp_inbox_id: identity || undefined,
+          shard_key: shardKey,
         }),
       })
 
+      this.updateShardState(posted)
       const normalized = this.normalizeTrollboxMessages([posted])
       if (normalized.length > 0) {
         this.trollboxMessages = [...this.trollboxMessages, normalized[0]].slice(-90)
@@ -1565,6 +2066,10 @@ const LandingHero = {
       }
     } catch (error) {
       console.error("Trollbox send failed", error)
+      if (this.isAuthFailure(error)) {
+        this.handlePrivyAuthFailure("Privy session expired while posting.")
+        return
+      }
       await this.refreshTrollboxMembership()
 
       if (error?.status === 403) {
@@ -1595,7 +2100,7 @@ const LandingHero = {
     const readVisibility = "visible"
     const joinVisibility = membership === "viewer" && Boolean(this.currentUser) ? "visible" : "hidden"
     const postVisibility = membership === "member" ? "visible" : "hidden"
-    const notice =
+    let notice =
       membership === "pending"
         ? "Join request pending. Read remains open while post access is queued."
         : membership === "member"
@@ -1604,8 +2109,14 @@ const LandingHero = {
             ? "Read is public. Click Join Human Chat to post."
             : "Read is public. Login with Privy to join Human Chat."
 
+    if (state === "room_unavailable") {
+      notice = "Human Chat room is unavailable right now. Try again shortly."
+    } else if (state === "missing_inbox_id" && this.currentUser) {
+      notice = "Join Human Chat to bind your XMTP inbox and enable posting."
+    }
+
     if (this.trollboxAccess) {
-      this.trollboxAccess.textContent = `membership: ${membership} | state: ${state}`
+      this.trollboxAccess.textContent = `membership: ${membership} | state: ${state} | shard: ${this.activeShardKey}`
     }
     if (this.trollboxVisibilityRead) this.trollboxVisibilityRead.textContent = readVisibility
     if (this.trollboxVisibilityJoin) this.trollboxVisibilityJoin.textContent = joinVisibility
@@ -1614,12 +2125,17 @@ const LandingHero = {
     if (this.joinButton) this.joinButton.hidden = joinVisibility !== "visible"
 
     const canSend = membership === "member"
+    if (!canSend) {
+      this.lastPresenceHeartbeatMs = 0
+    }
     if (this.trollboxInput) {
       this.trollboxInput.disabled = !canSend
     }
     if (this.trollboxSend) {
       this.trollboxSend.disabled = !canSend
     }
+
+    this.renderShardRail()
   },
 
   startPolling() {
@@ -1631,7 +2147,19 @@ const LandingHero = {
     }, TROLLBOX_POLL_MS)
 
     this.membershipTimer = window.setInterval(() => {
-      this.refreshTrollboxMembership()
+      if (!this.currentUser) {
+        return
+      }
+
+      this.refreshTrollboxMembership({silent: true})
+
+      const now = Date.now()
+      if (
+        this.trollboxMembership === "member" &&
+        now - this.lastPresenceHeartbeatMs >= PRESENCE_HEARTBEAT_MS
+      ) {
+        this.sendPresenceHeartbeat({silent: true})
+      }
     }, MEMBERSHIP_POLL_MS)
   },
 
@@ -1679,6 +2207,37 @@ const LandingHero = {
   },
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // Fall back to the legacy copy path.
+    }
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "readonly")
+  textarea.style.position = "fixed"
+  textarea.style.opacity = "0"
+  textarea.style.pointerEvents = "none"
+  document.body.append(textarea)
+  textarea.select()
+
+  let copied = false
+  try {
+    copied = document.execCommand("copy")
+  } catch {
+    copied = false
+  } finally {
+    textarea.remove()
+  }
+
+  return copied
+}
+
 function cleanText(value, fallback = "") {
   if (typeof value !== "string") {
     return fallback
@@ -1705,7 +2264,96 @@ function formatTimestamp(raw) {
   return shortDateFormat.format(timestamp)
 }
 
-const hooks = {...colocatedHooks, LandingHero}
+function revealImmediately(targets) {
+  targets.forEach((target) => {
+    target.style.opacity = "1"
+    target.style.transform = "none"
+    target.dataset.motionDone = "1"
+  })
+}
+
+function revealAnimated(targets) {
+  if (targets.length === 0) {
+    return
+  }
+
+  targets.forEach((target) => {
+    target.dataset.motionDone = "1"
+  })
+
+  animate(targets, {
+    opacity: [0, 1],
+    translateY: [16, 0],
+    duration: 620,
+    delay: stagger(80, {start: 35}),
+    ease: "outQuad",
+  })
+}
+
+function revealGraphNodes(targets) {
+  if (targets.length === 0) {
+    return
+  }
+
+  targets.forEach((target) => {
+    target.dataset.motionDone = "1"
+  })
+
+  animate(targets, {
+    opacity: [0, 1],
+    translateX: [-10, 0],
+    scale: [0.985, 1],
+    duration: 520,
+    delay: stagger(55, {start: 20}),
+    ease: "outCubic",
+  })
+}
+
+const HumanMotion = {
+  mounted() {
+    this.motionPreferenceMedia = window.matchMedia("(prefers-reduced-motion: reduce)")
+    this.reduceMotion = this.motionPreferenceMedia.matches
+    this.onMotionPreferenceChange = (event) => {
+      this.reduceMotion = event.matches
+      this.runMotion()
+    }
+
+    this.motionPreferenceMedia.addEventListener("change", this.onMotionPreferenceChange)
+    this.runMotion()
+  },
+
+  updated() {
+    this.runMotion()
+  },
+
+  destroyed() {
+    this.motionPreferenceMedia?.removeEventListener("change", this.onMotionPreferenceChange)
+  },
+
+  runMotion() {
+    const revealTargets = Array.from(
+      this.el.querySelectorAll("[data-motion='reveal']:not([data-motion-done='1'])"),
+    )
+
+    const graphTargets = Array.from(
+      this.el.querySelectorAll("[data-motion='graph-node']:not([data-motion-done='1'])"),
+    )
+
+    if (this.reduceMotion) {
+      revealImmediately(revealTargets)
+      revealImmediately(graphTargets)
+      return
+    }
+
+    revealAnimated(revealTargets)
+
+    if (this.el.dataset.motionView === "graph") {
+      revealGraphNodes(graphTargets)
+    }
+  },
+}
+
+const hooks = {LandingHero, HumanMotion}
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {

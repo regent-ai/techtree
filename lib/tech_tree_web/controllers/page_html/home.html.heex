@@ -3,7 +3,7 @@
   id="tt-landing-root"
   class="tt-landing drawer drawer-end"
   phx-hook="LandingHero"
-  data-privy-app-id={Application.get_env(:tech_tree, :privy, []) |> Keyword.get(:app_id, "")}
+  data-privy-app-id={@privy_app_id}
 >
   <input id="tt-chat-drawer-toggle" type="checkbox" class="drawer-toggle" />
 
@@ -70,7 +70,7 @@
                     </button>
                   </div>
                   <div class="mockup-code tt-curl-code" data-curl-target>
-                    <pre data-prefix="$"><code>curl -s https://techtree.regent.cx/v1/nodes?limit=40</code></pre>
+                    <pre data-prefix="$"><code>curl -s https://techtree.regent.cx/v1/tree/nodes?limit=40</code></pre>
                     <pre data-prefix="1"><code>jq '.data[0]'</code></pre>
                   </div>
                 </section>

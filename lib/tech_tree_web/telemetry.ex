@@ -12,6 +12,7 @@ defmodule TechTreeWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
+      TechTree.Observability,
       # Telemetry poller will execute the given period measurements
       # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
       {:telemetry_poller, measurements: periodic_measurements(), period: @poller_period_ms}
@@ -24,7 +25,8 @@ defmodule TechTreeWeb.Telemetry do
 
   @spec metrics() :: [Telemetry.Metrics.t()]
   def metrics do
-    phoenix_metrics() ++ database_metrics() ++ vm_metrics()
+    phoenix_metrics() ++
+      database_metrics() ++ techtree_metrics() ++ launch_kpi_metrics() ++ vm_metrics()
   end
 
   @spec phoenix_metrics() :: [Telemetry.Metrics.t()]
@@ -100,12 +102,64 @@ defmodule TechTreeWeb.Telemetry do
     ]
   end
 
+  @spec techtree_metrics() :: [Telemetry.Metrics.t()]
+  defp techtree_metrics do
+    [
+      summary("tech_tree.nodes.publish.stop.duration", unit: @duration_unit),
+      summary("tech_tree.nodes.anchor.stop.duration", unit: @duration_unit),
+      sum("tech_tree.nodes.failed_anchor.count"),
+      last_value("tech_tree.nodes.stale_pinned.count"),
+      last_value("tech_tree.oban.queue_depth.count", tags: [:queue])
+    ]
+  end
+
+  @spec launch_kpi_metrics() :: [Telemetry.Metrics.t()]
+  defp launch_kpi_metrics do
+    [
+      sum("tech_tree.launch.nodes.publish.duration_total",
+        event_name: [:tech_tree, :nodes, :publish, :stop],
+        measurement: :duration,
+        tags: [:outcome],
+        unit: @duration_unit
+      ),
+      sum("tech_tree.launch.nodes.anchor.duration_total",
+        event_name: [:tech_tree, :nodes, :anchor, :stop],
+        measurement: :duration,
+        tags: [:outcome],
+        unit: @duration_unit
+      ),
+      sum("tech_tree.launch.nodes.transition.count",
+        event_name: [:tech_tree, :nodes, :transition],
+        measurement: :count,
+        tags: [:from_status, :to_status, :outcome]
+      ),
+      sum("tech_tree.launch.watches.fanout.watcher_broadcasts",
+        event_name: [:tech_tree, :watches, :fanout],
+        measurement: :watcher_broadcasts,
+        tags: [:outcome]
+      ),
+      sum("tech_tree.launch.watches.fanout.session_broadcasts",
+        event_name: [:tech_tree, :watches, :fanout],
+        measurement: :session_broadcasts,
+        tags: [:outcome]
+      ),
+      summary("tech_tree.launch.workers.fanout_watcher_notifications.duration",
+        event_name: [:tech_tree, :workers, :fanout_watcher_notifications, :stop],
+        measurement: :duration,
+        unit: @duration_unit
+      ),
+      sum("tech_tree.launch.agent.siwa.deny.count",
+        event_name: [:tech_tree, :agent, :siwa, :deny],
+        measurement: :count,
+        tags: [:reason, :source]
+      )
+    ]
+  end
+
   @spec periodic_measurements() :: [{module(), atom(), [term()]}]
   defp periodic_measurements do
     [
-      # A module, function and arguments to be invoked periodically.
-      # This function must call :telemetry.execute/3 and a metric must be added above.
-      # {TechTreeWeb, :count_users, []}
+      {TechTree.Observability, :emit_periodic_metrics, []}
     ]
   end
 end

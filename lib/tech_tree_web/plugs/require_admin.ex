@@ -13,7 +13,10 @@ defmodule TechTreeWeb.Plugs.RequireAdmin do
     if human && human.role == "admin" do
       conn
     else
-      ApiError.render_halted(conn, :forbidden, %{code: "admin_required", message: "Admin required"})
+      ApiError.render_halted(conn, :forbidden, %{
+        code: "admin_required",
+        message: "Admin required"
+      })
     end
   end
 end

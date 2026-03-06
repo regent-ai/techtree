@@ -1,53 +1,39 @@
 defmodule TechTreeWeb.AgentNodeController do
   use TechTreeWeb, :controller
 
-  alias TechTree.Agents
   alias TechTreeWeb.ApiError
-  alias TechTreeWeb.PublicEncoding
+  alias TechTreeWeb.ControllerHelpers
   alias TechTree.Nodes
   alias TechTree.RateLimit
-  alias TechTree.Watches
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    with {:ok, claims} <- current_agent_claims(conn),
-         :ok <- require_notebook_source(params),
-         :ok <- RateLimit.check_node_create!(claims["wallet_address"]),
-         {:ok, agent} <- ensure_current_agent(claims),
-         {:ok, node} <- Nodes.create_agent_node(agent, params) do
-      conn
-      |> put_status(:accepted)
-      |> json(%{data: %{id: node.id, status: node.status}})
+    claims = conn.assigns.current_agent_claims
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
+    with :ok <- require_notebook_source(params),
+         {:ok, normalized_params} <- normalize_parent_id(params) do
+      case maybe_existing_from_idempotency(agent, normalized_params) do
+        %TechTree.Nodes.Node{} = existing ->
+          render_node_created(conn, existing)
+
+        nil ->
+          with :ok <- RateLimit.check_node_create!(claims["wallet_address"]),
+               {:ok, node} <-
+                 Nodes.create_agent_node(agent, normalized_params, skip_idempotency_lookup: true) do
+            render_node_created(conn, node)
+          else
+            {:error, :rate_limited} -> render_rate_limited(conn)
+            {:error, :parent_required} -> render_unprocessable(conn, "parent_id_required")
+            {:error, :invalid_parent_id} -> render_unprocessable(conn, "invalid_parent_id")
+            {:error, :parent_not_found} -> render_unprocessable(conn, "parent_not_found")
+            {:error, %Ecto.Changeset{} = changeset} -> render_changeset_error(conn, changeset)
+            {:error, reason} -> render_create_failed(conn, reason)
+          end
+      end
     else
-      {:error, :agent_auth_required} -> render_agent_auth_required(conn)
       {:error, :notebook_source_required} -> render_notebook_source_required(conn)
-      {:error, :rate_limited} -> render_rate_limited(conn)
-      {:error, :parent_required} -> render_unprocessable(conn, "parent_id_required")
-      {:error, :parent_not_found} -> render_unprocessable(conn, "parent_not_found")
-      {:error, %Ecto.Changeset{} = changeset} -> render_changeset_error(conn, changeset)
-      {:error, reason} -> render_create_failed(conn, reason)
-    end
-  end
-
-  @spec watch(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def watch(conn, %{"id" => node_id}) do
-    with {:ok, agent} <- current_agent(conn),
-         {:ok, watch} <- Watches.watch_agent(node_id, agent.id) do
-      json(conn, %{data: PublicEncoding.encode_watch(watch)})
-    else
-      {:error, :agent_auth_required} -> render_agent_auth_required(conn)
-      {:error, reason} -> render_create_failed(conn, reason)
-    end
-  end
-
-  @spec unwatch(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def unwatch(conn, %{"id" => node_id}) do
-    with {:ok, agent} <- current_agent(conn),
-         :ok <- Watches.unwatch_agent(node_id, agent.id) do
-      json(conn, %{ok: true})
-    else
-      {:error, :agent_auth_required} -> render_agent_auth_required(conn)
-      {:error, reason} -> render_create_failed(conn, reason)
+      {:error, :invalid_parent_id} -> render_unprocessable(conn, "invalid_parent_id")
     end
   end
 
@@ -59,34 +45,18 @@ defmodule TechTreeWeb.AgentNodeController do
 
   defp require_notebook_source(_params), do: {:error, :notebook_source_required}
 
-  @spec current_agent_claims(Plug.Conn.t()) :: {:ok, map()} | {:error, :agent_auth_required}
-  defp current_agent_claims(conn) do
-    case conn.assigns[:current_agent_claims] do
-      %{"wallet_address" => wallet} = claims when is_binary(wallet) and wallet != "" -> {:ok, claims}
-      _ -> {:error, :agent_auth_required}
+  @spec normalize_parent_id(map()) :: {:ok, map()} | {:error, :invalid_parent_id}
+  defp normalize_parent_id(params) do
+    case ControllerHelpers.fetch_param(params, "parent_id", :parent_id) do
+      nil ->
+        {:ok, params}
+
+      value ->
+        case ControllerHelpers.parse_positive_int(value) do
+          {:ok, normalized} -> {:ok, Map.put(params, "parent_id", normalized)}
+          {:error, _reason} -> {:error, :invalid_parent_id}
+        end
     end
-  end
-
-  @spec current_agent(Plug.Conn.t()) ::
-          {:ok, TechTree.Agents.AgentIdentity.t()} | {:error, :agent_auth_required}
-  defp current_agent(conn) do
-    with {:ok, claims} <- current_agent_claims(conn),
-         {:ok, agent} <- ensure_current_agent(claims) do
-      {:ok, agent}
-    end
-  end
-
-  @spec ensure_current_agent(map()) ::
-          {:ok, TechTree.Agents.AgentIdentity.t()} | {:error, :agent_auth_required}
-  defp ensure_current_agent(claims) do
-    {:ok, Agents.upsert_verified_agent!(claims)}
-  rescue
-    _ -> {:error, :agent_auth_required}
-  end
-
-  @spec render_agent_auth_required(Plug.Conn.t()) :: Plug.Conn.t()
-  defp render_agent_auth_required(conn) do
-    ApiError.render(conn, :unauthorized, %{code: "agent_auth_required", message: "Valid SIWA agent auth required"})
   end
 
   @spec render_notebook_source_required(Plug.Conn.t()) :: Plug.Conn.t()
@@ -117,6 +87,40 @@ defmodule TechTreeWeb.AgentNodeController do
 
   @spec render_create_failed(Plug.Conn.t(), term()) :: Plug.Conn.t()
   defp render_create_failed(conn, reason) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "node_create_failed", message: inspect(reason)})
+    ApiError.render(conn, :unprocessable_entity, %{
+      code: "node_create_failed",
+      message: inspect(reason)
+    })
+  end
+
+  @spec encode_anchor_status(atom() | String.t() | nil) :: String.t()
+  defp encode_anchor_status(status) when status in [:anchored, "anchored"], do: "anchored"
+
+  defp encode_anchor_status(status) when status in [:failed_anchor, "failed_anchor"],
+    do: "failed_anchor"
+
+  defp encode_anchor_status(_status), do: "pending"
+
+  @spec maybe_existing_from_idempotency(TechTree.Agents.AgentIdentity.t(), map()) ::
+          TechTree.Nodes.Node.t() | nil
+  defp maybe_existing_from_idempotency(agent, params) do
+    params
+    |> ControllerHelpers.fetch_param("idempotency_key", :idempotency_key)
+    |> ControllerHelpers.normalize_optional_text()
+    |> then(&Nodes.get_agent_node_by_idempotency(agent.id, &1))
+  end
+
+  @spec render_node_created(Plug.Conn.t(), TechTree.Nodes.Node.t()) :: Plug.Conn.t()
+  defp render_node_created(conn, node) do
+    conn
+    |> put_status(:created)
+    |> json(%{
+      data: %{
+        node_id: node.id,
+        artifact_cid: node.manifest_cid,
+        status: node.status,
+        anchor_status: encode_anchor_status(node.status)
+      }
+    })
   end
 end

@@ -24,12 +24,12 @@ contract TechTreeRegistry is AccessControlLite, PausableLite {
     struct NodeAnchor {
         uint256 nodeId;
         uint256 parentId;
-        address creator;
-        string manifestUri;
         bytes32 manifestHash;
-        NodeKind kind;
+        address creator;
         uint64 createdAt;
+        NodeKind kind;
         bool exists;
+        string manifestUri;
     }
 
     mapping(uint256 nodeId => NodeAnchor anchor) private _nodes;
@@ -76,12 +76,12 @@ contract TechTreeRegistry is AccessControlLite, PausableLite {
         _nodes[nodeId] = NodeAnchor({
             nodeId: nodeId,
             parentId: parentId,
-            creator: creator,
-            manifestUri: manifestUri,
             manifestHash: manifestHash,
-            kind: kind,
+            creator: creator,
             createdAt: createdAt,
-            exists: true
+            kind: kind,
+            exists: true,
+            manifestUri: manifestUri
         });
 
         emit NodeCreated(
@@ -98,11 +98,11 @@ contract TechTreeRegistry is AccessControlLite, PausableLite {
     }
 
     function grantWriter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        grantRole(WRITER_ROLE, account);
+        _grantRole(WRITER_ROLE, account);
     }
 
     function revokeWriter(address account) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        revokeRole(WRITER_ROLE, account);
+        _revokeRole(WRITER_ROLE, account);
     }
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {

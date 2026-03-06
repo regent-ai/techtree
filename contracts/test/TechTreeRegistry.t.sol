@@ -28,6 +28,39 @@ contract TechTreeRegistryTest is TestBase {
         new TechTreeRegistry(address(0), WRITER);
     }
 
+    function testConstructorRoleAssignments() public view {
+        assertEq(
+            registry.hasRole(registry.DEFAULT_ADMIN_ROLE(), ADMIN),
+            true,
+            "admin role should be granted"
+        );
+        assertEq(
+            registry.hasRole(registry.WRITER_ROLE(), WRITER), true, "writer role should be granted"
+        );
+    }
+
+    function testConstructorWithZeroInitialWriterLeavesWriterRoleUnassigned() public {
+        TechTreeRegistry zeroWriterRegistry = new TechTreeRegistry(ADMIN, address(0));
+
+        assertEq(
+            zeroWriterRegistry.hasRole(zeroWriterRegistry.WRITER_ROLE(), WRITER),
+            false,
+            "writer role should not be granted"
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                WRITER,
+                zeroWriterRegistry.WRITER_ROLE()
+            )
+        );
+        vm.prank(WRITER);
+        zeroWriterRegistry.createNode(
+            1, 0, CREATOR, MANIFEST_URI, MANIFEST_HASH, TechTreeRegistry.NodeKind.Data
+        );
+    }
+
     function testNodeKindCanonicalOrder() public pure {
         assertEq(uint256(uint8(TechTreeRegistry.NodeKind.Hypothesis)), 0, "Hypothesis must be 0");
         assertEq(uint256(uint8(TechTreeRegistry.NodeKind.Data)), 1, "Data must be 1");
@@ -60,6 +93,45 @@ contract TechTreeRegistryTest is TestBase {
         );
         assertTrue(node.createdAt > 0, "createdAt should be set");
         assertEq(node.exists, true, "exists flag mismatch");
+    }
+
+    function testExistsReturnsFalseForUnknownNode() public view {
+        assertEq(registry.exists(999), false, "unknown node should not exist");
+    }
+
+    function testGetNodeReturnsDefaultForUnknownNode() public view {
+        TechTreeRegistry.NodeAnchor memory node = registry.getNode(999);
+        assertEq(node.nodeId, 0, "node id should default to zero");
+        assertEq(node.parentId, 0, "parent should default to zero");
+        assertEq(node.creator, address(0), "creator should default to zero address");
+        assertEq(node.manifestUri, "", "manifest URI should default to empty");
+        assertEq(node.manifestHash, bytes32(0), "manifest hash should default to zero");
+        assertEq(uint256(uint8(node.kind)), 0, "kind should default to zero");
+        assertEq(uint256(node.createdAt), 0, "createdAt should default to zero");
+        assertEq(node.exists, false, "exists should default to false");
+    }
+
+    function testCreateNodeWithMaxNodeId() public {
+        uint256 maxNodeId = type(uint256).max;
+        bytes32 maxHash = bytes32(type(uint256).max);
+        address maxCreator = address(type(uint160).max);
+
+        vm.prank(WRITER);
+        registry.createNode(
+            maxNodeId, 0, maxCreator, MANIFEST_URI, maxHash, TechTreeRegistry.NodeKind.Skill
+        );
+
+        TechTreeRegistry.NodeAnchor memory node = registry.getNode(maxNodeId);
+        assertEq(node.nodeId, maxNodeId, "node id mismatch");
+        assertEq(node.parentId, 0, "parent should be root");
+        assertEq(node.creator, maxCreator, "creator mismatch");
+        assertEq(node.manifestHash, maxHash, "manifest hash mismatch");
+        assertEq(
+            uint256(uint8(node.kind)),
+            uint256(uint8(TechTreeRegistry.NodeKind.Skill)),
+            "kind mismatch"
+        );
+        assertEq(node.exists, true, "exists should be true");
     }
 
     function testNodeCreatedEventCarriesCanonicalAnchorFields() public {
@@ -195,6 +267,33 @@ contract TechTreeRegistryTest is TestBase {
         assertEq(registry.exists(2), true, "node should be creatable after unpause");
     }
 
+    function testPauseRevertsIfAlreadyPaused() public {
+        vm.prank(ADMIN);
+        registry.pause();
+
+        vm.prank(ADMIN);
+        vm.expectRevert(PausableLite.EnforcedPause.selector);
+        registry.pause();
+    }
+
+    function testUnpauseRevertsIfNotPaused() public {
+        vm.prank(ADMIN);
+        vm.expectRevert(PausableLite.ExpectedPause.selector);
+        registry.unpause();
+    }
+
+    function testPausedViewReflectsPauseState() public {
+        assertEq(registry.paused(), false, "initial state should be unpaused");
+
+        vm.prank(ADMIN);
+        registry.pause();
+        assertEq(registry.paused(), true, "paused state should be true");
+
+        vm.prank(ADMIN);
+        registry.unpause();
+        assertEq(registry.paused(), false, "paused state should return to false");
+    }
+
     function testAdminCanGrantAndRevokeWriter() public {
         vm.prank(ADMIN);
         registry.grantWriter(WRITER_TWO);
@@ -221,6 +320,32 @@ contract TechTreeRegistryTest is TestBase {
         );
     }
 
+    function testAdminCanGrantAndRevokeRoleDirectly() public {
+        vm.prank(ADMIN);
+        registry.grantRole(registry.WRITER_ROLE(), WRITER_TWO);
+
+        vm.prank(WRITER_TWO);
+        registry.createNode(
+            22, 0, CREATOR, MANIFEST_URI, MANIFEST_HASH, TechTreeRegistry.NodeKind.Skill
+        );
+        assertEq(registry.exists(22), true, "direct grantRole should allow writes");
+
+        vm.prank(ADMIN);
+        registry.revokeRole(registry.WRITER_ROLE(), WRITER_TWO);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                WRITER_TWO,
+                registry.WRITER_ROLE()
+            )
+        );
+        vm.prank(WRITER_TWO);
+        registry.createNode(
+            23, 0, CREATOR, MANIFEST_URI, MANIFEST_HASH, TechTreeRegistry.NodeKind.Skill
+        );
+    }
+
     function testRevertIfNonAdminGrantsWriter() public {
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -233,6 +358,42 @@ contract TechTreeRegistryTest is TestBase {
         registry.grantWriter(WRITER_TWO);
     }
 
+    function testRevertIfNonAdminGrantsRoleDirectly() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                OTHER,
+                registry.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        vm.prank(OTHER);
+        registry.grantRole(registry.WRITER_ROLE(), WRITER_TWO);
+    }
+
+    function testRevertIfNonAdminRevokesWriter() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                OTHER,
+                registry.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        vm.prank(OTHER);
+        registry.revokeWriter(WRITER_TWO);
+    }
+
+    function testRevertIfNonAdminRevokesRoleDirectly() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                OTHER,
+                registry.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        vm.prank(OTHER);
+        registry.revokeRole(registry.WRITER_ROLE(), WRITER_TWO);
+    }
+
     function testRevertIfNonAdminPauses() public {
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -243,5 +404,17 @@ contract TechTreeRegistryTest is TestBase {
         );
         vm.prank(OTHER);
         registry.pause();
+    }
+
+    function testRevertIfNonAdminUnpauses() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AccessControlLite.AccessControlUnauthorizedAccount.selector,
+                OTHER,
+                registry.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        vm.prank(OTHER);
+        registry.unpause();
     }
 }

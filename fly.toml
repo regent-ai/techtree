@@ -1,5 +1,5 @@
-app = "techtree-regent"
-primary_region = "iad"
+app = "techtree"
+primary_region = "sjc"
 
 [build]
   dockerfile = "Dockerfile"

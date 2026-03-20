@@ -1,14 +1,13 @@
 defmodule TechTreeWeb.AgentCommentController do
   use TechTreeWeb, :controller
 
+  alias TechTree.RateLimit
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTree.Comments
-  alias TechTree.RateLimit
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    claims = conn.assigns.current_agent_claims
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with {:ok, node_id} <- parse_node_id(params) do
@@ -17,24 +16,44 @@ defmodule TechTreeWeb.AgentCommentController do
           render_comment_created(conn, existing)
 
         nil ->
-          with :ok <- RateLimit.check_comment_create!(claims["wallet_address"], node_id),
+          with :ok <- enforce_create_limit(conn, agent, node_id),
                {:ok, comment} <-
                  Comments.create_agent_comment(agent, node_id, params,
                    skip_idempotency_lookup: true
                  ) do
             render_comment_created(conn, comment)
           else
-            {:error, :rate_limited} -> render_rate_limited(conn)
-            {:error, :comments_locked} -> render_comments_locked(conn)
-            {:error, :node_not_found} -> render_node_not_found(conn)
-            {:error, %Ecto.Changeset{} = changeset} -> render_changeset_error(conn, changeset)
-            {:error, reason} -> render_create_failed(conn, reason)
+            {:error, %{retry_after_ms: retry_after_ms}} ->
+              render_rate_limit(conn, "comment_create_rate_limited", retry_after_ms)
+
+            {:error, :comments_locked} ->
+              render_comments_locked(conn)
+
+            {:error, :node_not_found} ->
+              render_node_not_found(conn)
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              render_changeset_error(conn, changeset)
+
+            {:error, reason} ->
+              render_create_failed(conn, reason)
           end
       end
     else
       {:error, :node_id_required} -> render_node_id_required(conn)
       {:error, :invalid_node_id} -> render_invalid_node_id(conn)
     end
+  end
+
+  defp enforce_create_limit(conn, agent, node_id) do
+    node_scope = ":node:#{node_id}"
+    ip_scope = ControllerHelpers.client_ip_scope(conn)
+
+    RateLimit.allow_agent_comment_create(
+      actor_scope: "agent:#{agent.id}#{node_scope}",
+      principal_scope: "wallet:#{agent.wallet_address}#{node_scope}",
+      ip_scope: if(is_binary(ip_scope), do: "#{ip_scope}#{node_scope}", else: nil)
+    )
   end
 
   @spec parse_node_id(map()) :: {:ok, integer()} | {:error, :node_id_required | :invalid_node_id}
@@ -44,14 +63,6 @@ defmodule TechTreeWeb.AgentCommentController do
       {:error, :required} -> {:error, :node_id_required}
       {:error, :invalid} -> {:error, :invalid_node_id}
     end
-  end
-
-  @spec render_rate_limited(Plug.Conn.t()) :: Plug.Conn.t()
-  defp render_rate_limited(conn) do
-    ApiError.render(conn, :too_many_requests, %{
-      code: "rate_limited",
-      message: "1 comment per 5 min per node"
-    })
   end
 
   @spec render_node_id_required(Plug.Conn.t()) :: Plug.Conn.t()
@@ -90,6 +101,18 @@ defmodule TechTreeWeb.AgentCommentController do
     ApiError.render(conn, :unprocessable_entity, %{
       code: "comment_create_failed",
       message: inspect(reason)
+    })
+  end
+
+  @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()
+  defp render_rate_limit(conn, code, retry_after_ms) do
+    retry_after_seconds = retry_after_ms |> Kernel./(1_000) |> Float.ceil() |> trunc()
+
+    conn
+    |> put_resp_header("retry-after", Integer.to_string(max(retry_after_seconds, 1)))
+    |> ApiError.render(:too_many_requests, %{
+      code: code,
+      retry_after_ms: retry_after_ms
     })
   end
 

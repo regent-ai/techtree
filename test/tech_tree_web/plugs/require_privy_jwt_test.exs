@@ -3,6 +3,8 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
 
   import TechTree.PhaseDApiSupport
 
+  alias TechTree.Accounts
+
   setup do
     privy = setup_privy_config!()
 
@@ -33,6 +35,23 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
              |> put_req_header("authorization", "Bearer #{token}")
              |> get("/v1/trollbox/membership")
              |> json_response(200)
+  end
+
+  test "rejects banned humans even with a valid Privy JWT", %{privy: privy} do
+    {:ok, _human} =
+      Accounts.upsert_human_by_privy_id("privy-banned-user", %{
+        "display_name" => "Banned User",
+        "role" => "banned"
+      })
+
+    token = privy_token("privy-banned-user", privy.app_id, privy.private_pem, 3600)
+
+    assert %{"error" => %{"code" => "human_banned"}} =
+             Phoenix.ConnTest.build_conn()
+             |> put_req_header("accept", "application/json")
+             |> put_req_header("authorization", "Bearer #{token}")
+             |> post("/v1/trollbox/messages", %{"body" => "hello from banned privy"})
+             |> json_response(403)
   end
 
   defp privy_token(privy_user_id, app_id, private_pem, exp_offset_seconds) do

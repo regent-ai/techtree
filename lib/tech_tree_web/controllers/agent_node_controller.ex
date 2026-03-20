@@ -1,14 +1,13 @@
 defmodule TechTreeWeb.AgentNodeController do
   use TechTreeWeb, :controller
 
+  alias TechTree.RateLimit
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTree.Nodes
-  alias TechTree.RateLimit
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
-    claims = conn.assigns.current_agent_claims
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with :ok <- require_notebook_source(params),
@@ -18,23 +17,45 @@ defmodule TechTreeWeb.AgentNodeController do
           render_node_created(conn, existing)
 
         nil ->
-          with :ok <- RateLimit.check_node_create!(claims["wallet_address"]),
+          with :ok <- enforce_create_limit(conn, agent),
                {:ok, node} <-
                  Nodes.create_agent_node(agent, normalized_params, skip_idempotency_lookup: true) do
             render_node_created(conn, node)
           else
-            {:error, :rate_limited} -> render_rate_limited(conn)
-            {:error, :parent_required} -> render_unprocessable(conn, "parent_id_required")
-            {:error, :invalid_parent_id} -> render_unprocessable(conn, "invalid_parent_id")
-            {:error, :parent_not_found} -> render_unprocessable(conn, "parent_not_found")
-            {:error, %Ecto.Changeset{} = changeset} -> render_changeset_error(conn, changeset)
-            {:error, reason} -> render_create_failed(conn, reason)
+            {:error, %{retry_after_ms: retry_after_ms}} ->
+              render_rate_limit(conn, "node_create_rate_limited", retry_after_ms)
+
+            {:error, :parent_required} ->
+              render_unprocessable(conn, "parent_id_required")
+
+            {:error, :invalid_parent_id} ->
+              render_unprocessable(conn, "invalid_parent_id")
+
+            {:error, :parent_not_found} ->
+              render_unprocessable(conn, "parent_not_found")
+
+            {:error, :parent_not_anchored} ->
+              render_unprocessable(conn, "parent_not_anchored")
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              render_changeset_error(conn, changeset)
+
+            {:error, reason} ->
+              render_create_failed(conn, reason)
           end
       end
     else
       {:error, :notebook_source_required} -> render_notebook_source_required(conn)
       {:error, :invalid_parent_id} -> render_unprocessable(conn, "invalid_parent_id")
     end
+  end
+
+  defp enforce_create_limit(conn, agent) do
+    RateLimit.allow_agent_node_create(
+      actor_scope: "agent:#{agent.id}",
+      principal_scope: "wallet:#{agent.wallet_address}",
+      ip_scope: ControllerHelpers.client_ip_scope(conn)
+    )
   end
 
   @spec require_notebook_source(map()) :: :ok | {:error, :notebook_source_required}
@@ -64,14 +85,6 @@ defmodule TechTreeWeb.AgentNodeController do
     ApiError.render(conn, :unprocessable_entity, %{code: "notebook_source_required"})
   end
 
-  @spec render_rate_limited(Plug.Conn.t()) :: Plug.Conn.t()
-  defp render_rate_limited(conn) do
-    ApiError.render(conn, :too_many_requests, %{
-      code: "rate_limited",
-      message: "1 node per hour per agent"
-    })
-  end
-
   @spec render_unprocessable(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
   defp render_unprocessable(conn, code) do
     ApiError.render(conn, :unprocessable_entity, %{code: code})
@@ -90,6 +103,18 @@ defmodule TechTreeWeb.AgentNodeController do
     ApiError.render(conn, :unprocessable_entity, %{
       code: "node_create_failed",
       message: inspect(reason)
+    })
+  end
+
+  @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()
+  defp render_rate_limit(conn, code, retry_after_ms) do
+    retry_after_seconds = retry_after_ms |> Kernel./(1_000) |> Float.ceil() |> trunc()
+
+    conn
+    |> put_resp_header("retry-after", Integer.to_string(max(retry_after_seconds, 1)))
+    |> ApiError.render(:too_many_requests, %{
+      code: code,
+      retry_after_ms: retry_after_ms
     })
   end
 
@@ -117,7 +142,7 @@ defmodule TechTreeWeb.AgentNodeController do
     |> json(%{
       data: %{
         node_id: node.id,
-        artifact_cid: node.manifest_cid,
+        manifest_cid: node.manifest_cid,
         status: node.status,
         anchor_status: encode_anchor_status(node.status)
       }

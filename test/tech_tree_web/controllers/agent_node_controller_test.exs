@@ -22,6 +22,10 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
   } do
     headers = create_agent_headers!("agent-node")
     parent = create_public_parent!(headers.agent)
+
+    related =
+      create_public_node!(headers.agent, parent_id: parent.id, title: "agent-node-related")
+
     idempotency_key = "agent-node:#{System.unique_integer([:positive])}"
 
     first_response =
@@ -33,6 +37,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
         "title" => "agent-node-first",
         "parent_id" => parent.id,
         "notebook_source" => "print('agent node first')",
+        "sidelinks" => [%{"node_id" => related.id, "tag" => "supports", "ordinal" => 2}],
         "idempotency_key" => idempotency_key
       })
       |> json_response(201)
@@ -40,13 +45,13 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     assert %{
              "data" => %{
                "node_id" => node_id,
-               "artifact_cid" => artifact_cid,
+               "manifest_cid" => manifest_cid,
                "status" => "pinned",
                "anchor_status" => "pending"
              }
            } = first_response
 
-    assert has_text?(artifact_cid)
+    assert has_text?(manifest_cid)
 
     second_response =
       Phoenix.ConnTest.build_conn()
@@ -64,7 +69,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     assert %{
              "data" => %{
                "node_id" => ^node_id,
-               "artifact_cid" => ^artifact_cid,
+               "manifest_cid" => ^manifest_cid,
                "status" => "pinned",
                "anchor_status" => "pending"
              }
@@ -73,13 +78,41 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     persisted = Repo.get!(Node, node_id)
     assert persisted.parent_id == parent.id
     assert persisted.status == :pinned
-    assert persisted.manifest_cid == artifact_cid
+    assert persisted.manifest_cid == manifest_cid
 
-    assert %{"data" => []} =
+    assert %{
+             "data" => %{
+               "id" => ^node_id,
+               "manifest_cid" => ^manifest_cid,
+               "status" => "pinned",
+               "sidelinks" => [
+                 %{"dst_node_id" => related_id, "tag" => "supports", "ordinal" => 2}
+               ]
+             }
+           } =
+             Phoenix.ConnTest.build_conn()
+             |> with_siwa_headers(headers)
+             |> get("/v1/agent/tree/nodes/#{node_id}")
+             |> json_response(200)
+
+    assert related_id == related.id
+
+    assert %{"data" => children} =
+             Phoenix.ConnTest.build_conn()
+             |> with_siwa_headers(headers)
+             |> get("/v1/agent/tree/nodes/#{parent.id}/children")
+             |> json_response(200)
+
+    assert Enum.any?(children, &(&1["id"] == node_id and &1["status"] == "pinned"))
+
+    assert %{"data" => public_children} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> get("/v1/tree/nodes/#{parent.id}/children")
              |> json_response(200)
+
+    refute Enum.any?(public_children, &(&1["id"] == node_id))
+    assert Enum.any?(public_children, &(&1["id"] == related.id and &1["status"] == "anchored"))
 
     assert Repo.aggregate(
              from(n in Node, where: n.publish_idempotency_key == ^idempotency_key),
@@ -119,6 +152,63 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     refute Repo.exists?(from(n in Node, where: n.publish_idempotency_key == ^idempotency_key))
   end
 
+  test "POST /v1/tree/nodes rejects unanchored parents", %{conn: conn} do
+    headers = create_agent_headers!("agent-node-unanchored-parent")
+    parent = create_public_parent!(headers.agent, status: :pinned)
+
+    response =
+      conn
+      |> with_siwa_headers(headers)
+      |> post("/v1/tree/nodes", %{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "agent-node-unanchored-parent",
+        "parent_id" => parent.id,
+        "notebook_source" => "print('agent node unanchored parent')",
+        "idempotency_key" => "agent-node-unanchored-parent:#{System.unique_integer([:positive])}"
+      })
+      |> json_response(422)
+
+    assert %{"error" => %{"code" => "parent_not_anchored"}} = response
+  end
+
+  test "POST /v1/tree/nodes rate limits repeated non-idempotent creates per agent", %{conn: conn} do
+    headers = create_agent_headers!("agent-node-rate-limit")
+    parent = create_public_parent!(headers.agent)
+
+    assert %{"data" => %{"node_id" => _node_id}} =
+             conn
+             |> with_siwa_headers(headers)
+             |> post("/v1/tree/nodes", %{
+               "seed" => "ML",
+               "kind" => "hypothesis",
+               "title" => "agent-node-rate-limit-first",
+               "parent_id" => parent.id,
+               "notebook_source" => "print('agent node rate limit first')"
+             })
+             |> json_response(201)
+
+    assert %{
+             "error" => %{
+               "code" => "node_create_rate_limited",
+               "retry_after_ms" => retry_after_ms
+             }
+           } =
+             Phoenix.ConnTest.build_conn()
+             |> with_siwa_headers(headers)
+             |> post("/v1/tree/nodes", %{
+               "seed" => "ML",
+               "kind" => "hypothesis",
+               "title" => "agent-node-rate-limit-second",
+               "parent_id" => parent.id,
+               "notebook_source" => "print('agent node rate limit second')"
+             })
+             |> json_response(429)
+
+    assert is_integer(retry_after_ms)
+    assert retry_after_ms > 0
+  end
+
   defp create_agent_headers!(label_prefix) do
     unique = System.unique_integer([:positive])
 
@@ -128,14 +218,14 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "8453",
+        "chain_id" => "11155111",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "8453", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
   end
 
   defp with_siwa_headers(conn, headers) do
@@ -147,7 +237,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     |> put_req_header("x-agent-token-id", headers.token_id)
   end
 
-  defp create_public_parent!(creator) do
+  defp create_public_parent!(creator, attrs \\ []) do
     unique = System.unique_integer([:positive])
 
     %Node{}
@@ -157,9 +247,28 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
       seed: "ML",
       kind: :hypothesis,
       title: "agent-node-parent-#{unique}",
-      status: :anchored,
+      status: Keyword.get(attrs, :status, :anchored),
       notebook_source: "print('parent')",
       publish_idempotency_key: "agent-node-parent:#{unique}",
+      creator_agent_id: creator.id
+    })
+    |> Repo.insert!()
+  end
+
+  defp create_public_node!(creator, attrs) do
+    unique = System.unique_integer([:positive])
+
+    %Node{}
+    |> Ecto.Changeset.change(%{
+      path: "n#{unique}",
+      depth: Keyword.get(attrs, :depth, 1),
+      seed: Keyword.get(attrs, :seed, "ML"),
+      kind: Keyword.get(attrs, :kind, :hypothesis),
+      title: Keyword.get(attrs, :title, "agent-node-#{unique}"),
+      status: Keyword.get(attrs, :status, :anchored),
+      parent_id: Keyword.get(attrs, :parent_id),
+      notebook_source: Keyword.get(attrs, :notebook_source, "print('node')"),
+      publish_idempotency_key: "agent-node:#{unique}",
       creator_agent_id: creator.id
     })
     |> Repo.insert!()

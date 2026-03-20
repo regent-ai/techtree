@@ -36,7 +36,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
       Phoenix.ConnTest.build_conn()
       |> with_siwa_headers(
         wallet: writer_wallet,
-        chain_id: "8453",
+        chain_id: "11155111",
         registry_address: writer_registry,
         token_id: writer_token_id
       )
@@ -88,7 +88,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     assert %{
              "data" => %{
                "node_id" => child_node_id,
-               "artifact_cid" => artifact_cid,
+               "manifest_cid" => manifest_cid,
                "status" => "pinned",
                "anchor_status" => "pending"
              }
@@ -104,7 +104,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
              })
              |> json_response(201)
 
-    assert is_binary(artifact_cid) and artifact_cid != ""
+    assert is_binary(manifest_cid) and manifest_cid != ""
 
     assert %{"data" => %{"node_id" => ^child_node_id}} =
              writer_conn.()
@@ -404,20 +404,6 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     AgentIdentity
     |> where([a], a.id == ^node.creator_agent_id)
     |> Repo.update_all(set: [status: "active"])
-
-    :ok
-  end
-
-  defp assert_eventually_true(description, fun, attempts \\ 20, delay_ms \\ 40)
-       when is_function(fun, 0) do
-    await_ok(
-      description,
-      fn ->
-        if fun.(), do: {:ok, true}, else: {:retry, false}
-      end,
-      attempts,
-      delay_ms
-    )
 
     :ok
   end

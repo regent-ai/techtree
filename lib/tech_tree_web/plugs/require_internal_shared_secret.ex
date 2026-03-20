@@ -36,8 +36,11 @@ defmodule TechTreeWeb.Plugs.RequireInternalSharedSecret do
 
   @spec expected_secret_mode() :: {:enabled | :disabled | :invalid, String.t() | nil}
   defp expected_secret_mode do
+    runtime_env = Application.get_env(:tech_tree, :runtime_env, :dev)
+
     case Application.get_env(:tech_tree, :internal_shared_secret, "") do
-      "" -> {:disabled, ""}
+      "" when runtime_env == :test -> {:disabled, ""}
+      "" -> {:invalid, nil}
       value when is_binary(value) -> {:enabled, value}
       _ -> {:invalid, nil}
     end

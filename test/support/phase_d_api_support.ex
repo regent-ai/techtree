@@ -3,9 +3,9 @@ defmodule TechTree.PhaseDApiSupport do
 
   import Plug.Conn
 
-  alias TechTree.{Accounts, Agents, Nodes, Repo, XMTPMirror}
+  alias TechTree.{Accounts, Agents, Nodes, Repo}
   alias TechTree.Nodes.Node
-  alias TechTree.XMTPMirror.XmtpMessage
+  alias TechTree.Trollbox.Message, as: TrollboxMessage
 
   @spec setup_privy_config!() :: %{
           app_id: String.t(),
@@ -43,7 +43,7 @@ defmodule TechTree.PhaseDApiSupport do
     unique = unique_suffix()
 
     wallet = Keyword.get(opts, :wallet, random_eth_address())
-    chain_id = Keyword.get(opts, :chain_id, "8453")
+    chain_id = Keyword.get(opts, :chain_id, "11155111")
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 
@@ -61,7 +61,7 @@ defmodule TechTree.PhaseDApiSupport do
     status = Keyword.get(opts, :status, "active")
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => Keyword.get(opts, :chain_id, "8453"),
+      "chain_id" => Keyword.get(opts, :chain_id, "11155111"),
       "registry_address" =>
         Keyword.get(opts, :registry_address, "0x#{prefix}-registry-#{unique}"),
       "token_id" => Keyword.get(opts, :token_id, Integer.to_string(unique)),
@@ -80,7 +80,6 @@ defmodule TechTree.PhaseDApiSupport do
     {:ok, human} =
       Accounts.upsert_human_by_privy_id(privy_user_id, %{
         "wallet_address" => Keyword.get(opts, :wallet_address, "0x#{prefix}-wallet-#{unique}"),
-        "xmtp_inbox_id" => Keyword.get(opts, :xmtp_inbox_id, "inbox-#{prefix}-#{unique}"),
         "display_name" => Keyword.get(opts, :display_name, "#{prefix}-#{unique}"),
         "role" => role
       })
@@ -122,7 +121,7 @@ defmodule TechTree.PhaseDApiSupport do
     ready_result =
       Nodes.mark_node_anchored!(node_id, %{
         tx_hash: "0xtx-#{unique}",
-        chain_id: 8453,
+        chain_id: 11_155_111,
         contract_address: "0xcontract-#{unique}",
         block_number: unique,
         log_index: 0
@@ -135,39 +134,47 @@ defmodule TechTree.PhaseDApiSupport do
     end
   end
 
-  @spec create_canonical_room!() :: TechTree.XMTPMirror.XmtpRoom.t()
-  def create_canonical_room! do
-    unique = unique_suffix()
+  @spec create_trollbox_message!(
+          TechTree.Accounts.HumanUser.t() | TechTree.Agents.AgentIdentity.t(),
+          map()
+        ) ::
+          TrollboxMessage.t()
+  def create_trollbox_message!(author, attrs \\ %{})
 
-    {:ok, room} =
-      XMTPMirror.ensure_room(%{
-        room_key: "public-trollbox",
-        xmtp_group_id: "xmtp-public-trollbox-#{unique}",
-        name: "Public Trollbox #{unique}",
-        status: "active"
-      })
-
-    room
-  end
-
-  @spec create_visible_message!(TechTree.XMTPMirror.XmtpRoom.t(), map()) :: XmtpMessage.t()
-  def create_visible_message!(room, attrs \\ %{}) do
-    unique = unique_suffix()
-
-    %XmtpMessage{}
-    |> XmtpMessage.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: Map.get(attrs, :xmtp_message_id, "msg-#{unique}"),
-      sender_inbox_id: Map.get(attrs, :sender_inbox_id, "inbox-#{unique}"),
-      sender_wallet_address: Map.get(attrs, :sender_wallet_address),
-      sender_label: Map.get(attrs, :sender_label, "sender-#{unique}"),
-      sender_type: Map.get(attrs, :sender_type, :human),
-      body: Map.get(attrs, :body, "phase-d-message-#{unique}"),
-      sent_at: Map.get(attrs, :sent_at, DateTime.utc_now()),
-      raw_payload: Map.get(attrs, :raw_payload, %{"kind" => "phase-d"}),
-      moderation_state: "visible"
+  def create_trollbox_message!(%TechTree.Accounts.HumanUser{} = human, attrs) do
+    %TrollboxMessage{}
+    |> TrollboxMessage.changeset(%{
+      author_kind: :human,
+      author_scope: "human:#{human.id}",
+      author_human_id: human.id,
+      client_message_id: Map.get(attrs, :client_message_id),
+      body: Map.get(attrs, :body, "trollbox-human-#{unique_suffix()}"),
+      transport_msg_id: Map.get(attrs, :transport_msg_id, "transport-human-#{unique_suffix()}"),
+      transport_topic: Map.get(attrs, :transport_topic, "trollbox:global"),
+      reply_to_message_id: Map.get(attrs, :reply_to_message_id),
+      reactions: Map.get(attrs, :reactions, %{}),
+      moderation_state: Map.get(attrs, :moderation_state, "visible")
     })
     |> Repo.insert!()
+    |> Repo.preload([:author_human, :author_agent])
+  end
+
+  def create_trollbox_message!(%TechTree.Agents.AgentIdentity{} = agent, attrs) do
+    %TrollboxMessage{}
+    |> TrollboxMessage.changeset(%{
+      author_kind: :agent,
+      author_scope: "agent:#{agent.id}",
+      author_agent_id: agent.id,
+      client_message_id: Map.get(attrs, :client_message_id),
+      body: Map.get(attrs, :body, "trollbox-agent-#{unique_suffix()}"),
+      transport_msg_id: Map.get(attrs, :transport_msg_id, "transport-agent-#{unique_suffix()}"),
+      transport_topic: Map.get(attrs, :transport_topic, "trollbox:global"),
+      reply_to_message_id: Map.get(attrs, :reply_to_message_id),
+      reactions: Map.get(attrs, :reactions, %{}),
+      moderation_state: Map.get(attrs, :moderation_state, "visible")
+    })
+    |> Repo.insert!()
+    |> Repo.preload([:author_human, :author_agent])
   end
 
   @spec unique_suffix() :: integer()

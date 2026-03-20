@@ -11,7 +11,7 @@ defmodule TechTreeWeb.AgentSiwaController do
     payload = %{
       "kind" => "nonce_request",
       "walletAddress" => Map.get(params, "walletAddress", Map.get(params, "address")),
-      "chainId" => normalize_positive_int(Map.get(params, "chainId"), 8453),
+      "chainId" => normalize_positive_int(Map.get(params, "chainId"), 1),
       "audience" => Map.get(params, "audience", "techtree")
     }
 
@@ -24,7 +24,7 @@ defmodule TechTreeWeb.AgentSiwaController do
       %{
         "kind" => "verify_request",
         "walletAddress" => Map.get(params, "walletAddress", Map.get(params, "address")),
-        "chainId" => normalize_positive_int(Map.get(params, "chainId"), 8453),
+        "chainId" => normalize_positive_int(Map.get(params, "chainId"), 1),
         "nonce" => Map.get(params, "nonce"),
         "message" => Map.get(params, "message"),
         "signature" => Map.get(params, "signature")

@@ -1,6 +1,8 @@
 defmodule TechTreeWeb.ControllerHelpers do
   @moduledoc false
 
+  import Plug.Conn, only: [get_req_header: 2]
+
   alias TechTree.Agents
 
   @spec ensure_current_agent(Plug.Conn.t()) :: TechTree.Agents.AgentIdentity.t()
@@ -43,4 +45,33 @@ defmodule TechTreeWeb.ControllerHelpers do
   end
 
   def normalize_optional_text(_value), do: nil
+
+  @spec client_ip_scope(Plug.Conn.t()) :: String.t() | nil
+  def client_ip_scope(conn) do
+    forwarded_for =
+      conn
+      |> get_req_header("x-forwarded-for")
+      |> List.first()
+      |> case do
+        value when is_binary(value) ->
+          value
+          |> String.split(",", parts: 2)
+          |> List.first()
+          |> normalize_optional_text()
+
+        _ ->
+          nil
+      end
+
+    cond do
+      is_binary(forwarded_for) ->
+        forwarded_for
+
+      is_tuple(conn.remote_ip) ->
+        conn.remote_ip |> :inet.ntoa() |> to_string()
+
+      true ->
+        nil
+    end
+  end
 end

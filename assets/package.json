@@ -1,0 +1,12 @@
+{
+  "name": "techtree-assets",
+  "private": true,
+  "dependencies": {
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/extensions": "^9.2.11",
+    "@deck.gl/layers": "^9.2.11"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

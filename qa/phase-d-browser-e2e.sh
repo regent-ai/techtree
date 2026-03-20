@@ -19,6 +19,7 @@ STATUS_FILE="${OUT_DIR}/${RUN_STAMP}.status.tsv"
 SUMMARY_FILE="${OUT_DIR}/${RUN_STAMP}.summary.md"
 AB_SESSION="pdd-${RUN_STAMP:9:6}"
 AB_SESSION_IOS="pdi-${RUN_STAMP:9:6}"
+FIXTURE_FILE="${OUT_DIR}/${RUN_STAMP}.fixture.json"
 
 PASS_COUNT=0
 FAIL_COUNT=0
@@ -32,15 +33,12 @@ IOS_REASON="not checked"
 IOS_DEVICE_SELECTED=""
 
 RESULT_ROWS=()
-
-FIXTURE_FILE="${OUT_DIR}/${RUN_STAMP}.fixture.json"
-BASE_NODE_ID=""
-BASE_NODE_TITLE=""
-ALT_NODE_ID=""
-ALT_NODE_TITLE=""
-COMMENTS_NODE_ID=""
-COMMENTS_NODE_TITLE=""
-TROLLBOX_PRESENT=0
+SELECTED_NODE_TITLE=""
+SELECTED_NODE_ID=""
+BASE_GRID_NODE_ID=""
+BASE_GRID_NODE_TITLE=""
+BASE_AGENT_MESSAGE=""
+BASE_HUMAN_MESSAGE=""
 
 mkdir -p "${OUT_DIR}" "${LOG_DIR}" "${AB_HOME}"
 
@@ -148,103 +146,144 @@ assert_not_contains() {
   fi
 }
 
-wait_for_contains_desktop() {
-  local selector="$1"
+capture_state_desktop() {
+  ab eval '(() => {
+    const page = document.querySelector("#frontpage-home-page");
+    const graph = document.querySelector("#frontpage-home-graph");
+    const grid = document.querySelector("#frontpage-home-grid");
+    const selectedNode = document.querySelector("#frontpage-selected-node");
+    const agentPanel = document.querySelector("#frontpage-agent-panel");
+    const humanPanel = document.querySelector("#frontpage-human-panel");
+    const agentMessages = Array.from(document.querySelectorAll("#frontpage-agent-panel .chat-bubble")).map((el) =>
+      (el.textContent || "").replace(/\s+/g, " ").trim()
+    ).filter(Boolean);
+    const humanMessages = Array.from(document.querySelectorAll("#frontpage-human-panel .chat-bubble")).map((el) =>
+      (el.textContent || "").replace(/\s+/g, " ").trim()
+    ).filter(Boolean);
+    return {
+      introOpen: page?.dataset.introOpen || "",
+      topOpen: page?.dataset.topOpen || "",
+      viewMode: page?.dataset.viewMode || "",
+      dataMode: page?.dataset.dataMode || "",
+      graphActive: graph?.dataset.active || "",
+      gridActive: grid?.dataset.active || "",
+      selectedNodeId: graph?.dataset.selectedNodeId || "",
+      selectedNodeTitle: selectedNode?.querySelector("h2")?.textContent?.replace(/\s+/g, " ").trim() || "",
+      agentPanelOpen: agentPanel?.dataset.panelOpen || "",
+      humanPanelOpen: humanPanel?.dataset.panelOpen || "",
+      agentComposerDisabled: !!document.querySelector("#frontpage-agent-panel input[disabled]"),
+      humanComposerDisabled: !!document.querySelector("#frontpage-human-panel input[disabled]"),
+      agentMessages,
+      humanMessages,
+      hasLegacyDetailCard: !!document.querySelector("#detailCard"),
+      hasLegacyTrollboxAccess: !!document.querySelector("#trollboxAccess"),
+      hasLegacyNodeSearch: !!document.querySelector("#nodeSearch"),
+      hasLegacyCommentsList: !!document.querySelector("#commentsList"),
+      gridNodeIds: (grid?.dataset.gridNodeIds || "").split(",").filter(Boolean)
+    };
+  })()'
+}
+
+capture_state_ios() {
+  ab_ios eval '(() => {
+    const page = document.querySelector("#frontpage-home-page");
+    const graph = document.querySelector("#frontpage-home-graph");
+    const grid = document.querySelector("#frontpage-home-grid");
+    return {
+      introOpen: page?.dataset.introOpen || "",
+      topOpen: page?.dataset.topOpen || "",
+      viewMode: page?.dataset.viewMode || "",
+      graphActive: graph?.dataset.active || "",
+      gridActive: grid?.dataset.active || "",
+      hasLegacyDetailCard: !!document.querySelector("#detailCard"),
+      hasLegacyTrollboxAccess: !!document.querySelector("#trollboxAccess")
+    };
+  })()'
+}
+
+wait_for_state_value_desktop() {
+  local jq_expr="$1"
   local expected="$2"
   local outfile="$3"
   local attempts="${4:-40}"
   local delay_ms="${5:-150}"
-
   local i
+  local actual=""
+
   for ((i = 1; i <= attempts; i++)); do
-    ab get text "${selector}" > "${outfile}"
-    if rg -Fq "${expected}" "${outfile}"; then
+    capture_state_desktop > "${outfile}"
+    actual="$(jq -r "${jq_expr}" "${outfile}")"
+    if [[ "${actual}" == "${expected}" ]]; then
       return 0
     fi
-    ab wait "${delay_ms}"
+    ab wait "${delay_ms}" >/dev/null 2>&1 || true
   done
 
-  echo "ASSERT FAIL: desktop selector ${selector} never contained '${expected}'" >&2
+  echo "ASSERT FAIL: desktop state ${jq_expr} never became ${expected} (last=${actual})" >&2
   cat "${outfile}" >&2 || true
   return 1
 }
 
-LAST_WAIT_MATCH=""
-
-wait_for_any_contains_desktop() {
-  local selector="$1"
-  local outfile="$2"
-  local attempts="${3:-40}"
-  local delay_ms="${4:-150}"
-  shift 4
-  local expected_values=("$@")
-
-  local i
-  local expected
-  LAST_WAIT_MATCH=""
-
-  for ((i = 1; i <= attempts; i++)); do
-    ab get text "${selector}" > "${outfile}"
-    for expected in "${expected_values[@]}"; do
-      if rg -Fq "${expected}" "${outfile}"; then
-        LAST_WAIT_MATCH="${expected}"
-        return 0
-      fi
-    done
-    ab wait "${delay_ms}"
-  done
-
-  echo "ASSERT FAIL: desktop selector ${selector} never matched expected states: ${expected_values[*]}" >&2
-  cat "${outfile}" >&2 || true
-  return 1
-}
-
-wait_for_contains_ios() {
-  local selector="$1"
+wait_for_state_value_ios() {
+  local jq_expr="$1"
   local expected="$2"
   local outfile="$3"
   local attempts="${4:-60}"
   local delay_ms="${5:-180}"
-
   local i
+  local actual=""
+
   for ((i = 1; i <= attempts; i++)); do
-    ab_ios get text "${selector}" > "${outfile}"
-    if rg -Fq "${expected}" "${outfile}"; then
+    capture_state_ios > "${outfile}"
+    actual="$(jq -r "${jq_expr}" "${outfile}")"
+    if [[ "${actual}" == "${expected}" ]]; then
       return 0
     fi
-    ab_ios wait "${delay_ms}"
+    ab_ios wait "${delay_ms}" >/dev/null 2>&1 || true
   done
 
-  echo "ASSERT FAIL: ios selector ${selector} never contained '${expected}'" >&2
+  echo "ASSERT FAIL: ios state ${jq_expr} never became ${expected} (last=${actual})" >&2
   cat "${outfile}" >&2 || true
   return 1
 }
 
-wait_for_any_contains_ios() {
+wait_for_selector_desktop() {
   local selector="$1"
-  local outfile="$2"
-  local attempts="${3:-60}"
-  local delay_ms="${4:-180}"
-  shift 4
-  local expected_values=("$@")
-
+  local attempts="${2:-40}"
+  local delay_ms="${3:-150}"
+  local selector_json
   local i
-  local expected
-  LAST_WAIT_MATCH=""
+
+  selector_json="$(jq -Rn --arg s "${selector}" '$s')"
 
   for ((i = 1; i <= attempts; i++)); do
-    ab_ios get text "${selector}" > "${outfile}"
-    for expected in "${expected_values[@]}"; do
-      if rg -Fq "${expected}" "${outfile}"; then
-        LAST_WAIT_MATCH="${expected}"
-        return 0
-      fi
-    done
-    ab_ios wait "${delay_ms}"
+    if [[ "$(ab eval "document.querySelector(${selector_json}) ? true : false")" == "true" ]]; then
+      return 0
+    fi
+    ab wait "${delay_ms}" >/dev/null 2>&1 || true
   done
 
-  echo "ASSERT FAIL: ios selector ${selector} never matched expected states: ${expected_values[*]}" >&2
-  cat "${outfile}" >&2 || true
+  echo "ASSERT FAIL: desktop selector never appeared: ${selector}" >&2
+  return 1
+}
+
+wait_for_selector_ios() {
+  local selector="$1"
+  local attempts="${2:-60}"
+  local delay_ms="${3:-180}"
+  local selector_json
+  local i
+
+  selector_json="$(jq -Rn --arg s "${selector}" '$s')"
+
+  for ((i = 1; i <= attempts; i++)); do
+    if [[ "$(ab_ios eval "document.querySelector(${selector_json}) ? true : false")" == "true" ]]; then
+      return 0
+    fi
+    ab_ios wait "${delay_ms}" >/dev/null 2>&1 || true
+  done
+
+  echo "ASSERT FAIL: ios selector never appeared: ${selector}" >&2
   return 1
 }
 
@@ -267,24 +306,11 @@ ensure_playwright_browser() {
 
 extract_desktop_fixture() {
   local fixture_log="${LOG_DIR}/${RUN_STAMP}.desktop-fixture.log"
-  local node_count
 
   ab close >/dev/null 2>&1 || true
   ab --allow-file-access open "${APP_URL}" > "${fixture_log}" 2>&1
   wait_for_page_load_desktop >> "${fixture_log}" 2>&1 || true
-  ab eval 'JSON.stringify((() => {
-    const nodes = Array.from(document.querySelectorAll("[data-node-id]")).map((el) => {
-      const title = (el.textContent || "").replace(/\s+/g, " ").trim();
-      return { id: el.getAttribute("data-node-id"), title };
-    }).filter((n) => n.id && n.title);
-    return {
-      nodes,
-      hasSearch: !!document.querySelector("#nodeSearch"),
-      hasDetailCard: !!document.querySelector("#detailCard"),
-      hasCommentsList: !!document.querySelector("#commentsList"),
-      hasTrollbox: !!document.querySelector("#trollboxAccess")
-    };
-  })())' > "${FIXTURE_FILE}" 2>>"${fixture_log}"
+  capture_state_desktop > "${FIXTURE_FILE}"
   ab close >> "${fixture_log}" 2>&1 || true
 
   if ! jq -e . "${FIXTURE_FILE}" >/dev/null 2>&1; then
@@ -292,27 +318,24 @@ extract_desktop_fixture() {
     return 1
   fi
 
-  if [[ "$(jq -r '.hasDetailCard' "${FIXTURE_FILE}")" != "true" ]]; then
-    echo "desktop fixture extraction failed: #detailCard missing in live app (see $(basename "${fixture_log}"))" >&2
+  if [[ "$(jq -r '.hasLegacyDetailCard' "${FIXTURE_FILE}")" != "false" ]]; then
+    echo "desktop fixture extraction failed: legacy #detailCard is still present (see $(basename "${fixture_log}"))" >&2
     return 1
   fi
 
-  node_count="$(jq -r '.nodes | length' "${FIXTURE_FILE}")"
-  if [[ "${node_count}" -lt 1 ]]; then
-    echo "desktop fixture extraction failed: no [data-node-id] elements found (see $(basename "${fixture_log}"))" >&2
+  if [[ "$(jq -r '.hasLegacyTrollboxAccess' "${FIXTURE_FILE}")" != "false" ]]; then
+    echo "desktop fixture extraction failed: legacy #trollboxAccess is still present (see $(basename "${fixture_log}"))" >&2
     return 1
   fi
 
-  BASE_NODE_ID="$(jq -r '.nodes[0].id // empty' "${FIXTURE_FILE}")"
-  BASE_NODE_TITLE="$(jq -r '.nodes[0].title // empty' "${FIXTURE_FILE}")"
-  ALT_NODE_ID="$(jq -r '.nodes[1].id // .nodes[0].id // empty' "${FIXTURE_FILE}")"
-  ALT_NODE_TITLE="$(jq -r '.nodes[1].title // .nodes[0].title // empty' "${FIXTURE_FILE}")"
-  COMMENTS_NODE_ID="${ALT_NODE_ID}"
-  COMMENTS_NODE_TITLE="${ALT_NODE_TITLE}"
-  TROLLBOX_PRESENT="$(jq -r '.hasTrollbox | if . then 1 else 0 end' "${FIXTURE_FILE}")"
+  SELECTED_NODE_TITLE="$(jq -r '.selectedNodeTitle' "${FIXTURE_FILE}")"
+  SELECTED_NODE_ID="$(jq -r '.selectedNodeId' "${FIXTURE_FILE}")"
+  BASE_GRID_NODE_ID="$(jq -r '.gridNodeIds[0] // empty' "${FIXTURE_FILE}")"
+  BASE_AGENT_MESSAGE="$(jq -r '.agentMessages[0] // empty' "${FIXTURE_FILE}")"
+  BASE_HUMAN_MESSAGE="$(jq -r '.humanMessages[0] // empty' "${FIXTURE_FILE}")"
 
-  if [[ -z "${BASE_NODE_ID}" || -z "${BASE_NODE_TITLE}" || -z "${ALT_NODE_ID}" || -z "${ALT_NODE_TITLE}" ]]; then
-    echo "desktop fixture extraction failed: unable to derive deterministic node fixtures (see ${FIXTURE_FILE})" >&2
+  if [[ -z "${SELECTED_NODE_TITLE}" || -z "${SELECTED_NODE_ID}" || -z "${BASE_GRID_NODE_ID}" ]]; then
+    echo "desktop fixture extraction failed: unable to derive deterministic frontpage state (see ${FIXTURE_FILE})" >&2
     return 1
   fi
 }
@@ -357,7 +380,7 @@ probe_desktop_daemon() {
 
   if ! extract_desktop_fixture >> "${probe_log}" 2>&1; then
     DESKTOP_ENABLED=0
-    DESKTOP_REASON="live page fixture preflight failed (see $(basename "${probe_log}"))"
+    DESKTOP_REASON="frontpage fixture preflight failed (see $(basename "${probe_log}"))"
     return 1
   fi
 
@@ -459,29 +482,43 @@ case_e2e_01() {
   ab close >/dev/null 2>&1 || true
   ab --allow-file-access open "${APP_URL}"
   wait_for_page_load_desktop
+  capture_state_desktop > "${OUT_DIR}/e2e-01-state.json"
   ab screenshot "${OUT_DIR}/e2e-01-desktop-landing.png"
-  ab get text "#detailCard" > "${OUT_DIR}/e2e-01-detail.txt"
-  assert_contains "${OUT_DIR}/e2e-01-detail.txt" "${BASE_NODE_TITLE}" "default selected node detail should match live first node title"
+  ab get text body > "${OUT_DIR}/e2e-01-body.txt"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "TechTree Homepage" "desktop landing should render the frontpage heading"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "All agents start here:" "desktop landing should render the intro command"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Agent trollbox" "desktop landing should render the agent trollbox chrome"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Human trollbox" "desktop landing should render the human trollbox chrome"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy" "desktop landing should advertise the anonymous trollbox sign-in gate"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the canonical global room." "desktop landing should explain the human posting gate"
+  assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "membership:" "desktop landing should not expose legacy membership labels"
+  assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "Join request pending" "desktop landing should not expose the removed join flow"
+  [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
+  [[ "$(jq -r '.viewMode' "${OUT_DIR}/e2e-01-state.json")" == "graph" ]] || return 1
+  [[ "$(jq -r '.dataMode' "${OUT_DIR}/e2e-01-state.json")" == "live" ]] || return 1
+  [[ "$(jq -r '.agentPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
+  [[ "$(jq -r '.humanPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
+  [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyTrollboxAccess' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyNodeSearch' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyCommentsList' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
   ab close
 }
 
 case_e2e_02() {
-  local search_query
-
   ab close >/dev/null 2>&1 || true
   ab --allow-file-access open "${APP_URL}"
   wait_for_page_load_desktop
-
-  search_query="$(printf "%s" "${ALT_NODE_TITLE}" | cut -d' ' -f1)"
-  if [[ -n "${search_query}" ]]; then
-    ab fill "#nodeSearch" "${search_query}"
-  fi
-
-  ab click "[data-node-id='${ALT_NODE_ID}']"
-  wait_for_contains_desktop "#detailCard" "${ALT_NODE_TITLE}" "${OUT_DIR}/e2e-02-detail.txt" 50 120
-  ab screenshot "${OUT_DIR}/e2e-02-desktop-skill.png"
-  ab get text "#detailCard" > "${OUT_DIR}/e2e-02-detail.txt"
-  assert_contains "${OUT_DIR}/e2e-02-detail.txt" "${ALT_NODE_TITLE}" "selected live node detail after search"
+  ab click "#frontpage-intro-enter"
+  wait_for_state_value_desktop '.introOpen' "false" "${OUT_DIR}/e2e-02-state.json" 50 140
+  ab click "#frontpage-view-grid"
+  wait_for_state_value_desktop '.viewMode' "grid" "${OUT_DIR}/e2e-02-state.json" 50 140
+  wait_for_state_value_desktop '.gridActive' "true" "${OUT_DIR}/e2e-02-state.json" 50 140
+  wait_for_state_value_desktop '.graphActive' "false" "${OUT_DIR}/e2e-02-state.json" 50 140
+  ab get text "#frontpage-home-briefing" > "${OUT_DIR}/e2e-02-briefing.txt"
+  assert_contains "${OUT_DIR}/e2e-02-briefing.txt" "Infinite seed lattice" "desktop grid switch should update the briefing copy"
+  assert_contains "${OUT_DIR}/e2e-02-briefing.txt" "Front door defaults" "desktop briefing should stay visible after intro dismissal"
+  ab screenshot "${OUT_DIR}/e2e-02-desktop-grid.png"
   ab close
 }
 
@@ -489,47 +526,45 @@ case_e2e_03() {
   ab close >/dev/null 2>&1 || true
   ab --allow-file-access open "${APP_URL}"
   wait_for_page_load_desktop
-  ab click "[data-node-id='${COMMENTS_NODE_ID}']"
-  wait_for_contains_desktop "#detailCard" "${COMMENTS_NODE_TITLE}" "${OUT_DIR}/e2e-03-detail.txt" 50 120
-  ab screenshot "${OUT_DIR}/e2e-03-comments.png"
-  ab get text "#commentsList" > "${OUT_DIR}/e2e-03-comments.txt"
-  assert_not_contains "${OUT_DIR}/e2e-03-comments.txt" "undefined" "comments pane should not render undefined content"
-  assert_not_contains "${OUT_DIR}/e2e-03-comments.txt" "null" "comments pane should not render null literals"
+  ab click "#frontpage-intro-enter"
+  wait_for_state_value_desktop '.introOpen' "false" "${OUT_DIR}/e2e-03-state.json" 50 140
+  ab click "#frontpage-view-grid"
+  wait_for_state_value_desktop '.viewMode' "grid" "${OUT_DIR}/e2e-03-state.json" 50 140
+  wait_for_selector_desktop ".fp-grid-item[data-node-id='${BASE_GRID_NODE_ID}']" 80 160
+  ab eval "document.querySelector('.fp-grid-item[data-node-id=\"${BASE_GRID_NODE_ID}\"]')?.click()"
+  wait_for_selector_desktop "#frontpage-grid-return" 80 160
+  ab get text "#frontpage-home-grid" > "${OUT_DIR}/e2e-03-grid-body.txt"
+  ab screenshot "${OUT_DIR}/e2e-03-grid-drilldown.png"
+  assert_not_contains "${OUT_DIR}/e2e-03-grid-body.txt" "undefined" "desktop grid should not render undefined text after drilldown"
+  assert_not_contains "${OUT_DIR}/e2e-03-grid-body.txt" "null" "desktop grid should not render null text after drilldown"
   ab close
 }
 
 case_e2e_04() {
-  local post_text="phase-d desktop matrix ping"
-  local membership_file="${OUT_DIR}/e2e-04-access-member.txt"
-
   ab close >/dev/null 2>&1 || true
   ab --allow-file-access open "${APP_URL}"
   wait_for_page_load_desktop
-  ab click "[data-node-id='${ALT_NODE_ID}']"
-  wait_for_contains_desktop "#detailCard" "${ALT_NODE_TITLE}" "${OUT_DIR}/e2e-04-detail.txt" 50 120
-  ab click "#trollboxJoin"
-
-  wait_for_any_contains_desktop \
-    "#trollboxAccess" \
-    "${membership_file}" \
-    60 \
-    150 \
-    "membership: member" \
-    "membership: pending" \
-    "state: join_pending"
-
-  if [[ "${LAST_WAIT_MATCH}" == "membership: member" ]]; then
-    ab fill "#trollboxInput" "${post_text}"
-    ab click "#trollboxSend"
-    wait_for_contains_desktop "#trollboxFeed" "${post_text}" "${OUT_DIR}/e2e-04-trollbox-feed.txt" 40 120
-    ab get text "#trollboxFeed" > "${OUT_DIR}/e2e-04-trollbox-feed.txt"
-    assert_contains "${OUT_DIR}/e2e-04-trollbox-feed.txt" "${post_text}" "desktop trollbox post visible after membership grant"
-  else
-    assert_contains "${membership_file}" "pending" "desktop trollbox join should transition to pending when membership grant is unavailable"
-    printf "membership state remained pending; compose assertion intentionally gated\n" > "${OUT_DIR}/e2e-04-trollbox-feed.txt"
-  fi
-
-  ab screenshot "${OUT_DIR}/e2e-04-trollbox-compose.png"
+  ab click "#frontpage-intro-enter"
+  wait_for_state_value_desktop '.introOpen' "false" "${OUT_DIR}/e2e-04-state.json" 50 140
+  ab eval 'document.querySelector("#frontpage-top-toggle")?.click()'
+  wait_for_state_value_desktop '.topOpen' "false" "${OUT_DIR}/e2e-04-state.json" 40 140
+  ab click '#frontpage-agent-panel [data-panel-close]'
+  wait_for_state_value_desktop '.agentPanelOpen' "false" "${OUT_DIR}/e2e-04-state.json" 40 140
+  ab click '#frontpage-human-panel [data-panel-close]'
+  wait_for_state_value_desktop '.humanPanelOpen' "false" "${OUT_DIR}/e2e-04-state.json" 40 140
+  ab click '#frontpage-agent-panel [data-panel-restore]'
+  wait_for_state_value_desktop '.agentPanelOpen' "true" "${OUT_DIR}/e2e-04-state.json" 40 140
+  ab click '#frontpage-human-panel [data-panel-restore]'
+  wait_for_state_value_desktop '.humanPanelOpen' "true" "${OUT_DIR}/e2e-04-state.json" 40 140
+  ab get text "#frontpage-agent-panel" > "${OUT_DIR}/e2e-04-agent-panel.txt"
+  ab get text "#frontpage-human-panel" > "${OUT_DIR}/e2e-04-human-panel.txt"
+  assert_contains "${OUT_DIR}/e2e-04-agent-panel.txt" "Agent trollbox" "desktop agent panel should restore cleanly"
+  assert_contains "${OUT_DIR}/e2e-04-human-panel.txt" "Human trollbox" "desktop human panel should restore cleanly"
+  assert_contains "${OUT_DIR}/e2e-04-human-panel.txt" "Connect Privy" "desktop human panel should remain read-only before sign-in"
+  capture_state_desktop > "${OUT_DIR}/e2e-04-panel-state.json"
+  [[ "$(jq -r '.agentComposerDisabled' "${OUT_DIR}/e2e-04-panel-state.json")" == "true" ]] || return 1
+  [[ "$(jq -r '.humanComposerDisabled' "${OUT_DIR}/e2e-04-panel-state.json")" == "true" ]] || return 1
+  ab screenshot "${OUT_DIR}/e2e-04-trollbox-panels.png"
   ab close
 }
 
@@ -540,6 +575,9 @@ case_e2e_05() {
   ab set media dark
   ab wait 250
   ab screenshot "${OUT_DIR}/e2e-05-dark.png"
+  ab get text body > "${OUT_DIR}/e2e-05-body.txt"
+  assert_contains "${OUT_DIR}/e2e-05-body.txt" "TechTree Homepage" "desktop dark-mode render should still load the homepage content"
+  assert_not_contains "${OUT_DIR}/e2e-05-body.txt" "detailCard" "desktop dark-mode render should not regress to legacy selectors"
   ab close
 }
 
@@ -547,62 +585,50 @@ case_e2e_06() {
   ab_ios close >/dev/null 2>&1 || true
   ab_ios --allow-file-access open "${APP_URL}"
   wait_for_page_load_ios
+  capture_state_ios > "${OUT_DIR}/e2e-06-ios-state.json"
   ab_ios screenshot "${OUT_DIR}/e2e-06-ios-landing.png"
-  ab_ios get text "#detailCard" > "${OUT_DIR}/e2e-06-ios-detail.txt"
-  assert_contains "${OUT_DIR}/e2e-06-ios-detail.txt" "${BASE_NODE_TITLE}" "ios default selected node detail should match live first node title"
+  ab_ios get text body > "${OUT_DIR}/e2e-06-ios-body.txt"
+  assert_contains "${OUT_DIR}/e2e-06-ios-body.txt" "TechTree Homepage" "ios landing should render the frontpage heading"
+  assert_contains "${OUT_DIR}/e2e-06-ios-body.txt" "All agents start here:" "ios landing should render the intro command"
+  [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-06-ios-state.json")" == "true" ]] || return 1
+  [[ "$(jq -r '.viewMode' "${OUT_DIR}/e2e-06-ios-state.json")" == "graph" ]] || return 1
+  [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyTrollboxAccess' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
   ab_ios close
 }
 
 case_e2e_07() {
-  local search_query
-
   ab_ios close >/dev/null 2>&1 || true
   ab_ios --allow-file-access open "${APP_URL}"
   wait_for_page_load_ios
-  search_query="$(printf "%s" "${ALT_NODE_TITLE}" | cut -d' ' -f1)"
-  if [[ -n "${search_query}" ]]; then
-    ab_ios fill "#nodeSearch" "${search_query}"
-  fi
-  ab_ios tap "[data-node-id='${ALT_NODE_ID}']"
-  wait_for_contains_ios "#detailCard" "${ALT_NODE_TITLE}" "${OUT_DIR}/e2e-07-ios-detail.txt" 70 160
-  ab_ios screenshot "${OUT_DIR}/e2e-07-ios-meta.png"
-  ab_ios get text "#detailCard" > "${OUT_DIR}/e2e-07-ios-detail.txt"
-  assert_contains "${OUT_DIR}/e2e-07-ios-detail.txt" "${ALT_NODE_TITLE}" "ios selected live node detail after search"
+  ab_ios tap "#frontpage-intro-enter"
+  wait_for_state_value_ios '.introOpen' "false" "${OUT_DIR}/e2e-07-ios-state.json" 80 180
+  ab_ios tap "#frontpage-view-grid"
+  wait_for_state_value_ios '.viewMode' "grid" "${OUT_DIR}/e2e-07-ios-state.json" 80 180
+  wait_for_state_value_ios '.gridActive' "true" "${OUT_DIR}/e2e-07-ios-state.json" 80 180
+  wait_for_selector_ios ".fp-grid-item[data-node-id='${BASE_GRID_NODE_ID}']" 100 200
+  ab_ios eval "document.querySelector('.fp-grid-item[data-node-id=\"${BASE_GRID_NODE_ID}\"]')?.click()"
+  wait_for_selector_ios "#frontpage-grid-return" 100 200
+  ab_ios get text "#frontpage-home-grid" > "${OUT_DIR}/e2e-07-ios-grid-body.txt"
+  assert_not_contains "${OUT_DIR}/e2e-07-ios-grid-body.txt" "undefined" "ios grid should not render undefined text after drilldown"
+  assert_not_contains "${OUT_DIR}/e2e-07-ios-grid-body.txt" "null" "ios grid should not render null text after drilldown"
+  ab_ios screenshot "${OUT_DIR}/e2e-07-ios-grid-drilldown.png"
   ab_ios close
 }
 
 case_e2e_08() {
-  local post_text="phase-d ios matrix ping"
-  local membership_file="${OUT_DIR}/e2e-08-access-member.txt"
-
   ab_ios close >/dev/null 2>&1 || true
   ab_ios --allow-file-access open "${APP_URL}"
   wait_for_page_load_ios
-  ab_ios tap "[data-node-id='${ALT_NODE_ID}']"
-  wait_for_contains_ios "#detailCard" "${ALT_NODE_TITLE}" "${OUT_DIR}/e2e-08-detail.txt" 70 160
-  ab_ios tap "#trollboxJoin"
-
-  wait_for_any_contains_ios \
-    "#trollboxAccess" \
-    "${membership_file}" \
-    80 \
-    180 \
-    "membership: member" \
-    "membership: pending" \
-    "state: join_pending"
-
-  if [[ "${LAST_WAIT_MATCH}" == "membership: member" ]]; then
-    ab_ios fill "#trollboxInput" "${post_text}"
-    ab_ios tap "#trollboxSend"
-    wait_for_contains_ios "#trollboxFeed" "${post_text}" "${OUT_DIR}/e2e-08-ios-feed.txt" 60 180
-    ab_ios get text "#trollboxFeed" > "${OUT_DIR}/e2e-08-ios-feed.txt"
-    assert_contains "${OUT_DIR}/e2e-08-ios-feed.txt" "${post_text}" "ios trollbox post visible after membership grant"
-  else
-    assert_contains "${membership_file}" "pending" "ios trollbox join should transition to pending when membership grant is unavailable"
-    printf "membership state remained pending; compose assertion intentionally gated\n" > "${OUT_DIR}/e2e-08-ios-feed.txt"
-  fi
-
-  ab_ios screenshot "${OUT_DIR}/e2e-08-ios-trollbox.png"
+  ab_ios tap "#frontpage-intro-enter"
+  wait_for_state_value_ios '.introOpen' "false" "${OUT_DIR}/e2e-08-ios-state.json" 80 180
+  ab_ios eval 'document.querySelector("#frontpage-top-toggle")?.click()'
+  wait_for_state_value_ios '.topOpen' "false" "${OUT_DIR}/e2e-08-ios-state.json" 80 180
+  ab_ios tap '#frontpage-agent-panel [data-panel-close]'
+  wait_for_selector_ios "#frontpage-agent-panel[data-panel-open='false']" 80 180
+  ab_ios tap '#frontpage-human-panel [data-panel-close]'
+  wait_for_selector_ios "#frontpage-human-panel[data-panel-open='false']" 80 180
+  ab_ios screenshot "${OUT_DIR}/e2e-08-ios-panels.png"
   ab_ios close
 }
 
@@ -620,9 +646,10 @@ write_summary() {
     echo "- iOS readiness: $([[ ${IOS_ENABLED} -eq 1 ]] && echo enabled || echo disabled) ${IOS_REASON}"
     if [[ ${DESKTOP_ENABLED} -eq 1 ]]; then
       echo "- Fixture file: ${FIXTURE_FILE}"
-      echo "- Base node fixture: ${BASE_NODE_ID} (${BASE_NODE_TITLE})"
-      echo "- Alt node fixture: ${ALT_NODE_ID} (${ALT_NODE_TITLE})"
-      echo "- Trollbox present: ${TROLLBOX_PRESENT}"
+      echo "- Selected node fixture: ${SELECTED_NODE_ID} (${SELECTED_NODE_TITLE})"
+      echo "- Grid node fixture: ${BASE_GRID_NODE_ID}"
+      echo "- Agent message fixture: ${BASE_AGENT_MESSAGE}"
+      echo "- Human message fixture: ${BASE_HUMAN_MESSAGE}"
     fi
     if [[ ${IOS_ENABLED} -eq 1 ]]; then
       echo "- iOS device: ${IOS_DEVICE_SELECTED}"
@@ -671,27 +698,27 @@ detect_ios_device
 echo "Desktop enabled=${DESKTOP_ENABLED}; iOS enabled=${IOS_ENABLED} (${IOS_REASON})"
 
 if [[ ${DESKTOP_ENABLED} -eq 1 ]]; then
-  run_case "E2E-01" "desktop" "Desktop default scheme" "e2e-01-desktop-landing.png,e2e-01-detail.txt" case_e2e_01
-  run_case "E2E-02" "desktop" "Desktop search + selection" "e2e-02-desktop-skill.png,e2e-02-detail.txt" case_e2e_02
-  run_case "E2E-03" "desktop" "Desktop comments/read path" "e2e-03-comments.png,e2e-03-comments.txt,e2e-03-detail.txt" case_e2e_03
-  run_case "E2E-04" "desktop" "Desktop trollbox compose" "e2e-04-trollbox-compose.png,e2e-04-access-member.txt,e2e-04-trollbox-feed.txt" case_e2e_04
-  run_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png" case_e2e_05
+  run_case "E2E-01" "desktop" "Desktop landing contract" "e2e-01-desktop-landing.png,e2e-01-body.txt,e2e-01-state.json" case_e2e_01
+  run_case "E2E-02" "desktop" "Desktop intro dismissal and grid switch" "e2e-02-desktop-grid.png,e2e-02-briefing.txt,e2e-02-state.json" case_e2e_02
+  run_case "E2E-03" "desktop" "Desktop grid direct drilldown" "e2e-03-grid-drilldown.png,e2e-03-grid-body.txt" case_e2e_03
+  run_case "E2E-04" "desktop" "Desktop briefing and trollbox panel toggles" "e2e-04-trollbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" case_e2e_04
+  run_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png,e2e-05-body.txt" case_e2e_05
 else
-  skip_case "E2E-01" "desktop" "Desktop default scheme" "e2e-01-desktop-landing.png,e2e-01-detail.txt" "${DESKTOP_REASON}"
-  skip_case "E2E-02" "desktop" "Desktop search + selection" "e2e-02-desktop-skill.png,e2e-02-detail.txt" "${DESKTOP_REASON}"
-  skip_case "E2E-03" "desktop" "Desktop comments/read path" "e2e-03-comments.png,e2e-03-comments.txt,e2e-03-detail.txt" "${DESKTOP_REASON}"
-  skip_case "E2E-04" "desktop" "Desktop trollbox compose" "e2e-04-trollbox-compose.png,e2e-04-access-member.txt,e2e-04-trollbox-feed.txt" "${DESKTOP_REASON}"
-  skip_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png" "${DESKTOP_REASON}"
+  skip_case "E2E-01" "desktop" "Desktop landing contract" "e2e-01-desktop-landing.png,e2e-01-body.txt,e2e-01-state.json" "${DESKTOP_REASON}"
+  skip_case "E2E-02" "desktop" "Desktop intro dismissal and grid switch" "e2e-02-desktop-grid.png,e2e-02-briefing.txt,e2e-02-state.json" "${DESKTOP_REASON}"
+  skip_case "E2E-03" "desktop" "Desktop grid direct drilldown" "e2e-03-grid-drilldown.png,e2e-03-grid-body.txt" "${DESKTOP_REASON}"
+  skip_case "E2E-04" "desktop" "Desktop briefing and trollbox panel toggles" "e2e-04-trollbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" "${DESKTOP_REASON}"
+  skip_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png,e2e-05-body.txt" "${DESKTOP_REASON}"
 fi
 
 if [[ ${IOS_ENABLED} -eq 1 ]]; then
-  run_case "E2E-06" "ios" "iOS Safari baseline" "e2e-06-ios-landing.png,e2e-06-ios-detail.txt" case_e2e_06
-  run_case "E2E-07" "ios" "iOS search + node detail" "e2e-07-ios-meta.png,e2e-07-ios-detail.txt" case_e2e_07
-  run_case "E2E-08" "ios" "iOS trollbox" "e2e-08-ios-trollbox.png,e2e-08-access-member.txt,e2e-08-ios-feed.txt" case_e2e_08
+  run_case "E2E-06" "ios" "iOS landing contract" "e2e-06-ios-landing.png,e2e-06-ios-body.txt,e2e-06-ios-state.json" case_e2e_06
+  run_case "E2E-07" "ios" "iOS grid direct drilldown" "e2e-07-ios-grid-drilldown.png,e2e-07-ios-grid-body.txt,e2e-07-ios-state.json" case_e2e_07
+  run_case "E2E-08" "ios" "iOS briefing and panel toggles" "e2e-08-ios-panels.png,e2e-08-ios-state.json" case_e2e_08
 else
-  skip_case "E2E-06" "ios" "iOS Safari baseline" "e2e-06-ios-landing.png,e2e-06-ios-detail.txt" "${IOS_REASON}"
-  skip_case "E2E-07" "ios" "iOS search + node detail" "e2e-07-ios-meta.png,e2e-07-ios-detail.txt" "${IOS_REASON}"
-  skip_case "E2E-08" "ios" "iOS trollbox" "e2e-08-ios-trollbox.png,e2e-08-access-member.txt,e2e-08-ios-feed.txt" "${IOS_REASON}"
+  skip_case "E2E-06" "ios" "iOS landing contract" "e2e-06-ios-landing.png,e2e-06-ios-body.txt,e2e-06-ios-state.json" "${IOS_REASON}"
+  skip_case "E2E-07" "ios" "iOS grid direct drilldown" "e2e-07-ios-grid-drilldown.png,e2e-07-ios-grid-body.txt,e2e-07-ios-state.json" "${IOS_REASON}"
+  skip_case "E2E-08" "ios" "iOS briefing and panel toggles" "e2e-08-ios-panels.png,e2e-08-ios-state.json" "${IOS_REASON}"
 fi
 
 write_summary

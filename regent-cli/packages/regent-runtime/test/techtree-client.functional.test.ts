@@ -1,0 +1,506 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { signPersonalMessage } from "../src/agent/wallet.js";
+import { SessionStore } from "../src/store/session-store.js";
+import { StateStore } from "../src/store/state-store.js";
+import { TechtreeClient } from "../src/techtree/client.js";
+import { buildAuthenticatedFetchInit } from "../src/techtree/request-builder.js";
+import { buildSiwaMessage } from "../src/techtree/siwa.js";
+import { TechtreeContractServer } from "../../../test-support/techtree-contract-server.js";
+import { describeNetwork } from "../../../test-support/integration.js";
+
+const TEST_PRIVATE_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
+const TEST_WALLET = "0x1111111111111111111111111111111111111111";
+const TEST_REGISTRY = "0x2222222222222222222222222222222222222222";
+
+class StaticWalletSecretSource {
+  async getPrivateKeyHex(): Promise<`0x${string}`> {
+    return TEST_PRIVATE_KEY;
+  }
+}
+
+interface ClientHarness {
+  client: TechtreeClient;
+  stateStore: StateStore;
+  sessionStore: SessionStore;
+}
+
+const createHarness = (baseUrl: string): ClientHarness => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "regent-client-"));
+  const stateStore = new StateStore(path.join(tempDir, "runtime-state.json"));
+  const sessionStore = new SessionStore(stateStore);
+  const client = new TechtreeClient({
+    baseUrl,
+    requestTimeoutMs: 1_000,
+    sessionStore,
+    walletSecretSource: new StaticWalletSecretSource(),
+    stateStore,
+  });
+
+  return {
+    client,
+    stateStore,
+    sessionStore,
+  };
+};
+
+const authenticate = async ({ client, stateStore, sessionStore }: ClientHarness): Promise<void> => {
+  const nonce = await client.siwaNonce({
+    kind: "nonce_request",
+    walletAddress: TEST_WALLET,
+    chainId: 11155111,
+    audience: "techtree",
+  });
+
+  const message = buildSiwaMessage({
+    domain: "regent.cx",
+    uri: "https://regent.cx/login",
+    walletAddress: TEST_WALLET,
+    chainId: 11155111,
+    nonce: nonce.data.nonce,
+    issuedAt: "2026-03-10T00:00:00.000Z",
+    statement: "Sign in to Regent CLI.",
+  });
+
+  const signature = await signPersonalMessage(TEST_PRIVATE_KEY, message);
+  const verify = await client.siwaVerify({
+    kind: "verify_request",
+    walletAddress: TEST_WALLET,
+    chainId: 11155111,
+    nonce: nonce.data.nonce,
+    message,
+    signature,
+    registryAddress: TEST_REGISTRY,
+    tokenId: "99",
+  });
+
+  sessionStore.setSiwaSession({
+    walletAddress: verify.data.walletAddress,
+    chainId: verify.data.chainId,
+    nonce: verify.data.nonce,
+    keyId: verify.data.keyId,
+    receipt: verify.data.receipt,
+    receiptExpiresAt: verify.data.receiptExpiresAt,
+    audience: "techtree",
+    registryAddress: TEST_REGISTRY,
+    tokenId: "99",
+  });
+  stateStore.patch({
+    agent: {
+      walletAddress: TEST_WALLET,
+      chainId: 11155111,
+      registryAddress: TEST_REGISTRY,
+      tokenId: "99",
+    },
+  });
+};
+
+describeNetwork("TechtreeClient functional coverage", () => {
+  let server: TechtreeContractServer;
+
+  beforeEach(async () => {
+    server = new TechtreeContractServer();
+    await server.start();
+  });
+
+  afterEach(async () => {
+    await server.stop();
+  });
+
+  it("covers public read flows", async () => {
+    const harness = createHarness(server.baseUrl);
+
+    await expect(harness.client.health()).resolves.toEqual({
+      ok: true,
+      service: "techtree-contract-server",
+    });
+
+    const nodes = await harness.client.listNodes({ limit: 5, seed: "ml" });
+    expect(nodes.data.length).toBeGreaterThan(0);
+
+    await expect(harness.client.getNode(1)).resolves.toMatchObject({
+      data: {
+        id: 1,
+        seed: "ml",
+      },
+    });
+
+    await expect(harness.client.getChildren(1, { limit: 5 })).resolves.toMatchObject({
+      data: [
+        expect.objectContaining({
+          id: 2,
+          parent_id: 1,
+        }),
+      ],
+    });
+
+    await expect(harness.client.getComments(1, { limit: 5 })).resolves.toMatchObject({
+      data: [
+        expect.objectContaining({
+          id: 10,
+          node_id: 1,
+        }),
+      ],
+    });
+
+    await expect(harness.client.listActivity({ limit: 2 })).resolves.toEqual({
+      data: [
+        expect.objectContaining({
+          event_type: "node_created",
+          subject_node_id: 1,
+        }),
+        expect.objectContaining({
+          event_type: "comment_added",
+          subject_node_id: 1,
+        }),
+      ],
+    });
+
+    await expect(harness.client.search({ q: "root", limit: 2 })).resolves.toEqual({
+      data: {
+        nodes: [
+          expect.objectContaining({
+            id: 1,
+            title: "Root node",
+          }),
+        ],
+        comments: [],
+      },
+    });
+  });
+
+  it("covers authenticated publish, comment, watch, star, inbox, opportunities, and idempotency", async () => {
+    const harness = createHarness(server.baseUrl);
+    await authenticate(harness);
+
+    const firstPublish = await harness.client.createNode({
+      seed: "ml",
+      kind: "hypothesis",
+      title: "Functional publish",
+      parent_id: 1,
+      notebook_source: "print('functional')",
+      idempotency_key: "node-key-fixed",
+    });
+    const secondPublish = await harness.client.createNode({
+      seed: "ml",
+      kind: "hypothesis",
+      title: "Functional publish",
+      parent_id: 1,
+      notebook_source: "print('functional')",
+      idempotency_key: "node-key-fixed",
+    });
+
+    expect(firstPublish).toEqual(secondPublish);
+    expect(firstPublish.data.anchor_status).toBe("pending");
+    expect(harness.stateStore.read().lastUsedNodeIdempotencyKey).toBe("node-key-fixed");
+
+    const comment = await harness.client.createComment({
+      node_id: firstPublish.data.node_id,
+      body_markdown: "Functional comment",
+      idempotency_key: "comment-key-fixed",
+    });
+    const repeatedComment = await harness.client.createComment({
+      node_id: firstPublish.data.node_id,
+      body_markdown: "Functional comment",
+      idempotency_key: "comment-key-fixed",
+    });
+
+    expect(comment).toEqual(repeatedComment);
+    expect(harness.stateStore.read().lastUsedCommentIdempotencyKey).toBe("comment-key-fixed");
+
+    await expect(harness.client.getWorkPacket(1)).resolves.toMatchObject({
+      data: {
+        node: expect.objectContaining({
+          id: 1,
+        }),
+      },
+    });
+
+    await expect(harness.client.watchNode(1)).resolves.toMatchObject({
+      data: {
+        node_id: 1,
+        watcher_type: "agent",
+      },
+    });
+
+    await expect(harness.client.listWatches()).resolves.toEqual({
+      data: [
+        {
+          id: 800,
+          node_id: 1,
+          watcher_type: "agent",
+          watcher_ref: 1,
+          inserted_at: "2026-03-10T00:00:00.000Z",
+        },
+      ],
+    });
+
+    await expect(harness.client.unwatchNode(1)).resolves.toEqual({ ok: true });
+
+    await expect(harness.client.starNode(1)).resolves.toEqual({
+      data: {
+        id: 900,
+        node_id: 1,
+        actor_type: "agent",
+        actor_ref: 1,
+        inserted_at: "2026-03-10T00:00:00.000Z",
+      },
+    });
+
+    await expect(harness.client.unstarNode(1)).resolves.toEqual({ ok: true });
+
+    await expect(harness.client.getInbox({ cursor: 7, limit: 3, seed: "ml", kind: ["comment"] })).resolves.toEqual({
+      events: [
+        {
+          id: 2001,
+          subject_node_id: 1,
+          actor_type: "agent",
+          actor_ref: 1,
+          event_type: "comment_added",
+          stream: "agent_inbox",
+          payload: {
+            seed: "ml",
+            kind_filters: ["comment"],
+          },
+          inserted_at: "2026-03-10T00:00:00.000Z",
+        },
+        {
+          id: 2002,
+          subject_node_id: firstPublish.data.node_id,
+          actor_type: "agent",
+          actor_ref: 1,
+          event_type: "node.comment_created",
+          stream: "agent_inbox",
+          payload: {
+            comment_id: comment.data.comment_id,
+            seed: "ml",
+            kind_filters: ["comment"],
+          },
+          inserted_at: "2026-03-10T00:00:00.000Z",
+        },
+        {
+          id: 2003,
+          subject_node_id: 1,
+          actor_type: "agent",
+          actor_ref: 1,
+          event_type: "node.starred",
+          stream: "agent_inbox",
+          payload: {
+            seed: "ml",
+            kind_filters: ["comment"],
+          },
+          inserted_at: "2026-03-10T00:00:00.000Z",
+        },
+      ],
+      next_cursor: 2003,
+    });
+
+    await expect(harness.client.getOpportunities({ limit: 2, kind: ["review"] })).resolves.toEqual({
+      opportunities: [
+        {
+          node_id: 1,
+          title: "Root node",
+          seed: "ml",
+          kind: "hypothesis",
+          opportunity_type: "review",
+          activity_score: "1.0",
+        },
+      ],
+    });
+
+    const protectedRequest = server.requests.find((request) => request.pathname === "/v1/tree/nodes");
+    expect(protectedRequest?.headers["signature-input"]).toContain('"x-agent-token-id"');
+    expect(protectedRequest?.headers["x-agent-wallet-address"]).toBe(TEST_WALLET);
+  });
+
+  it("fails protected writes when auth is missing", async () => {
+    const harness = createHarness(server.baseUrl);
+
+    await expect(
+      harness.client.createNode({
+        seed: "ml",
+        kind: "hypothesis",
+        title: "No auth",
+        parent_id: 1,
+        notebook_source: "print('no auth')",
+      }),
+    ).rejects.toMatchObject({
+      code: "siwa_session_missing",
+    });
+  });
+
+  it("fails protected writes when the SIWA session exists but the agent identity is missing", async () => {
+    const harness = createHarness(server.baseUrl);
+    const nonce = await harness.client.siwaNonce({
+      kind: "nonce_request",
+      walletAddress: TEST_WALLET,
+      chainId: 11155111,
+      audience: "techtree",
+    });
+    const message = buildSiwaMessage({
+      domain: "regent.cx",
+      uri: "https://regent.cx/login",
+      walletAddress: TEST_WALLET,
+      chainId: 11155111,
+      nonce: nonce.data.nonce,
+      issuedAt: "2026-03-10T00:00:00.000Z",
+      statement: "Sign in to Regent CLI.",
+    });
+    const signature = await signPersonalMessage(TEST_PRIVATE_KEY, message);
+    const verify = await harness.client.siwaVerify({
+      kind: "verify_request",
+      walletAddress: TEST_WALLET,
+      chainId: 11155111,
+      nonce: nonce.data.nonce,
+      message,
+      signature,
+    });
+
+    harness.sessionStore.setSiwaSession({
+      walletAddress: verify.data.walletAddress,
+      chainId: verify.data.chainId,
+      nonce: verify.data.nonce,
+      keyId: verify.data.keyId,
+      receipt: verify.data.receipt,
+      receiptExpiresAt: verify.data.receiptExpiresAt,
+      audience: "techtree",
+    });
+
+    await expect(
+      harness.client.getWorkPacket(1),
+    ).rejects.toMatchObject({
+      code: "agent_identity_missing",
+    });
+  });
+
+  it("surfaces server-side auth failures cleanly", async () => {
+    const harness = createHarness(server.baseUrl);
+    await authenticate(harness);
+
+    harness.sessionStore.setSiwaSession({
+      ...(harness.sessionStore.getSiwaSession() as NonNullable<ReturnType<SessionStore["getSiwaSession"]>>),
+      receipt: "receipt-invalid",
+    });
+
+    await expect(
+      harness.client.createComment({
+        node_id: 1,
+        body_markdown: "Bad receipt",
+      }),
+    ).rejects.toMatchObject({
+      code: "http_envelope_invalid",
+      status: 401,
+    });
+  });
+
+  it("rejects deliberately invalid SIWA verify probes without minting a session", async () => {
+    const harness = createHarness(server.baseUrl);
+
+    await expect(
+      harness.client.siwaVerify({
+        kind: "verify_request",
+        walletAddress: TEST_WALLET,
+        chainId: 11155111,
+        nonce: "doctor-invalid-nonce",
+        message: buildSiwaMessage({
+          domain: "regent.cx",
+          uri: "https://regent.cx/login",
+          walletAddress: TEST_WALLET,
+          chainId: 11155111,
+          nonce: "doctor-invalid-nonce",
+          issuedAt: "2026-03-10T00:00:00.000Z",
+          statement: "Sign in to Regent CLI.",
+        }),
+        signature: `0x${"00".repeat(65)}`,
+        registryAddress: TEST_REGISTRY,
+        tokenId: "99",
+      }),
+    ).rejects.toMatchObject({
+      code: "siwa_verify_invalid",
+      status: 422,
+    });
+  });
+
+  it("fails protected route requests when signature-input is omitted", async () => {
+    const harness = createHarness(server.baseUrl);
+    await authenticate(harness);
+
+    const session = harness.sessionStore.getSiwaSession();
+    const identity = harness.stateStore.read().agent;
+    if (!session || !identity) {
+      throw new Error("expected authenticated session and agent identity");
+    }
+
+    const request = await buildAuthenticatedFetchInit({
+      method: "POST",
+      path: "/v1/tree/comments",
+      body: {
+        node_id: 1,
+        body_markdown: "Missing signature-input",
+        idempotency_key: "missing-signature-input",
+      },
+      session,
+      agentIdentity: identity,
+      privateKey: TEST_PRIVATE_KEY,
+    });
+    const headers = {
+      ...(request.init.headers as Record<string, string>),
+    };
+
+    delete headers["signature-input"];
+
+    const response = await fetch(`${server.baseUrl}${request.urlPath}`, {
+      ...request.init,
+      headers,
+    });
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      error: {
+        code: "http_envelope_invalid",
+        message: "missing required header: signature-input",
+      },
+    });
+  });
+
+  it("rejects replayed authenticated envelopes", async () => {
+    const harness = createHarness(server.baseUrl);
+    await authenticate(harness);
+
+    const session = harness.sessionStore.getSiwaSession();
+    const identity = harness.stateStore.read().agent;
+    if (!session || !identity) {
+      throw new Error("expected authenticated session and agent identity");
+    }
+
+    const request = await buildAuthenticatedFetchInit({
+      method: "POST",
+      path: "/v1/tree/comments",
+      body: {
+        node_id: 1,
+        body_markdown: "Replay attempt",
+        idempotency_key: "replay-envelope",
+      },
+      session,
+      agentIdentity: identity,
+      privateKey: TEST_PRIVATE_KEY,
+    });
+
+    const firstResponse = await fetch(`${server.baseUrl}${request.urlPath}`, request.init);
+    expect(firstResponse.status).toBe(201);
+
+    const secondResponse = await fetch(`${server.baseUrl}${request.urlPath}`, request.init);
+    expect(secondResponse.status).toBe(401);
+    await expect(secondResponse.json()).resolves.toEqual({
+      error: {
+        code: "http_envelope_invalid",
+        message: "signature replay detected",
+      },
+    });
+  });
+
+});

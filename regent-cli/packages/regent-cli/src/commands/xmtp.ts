@@ -1,202 +1,272 @@
-import path from "node:path";
-
 import {
+  addXmtpGroupMembers,
+  createXmtpGroup,
   defaultConfigPath,
   ensureXmtpPolicyFile,
-  expandHome,
   getXmtpStatus,
   initializeXmtp,
+  listXmtpAllowlist,
+  listXmtpGroups,
   loadConfig,
   openXmtpPolicyInEditor,
+  resolveXmtpIdentifier,
   resolveXmtpInboxId,
-  runScopedDoctor,
+  revokeAllOtherXmtpInstallations,
+  rotateXmtpDbKey,
+  rotateXmtpWallet,
+  showXmtpPolicy,
+  testXmtpDm,
+  updateXmtpAllowlist,
+  validateXmtpPolicy,
   writeConfigReplacement,
-  writeInitialConfigIfMissing,
-  xmtpDefaultsForRoot,
 } from "@regent/runtime";
-import type { DoctorReport, RegentConfig, RegentXmtpEnv } from "@regent/types";
 
+import { daemonCall } from "../daemon-client.js";
 import { getBooleanFlag, getFlag, type ParsedCliArgs } from "../parse.js";
-import { printJson, printText } from "../printer.js";
-import { renderDoctorReport } from "../printers/doctorPrinter.js";
-import { CliUsageError } from "./doctor.js";
+import { printJson } from "../printer.js";
+import { runDoctorCommand } from "./doctor.js";
 
-const ensureConfigPath = (configPath?: string): string => {
-  const resolved = expandHome(configPath ?? defaultConfigPath());
-  writeInitialConfigIfMissing(resolved);
-  return resolved;
-};
+const resolveConfigPath = (configPath?: string): string => configPath ?? defaultConfigPath();
 
-const loadConfigForEdit = (configPath?: string): { configPath: string; config: RegentConfig } => {
-  const resolvedConfigPath = ensureConfigPath(configPath);
-  return {
-    configPath: resolvedConfigPath,
-    config: loadConfig(resolvedConfigPath),
-  };
-};
-
-const uniqueStrings = (values: readonly string[]): string[] => {
-  return [...new Set(values)];
-};
-
-const parseAddressFlag = (args: ParsedCliArgs): `0x${string}` => {
-  const value = getFlag(args, "address");
-  if (!value || !/^0x[0-9a-fA-F]{40}$/.test(value)) {
-    throw new CliUsageError("missing or invalid --address");
+const requirePositional = (args: ParsedCliArgs, index: number, name: string): string => {
+  const value = args.positionals[index];
+  if (!value) {
+    throw new Error(`missing required argument: ${name}`);
   }
 
-  return value as `0x${string}`;
+  return value;
 };
 
-const nextXmtpConfig = (
+const requireAddress = (args: ParsedCliArgs, flag = "address"): `0x${string}` => {
+  const address = getFlag(args, flag) ?? getFlag(args, "wallet-address");
+  if (!address) {
+    throw new Error(`missing required argument: --${flag}`);
+  }
+
+  return address as `0x${string}`;
+};
+
+const requireInboxOrAddress = (args: ParsedCliArgs): string => {
+  return getFlag(args, "inbox-id") ?? getFlag(args, "address") ?? getFlag(args, "wallet-address") ?? "";
+};
+
+const resolveStatus = async (configPath?: string) => {
+  const resolvedConfigPath = resolveConfigPath(configPath);
+
+  try {
+    return await daemonCall("xmtp.status", undefined, resolvedConfigPath);
+  } catch {
+    const config = loadConfig(resolvedConfigPath);
+    return getXmtpStatus(config.xmtp);
+  }
+};
+
+const updateAllowlistConfig = async (
+  args: ParsedCliArgs,
   configPath: string,
-  config: RegentConfig,
-  envOverride?: RegentXmtpEnv,
-): RegentConfig["xmtp"] => {
-  if (!envOverride) {
-    return {
+  list: "owner" | "trusted",
+  action: "add" | "remove",
+): Promise<void> => {
+  const resolvedConfigPath = resolveConfigPath(configPath);
+  const config = loadConfig(resolvedConfigPath);
+  const identifier = requireInboxOrAddress(args);
+
+  if (!identifier) {
+    throw new Error("missing required argument: --address or --inbox-id");
+  }
+
+  const inboxId = await resolveXmtpIdentifier(config.xmtp, identifier);
+  const current = list === "owner" ? config.xmtp.ownerInboxIds : config.xmtp.trustedInboxIds;
+  const next = updateXmtpAllowlist(current, action, inboxId).updated;
+
+  writeConfigReplacement(resolvedConfigPath, {
+    ...config,
+    xmtp: {
       ...config.xmtp,
-      enabled: true,
-    };
-  }
+      [list === "owner" ? "ownerInboxIds" : "trustedInboxIds"]: next,
+    },
+  });
 
-  const defaults = xmtpDefaultsForRoot(path.dirname(configPath), envOverride);
-  return {
-    ...defaults,
-    enabled: true,
-    ownerInboxIds: [...config.xmtp.ownerInboxIds],
-    trustedInboxIds: [...config.xmtp.trustedInboxIds],
-    publicPolicyPath: config.xmtp.publicPolicyPath,
-    profiles: { ...config.xmtp.profiles },
-  };
-};
-
-const renderScopedDoctor = (report: DoctorReport, args: ParsedCliArgs): number => {
-  const json = getBooleanFlag(args, "json");
-  const verbose = getBooleanFlag(args, "verbose");
-  const quiet = getBooleanFlag(args, "quiet");
-  const onlyFailures = getBooleanFlag(args, "only-failures");
-  const ci = getBooleanFlag(args, "ci");
-
-  if (json) {
-    printJson(report);
-  } else {
-    printText(renderDoctorReport(report, { verbose, quiet, onlyFailures, ci }));
-  }
-
-  return report.checks.some((check) => check.details?.internal === true)
-    ? 3
-    : report.summary.fail > 0 ? 1 : 0;
+  printJson({
+    ok: true,
+    updated: next,
+    changedInboxId: inboxId,
+  });
 };
 
 export async function runXmtpInit(args: ParsedCliArgs, configPath?: string): Promise<number> {
-  const { configPath: resolvedConfigPath, config } = loadConfigForEdit(configPath);
-  const envFlag = getFlag(args, "env");
-  const env = envFlag as RegentXmtpEnv | undefined;
-  if (envFlag && envFlag !== "local" && envFlag !== "dev" && envFlag !== "production") {
-    throw new CliUsageError("invalid --env; expected local, dev, or production");
+  const resolvedConfigPath = resolveConfigPath(configPath);
+  let config = loadConfig(resolvedConfigPath);
+
+  config = writeConfigReplacement(resolvedConfigPath, {
+    ...config,
+    xmtp: {
+      ...config.xmtp,
+      enabled: true,
+    },
+  });
+
+  let result = await initializeXmtp(config.xmtp, resolvedConfigPath);
+  const owner = getFlag(args, "owner");
+  if (owner) {
+    const inboxId = await resolveXmtpIdentifier(config.xmtp, owner);
+    config = writeConfigReplacement(resolvedConfigPath, {
+      ...config,
+      xmtp: {
+        ...config.xmtp,
+        ownerInboxIds: Array.from(new Set([...config.xmtp.ownerInboxIds, inboxId])),
+      },
+    });
+    result = {
+      ...result,
+      enabled: true,
+      ownerInboxIds: [...config.xmtp.ownerInboxIds],
+    };
   }
 
-  const nextConfig: RegentConfig = {
-    ...config,
-    xmtp: nextXmtpConfig(resolvedConfigPath, config, env),
-  };
-
-  const written = writeConfigReplacement(resolvedConfigPath, nextConfig);
-  const result = await initializeXmtp(written.xmtp, resolvedConfigPath);
   printJson({
     ok: true,
     ...result,
   });
+
   return 0;
 }
 
 export async function runXmtpInfo(configPath?: string): Promise<void> {
-  const { config } = loadConfigForEdit(configPath);
-  printJson(await getXmtpStatus(config.xmtp));
+  const resolvedConfigPath = resolveConfigPath(configPath);
+  const config = loadConfig(resolvedConfigPath);
+
+  printJson({
+    config: config.xmtp,
+    status: await resolveStatus(resolvedConfigPath),
+  });
 }
 
 export async function runXmtpStatus(configPath?: string): Promise<void> {
-  return runXmtpInfo(configPath);
+  printJson(await resolveStatus(configPath));
 }
 
 export async function runXmtpResolve(args: ParsedCliArgs, configPath?: string): Promise<void> {
-  const { config } = loadConfigForEdit(configPath);
-  const address = parseAddressFlag(args);
+  const config = loadConfig(resolveConfigPath(configPath));
+  const address = requireAddress(args);
   const inboxId = await resolveXmtpInboxId(config.xmtp, address);
+
   printJson({
-    ok: inboxId !== null,
     address,
     inboxId,
   });
 }
 
 export async function runXmtpOwnerAdd(args: ParsedCliArgs, configPath?: string): Promise<void> {
-  const { configPath: resolvedConfigPath, config } = loadConfigForEdit(configPath);
-  const inboxIdFlag = getFlag(args, "inbox-id");
-  const addressFlag = getFlag(args, "address");
+  await updateAllowlistConfig(args, resolveConfigPath(configPath), "owner", "add");
+}
 
-  if ((inboxIdFlag ? 1 : 0) + (addressFlag ? 1 : 0) !== 1) {
-    throw new CliUsageError("provide exactly one of --address or --inbox-id");
-  }
+export async function runXmtpOwnerList(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(listXmtpAllowlist(config.xmtp, "owner"));
+}
 
-  const inboxId = inboxIdFlag
-    ? inboxIdFlag
-    : await resolveXmtpInboxId(config.xmtp, parseAddressFlag(args));
+export async function runXmtpOwnerRemove(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  await updateAllowlistConfig(args, resolveConfigPath(configPath), "owner", "remove");
+}
 
-  if (!inboxId) {
-    throw new CliUsageError("unable to resolve an XMTP inbox ID for the given address");
-  }
+export async function runXmtpTrustedAdd(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  await updateAllowlistConfig(args, resolveConfigPath(configPath), "trusted", "add");
+}
 
-  const nextConfig: RegentConfig = {
-    ...config,
-    xmtp: {
-      ...config.xmtp,
-      ownerInboxIds: uniqueStrings([...config.xmtp.ownerInboxIds, inboxId]),
-    },
-  };
+export async function runXmtpTrustedList(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(listXmtpAllowlist(config.xmtp, "trusted"));
+}
 
-  const written = writeConfigReplacement(resolvedConfigPath, nextConfig);
-  printJson({
-    ok: true,
-    ownerInboxIds: written.xmtp.ownerInboxIds,
-    addedInboxId: inboxId,
-  });
+export async function runXmtpTrustedRemove(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  await updateAllowlistConfig(args, resolveConfigPath(configPath), "trusted", "remove");
 }
 
 export async function runXmtpPolicyInit(configPath?: string): Promise<void> {
-  const { config } = loadConfigForEdit(configPath);
-  const result = ensureXmtpPolicyFile(config.xmtp);
+  const config = loadConfig(resolveConfigPath(configPath));
   printJson({
     ok: true,
-    path: result.path,
-    created: result.created,
+    ...ensureXmtpPolicyFile(config.xmtp),
   });
 }
 
 export async function runXmtpPolicyEdit(configPath?: string): Promise<void> {
-  const { config } = loadConfigForEdit(configPath);
-  const result = ensureXmtpPolicyFile(config.xmtp);
-  const editorResult = openXmtpPolicyInEditor(config.xmtp);
-  printJson({
-    ok: true,
-    path: result.path,
-    created: result.created,
-    opened: editorResult.opened,
-    editor: editorResult.editor,
-  });
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(openXmtpPolicyInEditor(config.xmtp));
+}
+
+export async function runXmtpPolicyShow(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(showXmtpPolicy(config.xmtp));
+}
+
+export async function runXmtpPolicyValidate(configPath?: string): Promise<number> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  const result = validateXmtpPolicy(config.xmtp);
+  printJson(result);
+  return result.ok ? 0 : 1;
 }
 
 export async function runXmtpDoctor(args: ParsedCliArgs, configPath?: string): Promise<number> {
-  const report = await runScopedDoctor(
-    {
-      scope: "transports",
-      json: getBooleanFlag(args, "json"),
-      verbose: getBooleanFlag(args, "verbose"),
-      fix: getBooleanFlag(args, "fix"),
-    },
-    { configPath },
-  );
+  const normalizedArgs: ParsedCliArgs = {
+    ...args,
+    positionals: ["doctor", "xmtp", ...args.positionals.slice(2)],
+  };
 
-  return renderScopedDoctor(report, args);
+  return runDoctorCommand(normalizedArgs, resolveConfigPath(configPath));
+}
+
+export async function runXmtpTestDm(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  const to = requireAddress(args, "to");
+  const message = getFlag(args, "message");
+
+  if (!message) {
+    throw new Error("missing required argument: --message");
+  }
+
+  printJson(await testXmtpDm(config.xmtp, to, message));
+}
+
+export async function runXmtpGroupCreate(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  const members = args.positionals.slice(3);
+
+  printJson(
+    await createXmtpGroup(config.xmtp, members, {
+      name: getFlag(args, "name"),
+      description: getFlag(args, "description"),
+      imageUrl: getFlag(args, "image-url"),
+      permissions: (getFlag(args, "permissions") as "all-members" | "admin-only" | undefined) ?? undefined,
+    }),
+  );
+}
+
+export async function runXmtpGroupAddMember(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  const conversationId = requirePositional(args, 3, "conversation-id");
+  const members = args.positionals.slice(4);
+
+  printJson(await addXmtpGroupMembers(config.xmtp, conversationId, members));
+}
+
+export async function runXmtpGroupList(args: ParsedCliArgs, configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(await listXmtpGroups(config.xmtp, { sync: getBooleanFlag(args, "sync") }));
+}
+
+export async function runXmtpRevokeOtherInstallations(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(await revokeAllOtherXmtpInstallations(config.xmtp));
+}
+
+export async function runXmtpRotateDbKey(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(await rotateXmtpDbKey(config.xmtp));
+}
+
+export async function runXmtpRotateWallet(configPath?: string): Promise<void> {
+  const config = loadConfig(resolveConfigPath(configPath));
+  printJson(await rotateXmtpWallet(config.xmtp));
 }

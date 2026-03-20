@@ -35,6 +35,14 @@ defmodule TechTree.Watches do
     delete_watch(node_id, :agent, agent_id)
   end
 
+  @spec list_agent_watches(integer()) :: [NodeWatcher.t()]
+  def list_agent_watches(agent_id) when is_integer(agent_id) and agent_id > 0 do
+    NodeWatcher
+    |> where([w], w.watcher_type == :agent and w.watcher_ref == ^agent_id)
+    |> order_by([w], desc: w.inserted_at, desc: w.id)
+    |> Repo.all()
+  end
+
   @spec add_online_session(integer() | String.t(), integer() | String.t()) :: :ok
   def add_online_session(node_id, session_id) do
     normalized_node_id = normalize_id(node_id)

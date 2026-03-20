@@ -15,6 +15,14 @@ defmodule TechTreeWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :platform_session_api do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug TechTreeWeb.Plugs.LoadCurrentHuman
+  end
+
   pipeline :api_privy do
     plug :accepts, ["json"]
     plug TechTreeWeb.Plugs.RequirePrivyJWT
@@ -39,17 +47,43 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-
+    live "/", HomeLive, :index
     live "/human", Human.SeedLive, :index
     live "/seed/:seed", Human.BranchLive, :show
     live "/node/:id", Human.NodeLive, :show
+  end
+
+  scope "/platform", TechTreeWeb.Platform do
+    pipe_through :browser
+
+    live "/", HomeLive, :index
+    live "/explorer", ExplorerLive, :index
+    live "/creator", CreatorLive, :index
+    live "/agents", AgentsLive, :index
+    live "/agents/:id", AgentLive, :show
+    live "/facilitator", FacilitatorLive, :index
+    live "/moderation", ModerationLive, :index
+    live "/names", NamesLive, :index
+    live "/redeem", RedeemLive, :index
   end
 
   scope "/", TechTreeWeb do
     pipe_through :api
 
     get "/health", HealthController, :show
+  end
+
+  scope "/api/platform", TechTreeWeb.PlatformApi do
+    pipe_through :api
+
+    get "/explorer/tiles", ExplorerController, :index
+  end
+
+  scope "/api/platform/auth", TechTreeWeb do
+    pipe_through :platform_session_api
+
+    post "/privy/session", PlatformAuthController, :create
+    delete "/privy/session", PlatformAuthController, :delete
   end
 
   scope "/", TechTreeWeb do
@@ -68,8 +102,9 @@ defmodule TechTreeWeb.Router do
     get "/skills/:slug/v/:version/skill.md", SkillController, :show_version
     get "/skills/:slug/latest/skill.md", SkillController, :show_latest
 
-    get "/v1/trollbox/shards", TrollboxController, :shards
     get "/v1/trollbox/messages", TrollboxController, :messages
+    get "/v1/runtime/transport", RuntimeTransportController, :show
+    get "/v1/runtime/transport/stream", TrollboxStreamController, :index
 
     post "/v1/agent/siwa/nonce", AgentSiwaController, :nonce
     post "/v1/agent/siwa/verify", AgentSiwaController, :verify
@@ -78,10 +113,6 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api_privy
 
-    post "/v1/trollbox/request-join", TrollboxController, :request_join
-    post "/v1/trollbox/leave", TrollboxController, :request_leave
-    post "/v1/trollbox/presence/heartbeat", TrollboxController, :heartbeat
-    get "/v1/trollbox/membership", TrollboxController, :membership
     post "/v1/trollbox/messages", TrollboxController, :create_message
     post "/v1/trollbox/messages/:id/reactions", TrollboxController, :react_message
   end
@@ -89,14 +120,24 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api_agent
 
+    get "/v1/agent/tree/nodes/:id", PublicNodeController, :show_private
+    get "/v1/agent/tree/nodes/:id/children", PublicNodeController, :children_private
+    get "/v1/agent/tree/nodes/:id/comments", PublicNodeController, :comments_private
     post "/v1/tree/nodes", AgentNodeController, :create
     post "/v1/tree/comments", AgentCommentController, :create
     get "/v1/tree/nodes/:id/work-packet", PublicNodeController, :work_packet
+    get "/v1/agent/watches", WatchController, :index
     post "/v1/tree/nodes/:id/watch", WatchController, :create
     delete "/v1/tree/nodes/:id/watch", WatchController, :delete
+    post "/v1/tree/nodes/:id/star", StarController, :create
+    delete "/v1/tree/nodes/:id/star", StarController, :delete
 
     get "/v1/agent/inbox", AgentInboxController, :index
     get "/v1/agent/opportunities", AgentOpportunitiesController, :index
+    get "/v1/agent/trollbox/messages", AgentTrollboxController, :messages
+    post "/v1/agent/trollbox/messages", AgentTrollboxController, :create_message
+    post "/v1/agent/trollbox/messages/:id/reactions", AgentTrollboxController, :react_message
+    get "/v1/agent/runtime/transport/stream", TrollboxStreamController, :index
   end
 
   scope "/", TechTreeWeb do
@@ -105,26 +146,11 @@ defmodule TechTreeWeb.Router do
     post "/v1/admin/nodes/:id/hide", AdminModerationController, :hide_node
     post "/v1/admin/comments/:id/hide", AdminModerationController, :hide_comment
     post "/v1/admin/trollbox/messages/:id/hide", AdminModerationController, :hide_message
+    post "/v1/admin/trollbox/messages/:id/unhide", AdminModerationController, :unhide_message
     post "/v1/admin/agents/:id/ban", AdminModerationController, :ban_agent
+    post "/v1/admin/agents/:id/unban", AdminModerationController, :unban_agent
     post "/v1/admin/humans/:id/ban", AdminModerationController, :ban_human
-
-    post "/v1/admin/trollbox/members/:human_id/add",
-         AdminModerationController,
-         :add_trollbox_member
-
-    post "/v1/admin/trollbox/members/:human_id/remove",
-         AdminModerationController,
-         :remove_trollbox_member
-  end
-
-  scope "/api/internal", TechTreeWeb do
-    pipe_through :api_internal
-
-    get "/xmtp/shards", InternalXmtpController, :list_shards
-    post "/xmtp/rooms/ensure", InternalXmtpController, :ensure_room
-    post "/xmtp/messages/ingest", InternalXmtpController, :ingest_message
-    post "/xmtp/commands/lease", InternalXmtpController, :lease_command
-    post "/xmtp/commands/:id/resolve", InternalXmtpController, :resolve_command
+    post "/v1/admin/humans/:id/unban", AdminModerationController, :unban_human
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

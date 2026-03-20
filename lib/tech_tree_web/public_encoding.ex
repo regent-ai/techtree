@@ -5,6 +5,7 @@ defmodule TechTreeWeb.PublicEncoding do
   alias TechTree.Activity.ActivityEvent
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
+  alias TechTree.Trollbox.Message
   alias TechTree.Watches.NodeWatcher
 
   @spec encode_nodes([Node.t()]) :: [map()]
@@ -23,6 +24,7 @@ defmodule TechTreeWeb.PublicEncoding do
       slug: node.slug,
       summary: node.summary,
       status: enum_to_string(node.status),
+      manifest_cid: node.manifest_cid,
       manifest_uri: node.manifest_uri,
       manifest_hash: node.manifest_hash,
       notebook_cid: node.notebook_cid,
@@ -99,6 +101,20 @@ defmodule TechTreeWeb.PublicEncoding do
     }
   end
 
+  @spec encode_watches([NodeWatcher.t()]) :: [map()]
+  def encode_watches(watches) when is_list(watches), do: Enum.map(watches, &encode_watch/1)
+
+  @spec encode_star(TechTree.Stars.NodeStar.t()) :: map()
+  def encode_star(%TechTree.Stars.NodeStar{} = star) do
+    %{
+      id: star.id,
+      node_id: star.node_id,
+      actor_type: enum_to_string(star.actor_type),
+      actor_ref: star.actor_ref,
+      inserted_at: star.inserted_at
+    }
+  end
+
   @spec encode_search_results(map()) :: map()
   def encode_search_results(%{nodes: nodes, comments: comments}) do
     %{
@@ -142,6 +158,38 @@ defmodule TechTreeWeb.PublicEncoding do
     end)
   end
 
+  @spec encode_trollbox_messages([Message.t()]) :: [map()]
+  def encode_trollbox_messages(messages) when is_list(messages),
+    do: Enum.map(messages, &encode_trollbox_message/1)
+
+  @spec encode_trollbox_message(Message.t()) :: map()
+  def encode_trollbox_message(%Message{} = message) do
+    %{
+      id: message.id,
+      room_id: message.room_id || "global",
+      transport_msg_id: message.transport_msg_id,
+      transport_topic: message.transport_topic,
+      origin_peer_id: message.origin_peer_id,
+      origin_node_id: message.origin_node_id,
+      author_kind: enum_to_string(message.author_kind),
+      author_human_id: message.author_human_id,
+      author_agent_id: message.author_agent_id,
+      author_display_name: encode_human_display_name(message),
+      author_label: encode_agent_label(message),
+      author_wallet_address: encode_author_wallet_address(message),
+      author_transport_id: message.author_transport_id,
+      body: message.body,
+      client_message_id: message.client_message_id,
+      reply_to_message_id: message.reply_to_message_id,
+      reply_to_transport_msg_id: message.reply_to_transport_msg_id,
+      reactions: message.reactions || %{},
+      moderation_state: message.moderation_state,
+      sent_at: message.inserted_at,
+      inserted_at: message.inserted_at,
+      updated_at: message.updated_at
+    }
+  end
+
   @spec maybe_put_creator_agent(map(), Node.t()) :: map()
   defp maybe_put_creator_agent(base, %Node{creator_agent: creator_agent}) do
     if Ecto.assoc_loaded?(creator_agent) and not is_nil(creator_agent) do
@@ -158,6 +206,40 @@ defmodule TechTreeWeb.PublicEncoding do
   @spec encode_preloaded_tag_edges(term()) :: [map()]
   defp encode_preloaded_tag_edges(edges) when is_list(edges), do: encode_tag_edges(edges)
   defp encode_preloaded_tag_edges(_), do: []
+
+  defp encode_human_display_name(%Message{author_human: %{display_name: display_name}})
+       when is_binary(display_name) and display_name != "",
+       do: display_name
+
+  defp encode_human_display_name(%Message{author_display_name_snapshot: display_name})
+       when is_binary(display_name) and display_name != "",
+       do: display_name
+
+  defp encode_human_display_name(_value), do: nil
+
+  defp encode_agent_label(%Message{author_agent: %{label: label}})
+       when is_binary(label) and label != "",
+       do: label
+
+  defp encode_agent_label(%Message{author_label_snapshot: label})
+       when is_binary(label) and label != "",
+       do: label
+
+  defp encode_agent_label(_value), do: nil
+
+  defp encode_author_wallet_address(%Message{author_human: %{wallet_address: wallet}})
+       when is_binary(wallet),
+       do: wallet
+
+  defp encode_author_wallet_address(%Message{author_agent: %{wallet_address: wallet}})
+       when is_binary(wallet),
+       do: wallet
+
+  defp encode_author_wallet_address(%Message{author_wallet_address_snapshot: wallet})
+       when is_binary(wallet),
+       do: wallet
+
+  defp encode_author_wallet_address(_message), do: nil
 
   @spec enum_to_string(atom() | String.t() | nil) :: String.t() | nil
   defp enum_to_string(nil), do: nil

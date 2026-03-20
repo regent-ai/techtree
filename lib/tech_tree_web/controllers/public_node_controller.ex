@@ -5,6 +5,7 @@ defmodule TechTreeWeb.PublicNodeController do
   alias TechTree.Comments
   alias TechTree.Activity
   alias TechTreeWeb.ApiError
+  alias TechTreeWeb.ControllerHelpers
   alias TechTreeWeb.PublicEncoding
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -27,6 +28,22 @@ defmodule TechTreeWeb.PublicNodeController do
     end
   end
 
+  @spec show_private(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def show_private(conn, %{"id" => id}) do
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
+    with {:ok, normalized_id} <- parse_id(id),
+         {:ok, node} <- fetch_readable_node(agent.id, normalized_id) do
+      json(conn, %{data: PublicEncoding.encode_node(node)})
+    else
+      {:error, :invalid_id} ->
+        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+
+      :error ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+    end
+  end
+
   @spec children(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def children(conn, %{"id" => id} = params) do
     case parse_id(id) do
@@ -36,6 +53,23 @@ defmodule TechTreeWeb.PublicNodeController do
 
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+    end
+  end
+
+  @spec children_private(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def children_private(conn, %{"id" => id} = params) do
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
+    with {:ok, normalized_id} <- parse_id(id),
+         {:ok, _node} <- fetch_readable_node(agent.id, normalized_id) do
+      children = Nodes.list_readable_children(agent.id, normalized_id, params)
+      json(conn, %{data: PublicEncoding.encode_nodes(children)})
+    else
+      {:error, :invalid_id} ->
+        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+
+      :error ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
     end
   end
 
@@ -63,12 +97,31 @@ defmodule TechTreeWeb.PublicNodeController do
     end
   end
 
+  @spec comments_private(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def comments_private(conn, %{"id" => id} = params) do
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
+    with {:ok, normalized_id} <- parse_id(id),
+         {:ok, _node} <- fetch_readable_node(agent.id, normalized_id) do
+      comments = Comments.list_readable_for_agent_node(agent.id, normalized_id, params)
+      json(conn, %{data: PublicEncoding.encode_comments(comments)})
+    else
+      {:error, :invalid_id} ->
+        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+
+      :error ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+    end
+  end
+
   @spec work_packet(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def work_packet(conn, %{"id" => id} = params) do
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
     with {:ok, normalized_id} <- parse_id(id),
-         {:ok, node} <- fetch_public_node(normalized_id) do
-      comments = Comments.list_public_for_node(normalized_id, params)
-      events = Activity.list_public_events_for_node(normalized_id, params)
+         {:ok, node} <- fetch_readable_node(agent.id, normalized_id) do
+      comments = Comments.list_readable_for_agent_node(agent.id, normalized_id, params)
+      events = readable_work_packet_events(agent.id, node, normalized_id, params)
 
       json(
         conn,
@@ -96,6 +149,23 @@ defmodule TechTreeWeb.PublicNodeController do
   rescue
     Ecto.NoResultsError -> :error
   end
+
+  @spec fetch_readable_node(integer(), integer() | String.t()) ::
+          {:ok, TechTree.Nodes.Node.t()} | :error
+  defp fetch_readable_node(agent_id, id) do
+    {:ok, Nodes.get_readable_node_for_agent!(agent_id, id)}
+  rescue
+    Ecto.NoResultsError -> :error
+  end
+
+  @spec readable_work_packet_events(integer(), TechTree.Nodes.Node.t(), integer(), map()) :: [
+          map()
+        ]
+  defp readable_work_packet_events(_agent_id, %{status: :anchored}, normalized_id, params) do
+    Activity.list_public_events_for_node(normalized_id, params)
+  end
+
+  defp readable_work_packet_events(_agent_id, _node, _normalized_id, _params), do: []
 
   @spec parse_id(integer() | String.t()) :: {:ok, integer()} | {:error, :invalid_id}
   defp parse_id(value) when is_integer(value) and value > 0, do: {:ok, value}

@@ -4,7 +4,6 @@ defmodule TechTreeWeb.AdminModerationController do
   alias TechTree.Moderation
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
-  alias TechTree.XMTPMirror
 
   @spec hide_node(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def hide_node(conn, %{"id" => id} = params) do
@@ -29,10 +28,25 @@ defmodule TechTreeWeb.AdminModerationController do
     end)
   end
 
+  @spec unhide_message(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def unhide_message(conn, %{"id" => id} = params) do
+    with_admin_action(conn, id, "invalid_message_id", "message_not_found", fn normalized_id,
+                                                                              admin ->
+      Moderation.unhide_trollbox_message(normalized_id, admin, params["reason"])
+    end)
+  end
+
   @spec ban_agent(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def ban_agent(conn, %{"id" => id} = params) do
     with_admin_action(conn, id, "invalid_agent_id", "agent_not_found", fn normalized_id, admin ->
       Moderation.ban_agent(normalized_id, admin, params["reason"])
+    end)
+  end
+
+  @spec unban_agent(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def unban_agent(conn, %{"id" => id} = params) do
+    with_admin_action(conn, id, "invalid_agent_id", "agent_not_found", fn normalized_id, admin ->
+      Moderation.unban_agent(normalized_id, admin, params["reason"])
     end)
   end
 
@@ -43,17 +57,10 @@ defmodule TechTreeWeb.AdminModerationController do
     end)
   end
 
-  @spec add_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def add_trollbox_member(conn, %{"human_id" => human_id}) do
-    with_human_target(conn, human_id, fn normalized_human_id ->
-      XMTPMirror.add_human_to_canonical_room(normalized_human_id)
-    end)
-  end
-
-  @spec remove_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def remove_trollbox_member(conn, %{"human_id" => human_id}) do
-    with_human_target(conn, human_id, fn normalized_human_id ->
-      XMTPMirror.remove_human_from_canonical_room(normalized_human_id)
+  @spec unban_human(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def unban_human(conn, %{"id" => id} = params) do
+    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, admin ->
+      Moderation.unban_human(normalized_id, admin, params["reason"])
     end)
   end
 
@@ -77,20 +84,5 @@ defmodule TechTreeWeb.AdminModerationController do
     end
   rescue
     Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{code: not_found_code})
-  end
-
-  @spec with_human_target(Plug.Conn.t(), term(), (integer() -> :ok)) :: Plug.Conn.t()
-  defp with_human_target(conn, raw_human_id, action_fun) when is_function(action_fun, 1) do
-    case ControllerHelpers.parse_positive_int(raw_human_id) do
-      {:ok, normalized_human_id} ->
-        action_fun.(normalized_human_id)
-        json(conn, %{ok: true})
-
-      {:error, _reason} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_human_id"})
-    end
-  rescue
-    ArgumentError -> ApiError.render(conn, :unprocessable_entity, %{code: "room_unavailable"})
-    Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{code: "human_not_found"})
   end
 end

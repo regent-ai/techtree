@@ -1,10 +1,11 @@
 defmodule TechTree.ModerationReadModelEnforcementTest do
   use TechTree.DataCase, async: false
 
-  alias TechTree.{Accounts, Agents, Comments, Moderation, Nodes, Repo, Search, XMTPMirror}
+  import TechTree.PhaseDApiSupport, only: [create_trollbox_message!: 2]
+
+  alias TechTree.{Accounts, Agents, Comments, Moderation, Nodes, Repo, Search, Trollbox}
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
-  alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
 
   test "hidden nodes are excluded across public node read paths" do
     admin = create_admin!()
@@ -13,6 +14,11 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     root = create_ready_node!(creator, title: unique_text("root node"))
     child = create_ready_node!(creator, parent_id: root.id, title: unique_text("child node"))
     create_tag_edge!(root.id, child.id)
+    :ok = Nodes.refresh_parent_child_metrics!(root.id)
+
+    root_before_hide = Repo.get!(Node, root.id)
+    assert root_before_hide.child_count == 1
+    assert Decimal.gt?(root_before_hide.activity_score, Decimal.new("0"))
 
     assert Enum.any?(Nodes.list_public_nodes(%{}), &(&1.id == root.id))
     assert Enum.map(Nodes.list_public_children(root.id, %{}), & &1.id) == [child.id]
@@ -20,6 +26,10 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.map(Nodes.get_public_node!(root.id).tag_edges_out, & &1.dst_node_id) == [child.id]
 
     :ok = Moderation.hide_node(child.id, admin, "hidden child")
+
+    root_after_child_hide = Repo.get!(Node, root.id)
+    assert root_after_child_hide.child_count == 0
+    assert Decimal.equal?(root_after_child_hide.activity_score, Decimal.new("0"))
 
     assert Nodes.list_public_children(root.id, %{}) == []
     assert Nodes.list_tagged_edges(root.id) == []
@@ -44,6 +54,9 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
     hidden_comment = create_ready_comment!(node.id, commenter.id, hidden_term)
     visible_comment = create_ready_comment!(node.id, commenter.id, visible_term)
+    :ok = Nodes.refresh_comment_metrics!(node.id)
+
+    assert Repo.get!(Node, node.id).comment_count == 2
 
     assert Enum.map(Comments.list_public_for_node(node.id, %{}), & &1.id) == [
              hidden_comment.id,
@@ -54,6 +67,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
     :ok = Moderation.hide_comment(hidden_comment.id, admin, "hidden comment")
 
+    assert Repo.get!(Node, node.id).comment_count == 1
     assert Enum.map(Comments.list_public_for_node(node.id, %{}), & &1.id) == [visible_comment.id]
     assert Search.search(hidden_term, %{}).comments == []
   end
@@ -70,11 +84,27 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     banned_node = create_ready_node!(banned_agent, title: node_term, seed: "ML")
     active_node = create_ready_node!(active_agent, title: active_node_term, seed: "ML")
 
+    banned_child =
+      create_ready_node!(banned_agent,
+        parent_id: active_node.id,
+        title: unique_text("banned child")
+      )
+
     banned_comment = create_ready_comment!(active_node.id, banned_agent.id, comment_term)
 
     _active_comment =
       create_ready_comment!(banned_node.id, active_agent.id, unique_text("active comment"))
 
+    :ok = Nodes.refresh_parent_child_metrics!(active_node.id)
+    :ok = Nodes.refresh_comment_metrics!(active_node.id)
+
+    active_node_before_ban = Repo.get!(Node, active_node.id)
+
+    assert active_node_before_ban.child_count == 1
+    assert active_node_before_ban.comment_count == 1
+    assert Decimal.gt?(active_node_before_ban.activity_score, Decimal.new("0"))
+
+    assert banned_child.parent_id == active_node.id
     assert Enum.any?(Nodes.list_public_nodes(%{}), &(&1.id == banned_node.id))
     assert Enum.any?(Nodes.list_hot_nodes("ML", %{}), &(&1.id == banned_node.id))
     assert Nodes.get_public_node!(banned_node.id).id == banned_node.id
@@ -89,6 +119,12 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Search.search(comment_term, %{}).comments, &(&1.id == banned_comment.id))
 
     :ok = Moderation.ban_agent(banned_agent.id, admin, "banned agent")
+
+    active_node_after_ban = Repo.get!(Node, active_node.id)
+
+    assert active_node_after_ban.child_count == 0
+    assert active_node_after_ban.comment_count == 0
+    assert Decimal.equal?(active_node_after_ban.activity_score, Decimal.new("0"))
 
     refute Enum.any?(Nodes.list_public_nodes(%{}), &(&1.id == banned_node.id))
     refute Enum.any?(Nodes.list_hot_nodes("ML", %{}), &(&1.id == banned_node.id))
@@ -108,27 +144,29 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
   test "hidden trollbox messages are excluded from public reads" do
     admin = create_admin!()
-    room = create_canonical_room!()
-    hidden_message = create_visible_message!(room, unique_text("hidden trollbox message"))
-    visible_message = create_visible_message!(room, unique_text("visible trollbox message"))
+    author = create_human!("trollbox-hidden-author")
 
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == hidden_message.id))
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == visible_message.id))
+    hidden_message =
+      create_trollbox_message!(author, %{body: unique_text("hidden trollbox message")})
+
+    visible_message =
+      create_trollbox_message!(author, %{body: unique_text("visible trollbox message")})
+
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
     :ok = Moderation.hide_trollbox_message(hidden_message.id, admin, "hidden message")
 
-    refute Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == hidden_message.id))
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == visible_message.id))
+    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
   end
 
   test "banned human and banned agent trollbox messages are excluded from public reads" do
     admin = create_admin!()
-    room = create_canonical_room!()
 
     {:ok, banned_human} =
       Accounts.upsert_human_by_privy_id("human-ban-#{unique_suffix()}", %{
         "wallet_address" => "0xhumanban#{unique_suffix()}",
-        "xmtp_inbox_id" => "inbox-human-ban-#{unique_suffix()}",
         "display_name" => "Banned Human",
         "role" => "user"
       })
@@ -136,23 +174,26 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     banned_agent = create_agent!("trollbox-agent")
 
     human_message =
-      create_message_for_human!(room, banned_human, unique_text("human trollbox msg"))
+      create_trollbox_message!(banned_human, %{body: unique_text("human trollbox msg")})
 
     agent_message =
-      create_message_for_agent!(room, banned_agent, unique_text("agent trollbox msg"))
+      create_trollbox_message!(banned_agent, %{body: unique_text("agent trollbox msg")})
 
-    visible_message = create_visible_message!(room, unique_text("visible trollbox msg"))
+    visible_message =
+      create_trollbox_message!(create_human!("trollbox-visible"), %{
+        body: unique_text("visible trollbox msg")
+      })
 
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == human_message.id))
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == agent_message.id))
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == visible_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
     :ok = Moderation.ban_human(banned_human.id, admin, "ban human")
     :ok = Moderation.ban_agent(banned_agent.id, admin, "ban agent")
 
-    refute Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == human_message.id))
-    refute Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == agent_message.id))
-    assert Enum.any?(XMTPMirror.list_public_messages(%{}), &(&1.id == visible_message.id))
+    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
+    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
+    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
   end
 
   defp create_admin! do
@@ -161,9 +202,21 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     {:ok, human} =
       Accounts.upsert_human_by_privy_id("admin-#{unique}", %{
         "wallet_address" => "0xadmin#{unique}",
-        "xmtp_inbox_id" => "inbox-admin-#{unique}",
         "display_name" => "Admin #{unique}",
         "role" => "admin"
+      })
+
+    human
+  end
+
+  defp create_human!(prefix, opts \\ []) do
+    unique = unique_suffix()
+
+    {:ok, human} =
+      Accounts.upsert_human_by_privy_id("#{prefix}-#{unique}", %{
+        "wallet_address" => "0x#{prefix}-wallet-#{unique}",
+        "display_name" => Keyword.get(opts, :display_name, "#{prefix}-#{unique}"),
+        "role" => Keyword.get(opts, :role, "user")
       })
 
     human
@@ -173,7 +226,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     unique = unique_suffix()
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "8453",
+      "chain_id" => "11155111",
       "registry_address" => "0x#{prefix}-registry-#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{prefix}-wallet-#{unique}",
@@ -227,68 +280,6 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
       dst_node_id: dst_node_id,
       tag: "related",
       ordinal: 1
-    })
-    |> Repo.insert!()
-  end
-
-  defp create_canonical_room! do
-    %XmtpRoom{}
-    |> XmtpRoom.changeset(%{
-      room_key: "public-trollbox",
-      name: unique_text("Public Trollbox")
-    })
-    |> Repo.insert!()
-  end
-
-  defp create_visible_message!(room, body) do
-    unique = unique_suffix()
-
-    %XmtpMessage{}
-    |> XmtpMessage.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: "msg-#{unique}",
-      sender_inbox_id: "inbox-#{unique}",
-      sender_type: :human,
-      body: body,
-      sent_at: DateTime.utc_now(),
-      raw_payload: %{},
-      moderation_state: "visible"
-    })
-    |> Repo.insert!()
-  end
-
-  defp create_message_for_human!(room, human, body) do
-    unique = unique_suffix()
-
-    %XmtpMessage{}
-    |> XmtpMessage.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: "msg-human-#{unique}",
-      sender_inbox_id: human.xmtp_inbox_id,
-      sender_wallet_address: human.wallet_address,
-      sender_type: :human,
-      body: body,
-      sent_at: DateTime.utc_now(),
-      raw_payload: %{},
-      moderation_state: "visible"
-    })
-    |> Repo.insert!()
-  end
-
-  defp create_message_for_agent!(room, agent, body) do
-    unique = unique_suffix()
-
-    %XmtpMessage{}
-    |> XmtpMessage.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: "msg-agent-#{unique}",
-      sender_inbox_id: "agent-inbox-#{unique}",
-      sender_wallet_address: agent.wallet_address,
-      sender_type: :agent,
-      body: body,
-      sent_at: DateTime.utc_now(),
-      raw_payload: %{},
-      moderation_state: "visible"
     })
     |> Repo.insert!()
   end

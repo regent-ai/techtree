@@ -146,6 +146,23 @@ defmodule TechTree.Observability do
         metric_prefix ++ [:agent, :siwa, :deny, :total],
         event_name: [:tech_tree, :agent, :siwa, :deny],
         tags: [:reason, :source]
+      ),
+      counter(
+        metric_prefix ++ [:trollbox, :write, :throttle, :total],
+        event_name: [:tech_tree, :trollbox, :write, :throttle],
+        tags: [:subject, :code]
+      ),
+      distribution(
+        metric_prefix ++ [:trollbox, :write, :throttle, :retry_after, :milliseconds],
+        event_name: [:tech_tree, :trollbox, :write, :throttle],
+        measurement: :retry_after_ms,
+        tags: [:subject, :code],
+        reporter_options: [buckets: [250, 500, 1_000, 2_500, 5_000, 10_000, 30_000, 60_000]]
+      ),
+      counter(
+        metric_prefix ++ [:trollbox, :relay, :broadcast, :total],
+        event_name: [:tech_tree, :trollbox, :relay, :broadcast],
+        tags: [:event]
       )
     ]
   end

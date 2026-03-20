@@ -41,6 +41,14 @@ env_or_dotenv = fn key, default ->
   System.get_env(key) || Map.get(dotenv_values, key, default)
 end
 
+cfg_fetch = fn cfg, key ->
+  cond do
+    Keyword.keyword?(cfg) -> Keyword.get(cfg, key)
+    is_map(cfg) -> Map.get(cfg, key, Map.get(cfg, Atom.to_string(key)))
+    true -> nil
+  end
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -100,24 +108,63 @@ config :tech_tree, :siwa,
   http_connect_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_CONNECT_TIMEOUT_MS", "2000")),
   http_receive_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_RECEIVE_TIMEOUT_MS", "5000"))
 
-base_chain_id = env_or_dotenv.("TECHTREE_CHAIN_ID", env_or_dotenv.("BASE_CHAIN_ID", nil))
+existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
 
-config :tech_tree, :base,
-  mode: env_or_dotenv.("TECHTREE_BASE_MODE", "auto"),
-  rpc_url:
+ethereum_chain_id =
+  env_or_dotenv.(
+    "TECHTREE_CHAIN_ID",
+    env_or_dotenv.("ETHEREUM_CHAIN_ID", cfg_fetch.(existing_ethereum_cfg, :chain_id))
+  )
+
+ethereum_rpc_url =
+  case ethereum_chain_id do
+    "11155111" ->
+      env_or_dotenv.("ETHEREUM_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+
+    "31337" ->
+      env_or_dotenv.("ANVIL_RPC_URL", nil)
+
+    _ ->
+      env_or_dotenv.("ETHEREUM_MAINNET_RPC_URL", env_or_dotenv.("ETHEREUM_RPC_URL", nil))
+  end
+
+ethereum_writer_private_key =
+  case ethereum_chain_id do
+    "11155111" ->
+      env_or_dotenv.("ETHEREUM_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+
+    "31337" ->
+      env_or_dotenv.("ANVIL_PRIVATE_KEY", nil)
+
+    _ ->
+      env_or_dotenv.(
+        "ETHEREUM_MAINNET_PRIVATE_KEY",
+        env_or_dotenv.("ETHEREUM_PRIVATE_KEY", nil)
+      )
+  end
+
+config :tech_tree, :ethereum,
+  mode:
     env_or_dotenv.(
-      "BASE_RPC_URL",
-      env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+      "TECHTREE_ETHEREUM_MODE",
+      cfg_fetch.(existing_ethereum_cfg, :mode) || "auto"
     ),
+  rpc_url: ethereum_rpc_url || cfg_fetch.(existing_ethereum_cfg, :rpc_url),
   registry_address:
-    env_or_dotenv.("REGISTRY_CONTRACT_ADDRESS", env_or_dotenv.("TECHTREE_REGISTRY", nil)),
+    env_or_dotenv.(
+      "REGISTRY_CONTRACT_ADDRESS",
+      env_or_dotenv.(
+        "TECHTREE_REGISTRY",
+        cfg_fetch.(existing_ethereum_cfg, :registry_address)
+      )
+    ),
   writer_private_key:
     env_or_dotenv.(
       "REGISTRY_WRITER_PRIVATE_KEY",
-      env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+      ethereum_writer_private_key || cfg_fetch.(existing_ethereum_cfg, :writer_private_key)
     ),
-  chain_id: base_chain_id,
-  cast_bin: env_or_dotenv.("CAST_BIN", "cast")
+  chain_id: ethereum_chain_id,
+  cast_bin: env_or_dotenv.("CAST_BIN", cfg_fetch.(existing_ethereum_cfg, :cast_bin) || "cast")
 
 config :tech_tree, TechTree.IPFS.LighthouseClient,
   api_key: env_or_dotenv.("LIGHTHOUSE_API_KEY", ""),
@@ -126,6 +173,42 @@ config :tech_tree, TechTree.IPFS.LighthouseClient,
     env_or_dotenv.("LIGHTHOUSE_GATEWAY_BASE", "https://gateway.lighthouse.storage/ipfs"),
   storage_type: env_or_dotenv.("LIGHTHOUSE_STORAGE_TYPE", "annual"),
   mock_uploads: false
+
+p2p_enabled =
+  env_or_dotenv.("TECHTREE_P2P_ENABLED", if(config_env() == :test, do: "false", else: "true"))
+  |> String.downcase()
+  |> then(&(&1 in ["1", "true", "yes", "on"]))
+
+p2p_listen_ip =
+  env_or_dotenv.("TECHTREE_P2P_LISTEN_IP", "0.0.0.0")
+  |> String.split(".")
+  |> Enum.map(&String.to_integer/1)
+  |> List.to_tuple()
+
+p2p_identity_path_default =
+  Path.expand("../tmp/p2p-identity-#{config_env()}.json", __DIR__)
+
+config :tech_tree, TechTree.P2P,
+  enabled: p2p_enabled,
+  listen_ip: p2p_listen_ip,
+  listen_port: String.to_integer(env_or_dotenv.("TECHTREE_P2P_LISTEN_PORT", "40001")),
+  bootstrap_peers:
+    env_or_dotenv.("TECHTREE_P2P_BOOTSTRAP_PEERS", "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1),
+  min_ready_peers: String.to_integer(env_or_dotenv.("TECHTREE_P2P_MIN_READY_PEERS", "1")),
+  identity_path: env_or_dotenv.("TECHTREE_P2P_IDENTITY_PATH", p2p_identity_path_default),
+  origin_node_id: env_or_dotenv.("TECHTREE_P2P_ORIGIN_NODE_ID", "techtree-#{config_env()}"),
+  topic_prefix: env_or_dotenv.("TECHTREE_P2P_TOPIC_PREFIX", "regent.#{config_env()}.trollbox"),
+  allowed_peer_ids:
+    env_or_dotenv.("TECHTREE_P2P_ALLOWED_PEER_IDS", "")
+    |> String.split(",", trim: true)
+    |> Enum.map(&String.trim/1),
+  redial_interval_ms:
+    String.to_integer(env_or_dotenv.("TECHTREE_P2P_REDIAL_INTERVAL_MS", "5000")),
+  health_interval_ms:
+    String.to_integer(env_or_dotenv.("TECHTREE_P2P_HEALTH_INTERVAL_MS", "2000")),
+  max_message_bytes: String.to_integer(env_or_dotenv.("TECHTREE_P2P_MAX_MESSAGE_BYTES", "32768"))
 
 if config_env() == :prod do
   database_url =

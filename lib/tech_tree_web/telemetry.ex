@@ -11,14 +11,10 @@ defmodule TechTreeWeb.Telemetry do
 
   @impl true
   def init(_arg) do
-    children = [
-      TechTree.Observability,
-      # Telemetry poller will execute the given period measurements
-      # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
-      {:telemetry_poller, measurements: periodic_measurements(), period: @poller_period_ms}
-      # Add reporters as children of your supervision tree.
-      # {Telemetry.Metrics.ConsoleReporter, metrics: metrics()}
-    ]
+    children =
+      [
+        TechTree.Observability
+      ] ++ periodic_poller_children()
 
     Supervisor.init(children, strategy: :one_for_one)
   end
@@ -161,5 +157,23 @@ defmodule TechTreeWeb.Telemetry do
     [
       {TechTree.Observability, :emit_periodic_metrics, []}
     ]
+  end
+
+  @spec periodic_poller_children() :: [Supervisor.child_spec()]
+  defp periodic_poller_children do
+    if enable_periodic_poller?() do
+      [
+        {:telemetry_poller, measurements: periodic_measurements(), period: @poller_period_ms}
+      ]
+    else
+      []
+    end
+  end
+
+  @spec enable_periodic_poller?() :: boolean()
+  defp enable_periodic_poller? do
+    :tech_tree
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(:enable_periodic_poller, true)
   end
 end

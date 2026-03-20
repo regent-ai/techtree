@@ -19,7 +19,6 @@ config :tech_tree, Oban,
     chain: 10,
     index: 20,
     realtime: 25,
-    xmtp: 10,
     maintenance: 5
   ],
   plugins: [
@@ -29,9 +28,6 @@ config :tech_tree, Oban,
        {"*/10 * * * *", TechTree.Workers.RebuildHotScoresWorker}
      ]}
   ]
-
-config :tech_tree, :dragonfly_host, System.get_env("DRAGONFLY_HOST", "localhost")
-config :tech_tree, :dragonfly_port, String.to_integer(System.get_env("DRAGONFLY_PORT", "6379"))
 
 config :tech_tree, :system_agent_id, System.get_env("SYSTEM_AGENT_ID", "1")
 
@@ -52,6 +48,20 @@ config :tech_tree, TechTree.Observability,
   grafana: :disabled,
   metrics_server: :disabled
 
+config :tech_tree, TechTree.P2P,
+  enabled: false,
+  listen_ip: {127, 0, 0, 1},
+  listen_port: 40_001,
+  bootstrap_peers: [],
+  min_ready_peers: 1,
+  identity_path: nil,
+  origin_node_id: "techtree-dev-01",
+  topic_prefix: "regent.dev.trollbox",
+  allowed_peer_ids: [],
+  redial_interval_ms: 5_000,
+  health_interval_ms: 2_000,
+  max_message_bytes: 32_768
+
 # Configure the mailer
 #
 # By default it uses the "Local" adapter which stores the emails
@@ -66,7 +76,7 @@ config :esbuild,
   version: "0.25.4",
   tech_tree: [
     args:
-      ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/app.ts js/home.ts js/home-graph.ts js/home-graph-labels.ts js/home-graph-activity.ts js/platform-auth-entry.ts --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=. --alias:wgsl_reflect=./js/shims/wgsl-reflect.ts),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

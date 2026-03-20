@@ -6,6 +6,7 @@ defmodule TechTree.AgentInboxTest do
   alias TechTree.Agents
   alias TechTree.Nodes.Node
   alias TechTree.Repo
+  alias TechTree.Watches
 
   test "fetch returns a single stream with monotonic next_cursor" do
     agent = create_agent!("inbox")
@@ -60,11 +61,27 @@ defmodule TechTree.AgentInboxTest do
     assert empty_poll.next_cursor == incremental.next_cursor
   end
 
+  test "fetch includes activity on watched nodes" do
+    agent = create_agent!("watching")
+    other_agent = create_agent!("watched")
+    watched_node = create_node!(other_agent)
+
+    assert {:ok, _watch} = Watches.watch_agent(watched_node.id, agent.id)
+
+    starred = Activity.log!("node.starred", :agent, other_agent.id, watched_node.id, %{})
+    comment = Activity.log!("node.comment_created", :agent, other_agent.id, watched_node.id, %{})
+
+    inbox = AgentInbox.fetch(agent, %{"limit" => "20"})
+
+    assert Enum.map(inbox.events, & &1.id) == [starred.id, comment.id]
+    assert Enum.all?(inbox.events, &(&1.subject_node_id == watched_node.id))
+  end
+
   defp create_agent!(label_prefix) do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "8453",
+      "chain_id" => "11155111",
       "registry_address" => "0x#{label_prefix}registry#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{label_prefix}wallet#{unique}",

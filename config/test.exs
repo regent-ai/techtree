@@ -80,9 +80,16 @@ else
 end
 
 config :tech_tree, Oban, testing: :manual
+config :tech_tree, TechTreeWeb.Telemetry, enable_periodic_poller: false
+config :tech_tree, TechTree.RateLimit, backend: :local
+
+config :tech_tree, TechTree.P2P,
+  enabled: false,
+  identity_path: Path.expand("../tmp/p2p-identity-test.json", __DIR__)
+
 # Keep SIWA verification bypass limited to tests to satisfy startup runtime guard.
 config :tech_tree, :siwa, skip_http_verify: true
-config :tech_tree, :base, mode: :stub, chain_id: 8453
+config :tech_tree, :ethereum, mode: :stub, chain_id: 11_155_111
 config :tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: true
 
 # We don't run a server during test. If one is required,

@@ -9,8 +9,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
   alias TechTree.Moderation.ModerationAction
   alias TechTree.Nodes.Node
   alias TechTree.Repo
-  alias TechTree.XMTPMirror
-  alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage}
+  alias TechTree.Trollbox.Message, as: TrollboxMessage
 
   setup do
     privy = setup_privy_config!()
@@ -54,19 +53,15 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
     assert %{"error" => %{"code" => "node_not_found"}} = missing_response
   end
 
-  test "moderation endpoints mutate targets and log actions", %{conn: conn, privy: privy} do
+  test "moderation endpoints mutate targets and log actions", %{conn: _conn, privy: privy} do
     admin = create_human!("moderation-admin", role: "admin")
     creator = create_agent!("moderation-creator")
     target_agent = create_agent!("moderation-target-agent")
     target_human = create_human!("moderation-target-human", role: "user")
-    membership_human = create_human!("moderation-membership-human", role: "user")
 
     node = create_node!(creator)
     comment = create_comment!(node.id, creator.id)
-    message = create_message!()
-
-    :ok =
-      ensure_canonical_room_exists()
+    message = create_trollbox_message!(target_human, %{body: "moderation message"})
 
     authed_conn = fn ->
       Phoenix.ConnTest.build_conn()
@@ -92,7 +87,19 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
 
     assert %{"ok" => true} =
              authed_conn.()
+             |> post("/v1/admin/trollbox/messages/#{message.id}/unhide", %{
+               "reason" => "unhide-message"
+             })
+             |> json_response(200)
+
+    assert %{"ok" => true} =
+             authed_conn.()
              |> post("/v1/admin/agents/#{target_agent.id}/ban", %{"reason" => "ban-agent"})
+             |> json_response(200)
+
+    assert %{"ok" => true} =
+             authed_conn.()
+             |> post("/v1/admin/agents/#{target_agent.id}/unban", %{"reason" => "unban-agent"})
              |> json_response(200)
 
     assert %{"ok" => true} =
@@ -102,44 +109,27 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
 
     assert %{"ok" => true} =
              authed_conn.()
-             |> post("/v1/admin/trollbox/members/#{membership_human.id}/add", %{})
-             |> json_response(200)
-
-    assert %{"ok" => true} =
-             authed_conn.()
-             |> post("/v1/admin/trollbox/members/#{membership_human.id}/remove", %{})
+             |> post("/v1/admin/humans/#{target_human.id}/unban", %{"reason" => "unban-human"})
              |> json_response(200)
 
     assert Repo.get!(Node, node.id).status == :hidden
     assert Repo.get!(Comment, comment.id).status == :hidden
-    assert Repo.get!(XmtpMessage, message.id).moderation_state == "hidden"
-    assert Repo.get!(TechTree.Agents.AgentIdentity, target_agent.id).status == "banned"
-    assert Repo.get!(TechTree.Accounts.HumanUser, target_human.id).role == "banned"
+    assert Repo.get!(TrollboxMessage, message.id).moderation_state == "visible"
+    assert Repo.get!(TechTree.Agents.AgentIdentity, target_agent.id).status == "active"
+    assert Repo.get!(TechTree.Accounts.HumanUser, target_human.id).role == "user"
 
     assert Repo.aggregate(
              from(a in ModerationAction, where: a.actor_ref == ^admin.id),
              :count,
              :id
-           ) >= 5
-
-    assert Repo.exists?(
-             from(c in XmtpMembershipCommand,
-               where: c.human_user_id == ^membership_human.id and c.op == "add_member"
-             )
-           )
-
-    assert Repo.exists?(
-             from(c in XmtpMembershipCommand,
-               where: c.human_user_id == ^membership_human.id and c.op == "remove_member"
-             )
-           )
+           ) >= 8
   end
 
   defp create_agent!(prefix) do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "8453",
+      "chain_id" => "11155111",
       "registry_address" => "0x#{prefix}-registry-#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{prefix}-wallet-#{unique}",
@@ -175,41 +165,5 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
       status: :ready
     })
     |> Repo.insert!()
-  end
-
-  defp create_message! do
-    {:ok, room} =
-      XMTPMirror.ensure_room(%{
-        room_key: "public-trollbox",
-        xmtp_group_id: "moderation-group-#{System.unique_integer([:positive])}",
-        name: "Public Trollbox",
-        status: "active"
-      })
-
-    %XmtpMessage{}
-    |> XmtpMessage.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: "moderation-message-#{System.unique_integer([:positive])}",
-      sender_inbox_id: "moderation-inbox",
-      sender_wallet_address: "0xmoderation",
-      sender_label: "moderation-sender",
-      sender_type: :human,
-      body: "moderation message",
-      sent_at: DateTime.utc_now(),
-      moderation_state: "visible"
-    })
-    |> Repo.insert!()
-  end
-
-  defp ensure_canonical_room_exists do
-    case XMTPMirror.ensure_room(%{
-           room_key: "public-trollbox",
-           xmtp_group_id: "canonical-group-#{System.unique_integer([:positive])}",
-           name: "Public Trollbox",
-           status: "active"
-         }) do
-      {:ok, _room} -> :ok
-      {:error, %Ecto.Changeset{}} -> :ok
-    end
   end
 end

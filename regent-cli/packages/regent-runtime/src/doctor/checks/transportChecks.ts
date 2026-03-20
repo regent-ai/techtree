@@ -30,8 +30,8 @@ export function transportChecks(): DoctorCheckDefinition[] {
       },
     },
     {
-      id: "transports.xmtp.config",
-      scope: "transports",
+      id: "xmtp.config",
+      scope: "xmtp",
       title: "XMTP config",
       run: async (ctx) => {
         if (!ctx.config) {
@@ -58,8 +58,8 @@ export function transportChecks(): DoctorCheckDefinition[] {
       },
     },
     {
-      id: "transports.xmtp.policy",
-      scope: "transports",
+      id: "xmtp.policy",
+      scope: "xmtp",
       title: "XMTP public policy",
       run: async (ctx) => {
         if (!ctx.config) {
@@ -104,8 +104,8 @@ export function transportChecks(): DoctorCheckDefinition[] {
       },
     },
     {
-      id: "transports.xmtp.identity",
-      scope: "transports",
+      id: "xmtp.identity",
+      scope: "xmtp",
       title: "XMTP local identity",
       run: async (ctx) => {
         if (!ctx.config) {
@@ -139,8 +139,8 @@ export function transportChecks(): DoctorCheckDefinition[] {
       },
     },
     {
-      id: "transports.xmtp.owner",
-      scope: "transports",
+      id: "xmtp.owner",
+      scope: "xmtp",
       title: "XMTP owner allowlist",
       run: async (ctx) => {
         if (!ctx.config) {
@@ -164,6 +164,34 @@ export function transportChecks(): DoctorCheckDefinition[] {
             ownerInboxIds: ctx.config.xmtp.ownerInboxIds,
           },
           remediation: ownerCount > 0 ? undefined : "Run `regent xmtp owner add --address <wallet>`",
+        };
+      },
+    },
+    {
+      id: "xmtp.trusted",
+      scope: "xmtp",
+      title: "XMTP trusted allowlist",
+      run: async (ctx) => {
+        if (!ctx.config) {
+          return skipDueToMissingConfig();
+        }
+
+        if (!ctx.config.xmtp.enabled) {
+          return {
+            status: "skip",
+            message: "XMTP trusted allowlist skipped because XMTP is disabled",
+          };
+        }
+
+        return {
+          status: "ok",
+          message:
+            ctx.config.xmtp.trustedInboxIds.length > 0
+              ? "XMTP trusted allowlist is configured"
+              : "No additional XMTP trusted inboxes are configured",
+          details: {
+            trustedInboxIds: ctx.config.xmtp.trustedInboxIds,
+          },
         };
       },
     },

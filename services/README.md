@@ -8,12 +8,6 @@ Strict TypeScript workspace for sidecar services under `techtree/services`.
   - `POST /v1/nonce`
   - `POST /v1/verify`
   - `POST /v1/http-verify` (internal trusted path with HMAC middleware)
-- `xmtp-worker`: XMTP mirror worker with a single ingestion `for await` loop in `src/sync.ts`.
-  - Uses Phoenix internal endpoints under `/api/internal/xmtp/*` for room ensure, message ingest, and membership command lease/resolve.
-  - Supports:
-    - Built-in real XMTP transport via `@xmtp/node-sdk` + signer private key.
-    - External real transport adapter module (`XMTP_REAL_TRANSPORT_MODULE`).
-    - Deterministic mock transport fallback.
 
 ## Commands
 
@@ -22,44 +16,19 @@ Run from `techtree/services`:
 ```bash
 bun install
 bun run dev:siwa
-bun run dev:xmtp
 bun run typecheck
 bun run build
 cd siwa-sidecar && bun run validate:hardening
 cd siwa-sidecar && bun run validate:vectors
 ```
 
-## XMTP Worker Env
-
-- `PHOENIX_INTERNAL_URL` (default: `http://localhost:4000/api/internal`)
-- `INTERNAL_SHARED_SECRET` (default: empty; when set, worker sends `x-tech-tree-secret`)
-- `XMTP_CANONICAL_ROOM_KEY` (default: `public-trollbox`)
-- `XMTP_CANONICAL_ROOM_NAME` (default: `Tech Tree Trollbox`)
-- `XMTP_CANONICAL_ROOM_GROUP_ID` (default: `xmtp-<room_key>`)
-- `XMTP_POLL_INTERVAL_MS` (default: `5000`)
-- `XMTP_REQUEST_TIMEOUT_MS` (default: `10000`)
-- `XMTP_TRANSPORT_MODE` (`auto` \| `real` \| `mock`, default: `auto`)
-- `XMTP_REAL_TRANSPORT_MODULE` (optional external adapter module path)
-- `XMTP_ENV` (`dev` \| `production`, default: `dev`)
-- `XMTP_WALLET_PRIVATE_KEY` (required for built-in real transport)
-- `XMTP_DB_ENCRYPTION_KEY` (required for built-in real transport; keep this stable so the XMTP local DB remains readable across restarts)
-- `XMTP_SDK_MODULE` (default: `@xmtp/node-sdk`)
-- `XMTP_ETHERS_MODULE` (default: `ethers`)
-- `XMTP_CREATE_GROUP_IF_MISSING` (default: `true`)
-- `XMTP_REQUIRE_CONSENT` (default: `false`)
-- `XMTP_CONSENT_PROOF_ENDPOINT` (optional HTTP endpoint for inbox consent checks)
-- `XMTP_ROOM_ENSURE_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/rooms/ensure`)
-- `XMTP_MESSAGE_INGEST_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/messages/ingest`)
-- `XMTP_LEASE_MEMBERSHIP_ENDPOINT` (default: `${PHOENIX_INTERNAL_URL}/xmtp/commands/lease`)
-- `XMTP_RESOLVE_MEMBERSHIP_ENDPOINT_TEMPLATE` (default: `${PHOENIX_INTERNAL_URL}/xmtp/commands/:id/resolve`)
-
 ## SIWA Sidecar Env
 
 - `SIWA_PORT` (default: `4100`)
 - `SIWA_NONCE_TTL_SECONDS` (default: `300`)
 - `SIWA_RECEIPT_TTL_SECONDS` (default: `900`)
-- `SIWA_HMAC_SECRET` (default: `dev-only-change-me`)
-- `SIWA_RECEIPT_SECRET` (default: falls back to `SIWA_HMAC_SECRET`)
+- `SIWA_HMAC_SECRET` (required)
+- `SIWA_RECEIPT_SECRET` (required)
 - `SIWA_HMAC_KEY_ID` (default: `sidecar-internal-v1`)
 - `SIWA_HMAC_MAX_SKEW_SECONDS` (default: `300`)
 
@@ -90,7 +59,7 @@ HMAC algorithm: `sha256` using `SIWA_HMAC_SECRET`.
   "data": {
     "verified": true,
     "walletAddress": "0x1111111111111111111111111111111111111111",
-    "chainId": 8453,
+    "chainId": 11155111,
     "nonce": "4c4b657f5f3f2f019ad7862d9d4048ef",
     "keyId": "0x1111111111111111111111111111111111111111",
     "signatureScheme": "evm_personal_sign",
@@ -152,7 +121,7 @@ Success response contract:
   "data": {
     "verified": true,
     "walletAddress": "0x1111111111111111111111111111111111111111",
-    "chainId": 8453,
+    "chainId": 11155111,
     "keyId": "0x1111111111111111111111111111111111111111",
     "receiptExpiresAt": "2026-03-04T12:15:00.000Z",
     "requiredHeaders": [

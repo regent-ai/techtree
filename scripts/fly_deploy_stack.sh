@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+export PATH="${HOME}/.fly/bin:${PATH}"
+
+if ! command -v flyctl >/dev/null 2>&1; then
+  echo "flyctl not found. Install with: curl -L https://fly.io/install.sh | sh"
+  exit 1
+fi
+
+if ! flyctl auth whoami >/dev/null 2>&1; then
+  echo "Fly auth missing. Run: flyctl auth login"
+  exit 1
+fi
+
+if ! command -v openssl >/dev/null 2>&1; then
+  echo "openssl is required to generate deploy secrets"
+  exit 1
+fi
+
+require_env() {
+  local name="$1"
+
+  if [[ -z "${!name:-}" ]]; then
+    echo "missing required environment variable: ${name}"
+    exit 1
+  fi
+}
+
+STACK_PREFIX="${FLY_STACK_PREFIX:-techtree}"
+PHOENIX_APP="${FLY_PHOENIX_APP:-$STACK_PREFIX}"
+SIWA_APP="${FLY_SIWA_APP:-${STACK_PREFIX}-siwa}"
+DRAGONFLY_APP="${FLY_DRAGONFLY_APP:-${STACK_PREFIX}-dragonfly}"
+DB_NAME="${FLY_MPG_NAME:-${STACK_PREFIX}-db}"
+REGION="${FLY_REGION:-sjc}"
+PLAN="${FLY_MPG_PLAN:-development}"
+ORG="${FLY_ORG:-regent}"
+
+PHOENIX_HOST="${FLY_PHOENIX_HOST:-${PHOENIX_APP}.fly.dev}"
+SECRET_KEY_BASE="${SECRET_KEY_BASE:-$(mix phx.gen.secret)}"
+SIWA_SHARED_SECRET="${SIWA_SHARED_SECRET:-$(openssl rand -hex 32)}"
+SIWA_RECEIPT_SECRET="${SIWA_RECEIPT_SECRET:-$(openssl rand -hex 32)}"
+INTERNAL_SHARED_SECRET="${INTERNAL_SHARED_SECRET:-$(openssl rand -hex 32)}"
+SIWA_HMAC_KEY_ID="${SIWA_HMAC_KEY_ID:-sidecar-internal-v1}"
+SIWA_PORT="${SIWA_PORT:-4100}"
+DRAGONFLY_PORT="${DRAGONFLY_PORT:-6379}"
+TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-11155111}"
+TECHTREE_P2P_ENABLED="${TECHTREE_P2P_ENABLED:-false}"
+SIWA_INTERNAL_URL="http://${SIWA_APP}.flycast:${SIWA_PORT}"
+DRAGONFLY_HOST="${DRAGONFLY_APP}.flycast"
+
+if [[ "$TECHTREE_CHAIN_ID" != "11155111" ]]; then
+  echo "first prod deploy is Sepolia-only; set TECHTREE_CHAIN_ID=11155111"
+  exit 1
+fi
+
+if [[ "$TECHTREE_P2P_ENABLED" != "false" ]]; then
+  echo "first prod deploy is local-only transport; set TECHTREE_P2P_ENABLED=false"
+  exit 1
+fi
+
+apps_org_args=()
+mpg_org_args=()
+if [[ -n "$ORG" ]]; then
+  apps_org_args=(--org "$ORG")
+  mpg_org_args=(--org "$ORG")
+fi
+
+ensure_app() {
+  local app_name="$1"
+
+  if ! flyctl status --app "$app_name" >/dev/null 2>&1; then
+    echo "Creating Fly app: $app_name"
+    flyctl apps create "$app_name" --yes "${apps_org_args[@]}"
+  fi
+}
+
+ensure_private_ip() {
+  local app_name="$1"
+
+  if ! flyctl ips list --app "$app_name" 2>/dev/null | grep -Eq '[[:space:]]private[[:space:]]'; then
+    echo "Allocating private Flycast IPv6 for $app_name"
+    flyctl ips allocate-v6 --private --app "$app_name"
+  fi
+}
+
+ensure_postgres() {
+  if ! flyctl mpg status "$DB_NAME" >/dev/null 2>&1; then
+    echo "Creating Managed Postgres cluster: $DB_NAME"
+    flyctl mpg create -n "$DB_NAME" --plan "$PLAN" --region "$REGION" "${mpg_org_args[@]}"
+  fi
+}
+
+attach_postgres() {
+  local attach_output
+
+  echo "Attaching managed Postgres cluster to $PHOENIX_APP"
+  if ! attach_output="$(flyctl mpg attach "$DB_NAME" --app "$PHOENIX_APP" 2>&1)"; then
+    if echo "$attach_output" | grep -Eiq "already attached|already exists|already has"; then
+      echo "Managed Postgres already attached to $PHOENIX_APP, continuing."
+    else
+      echo "$attach_output"
+      exit 1
+    fi
+  fi
+}
+
+require_prod_env() {
+  require_env PRIVY_APP_ID
+  require_env PRIVY_VERIFICATION_KEY
+  require_env LIGHTHOUSE_API_KEY
+  require_env ETHEREUM_SEPOLIA_RPC_URL
+  require_env REGISTRY_CONTRACT_ADDRESS
+  require_env REGISTRY_WRITER_PRIVATE_KEY
+}
+
+set_phoenix_secrets() {
+  flyctl secrets set \
+    --app "$PHOENIX_APP" \
+    PHX_SERVER=true \
+    PHX_HOST="$PHOENIX_HOST" \
+    SECRET_KEY_BASE="$SECRET_KEY_BASE" \
+    PORT=8080 \
+    INTERNAL_SHARED_SECRET="$INTERNAL_SHARED_SECRET" \
+    SIWA_INTERNAL_URL="$SIWA_INTERNAL_URL" \
+    SIWA_SHARED_SECRET="$SIWA_SHARED_SECRET" \
+    PRIVY_APP_ID="$PRIVY_APP_ID" \
+    PRIVY_VERIFICATION_KEY="$PRIVY_VERIFICATION_KEY" \
+    LIGHTHOUSE_API_KEY="$LIGHTHOUSE_API_KEY" \
+    TECHTREE_ETHEREUM_MODE=rpc \
+    TECHTREE_CHAIN_ID="$TECHTREE_CHAIN_ID" \
+    TECHTREE_P2P_ENABLED="$TECHTREE_P2P_ENABLED" \
+    ETHEREUM_SEPOLIA_RPC_URL="$ETHEREUM_SEPOLIA_RPC_URL" \
+    REGISTRY_CONTRACT_ADDRESS="$REGISTRY_CONTRACT_ADDRESS" \
+    REGISTRY_WRITER_PRIVATE_KEY="$REGISTRY_WRITER_PRIVATE_KEY" \
+    DRAGONFLY_ENABLED=true \
+    DRAGONFLY_HOST="$DRAGONFLY_HOST" \
+    DRAGONFLY_PORT="$DRAGONFLY_PORT"
+}
+
+set_siwa_secrets() {
+  flyctl secrets set \
+    --app "$SIWA_APP" \
+    SIWA_PORT="$SIWA_PORT" \
+    SIWA_HMAC_SECRET="$SIWA_SHARED_SECRET" \
+    SIWA_RECEIPT_SECRET="$SIWA_RECEIPT_SECRET" \
+    SIWA_HMAC_KEY_ID="$SIWA_HMAC_KEY_ID"
+}
+
+deploy_app() {
+  local app_name="$1"
+  local config_path="$2"
+
+  echo "Deploying $app_name with $config_path"
+  flyctl deploy --app "$app_name" --config "$config_path" --remote-only --yes
+}
+
+ensure_app "$PHOENIX_APP"
+ensure_app "$SIWA_APP"
+ensure_app "$DRAGONFLY_APP"
+
+ensure_private_ip "$SIWA_APP"
+ensure_private_ip "$DRAGONFLY_APP"
+
+ensure_postgres
+attach_postgres
+require_prod_env
+
+set_siwa_secrets
+set_phoenix_secrets
+
+deploy_app "$DRAGONFLY_APP" "fly.dragonfly.toml"
+deploy_app "$SIWA_APP" "fly.siwa.toml"
+deploy_app "$PHOENIX_APP" "fly.phoenix.toml"
+
+echo
+echo "Fly stack deployed."
+echo "Phoenix:   https://${PHOENIX_HOST}"
+echo "SIWA:      ${SIWA_INTERNAL_URL}"
+echo "Dragonfly: redis://${DRAGONFLY_HOST}:${DRAGONFLY_PORT}"

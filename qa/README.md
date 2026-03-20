@@ -16,11 +16,9 @@ This folder contains agent-browser command scripts for smoke and E2E coverage.
 
 ## Scripts
 
-- `phase-a-smoke.sh`: Open/load/search/basic node selection
-- `phase-b-smoke.sh`: Detail + comments validation and full-page capture
-- `phase-c-smoke.sh`: Deterministic trollbox access-state checks (read/join/post visibility), live fixture-driven node assertions, and tree/detail independence checks
+- `phase-c-smoke.sh`: Deterministic anonymous/public trollbox checks, live fixture-driven node assertions, and tree/detail independence checks
   - Uses isolated `HOME` at `qa/.agent-browser-home`; the script auto-installs Playwright Chromium there on first run.
-- `phase-d-browser-e2e.sh`: Final executable desktop + iOS E2E matrix runner with per-case logging and assertions
+- `phase-d-browser-e2e.sh`: Final executable desktop + optional iOS E2E matrix runner with per-case logging and assertions
   - Uses isolated `HOME` at `qa/.agent-browser-home`
   - Auto-installs Playwright Chromium into isolated `HOME` if missing
   - Runs desktop preflight before matrix execution:
@@ -31,24 +29,30 @@ This folder contains agent-browser command scripts for smoke and E2E coverage.
   - Auto-detects iOS simulator readiness and marks iOS cases `SKIP` when prerequisites are unavailable
   - Gate controls:
     - `REQUIRE_DESKTOP=1` (default): fail run when desktop preflight is unavailable
-    - `REQUIRE_IOS=0` (default): allow iOS skips locally; set `REQUIRE_IOS=1` to fail when iOS preflight is unavailable (release gate mode)
+    - `REQUIRE_IOS=0` (default): allow iOS skips; iOS is non-blocking for the first prod deploy
   - URL controls:
     - `APP_URL` (highest priority)
     - `PHOENIX_URL` (default `http://127.0.0.1:4000`)
     - `APP_PATH` (default `/`)
 - `final-e2e-matrix.md`: Matrix reference for the final runner and artifact map
+- `manual-authenticated-trollbox-signoff.md`: Release-gate checklist for the manual Privy sign-in flow and required authenticated trollbox artifacts
+
+## Active lanes
+
+- Use `phase-c-smoke.sh` and desktop `phase-d-browser-e2e.sh` for launch evidence.
+- Complete `manual-authenticated-trollbox-signoff.md` alongside the automated browser artifacts before prod deploy.
 
 ## Artifacts
 
 Screenshots and snapshots are written to:
 
-- `techtree/qa/artifacts/phase-a/`
-- `techtree/qa/artifacts/phase-b/`
 - `techtree/qa/artifacts/phase-c/` (includes assertion text artifacts such as `99-assertions.txt`)
 - `techtree/qa/artifacts/final/`
   - Per-run summary: `<UTC_STAMP>.summary.md`
   - Per-run status table: `<UTC_STAMP>.status.tsv`
   - Case logs: `logs/E2E-01.log ... logs/E2E-08.log`
+- `techtree/qa/artifacts/authenticated/<UTC_STAMP>/`
+  - Manual authenticated trollbox signoff bundle described in `manual-authenticated-trollbox-signoff.md`
 
 ## SIWA status (current)
 

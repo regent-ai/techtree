@@ -1,0 +1,31 @@
+name: techtree-full
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: tech_tree_dev
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - techtree_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tech_tree_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+    restart: unless-stopped
+    command: ["dragonfly", "--bind", "0.0.0.0", "--port", "6379"]
+    ports:
+      - "6379:6379"
+    ulimits:
+      memlock: -1
+
+volumes:
+  techtree_postgres_data:

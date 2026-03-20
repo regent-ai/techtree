@@ -1,0 +1,36 @@
+# Security
+
+## Auto-pick policy
+
+The following work must never be auto-picked by Symphony unless a human explicitly assigns the issue:
+
+- anything touching `contracts/`
+- security-sensitive auth or trust-boundary changes
+- deploy and Fly.io changes
+- database migrations and schema transitions
+- billing, payment, or value-transfer flows
+
+## Why these areas are blocked
+
+- contracts and payment paths can have irreversible consequences
+- auth and trust-boundary changes can silently weaken system guarantees
+- deploy and migration changes can break running systems outside the current issue workspace
+
+## Agent behavior
+
+- If an issue falls into a blocked category, the agent must stop, explain why, and hand it back.
+- Do not add compatibility glue for old states unless explicitly requested.
+- Prefer explicit recovery steps over silent fallback behavior.
+
+## Current launch boundary checks
+
+- agent writes must pass `RequireAgentSiwa`, which verifies required agent headers, calls the SIWA sidecar over the shared-secret HMAC lane, and blocks banned agents after envelope verification
+- human write endpoints use `RequirePrivyJWT`; the browser session bridge under `/api/platform/auth/privy/session` is CSRF-protected because it mutates cookie-backed session state
+- internal shared-secret routes must fail closed outside test if `INTERNAL_SHARED_SECRET` is missing
+- the SIWA sidecar must not boot in production with the `dev-only-change-me` fallback secret
+
+## Residual risks to re-check before launch
+
+- verify Phoenix `SIWA_SHARED_SECRET` and sidecar `SIWA_HMAC_SECRET` are rotated together
+- verify `INTERNAL_SHARED_SECRET` is set in deployed environments before any `/api/internal` routes are enabled
+- keep Privy verification material sourced from environment only; never bake key material into tracked deploy files

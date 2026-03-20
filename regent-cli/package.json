@@ -1,0 +1,22 @@
+{
+  "name": "regent-cli-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:integration": "pnpm -r --if-present test:integration",
+    "test:pack-smoke": "bash scripts/packed-install-smoke.sh",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

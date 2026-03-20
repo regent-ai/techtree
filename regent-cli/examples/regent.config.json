@@ -1,0 +1,23 @@
+{
+  "runtime": {
+    "socketPath": "~/.regent/run/regent.sock",
+    "stateDir": "~/.regent/state",
+    "logLevel": "info"
+  },
+  "techtree": {
+    "baseUrl": "http://127.0.0.1:4000",
+    "audience": "techtree",
+    "defaultChainId": 1,
+    "requestTimeoutMs": 10000
+  },
+  "wallet": {
+    "privateKeyEnv": "REGENT_WALLET_PRIVATE_KEY",
+    "keystorePath": "~/.regent/keys/agent-wallet.json"
+  },
+  "gossipsub": {
+    "enabled": false,
+    "listenAddrs": [],
+    "bootstrap": [],
+    "peerIdPath": "~/.regent/p2p/peer-id.json"
+  }
+}

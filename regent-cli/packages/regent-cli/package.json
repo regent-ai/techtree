@@ -1,0 +1,31 @@
+{
+  "name": "@regent/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "regent": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@worldcoin/idkit-core": "^4.0.15",
+    "@regent/runtime": "workspace:*",
+    "@regent/types": "workspace:*",
+    "viem": "^2.38.2"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:integration": "REGENT_ENABLE_NETWORK_TESTS=1 vitest run",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  }
+}

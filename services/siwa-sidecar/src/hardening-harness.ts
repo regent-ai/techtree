@@ -2,6 +2,7 @@ import {
   buildHttpSignatureSigningMessage,
   validateHttpSignatureEnvelope,
 } from "./lib/http-signature.js";
+import { loadConfig } from "./config.js";
 import {
   deriveAddressFromPrivateKey,
   signPersonalMessageWithPrivateKey,
@@ -34,6 +35,16 @@ const privateKey =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as HexString;
 
 const main = async (): Promise<void> => {
+  let missingSecretRejected = false;
+
+  try {
+    loadConfig({ SIWA_RECEIPT_SECRET: "receipt-only" });
+  } catch {
+    missingSecretRejected = true;
+  }
+
+  assert(missingSecretRejected, "sidecar config must reject missing SIWA_HMAC_SECRET");
+
   const walletAddress = mustOk(
     await deriveAddressFromPrivateKey(privateKey),
     "unable to derive address from private key",
@@ -56,7 +67,7 @@ const main = async (): Promise<void> => {
     "",
     `URI: ${uri}`,
     "Version: 1",
-    "Chain ID: 8453",
+    "Chain ID: 11155111",
     `Nonce: ${nonce}`,
     `Issued At: ${issuedAt}`,
   ].join("\n");
@@ -75,7 +86,7 @@ const main = async (): Promise<void> => {
   const receipt = issueReceiptToken(
     {
       walletAddress,
-      chainId: 8453,
+      chainId: 11155111,
       nonce,
       keyId,
       nowUnixSeconds,
@@ -119,7 +130,7 @@ const main = async (): Promise<void> => {
     "x-key-id": keyId,
     "x-timestamp": String(nowUnixSeconds),
     "x-agent-wallet-address": walletAddress,
-    "x-agent-chain-id": "8453",
+    "x-agent-chain-id": "11155111",
     "x-agent-registry-address": registryAddress,
     "x-agent-token-id": tokenId,
   };

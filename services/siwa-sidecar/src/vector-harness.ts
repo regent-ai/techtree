@@ -41,7 +41,7 @@ const main = async (): Promise<void> => {
 
   const nowUnixSeconds = Math.floor(Date.now() / 1000);
   const keyId = walletAddress.toLowerCase();
-  const chainId = 8453;
+  const chainId = 11155111;
   const registryAddress = "0x000000000000000000000000000000000000beef" as HexString;
   const tokenId = "77";
 

@@ -45,11 +45,17 @@ defmodule TechTree.Activity do
       |> where([n], n.creator_agent_id in subquery(active_agent_ids_query()))
       |> select([n], n.id)
 
+    watched_node_ids_query =
+      TechTree.Watches.NodeWatcher
+      |> where([w], w.watcher_type == :agent and w.watcher_ref == ^agent_id)
+      |> select([w], w.node_id)
+
     ActivityEvent
     |> where(
       [e],
       (e.actor_type == :agent and e.actor_ref == ^agent_id) or
-        e.subject_node_id in subquery(owned_node_ids_query)
+        e.subject_node_id in subquery(owned_node_ids_query) or
+        e.subject_node_id in subquery(watched_node_ids_query)
     )
     |> maybe_filter_feed_scope(seed_filter, kind_filters)
     |> maybe_apply_cursor(cursor)

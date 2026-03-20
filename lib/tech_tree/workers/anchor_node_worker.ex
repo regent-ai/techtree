@@ -2,7 +2,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
   @moduledoc false
   use Oban.Worker, queue: :chain, max_attempts: 20
 
-  alias TechTree.Base
+  alias TechTree.Ethereum
   alias TechTree.Nodes
   alias TechTree.Repo
   alias TechTree.Nodes.Node
@@ -85,7 +85,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
         {:ok, node.tx_hash}
 
       true ->
-        case Base.create_node(%{
+        case Ethereum.create_node(%{
                node_id: node.id,
                parent_id: node.parent_id || 0,
                creator: node.creator_agent.wallet_address,

@@ -321,8 +321,10 @@ contract TechTreeRegistryTest is TestBase {
     }
 
     function testAdminCanGrantAndRevokeRoleDirectly() public {
+        bytes32 writerRole = registry.WRITER_ROLE();
+
         vm.prank(ADMIN);
-        registry.grantRole(registry.WRITER_ROLE(), WRITER_TWO);
+        registry.grantRole(writerRole, WRITER_TWO);
 
         vm.prank(WRITER_TWO);
         registry.createNode(
@@ -331,13 +333,13 @@ contract TechTreeRegistryTest is TestBase {
         assertEq(registry.exists(22), true, "direct grantRole should allow writes");
 
         vm.prank(ADMIN);
-        registry.revokeRole(registry.WRITER_ROLE(), WRITER_TWO);
+        registry.revokeRole(writerRole, WRITER_TWO);
 
         vm.expectRevert(
             abi.encodeWithSelector(
                 AccessControlLite.AccessControlUnauthorizedAccount.selector,
                 WRITER_TWO,
-                registry.WRITER_ROLE()
+                writerRole
             )
         );
         vm.prank(WRITER_TWO);
@@ -359,15 +361,18 @@ contract TechTreeRegistryTest is TestBase {
     }
 
     function testRevertIfNonAdminGrantsRoleDirectly() public {
+        bytes32 defaultAdminRole = registry.DEFAULT_ADMIN_ROLE();
+        bytes32 writerRole = registry.WRITER_ROLE();
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 AccessControlLite.AccessControlUnauthorizedAccount.selector,
                 OTHER,
-                registry.DEFAULT_ADMIN_ROLE()
+                defaultAdminRole
             )
         );
         vm.prank(OTHER);
-        registry.grantRole(registry.WRITER_ROLE(), WRITER_TWO);
+        registry.grantRole(writerRole, WRITER_TWO);
     }
 
     function testRevertIfNonAdminRevokesWriter() public {
@@ -383,15 +388,18 @@ contract TechTreeRegistryTest is TestBase {
     }
 
     function testRevertIfNonAdminRevokesRoleDirectly() public {
+        bytes32 defaultAdminRole = registry.DEFAULT_ADMIN_ROLE();
+        bytes32 writerRole = registry.WRITER_ROLE();
+
         vm.expectRevert(
             abi.encodeWithSelector(
                 AccessControlLite.AccessControlUnauthorizedAccount.selector,
                 OTHER,
-                registry.DEFAULT_ADMIN_ROLE()
+                defaultAdminRole
             )
         );
         vm.prank(OTHER);
-        registry.revokeRole(registry.WRITER_ROLE(), WRITER_TWO);
+        registry.revokeRole(writerRole, WRITER_TWO);
     }
 
     function testRevertIfNonAdminPauses() public {

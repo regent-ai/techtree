@@ -1,7 +1,7 @@
-defmodule TechTree.BaseTest do
+defmodule TechTree.EthereumTest do
   use ExUnit.Case, async: false
 
-  alias TechTree.Base
+  alias TechTree.Ethereum
 
   @valid_create_node_params %{
     node_id: 101,
@@ -13,13 +13,13 @@ defmodule TechTree.BaseTest do
   }
 
   setup do
-    previous = Application.get_env(:tech_tree, :base)
+    previous = Application.get_env(:tech_tree, :ethereum)
 
     on_exit(fn ->
       if is_nil(previous) do
-        Application.delete_env(:tech_tree, :base)
+        Application.delete_env(:tech_tree, :ethereum)
       else
-        Application.put_env(:tech_tree, :base, previous)
+        Application.put_env(:tech_tree, :ethereum, previous)
       end
     end)
 
@@ -27,9 +27,9 @@ defmodule TechTree.BaseTest do
   end
 
   test "create_node falls back to stub mode when rpc settings are absent" do
-    Application.put_env(:tech_tree, :base, mode: :auto, rpc_url: nil, registry_address: nil)
+    Application.put_env(:tech_tree, :ethereum, mode: :auto, rpc_url: nil, registry_address: nil)
 
-    assert {:ok, tx_hash} = Base.create_node(@valid_create_node_params)
+    assert {:ok, tx_hash} = Ethereum.create_node(@valid_create_node_params)
     assert tx_hash =~ ~r/^0x[0-9a-f]{64}$/
   end
 
@@ -37,7 +37,7 @@ defmodule TechTree.BaseTest do
     parent = self()
     expected_tx_hash = "0x" <> String.duplicate("a", 64)
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: "0x2222222222222222222222222222222222222222",
@@ -49,7 +49,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:ok, ^expected_tx_hash} =
-             Base.create_node(%{
+             Ethereum.create_node(%{
                @valid_create_node_params
                | manifest_hash: String.duplicate("CD", 32)
              })
@@ -60,7 +60,7 @@ defmodule TechTree.BaseTest do
   end
 
   test "create_node in explicit rpc mode surfaces missing writer key config" do
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: "0x2222222222222222222222222222222222222222",
@@ -68,13 +68,13 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, {:rpc_config_missing, :writer_private_key}} =
-             Base.create_node(@valid_create_node_params)
+             Ethereum.create_node(@valid_create_node_params)
   end
 
   test "fetch_receipt returns :not_found for pending rpc transaction" do
     parent = self()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: "0x3333333333333333333333333333333333333333",
@@ -85,7 +85,7 @@ defmodule TechTree.BaseTest do
       end
     )
 
-    assert :not_found = Base.fetch_receipt("0x" <> String.duplicate("9", 64), nil)
+    assert :not_found = Ethereum.fetch_receipt("0x" <> String.duplicate("9", 64), nil)
     assert_receive {:rpc_method, "eth_getTransactionReceipt"}
   end
 
@@ -94,7 +94,7 @@ defmodule TechTree.BaseTest do
 
     node_created_topic0 = node_created_topic0()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -126,20 +126,20 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
-    assert {:ok, receipt} = Base.fetch_receipt("0x" <> String.duplicate("8", 64), nil)
+    assert {:ok, receipt} = Ethereum.fetch_receipt("0x" <> String.duplicate("8", 64), nil)
     assert receipt.block_number == 42
-    assert receipt.chain_id == 8453
+    assert receipt.chain_id == 11_155_111
     assert receipt.contract_address == registry
     assert receipt.log_index == 3
   end
 
   test "fetch_receipt in explicit rpc mode surfaces missing registry config" do
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: nil,
@@ -147,7 +147,7 @@ defmodule TechTree.BaseTest do
     )
 
     assert {:error, {:rpc_config_missing, :registry_address}} =
-             Base.fetch_receipt("0x" <> String.duplicate("7", 64), nil)
+             Ethereum.fetch_receipt("0x" <> String.duplicate("7", 64), nil)
   end
 
   test "fetch_receipt rejects failed receipt status" do
@@ -155,7 +155,7 @@ defmodule TechTree.BaseTest do
 
     node_created_topic0 = node_created_topic0()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -181,13 +181,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
     assert {:error, {:failed_transaction_receipt, 0}} =
-             Base.fetch_receipt("0x" <> String.duplicate("6", 64), nil)
+             Ethereum.fetch_receipt("0x" <> String.duplicate("6", 64), nil)
   end
 
   test "fetch_receipt rejects ambiguous node-created logs" do
@@ -195,7 +195,7 @@ defmodule TechTree.BaseTest do
 
     node_created_topic0 = node_created_topic0()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -226,13 +226,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
     assert {:error, :ambiguous_node_created_logs} =
-             Base.fetch_receipt("0x" <> String.duplicate("5", 64), nil)
+             Ethereum.fetch_receipt("0x" <> String.duplicate("5", 64), nil)
   end
 
   test "fetch_receipt rejects removed node-created logs" do
@@ -240,7 +240,7 @@ defmodule TechTree.BaseTest do
 
     node_created_topic0 = node_created_topic0()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -267,13 +267,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
     assert {:error, :node_created_log_removed} =
-             Base.fetch_receipt("0x" <> String.duplicate("4", 64), nil)
+             Ethereum.fetch_receipt("0x" <> String.duplicate("4", 64), nil)
   end
 
   test "fetch_receipt rejects configured chain id mismatch" do
@@ -281,7 +281,7 @@ defmodule TechTree.BaseTest do
 
     node_created_topic0 = node_created_topic0()
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -308,13 +308,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
-    assert {:error, {:chain_id_mismatch, [configured: 1, resolved: 8453]}} =
-             Base.fetch_receipt("0x" <> String.duplicate("3", 64), nil)
+    assert {:error, {:chain_id_mismatch, [configured: 1, resolved: 11_155_111]}} =
+             Ethereum.fetch_receipt("0x" <> String.duplicate("3", 64), nil)
   end
 
   test "fetch_receipt with verification rejects node-created field mismatch" do
@@ -322,7 +322,7 @@ defmodule TechTree.BaseTest do
     creator = "0x1111111111111111111111111111111111111111"
     tx_hash = "0x" <> String.duplicate("2", 64)
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -361,13 +361,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
     assert {:error, {:node_created_log_mismatch, :node_id, 900, 901}} =
-             Base.fetch_receipt(tx_hash, %{
+             Ethereum.fetch_receipt(tx_hash, %{
                node_id: 900,
                parent_id: 33,
                creator: creator,
@@ -381,7 +381,7 @@ defmodule TechTree.BaseTest do
     creator = "0x1111111111111111111111111111111111111111"
     tx_hash = "0x" <> String.duplicate("1", 64)
 
-    Application.put_env(:tech_tree, :base,
+    Application.put_env(:tech_tree, :ethereum,
       mode: :rpc,
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
@@ -420,13 +420,13 @@ defmodule TechTree.BaseTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x2105"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
         end
       end
     )
 
     assert {:ok, receipt} =
-             Base.fetch_receipt(tx_hash, %{
+             Ethereum.fetch_receipt(tx_hash, %{
                node_id: 1201,
                parent_id: 0,
                creator: creator,
@@ -435,7 +435,7 @@ defmodule TechTree.BaseTest do
              })
 
     assert receipt.block_number == 42
-    assert receipt.chain_id == 8453
+    assert receipt.chain_id == 11_155_111
     assert receipt.contract_address == registry
     assert receipt.log_index == 3
   end

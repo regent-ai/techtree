@@ -80,6 +80,7 @@ defmodule TechTree.Nodes.Node do
     has_many(:tag_edges_out, TechTree.Nodes.NodeTagEdge, foreign_key: :src_node_id)
     has_many(:tag_edges_in, TechTree.Nodes.NodeTagEdge, foreign_key: :dst_node_id)
     has_many(:watchers, TechTree.Watches.NodeWatcher)
+    has_many(:stars, TechTree.Stars.NodeStar)
     has_one(:chain_receipt, TechTree.Nodes.NodeChainReceipt)
 
     timestamps()

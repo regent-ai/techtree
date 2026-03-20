@@ -1,4 +1,4 @@
-defmodule TechTree.Base do
+defmodule TechTree.Ethereum do
   @moduledoc false
 
   @required_create_node_keys [
@@ -34,7 +34,7 @@ defmodule TechTree.Base do
           required(:kind) => non_neg_integer()
         }
 
-  @default_chain_id 8453
+  @default_chain_id 1
   @default_contract_address "0x0000000000000000000000000000000000000000"
   @create_node_signature "createNode(uint256,uint256,address,string,bytes32,uint8)"
   # Ethereum logs use Keccak-256, not SHA3-256.
@@ -695,7 +695,7 @@ defmodule TechTree.Base do
 
   @spec config() :: map()
   defp config do
-    raw_cfg = Application.get_env(:tech_tree, :base, [])
+    raw_cfg = Application.get_env(:tech_tree, :ethereum, [])
 
     cfg_map =
       cond do

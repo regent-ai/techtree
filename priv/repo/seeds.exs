@@ -19,7 +19,7 @@ Repo.insert_all(
   [
     %{
       id: system_agent_id,
-      chain_id: 8453,
+      chain_id: 1,
       registry_address: "0x0000000000000000000000000000000000000000",
       token_id: Decimal.new("1"),
       wallet_address: "0x0000000000000000000000000000000000000001",

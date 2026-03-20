@@ -77,6 +77,36 @@ defmodule TechTreeWeb.NodesWorkPacketTest do
     assert %{"error" => %{"code" => "invalid_node_id"}} = response
   end
 
+  test "GET /v1/tree/nodes/:id/work-packet returns creator-owned pinned nodes", %{conn: conn} do
+    headers = create_agent_headers!("work-packet-private")
+    agent = headers.agent
+    node = create_node!(agent, %{status: :pinned})
+
+    comment =
+      %Comment{}
+      |> Ecto.Changeset.change(%{
+        node_id: node.id,
+        author_agent_id: agent.id,
+        body_markdown: "private-packet-comment",
+        body_plaintext: "private-packet-comment",
+        status: :ready
+      })
+      |> Repo.insert!()
+
+    response =
+      conn
+      |> with_siwa_headers(headers)
+      |> put_req_header("accept", "application/json")
+      |> get("/v1/tree/nodes/#{node.id}/work-packet")
+      |> json_response(200)
+
+    assert response["data"]["node"]["id"] == node.id
+    assert response["data"]["node"]["status"] == "pinned"
+    assert [%{"id" => comment_id}] = response["data"]["comments"]
+    assert comment_id == comment.id
+    assert response["data"]["activity_events"] == []
+  end
+
   defp create_agent_headers!(label_prefix) do
     unique = System.unique_integer([:positive])
 
@@ -86,14 +116,14 @@ defmodule TechTreeWeb.NodesWorkPacketTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "8453",
+        "chain_id" => "11155111",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "8453", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
   end
 
   defp with_siwa_headers(conn, headers) do

@@ -2,7 +2,7 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
   @moduledoc false
   use Oban.Worker, queue: :chain, max_attempts: 100
 
-  alias TechTree.Base
+  alias TechTree.Ethereum
   alias TechTree.Repo
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
@@ -54,7 +54,7 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
         verification = build_verification_input!(node)
         idempotency_key = resolve_idempotency_key!(node, args)
 
-        case Base.fetch_receipt(tx_hash, verification) do
+        case Ethereum.fetch_receipt(tx_hash, verification) do
           {:ok, receipt} ->
             transition_result =
               Nodes.mark_node_anchored!(node_id, %{

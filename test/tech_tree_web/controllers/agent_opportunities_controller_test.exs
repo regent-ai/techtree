@@ -121,21 +121,21 @@ defmodule TechTreeWeb.AgentOpportunitiesControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "8453",
+        "chain_id" => "11155111",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "8453", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
   end
 
   defp create_agent!(label_prefix) do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "8453",
+      "chain_id" => "11155111",
       "registry_address" => "0x#{label_prefix}registry#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{label_prefix}wallet#{unique}",

@@ -24,7 +24,7 @@ Foundry workspace for the v0.0.1 `TechTreeRegistry` anchor contract.
 - `src/TechTreeRegistry.sol`: main registry contract.
 - `src/utils/AccessControlLite.sol`: local minimal role primitive.
 - `src/utils/PausableLite.sol`: local minimal pause primitive.
-- `script/DeployTechTreeRegistry.s.sol`: deploy script for Anvil/Base Sepolia targets.
+- `script/DeployTechTreeRegistry.s.sol`: deploy script for Anvil/Ethereum Sepolia/Ethereum mainnet targets.
 - `test/TechTreeRegistry.t.sol`: forge tests (success + failure paths).
 
 ## Why local primitives (no OpenZeppelin import)
@@ -44,7 +44,8 @@ forge test
 Use `forge script` with `DEPLOY_TARGET` to pick key env vars:
 
 - `DEPLOY_TARGET=anvil` uses `ANVIL_PRIVATE_KEY`
-- `DEPLOY_TARGET=base-sepolia` uses `BASE_SEPOLIA_PRIVATE_KEY`
+- `DEPLOY_TARGET=sepolia` uses `ETHEREUM_SEPOLIA_PRIVATE_KEY`
+- `DEPLOY_TARGET=mainnet` uses `ETHEREUM_MAINNET_PRIVATE_KEY`
 
 Optional:
 
@@ -62,14 +63,24 @@ forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
   --broadcast
 ```
 
-Base Sepolia example:
+Ethereum Sepolia example:
 
 ```bash
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=<base_sepolia_rpc_url>
-export BASE_SEPOLIA_PRIVATE_KEY=<base_sepolia_private_key>
+export DEPLOY_TARGET=sepolia
+export ETHEREUM_SEPOLIA_RPC_URL=<ethereum_sepolia_rpc_url>
+export ETHEREUM_SEPOLIA_PRIVATE_KEY=<ethereum_sepolia_private_key>
 forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --rpc-url "$ETHEREUM_SEPOLIA_RPC_URL" \
   --broadcast
 ```
 
+Ethereum mainnet example:
+
+```bash
+export DEPLOY_TARGET=mainnet
+export ETHEREUM_MAINNET_RPC_URL=<ethereum_mainnet_rpc_url>
+export ETHEREUM_MAINNET_PRIVATE_KEY=<ethereum_mainnet_private_key>
+forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
+  --rpc-url "$ETHEREUM_MAINNET_RPC_URL" \
+  --broadcast
+```

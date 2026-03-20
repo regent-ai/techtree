@@ -1,6 +1,7 @@
 defmodule TechTree.DatastoreSchemaConstraintsTest do
   use TechTree.DataCase, async: true
 
+  alias TechTree.Accounts
   alias TechTree.Agents
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Comments.Comment
@@ -231,7 +232,7 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
 
     test "maps unique chain+registry+token conflicts" do
       attrs = %{
-        chain_id: 8453,
+        chain_id: 11_155_111,
         registry_address: "0xregistry-dup",
         token_id: Decimal.new(42),
         wallet_address: "0xwallet-dup-a"
@@ -244,7 +245,9 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
 
       assert {:error, invalid} =
                %AgentIdentity{}
-               |> AgentIdentity.upsert_changeset(Map.put(attrs, :wallet_address, "0xwallet-dup-b"))
+               |> AgentIdentity.upsert_changeset(
+                 Map.put(attrs, :wallet_address, "0xwallet-dup-b")
+               )
                |> Repo.insert()
 
       assert "has already been taken" in errors_on(invalid).chain_id
@@ -276,6 +279,61 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
       assert second.wallet_address == "0xwallet#{unique}b"
       assert second.label == "agent-#{unique}-b"
     end
+
+    test "upsert_verified_agent! preserves an existing non-active status on conflict" do
+      unique = System.unique_integer([:positive])
+      tuple = unique_agent_tuple(unique)
+
+      first =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => tuple.registry_address,
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => "0xwallet#{unique}a",
+          "label" => "agent-#{unique}-a",
+          "status" => "banned"
+        })
+
+      second =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => tuple.registry_address,
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => "0xwallet#{unique}b",
+          "label" => "agent-#{unique}-b",
+          "status" => "active"
+        })
+
+      assert first.id == second.id
+      assert second.status == "banned"
+      assert second.wallet_address == "0xwallet#{unique}b"
+    end
+  end
+
+  describe "Accounts.upsert_human_by_privy_id/2" do
+    test "updates an existing human row in place for the same privy id" do
+      unique = System.unique_integer([:positive])
+      privy_id = "privy-#{unique}"
+
+      assert {:ok, first} =
+               Accounts.upsert_human_by_privy_id(privy_id, %{
+                 "wallet_address" => "0xwallet#{unique}a",
+                 "display_name" => "Human #{unique} A",
+                 "role" => "user"
+               })
+
+      assert {:ok, second} =
+               Accounts.upsert_human_by_privy_id(privy_id, %{
+                 "wallet_address" => "0xwallet#{unique}b",
+                 "display_name" => "Human #{unique} B",
+                 "role" => "admin"
+               })
+
+      assert first.id == second.id
+      assert second.wallet_address == "0xwallet#{unique}b"
+      assert second.display_name == "Human #{unique} B"
+      assert second.role == "admin"
+    end
   end
 
   defp create_agent! do
@@ -297,7 +355,7 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
 
   defp unique_agent_tuple(unique) do
     %{
-      chain_id: 8453,
+      chain_id: 11_155_111,
       registry_address: "0xregistry#{unique}"
     }
   end

@@ -86,12 +86,10 @@ Goal:
 
 Scope:
 
-- `regent-cli/packages/regent-cli/**`
-- `regent-cli/packages/regent-runtime/**`
-- `regent-cli/packages/regent-types/**`
-- `regent-cli/test-support/**`
-- `regent-cli/docs/**`
+- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/**`
+- `/Users/sean/Documents/regent/regent-cli/test-support/**`
+- `/Users/sean/Documents/regent/regent-cli/docs/**`
 
 Goal:
 
-- keep CLI/runtime contract changes out of Phoenix review noise
+- keep standalone CLI/runtime contract changes out of Phoenix review noise

@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "techtree-core"
+version = "0.1.0"
+description = "Canonical TechTree v1 core models, compiler, and CLI"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.7,<3",
+  "PyYAML>=6,<7",
+  "pycryptodome>=3.20,<4",
+  "pytest>=8,<9",
+]
+
+[project.scripts]
+techtree-core = "techtree_core.cli:main"
+techtree-core-compile = "techtree_core.cli:compile_entrypoint"
+techtree-core-verify = "techtree_core.cli:verify_entrypoint"
+techtree-core-schema-export = "techtree_core.cli:schema_export_entrypoint"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

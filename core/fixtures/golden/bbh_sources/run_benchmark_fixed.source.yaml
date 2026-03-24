@@ -1,0 +1,27 @@
+schema_version: techtree.bbh.run-source.v1
+artifact_ref: cap_benchmark_fixed_1
+executor:
+  type: genome
+  id: genome:alpha
+  harness: hermes
+  harness_version: 1.0.0
+  profile: bbh
+instance:
+  instance_ref: inst_benchmark_1
+  family_ref: null
+  seed: null
+origin:
+  workload: bbh
+  transport: api
+  trigger: assignment
+status: completed
+score:
+  raw: 4.0
+  normalized: 0.8
+  scorer_version: v1
+bbh:
+  split: benchmark
+  genome_ref: genome:alpha
+  provider: bbh
+  assignment_ref: assign_benchmark_1
+  keep_decision: pending

@@ -47,6 +47,25 @@ function revealGraphNodes(targets: HTMLElement[]) {
   })
 }
 
+function revealScoreBars(targets: HTMLElement[]) {
+  if (targets.length === 0) {
+    return
+  }
+
+  targets.forEach((target) => {
+    target.dataset.motionDone = "1"
+    target.style.transformOrigin = "left center"
+  })
+
+  animate(targets, {
+    scaleX: [0, 1],
+    opacity: [0.35, 1],
+    duration: 760,
+    delay: stagger(110, { start: 40 }),
+    ease: "outCubic",
+  })
+}
+
 type HumanMotionHook = HookContext &
   Hook & {
     motionPreferenceMedia?: MediaQueryList
@@ -92,13 +111,21 @@ export const HumanMotion = {
       ),
     ) as HTMLElement[]
 
+    const scoreBarTargets = Array.from(
+      this.el.querySelectorAll<HTMLElement>(
+        "[data-motion='score-bar']:not([data-motion-done='1'])",
+      ),
+    ) as HTMLElement[]
+
     if (this.reduceMotion) {
       revealImmediately(revealTargets)
       revealImmediately(graphTargets)
+      revealImmediately(scoreBarTargets)
       return
     }
 
     revealAnimated(revealTargets)
+    revealScoreBars(scoreBarTargets)
 
     if (this.el.dataset.motionView === "graph") {
       revealGraphNodes(graphTargets)

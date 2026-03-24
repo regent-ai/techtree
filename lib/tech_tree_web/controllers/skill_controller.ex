@@ -27,6 +27,11 @@ defmodule TechTreeWeb.SkillController do
     end
   end
 
+  @spec show_raw(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def show_raw(conn, %{"slug" => slug}) do
+    show_latest(conn, %{"slug" => slug})
+  end
+
   @spec render_skill(Plug.Conn.t(), map()) :: Plug.Conn.t()
   defp render_skill(conn, skill) do
     etag = skill_etag(skill)

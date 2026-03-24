@@ -1,0 +1,19 @@
+{
+  "siwa": {
+    "walletAddress": "0x0e60bbD683BaBAA5F46d8A1Fe040FD0462aFd2b0",
+    "chainId": 1,
+    "nonce": "a315ed95791a91a48b2eb3c017916ee8",
+    "keyId": "0x0e60bbd683babaa5f46d8a1fe040fd0462afd2b0",
+    "receipt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXAiOiJzaXdhX3JlY2VpcHQiLCJqdGkiOiI3MjRmNzJkMS0xNTExLTRlODgtOWQ5OC1kN2M0YTkzYzExZTUiLCJzdWIiOiIweDBlNjBiYmQ2ODNiYWJhYTVmNDZkOGExZmUwNDBmZDA0NjJhZmQyYjAiLCJhdWQiOiJ0ZWNodHJlZSIsImlhdCI6MTc3NDI5MzE1MSwiZXhwIjoxNzc0Mjk0MDUxLCJjaGFpbklkIjoxLCJub25jZSI6ImEzMTVlZDk1NzkxYTkxYTQ4YjJlYjNjMDE3OTE2ZWU4Iiwia2V5SWQiOiIweDBlNjBiYmQ2ODNiYWJhYTVmNDZkOGExZmUwNDBmZDA0NjJhZmQyYjAiLCJyZWdpc3RyeUFkZHJlc3MiOiIweDgwMDRBODE4QkZCOTEyMjMzYzQ5MTg3MWIzZDg0Yzg5QTQ5NEJEOWUiLCJ0b2tlbklkIjoiMjIzNiJ9.kUbrc34c8hVAva-bD5z6bbNTqydZ2F0LoaYUSCxBKB8",
+    "receiptExpiresAt": "2026-03-23T19:27:31.000Z",
+    "audience": "techtree",
+    "registryAddress": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    "tokenId": "2236"
+  },
+  "agent": {
+    "walletAddress": "0x0e60bbD683BaBAA5F46d8A1Fe040FD0462aFd2b0",
+    "chainId": 1,
+    "registryAddress": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+    "tokenId": "2236"
+  }
+}

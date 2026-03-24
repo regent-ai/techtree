@@ -45,12 +45,6 @@ yarn-error.log*
 *.tsbuildinfo
 *.DS_Store
 /assets/node_modules/
-/regent-cli/node_modules/
-/regent-cli/.pnpm-store/
-/regent-cli/packages/*/node_modules/
-/regent-cli/packages/*/dist/
-/regent-cli/packages/*/coverage/
-/regent-cli/packages/*/*.tsbuildinfo
 /.turbo/
 
 # Foundry generated outputs
@@ -83,9 +77,6 @@ audit/
 # Local-only or intentionally untracked repo artifacts
 /services/xmtp-worker/node_modules/
 /skills/
-/regent-cli/packages/regent-cli/*.tgz
-/regent-cli/packages/regent-runtime/*.tgz
-/regent-cli/packages/regent-types/*.tgz
 /codeplan.md
 /contracts/regent_techtree_v1_redline_spec.md
 /regent-cli-and-runtime-spec.md

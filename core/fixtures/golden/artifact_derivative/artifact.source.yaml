@@ -1,0 +1,53 @@
+schema_version: techtree.artifact-source.v1
+
+title: "Derivative notebook for follow-up analysis"
+summary: "A derivative notebook that references a prior artifact."
+
+parents:
+  - artifact_id: "0x1111111111111111111111111111111111111111111111111111111111111111"
+    relation: revision
+    note: "Updated preprocessing choice"
+
+notebook:
+  entrypoint: notebooks/main.py
+  include:
+    - notebooks/**/*.py
+    - pyproject.toml
+    - uv.lock
+    - attestations/**/*
+  exclude:
+    - dist/**
+  marimo_version: "0.11.8"
+
+env:
+  lockfile_path: uv.lock
+  image: null
+  system:
+    python: "3.11"
+    platform: "linux/amd64"
+  runtime_policy:
+    network: none
+    filesystem: workspace_write
+    secrets: forbidden
+    gpu: false
+  external_resources: []
+
+provenance:
+  source_repo: "git:example/derivative"
+  source_commit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  build_attestation_files:
+    - attestations/build.intoto.jsonl
+
+claims:
+  - text: "The updated preprocessing path reduces variance across replicates."
+
+sources:
+  - kind: artifact
+    ref: "0x1111111111111111111111111111111111111111111111111111111111111111"
+    license: MIT
+    note: "Parent artifact"
+
+licenses:
+  notebook: MIT
+  data: CC-BY-4.0
+  outputs: CC-BY-4.0

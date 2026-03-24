@@ -1,19 +1,32 @@
-# Regent CLI Docs
+# Regent CLI Boundary
 
-Canonical docs for the `regent-cli/` workspace and the runtime/daemon surfaces that back it.
+TechTree no longer contains the Regent CLI workspace.
+
+## Canonical Repo
+
+- Local checkout: `/Users/sean/Documents/regent/regent-cli`
+- Remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
+
+## What Stays Here
+
+Keep only boundary notes in this folder:
+
+- how TechTree and the standalone CLI interact
+- which validation steps must run in each repo for cross-repo work
+- hard-cutover notes that matter to TechTree maintainers
+
+CLI command docs, release scripts, package metadata, and runtime implementation now live in the standalone CLI repo.
 
 ## Start Here
 
 - [current-surface.md](current-surface.md)
 
-## Scope
+## Terminal Palette
 
-Use this folder for root-repo documentation about:
+Unless a human explicitly asks for a different direction, Regent CLI terminal surfaces should use this shared palette:
 
-- CLI command surface changes
-- runtime and daemon transport behavior
-- Techtree API usage from the CLI
-- auth/session expectations for agents
-- release-relevant CLI and runtime behavior
-
-Package-local reference docs that already live under `regent-cli/docs/` can stay there. This folder is for root-level, repo-canonical documentation that other agents should read before changing the CLI/runtime surface.
+- `#315569` Charcoal Blue
+- `#034568` Yale Blue
+- `#FBF4DE` Ivory Mist
+- `#D4A756` Sunlit Clay
+- `#848078` Grey Olive

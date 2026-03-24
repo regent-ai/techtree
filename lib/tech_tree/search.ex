@@ -39,5 +39,4 @@ defmodule TechTree.Search do
 
     %{nodes: nodes, comments: comments}
   end
-
 end

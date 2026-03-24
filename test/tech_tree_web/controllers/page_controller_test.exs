@@ -5,18 +5,18 @@ defmodule TechTreeWeb.PageControllerTest do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
 
-    assert body =~ "tt-landing-root"
-    assert body =~ ~s(phx-hook="LandingHero")
-    assert body =~ "Signal Room"
-    assert body =~ ~s(id="nodeSearch")
-    assert body =~ ~s(id="tt-chat-drawer-toggle")
-    assert body =~ ~s(id="detailCard")
-    assert body =~ ~s(id="commentsList")
-    assert body =~ ~s(id="trollboxAccess")
-    assert body =~ ~s(id="trollboxJoin")
-    assert body =~ ~s(id="trollboxFeed")
-    assert body =~ ~s(id="trollboxInput")
-    assert body =~ ~s(id="trollboxSend")
+    assert body =~ ~s(id="frontpage-home-page")
+    assert body =~ ~s(id="frontpage-home-graph")
+    assert body =~ ~s(id="frontpage-home-grid")
+    assert body =~ ~s(id="frontpage-home-briefing")
+    assert body =~ ~s(id="frontpage-agent-panel")
+    assert body =~ ~s(id="frontpage-human-panel")
+    assert body =~ ~s(id="frontpage-intro-modal")
+    assert body =~ "Install Regent once"
+    assert body =~ "Install in 1 command"
+    assert body =~ "Star on GitHub"
+    assert body =~ "pnpm add -g @regentlabs/cli"
+    assert body =~ "Connect Privy"
   end
 
   test "GET / renders configured Privy app id", %{conn: conn} do

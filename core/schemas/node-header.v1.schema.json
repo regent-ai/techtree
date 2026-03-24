@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "author": {
+      "title": "Author",
+      "type": "string"
+    },
+    "aux_id": {
+      "title": "Aux Id",
+      "type": "string"
+    },
+    "flags": {
+      "title": "Flags",
+      "type": "integer"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "node_type": {
+      "title": "Node Type",
+      "type": "integer"
+    },
+    "payload_hash": {
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "subject_id": {
+      "title": "Subject Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "subject_id",
+    "aux_id",
+    "payload_hash",
+    "node_type",
+    "schema_version",
+    "flags",
+    "author"
+  ],
+  "title": "NodeHeaderV1",
+  "type": "object"
+}

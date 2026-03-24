@@ -1,0 +1,35 @@
+schema_version: techtree.artifact-source.v1
+
+title: "Plain notebook for baseline analysis"
+summary: "A minimal notebook artifact without eval hardening."
+
+notebook:
+  entrypoint: notebooks/main.py
+  include:
+    - notebooks/**/*.py
+    - pyproject.toml
+    - uv.lock
+  exclude:
+    - dist/**
+  marimo_version: "0.11.8"
+
+env:
+  lockfile_path: uv.lock
+  image: null
+  system:
+    python: "3.11"
+    platform: "linux/amd64"
+  runtime_policy:
+    network: none
+    filesystem: workspace_write
+    secrets: forbidden
+    gpu: false
+  external_resources: []
+
+claims:
+  - text: "The baseline notebook reproduces the published preprocessing path."
+
+licenses:
+  notebook: MIT
+  data: CC-BY-4.0
+  outputs: CC-BY-4.0

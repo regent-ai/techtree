@@ -1,0 +1,463 @@
+{
+  "$defs": {
+    "RunEnvObserved": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "platform": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platform"
+        },
+        "python": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Python"
+        }
+      },
+      "title": "RunEnvObserved",
+      "type": "object"
+    },
+    "RunExecutor": {
+      "additionalProperties": false,
+      "properties": {
+        "harness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunHarnessRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "genome",
+            "actor",
+            "system"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "version_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Ref"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "RunExecutor",
+      "type": "object"
+    },
+    "RunHarnessRef": {
+      "additionalProperties": false,
+      "properties": {
+        "entrypoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "kind": {
+          "enum": [
+            "openclaw",
+            "hermes",
+            "claude_code",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "profile"
+      ],
+      "title": "RunHarnessRef",
+      "type": "object"
+    },
+    "RunInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Id"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "RunInstance",
+      "type": "object"
+    },
+    "RunMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "values": {
+          "additionalProperties": true,
+          "title": "Values",
+          "type": "object"
+        }
+      },
+      "title": "RunMetrics",
+      "type": "object"
+    },
+    "RunOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "local",
+            "xmtp_dm",
+            "xmtp_group",
+            "gossipsub",
+            "api",
+            "watched_node",
+            "scheduled",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        },
+        "transport": {
+          "anyOf": [
+            {
+              "enum": [
+                "xmtp",
+                "gossipsub",
+                "api",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transport"
+        },
+        "trigger_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trigger Ref"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "RunOrigin",
+      "type": "object"
+    },
+    "RunOutputFile": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size",
+        "media_type",
+        "role"
+      ],
+      "title": "RunOutputFile",
+      "type": "object"
+    },
+    "RunOutputs": {
+      "additionalProperties": false,
+      "properties": {
+        "files": {
+          "items": {
+            "$ref": "#/$defs/RunOutputFile"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "log_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Ref"
+        },
+        "primary_output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Output"
+        },
+        "verdict_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict Ref"
+        }
+      },
+      "title": "RunOutputs",
+      "type": "object"
+    },
+    "RunProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "attestation_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attestation Files",
+          "type": "array"
+        },
+        "runner_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Id"
+        }
+      },
+      "title": "RunProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "env_observed": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunEnvObserved"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "executor": {
+      "$ref": "#/$defs/RunExecutor"
+    },
+    "instance": {
+      "$ref": "#/$defs/RunInstance"
+    },
+    "metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunMetrics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunOrigin"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outputs": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunOutputs"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "payload_hash": {
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "run_provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "techtree.run-manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "executor",
+    "status",
+    "payload_hash"
+  ],
+  "title": "RunManifestV1",
+  "type": "object"
+}

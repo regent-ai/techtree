@@ -1,0 +1,44 @@
+schema_version: techtree.bbh.artifact-source.v1
+title: Challenge family capsule
+summary: A published challenge family capsule.
+eval:
+  mode: family
+  protocol:
+    entrypoint: eval/run.py
+    allowed_tools:
+      - python
+    max_runtime_s: 1800
+    max_turns: 20
+    output_contract:
+      required_files:
+        - outputs/verdict.json
+      required_keys:
+        - decision
+        - justification
+        - metrics
+  rubric:
+    scorer: eval/score.py
+    primary_metric: raw_score
+    secondary_metrics:
+      - normalized_score
+    score_range:
+      min: 0.0
+      max: 10.0
+    aggregation: deterministic
+    pass_rule: see rubric.json
+  generator:
+    entrypoint: eval/generate.py
+    seed_type: uint64
+    determinism: seed_only
+    params_schema: schemas/family.json
+bbh:
+  split: challenge
+  provider: bbh
+  provider_ref: bbh/capsule-challenge-family-1
+  family_ref: fam_challenge_1
+  hypothesis: Challenge family hypothesis.
+  protocol_path: protocol.md
+  rubric_path: rubric.json
+  data_refs:
+    - path: data/challenge.csv
+  assignment_policy: validator_assigned

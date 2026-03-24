@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "HarnessType": {
+      "enum": [
+        "openclaw",
+        "hermes",
+        "claude_code",
+        "custom"
+      ],
+      "title": "HarnessType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "axes": {
+      "additionalProperties": true,
+      "title": "Axes",
+      "type": "object"
+    },
+    "data_profile": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Data Profile"
+    },
+    "harness_type": {
+      "$ref": "#/$defs/HarnessType"
+    },
+    "harness_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Harness Version",
+      "type": "string"
+    },
+    "helper_code_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Helper Code Hash"
+    },
+    "label": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label"
+    },
+    "model_id": {
+      "minLength": 1,
+      "title": "Model Id",
+      "type": "string"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "parent_genome_ref": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Genome Ref"
+    },
+    "prompt_pack_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Prompt Pack Version",
+      "type": "string"
+    },
+    "runtime_image": {
+      "minLength": 1,
+      "title": "Runtime Image",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "techtree.bbh.genome-source.v1",
+      "default": "techtree.bbh.genome-source.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "skill_pack_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Skill Pack Version",
+      "type": "string"
+    },
+    "tool_profile": {
+      "minLength": 1,
+      "title": "Tool Profile",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model_id",
+    "harness_type",
+    "harness_version",
+    "prompt_pack_version",
+    "skill_pack_version",
+    "tool_profile",
+    "runtime_image"
+  ],
+  "title": "BbhGenomeSourceV1",
+  "type": "object"
+}

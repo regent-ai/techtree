@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "ExternalBlobEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "ref",
+        "sha256",
+        "size",
+        "media_type"
+      ],
+      "title": "ExternalBlobEntry",
+      "type": "object"
+    },
+    "PayloadFileEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size",
+        "media_type",
+        "role"
+      ],
+      "title": "PayloadFileEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "external_blobs": {
+      "items": {
+        "$ref": "#/$defs/ExternalBlobEntry"
+      },
+      "title": "External Blobs",
+      "type": "array"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/PayloadFileEntry"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "node_type": {
+      "enum": [
+        "artifact",
+        "run",
+        "review"
+      ],
+      "title": "Node Type",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "techtree.payload-index.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "node_type",
+    "files"
+  ],
+  "title": "PayloadIndexV1",
+  "type": "object"
+}

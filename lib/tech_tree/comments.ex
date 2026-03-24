@@ -209,4 +209,7 @@ defmodule TechTree.Comments do
     |> where([a], a.status == "active" or a.id == ^agent_id)
     |> select([a], a.id)
   end
+
+  @spec increment_node_comment_count!(integer() | String.t()) :: :ok
+  def increment_node_comment_count!(node_id), do: TechTree.Nodes.refresh_comment_metrics!(node_id)
 end

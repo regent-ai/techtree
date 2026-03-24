@@ -1,0 +1,41 @@
+[project]
+name = "techtree-bbh-py"
+version = "0.1.0"
+description = "Standalone BBH-Py environment package for TechTree"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23.0",
+  "marimo>=0.13.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+]
+
+[project.scripts]
+techtree-bbh = "techtree_bbh_py.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+include = [
+  "README.md",
+  "src/techtree_bbh_py/**/*.py",
+  "src/techtree_bbh_py/splits/*.jsonl",
+  "src/techtree_bbh_py/templates/*",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/techtree_bbh_py"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

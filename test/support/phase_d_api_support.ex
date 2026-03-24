@@ -6,6 +6,8 @@ defmodule TechTree.PhaseDApiSupport do
   alias TechTree.{Accounts, Agents, Nodes, Repo}
   alias TechTree.Nodes.Node
   alias TechTree.Trollbox.Message, as: TrollboxMessage
+  alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
+  alias Decimal, as: D
 
   @spec setup_privy_config!() :: %{
           app_id: String.t(),
@@ -109,7 +111,12 @@ defmodule TechTree.PhaseDApiSupport do
       status: :anchored,
       parent_id: parent_id,
       creator_agent_id: creator.id,
-      publish_idempotency_key: "node:#{unique}:phase-d"
+      publish_idempotency_key:
+        Keyword.get(opts, :publish_idempotency_key, "node:#{Ecto.UUID.generate()}:phase-d"),
+      watcher_count: Keyword.get(opts, :watcher_count, 0),
+      comment_count: Keyword.get(opts, :comment_count, 0),
+      child_count: Keyword.get(opts, :child_count, 0),
+      activity_score: Keyword.get(opts, :activity_score, D.new("0"))
     })
     |> Repo.insert!()
   end
@@ -175,6 +182,37 @@ defmodule TechTree.PhaseDApiSupport do
     })
     |> Repo.insert!()
     |> Repo.preload([:author_human, :author_agent])
+  end
+
+  @spec create_canonical_room!() :: XmtpRoom.t()
+  def create_canonical_room! do
+    %XmtpRoom{}
+    |> XmtpRoom.changeset(%{
+      room_key: "public-trollbox",
+      name: "Public Trollbox",
+      status: "active",
+      xmtp_group_id: "group-public-trollbox-#{unique_suffix()}"
+    })
+    |> Repo.insert!()
+  end
+
+  @spec create_visible_message!(XmtpRoom.t(), map()) :: XmtpMessage.t()
+  def create_visible_message!(%XmtpRoom{} = room, attrs \\ %{}) do
+    %XmtpMessage{}
+    |> XmtpMessage.changeset(%{
+      room_id: room.id,
+      xmtp_message_id: Map.get(attrs, :xmtp_message_id, "msg-visible-#{unique_suffix()}"),
+      sender_inbox_id: Map.get(attrs, :sender_inbox_id, "inbox-visible-#{unique_suffix()}"),
+      sender_wallet_address: Map.get(attrs, :sender_wallet_address, random_eth_address()),
+      sender_label: Map.get(attrs, :sender_label, "visible-sender-#{unique_suffix()}"),
+      sender_type: Map.get(attrs, :sender_type, :human),
+      body: Map.get(attrs, :body, "visible-message-#{unique_suffix()}"),
+      sent_at: Map.get(attrs, :sent_at, DateTime.utc_now()),
+      moderation_state: Map.get(attrs, :moderation_state, "visible"),
+      raw_payload: Map.get(attrs, :raw_payload, %{"kind" => "message"}),
+      reactions: Map.get(attrs, :reactions, %{})
+    })
+    |> Repo.insert!()
   end
 
   @spec unique_suffix() :: integer()

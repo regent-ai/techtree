@@ -1,0 +1,37 @@
+{
+  "schema_version": "techtree.bbh.run-source.v1",
+  "artifact_ref": "climb-local-001",
+  "executor": {
+    "type": "genome",
+    "id": "gen_fe0e0697fe5881d4",
+    "harness": "hermes",
+    "harness_version": "local",
+    "profile": "bbh"
+  },
+  "instance": {
+    "instance_ref": "climb-local-001",
+    "family_ref": null,
+    "seed": null
+  },
+  "origin": {
+    "workload": "bbh",
+    "transport": "local",
+    "trigger": "assignment"
+  },
+  "paths": {
+    "analysis_path": "analysis.py",
+    "verdict_path": "outputs/verdict.json",
+    "final_answer_path": "final_answer.md",
+    "report_path": "outputs/report.html",
+    "log_path": "outputs/run.log",
+    "genome_path": "genome.source.yaml"
+  },
+  "status": "completed",
+  "bbh": {
+    "split": "climb",
+    "genome_ref": "gen_fe0e0697fe5881d4",
+    "provider": "bbh_train",
+    "assignment_ref": "asg_PS4",
+    "keep_decision": "pending"
+  }
+}

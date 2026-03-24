@@ -1,0 +1,30 @@
+schema_version: techtree.review-source.v1
+
+target:
+  type: artifact
+  id: "0xbf33a93cadfcf3a93e7d0b34f0c4087eda60531e689d3baa161682f6b702e8e3"
+
+kind: challenge
+method: manual
+
+scope:
+  level: claim
+  path: claims/0
+
+result: needs_revision
+summary: "The claim is not sufficiently supported by the evidence."
+
+findings:
+  - code: CLAIM_UNSUPPORTED
+    severity: warning
+    message: "The claim overstates the observed effect."
+
+evidence:
+  refs:
+    - kind: artifact
+      ref: "0xbf33a93cadfcf3a93e7d0b34f0c4087eda60531e689d3baa161682f6b702e8e3"
+      note: "Reviewed artifact"
+  attachments:
+    include:
+      - evidence/**/*
+    exclude: []

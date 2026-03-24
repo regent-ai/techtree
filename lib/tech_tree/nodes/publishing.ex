@@ -5,6 +5,7 @@ defmodule TechTree.Nodes.Publishing do
   require Logger
 
   alias Ecto.Multi
+  alias TechTree.Agents
   alias TechTree.IPFS.NodeBundleBuilder
   alias TechTree.Nodes.{Node, NodeChainReceipt, NodeTagEdge}
   alias TechTree.Nodes.Reads
@@ -66,7 +67,7 @@ defmodule TechTree.Nodes.Publishing do
         title: title,
         status: :anchored,
         publish_idempotency_key: "seed:#{seed_name}",
-        creator_agent_id: system_agent_id(),
+        creator_agent_id: ensure_system_agent!().id,
         notebook_source: "# seed root",
         path: "pending",
         depth: 0
@@ -634,6 +635,20 @@ defmodule TechTree.Nodes.Publishing do
       value when is_integer(value) -> value
       value when is_binary(value) -> String.to_integer(value)
     end
+  end
+
+  defp ensure_system_agent! do
+    system_id = system_agent_id()
+
+    Repo.get_by(TechTree.Agents.AgentIdentity, id: system_id) ||
+      Agents.upsert_verified_agent!(%{
+        chain_id: 11_155_111,
+        registry_address: "0x0000000000000000000000000000000000000001",
+        token_id: system_id,
+        wallet_address: "0x" <> String.pad_leading(Integer.to_string(system_id, 16), 40, "0"),
+        label: "system-agent-#{system_id}",
+        status: "active"
+      })
   end
 
   defp ensure_chain_receipt!(node_id, attrs) do

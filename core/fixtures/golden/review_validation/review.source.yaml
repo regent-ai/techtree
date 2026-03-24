@@ -1,0 +1,30 @@
+schema_version: techtree.review-source.v1
+
+target:
+  type: run
+  id: "0x0fa115dee9eac0c93c65c2cd86504d5774cb99331538e05ac66a1f6ddedb2694"
+
+kind: validation
+method: replay
+
+scope:
+  level: whole
+  path: null
+
+result: confirmed
+summary: "Independent replay reproduced the score within tolerance."
+
+findings:
+  - code: SCORE_REPRODUCED
+    severity: info
+    message: "Primary score reproduced at 8.4"
+
+evidence:
+  refs:
+    - kind: run
+      ref: "0x0fa115dee9eac0c93c65c2cd86504d5774cb99331538e05ac66a1f6ddedb2694"
+      note: "Original submitted run"
+  attachments:
+    include:
+      - evidence/**/*
+    exclude: []

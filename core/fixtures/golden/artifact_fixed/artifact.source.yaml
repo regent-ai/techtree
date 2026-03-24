@@ -1,0 +1,59 @@
+schema_version: techtree.artifact-source.v1
+
+title: "Fixed capsule for deterministic evaluation"
+summary: "A fixed-instance capsule artifact."
+
+notebook:
+  entrypoint: notebooks/main.py
+  include:
+    - notebooks/**/*.py
+    - eval/**/*.py
+    - schemas/**/*.json
+    - pyproject.toml
+    - uv.lock
+  exclude:
+    - dist/**
+  marimo_version: "0.11.8"
+
+env:
+  lockfile_path: uv.lock
+  image: "oci:sha256:ee0dcaab7b91fa3d6df6ec2fd0b9c9db6a1fce4ef1e4bd4d0f5d2f0a0a912345"
+  system:
+    python: "3.11"
+    platform: "linux/amd64"
+  runtime_policy:
+    network: none
+    filesystem: workspace_write
+    secrets: forbidden
+    gpu: false
+  external_resources: []
+
+provenance:
+  source_repo: "git:example/fixed-capsule"
+  source_commit: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  build_attestation_files: []
+
+claims:
+  - text: "The fixed capsule checks one pre-declared benchmark instance."
+
+licenses:
+  notebook: MIT
+  data: CC-BY-4.0
+  outputs: CC-BY-4.0
+
+eval:
+  mode: fixed
+  protocol:
+    entrypoint: eval/run.py
+    allowed_tools:
+      - python
+    max_runtime_s: 1800
+    output_contract:
+      required_files:
+        - outputs/verdict.json
+      required_keys:
+        - decision
+        - justification
+  instance:
+    capsule: fixed-instance-001
+    split: eval

@@ -2,6 +2,7 @@ defmodule TechTreeWeb.AdminModerationController do
   use TechTreeWeb, :controller
 
   alias TechTree.Moderation
+  alias TechTree.XMTPMirror
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
 
@@ -61,6 +62,20 @@ defmodule TechTreeWeb.AdminModerationController do
   def unban_human(conn, %{"id" => id} = params) do
     with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, admin ->
       Moderation.unban_human(normalized_id, admin, params["reason"])
+    end)
+  end
+
+  @spec add_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def add_trollbox_member(conn, %{"id" => id}) do
+    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
+      XMTPMirror.add_human_to_canonical_room(normalized_id)
+    end)
+  end
+
+  @spec remove_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def remove_trollbox_member(conn, %{"id" => id}) do
+    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
+      XMTPMirror.remove_human_from_canonical_room(normalized_id)
     end)
   end
 

@@ -7,10 +7,9 @@ This repository uses Symphony as the canonical agent orchestration layer.
 1. Read [WORKFLOW.md](WORKFLOW.md) for the active Symphony contract.
 2. Read [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for repo routing.
 3. Read the domain policy docs that match your task:
-   - [docs/regent-cli/README.md](docs/regent-cli/README.md) when touching `regent-cli/`
-   - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-   - [docs/FRONTEND.md](docs/FRONTEND.md)
-   - [docs/RELIABILITY.md](docs/RELIABILITY.md)
+   - [docs/regent-cli/README.md](docs/regent-cli/README.md) when the task also touches the standalone Regent CLI repo
+   - [docs/AGENTS_BBH_UI.md](docs/AGENTS_BBH_UI.md) for BBH surface work
+   - [docs/AUTH_BOUNDARY_AUDIT.md](docs/AUTH_BOUNDARY_AUDIT.md) for auth and trust-boundary work
    - [docs/SECURITY.md](docs/SECURITY.md)
    - [docs/VALIDATION.md](docs/VALIDATION.md)
 
@@ -21,15 +20,20 @@ This repository uses Symphony as the canonical agent orchestration layer.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.
-- `regent-cli` live transport flows are daemon-owned. Do not add direct CLI-to-Phoenix socket paths.
-- Techtree chain support is Ethereum mainnet plus Sepolia only. Do not reintroduce Base.
+- Regent CLI live transport flows are daemon-owned. Do not add direct CLI-to-Phoenix socket paths.
 - Prefer repository-local, versioned docs over off-repo context.
+- Regent CLI terminal UI work should use the shared CLI palette unless a human explicitly asks for a different one:
+  - `#315569` Charcoal Blue
+  - `#034568` Yale Blue
+  - `#FBF4DE` Ivory Mist
+  - `#D4A756` Sunlit Clay
+  - `#848078` Grey Olive
 
 ## Protected Work
 
 The following work must never be auto-picked by Symphony agents unless a human explicitly assigns it:
 
-- `contracts/`
+- the shared contracts repo at `/Users/sean/Documents/regent/contracts/techtree`
 - security-sensitive auth or trust-boundary changes
 - deploy and Fly.io changes
 - database migrations and schema transitions

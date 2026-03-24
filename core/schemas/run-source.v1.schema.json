@@ -1,0 +1,249 @@
+{
+  "$defs": {
+    "RunExecution": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_resume": {
+          "default": false,
+          "title": "Allow Resume",
+          "type": "boolean"
+        },
+        "output_dir": {
+          "title": "Output Dir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "output_dir"
+      ],
+      "title": "RunExecution",
+      "type": "object"
+    },
+    "RunExecutor": {
+      "additionalProperties": false,
+      "properties": {
+        "harness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunHarnessRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "genome",
+            "actor",
+            "system"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "version_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version Ref"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "RunExecutor",
+      "type": "object"
+    },
+    "RunHarnessRef": {
+      "additionalProperties": false,
+      "properties": {
+        "entrypoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "kind": {
+          "enum": [
+            "openclaw",
+            "hermes",
+            "claude_code",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "title": "Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "profile"
+      ],
+      "title": "RunHarnessRef",
+      "type": "object"
+    },
+    "RunInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Id"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "RunInstance",
+      "type": "object"
+    },
+    "RunOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "local",
+            "xmtp_dm",
+            "xmtp_group",
+            "gossipsub",
+            "api",
+            "watched_node",
+            "scheduled",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session Id"
+        },
+        "transport": {
+          "anyOf": [
+            {
+              "enum": [
+                "xmtp",
+                "gossipsub",
+                "api",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transport"
+        },
+        "trigger_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trigger Ref"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "RunOrigin",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "execution": {
+      "$ref": "#/$defs/RunExecution"
+    },
+    "executor": {
+      "$ref": "#/$defs/RunExecutor"
+    },
+    "instance": {
+      "$ref": "#/$defs/RunInstance"
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunOrigin"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "techtree.run-source.v1",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "executor",
+    "execution"
+  ],
+  "title": "RunSourceV1",
+  "type": "object"
+}

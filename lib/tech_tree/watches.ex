@@ -7,6 +7,8 @@ defmodule TechTree.Watches do
   require Logger
 
   alias Phoenix.PubSub
+  alias TechTree.Nodes
+  alias TechTree.Nodes.Node
   alias TechTree.Repo
   alias TechTree.Watches.NodeWatcher
 
@@ -169,29 +171,51 @@ defmodule TechTree.Watches do
   @spec create_watch(integer() | String.t(), atom(), integer()) ::
           {:ok, NodeWatcher.t()} | {:error, Ecto.Changeset.t()}
   defp create_watch(node_id, watcher_type, watcher_ref) do
-    %NodeWatcher{}
-    |> NodeWatcher.changeset(%{
-      node_id: normalize_id(node_id),
-      watcher_type: watcher_type,
-      watcher_ref: watcher_ref
-    })
-    |> Repo.insert(
-      on_conflict: :nothing,
-      conflict_target: {:unsafe_fragment, "(node_id, watcher_type, watcher_ref)"}
-    )
+    normalized_node_id = normalize_id(node_id)
+
+    with %Node{} = node <- Repo.get(Node, normalized_node_id) do
+      watch =
+        case Repo.get_by(NodeWatcher,
+               node_id: normalized_node_id,
+               watcher_type: watcher_type,
+               watcher_ref: watcher_ref
+             ) do
+          %NodeWatcher{} = existing ->
+            existing
+
+          nil ->
+            %NodeWatcher{}
+            |> NodeWatcher.changeset(%{
+              node_id: normalized_node_id,
+              watcher_type: watcher_type,
+              watcher_ref: watcher_ref
+            })
+            |> Repo.insert!()
+        end
+
+      :ok = Nodes.refresh_watcher_metrics!(node.id)
+      {:ok, watch}
+    else
+      nil -> {:error, :node_not_found}
+    end
   end
 
-  @spec delete_watch(integer() | String.t(), atom(), integer()) :: :ok
+  @spec delete_watch(integer() | String.t(), atom(), integer()) :: :ok | {:error, :node_not_found}
   defp delete_watch(node_id, watcher_type, watcher_ref) do
     normalized_node_id = normalize_id(node_id)
 
-    NodeWatcher
-    |> where([w], w.node_id == ^normalized_node_id)
-    |> where([w], w.watcher_type == ^watcher_type)
-    |> where([w], w.watcher_ref == ^watcher_ref)
-    |> Repo.delete_all()
+    with %Node{} = node <- Repo.get(Node, normalized_node_id) do
+      NodeWatcher
+      |> where([w], w.node_id == ^normalized_node_id)
+      |> where([w], w.watcher_type == ^watcher_type)
+      |> where([w], w.watcher_ref == ^watcher_ref)
+      |> Repo.delete_all()
 
-    :ok
+      :ok = Nodes.refresh_watcher_metrics!(node.id)
+      :ok
+    else
+      nil -> {:error, :node_not_found}
+    end
   end
 
   @spec normalize_session_id(integer() | String.t()) :: String.t()

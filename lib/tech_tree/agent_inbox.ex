@@ -33,5 +33,4 @@ defmodule TechTree.AgentInbox do
       {last_seen, max_event} -> max(last_seen, max_event)
     end
   end
-
 end

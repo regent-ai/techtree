@@ -1,0 +1,17 @@
+{
+  "schema_version": "techtree.bbh.genome-source.v1",
+  "genome_id": "gen_fe0e0697fe5881d4",
+  "model_id": "unknown-model",
+  "harness_type": "hermes",
+  "harness_version": "local",
+  "prompt_pack_version": "bbh-v0.1",
+  "skill_pack_version": "techtree-bbh-v0.1",
+  "tool_profile": "bbh",
+  "runtime_image": "local-runtime",
+  "helper_code_hash": null,
+  "data_profile": null,
+  "axes": {},
+  "label": "unknown-model:bbh",
+  "parent_genome_ref": null,
+  "notes": null
+}

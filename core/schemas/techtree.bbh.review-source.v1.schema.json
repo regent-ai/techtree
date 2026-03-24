@@ -1,0 +1,302 @@
+{
+  "$defs": {
+    "BbhReviewProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assignment Ref"
+        },
+        "raw_abs_tolerance": {
+          "default": 0.01,
+          "minimum": 0.0,
+          "title": "Raw Abs Tolerance",
+          "type": "number"
+        },
+        "reproduced_normalized_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reproduced Normalized Score"
+        },
+        "reproduced_raw_score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reproduced Raw Score"
+        },
+        "role": {
+          "$ref": "#/$defs/ValidationRole"
+        },
+        "scorer_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scorer Version"
+        }
+      },
+      "required": [
+        "role"
+      ],
+      "title": "BbhReviewProfile",
+      "type": "object"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "file",
+        "run",
+        "note",
+        "external"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "hash": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hash"
+        },
+        "kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "ref": {
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "ReviewMethod": {
+      "enum": [
+        "replay",
+        "manual",
+        "replication"
+      ],
+      "title": "ReviewMethod",
+      "type": "string"
+    },
+    "ReviewPaths": {
+      "additionalProperties": false,
+      "properties": {
+        "log_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log Path"
+        },
+        "replication_workspace": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replication Workspace"
+        },
+        "report_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Path"
+        },
+        "verdict_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verdict Path"
+        }
+      },
+      "title": "ReviewPaths",
+      "type": "object"
+    },
+    "ReviewResult": {
+      "enum": [
+        "confirmed",
+        "rejected",
+        "mixed",
+        "needs_revision"
+      ],
+      "title": "ReviewResult",
+      "type": "string"
+    },
+    "ReviewTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "run",
+          "default": "run",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ReviewTarget",
+      "type": "object"
+    },
+    "ValidationRole": {
+      "enum": [
+        "official",
+        "community"
+      ],
+      "title": "ValidationRole",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bbh": {
+      "$ref": "#/$defs/BbhReviewProfile"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "kind": {
+      "const": "validation",
+      "default": "validation",
+      "title": "Kind",
+      "type": "string"
+    },
+    "method": {
+      "$ref": "#/$defs/ReviewMethod"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "paths": {
+      "$ref": "#/$defs/ReviewPaths"
+    },
+    "result": {
+      "$ref": "#/$defs/ReviewResult"
+    },
+    "schema_version": {
+      "const": "techtree.bbh.review-source.v1",
+      "default": "techtree.bbh.review-source.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/ReviewTarget"
+    }
+  },
+  "required": [
+    "target",
+    "method",
+    "result",
+    "summary",
+    "bbh"
+  ],
+  "title": "BbhReviewSourceV1",
+  "type": "object"
+}

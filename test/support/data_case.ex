@@ -40,5 +40,4 @@ defmodule TechTree.DataCase do
     if Code.ensure_loaded?(TechTree.RateLimit), do: TechTree.RateLimit.reset!()
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
   end
-
 end

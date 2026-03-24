@@ -1,0 +1,10 @@
+schema_version: techtree.bbh.genome-source.v1
+label: Genome v1
+model_id: gpt-test
+harness_type: hermes
+harness_version: 1.0.0
+prompt_pack_version: bbh-v0.1
+skill_pack_version: techtree-bbh-v0.1
+tool_profile: bbh
+runtime_image: local-runtime
+helper_code_hash: sha256:1111111111111111111111111111111111111111111111111111111111111111

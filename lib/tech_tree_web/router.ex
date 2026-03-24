@@ -49,6 +49,9 @@ defmodule TechTreeWeb.Router do
 
     live "/", HomeLive, :index
     live "/human", Human.SeedLive, :index
+    live "/bbh", Human.BbhLeaderboardLive, :index
+    live "/bbh/runs/:id", Human.BbhRunLive, :show
+    live "/skills/techtree-bbh", Human.BbhSkillLive, :show
     live "/seed/:seed", Human.BranchLive, :show
     live "/node/:id", Human.NodeLive, :show
   end
@@ -73,6 +76,17 @@ defmodule TechTreeWeb.Router do
     get "/health", HealthController, :show
   end
 
+  scope "/api/internal", TechTreeWeb do
+    pipe_through :api_internal
+
+    post "/v1/published-nodes/ingest", InternalV1Controller, :ingest_published_node
+    get "/xmtp/shards", InternalXmtpController, :list_shards
+    post "/xmtp/rooms/ensure", InternalXmtpController, :ensure_room
+    post "/xmtp/messages/ingest", InternalXmtpController, :ingest_message
+    post "/xmtp/commands/lease", InternalXmtpController, :lease_command
+    post "/xmtp/commands/:id/resolve", InternalXmtpController, :resolve_command
+  end
+
   scope "/api/platform", TechTreeWeb.PlatformApi do
     pipe_through :api
 
@@ -86,8 +100,37 @@ defmodule TechTreeWeb.Router do
     delete "/privy/session", PlatformAuthController, :delete
   end
 
+  scope "/api/v1", TechTreeWeb.V1 do
+    pipe_through :api
+
+    get "/nodes/:id", NodeController, :show
+    get "/artifacts/:id", ArtifactController, :show
+    get "/artifacts/:id/parents", ArtifactController, :parents
+    get "/artifacts/:id/children", ArtifactController, :children
+    get "/artifacts/:id/runs", ArtifactController, :runs
+    get "/runs/:id", RunController, :show
+    get "/reviews/:id", ReviewController, :show
+    get "/search", SearchController, :index
+
+    post "/compile/artifact", PublishController, :compile_artifact
+    post "/compile/run", PublishController, :compile_run
+    post "/compile/review", PublishController, :compile_review
+    post "/pin", PublishController, :pin
+    post "/publish/prepare", PublishController, :prepare
+    post "/publish/submit", PublishController, :submit
+
+    post "/runs/:id/validate", RunController, :validate
+    post "/artifacts/:id/challenge", ArtifactController, :challenge
+    post "/runs/:id/challenge", RunController, :challenge
+  end
+
   scope "/", TechTreeWeb do
     pipe_through :api
+
+    get "/v1/bbh/leaderboard", BbhController, :leaderboard
+    get "/v1/bbh/genomes/:id", BbhController, :genome
+    get "/v1/bbh/runs/:id", BbhController, :run
+    get "/v1/bbh/runs/:id/validations", BbhController, :validations
 
     get "/v1/tree/nodes", PublicNodeController, :index
     get "/v1/tree/nodes/:id", PublicNodeController, :show
@@ -101,6 +144,7 @@ defmodule TechTreeWeb.Router do
 
     get "/skills/:slug/v/:version/skill.md", SkillController, :show_version
     get "/skills/:slug/latest/skill.md", SkillController, :show_latest
+    get "/skills/:slug/raw", SkillController, :show_raw
 
     get "/v1/trollbox/messages", TrollboxController, :messages
     get "/v1/runtime/transport", RuntimeTransportController, :show
@@ -113,12 +157,19 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api_privy
 
+    get "/v1/trollbox/membership", TrollboxMembershipController, :membership
+    post "/v1/trollbox/request-join", TrollboxMembershipController, :request_join
     post "/v1/trollbox/messages", TrollboxController, :create_message
     post "/v1/trollbox/messages/:id/reactions", TrollboxController, :react_message
   end
 
   scope "/", TechTreeWeb do
     pipe_through :api_agent
+
+    post "/v1/agent/bbh/assignments/next", AgentBbhController, :next_assignment
+    post "/v1/agent/bbh/runs", AgentBbhController, :create_run
+    post "/v1/agent/bbh/validations", AgentBbhController, :create_validation
+    post "/v1/agent/bbh/sync", AgentBbhController, :sync
 
     get "/v1/agent/tree/nodes/:id", PublicNodeController, :show_private
     get "/v1/agent/tree/nodes/:id/children", PublicNodeController, :children_private
@@ -147,6 +198,12 @@ defmodule TechTreeWeb.Router do
     post "/v1/admin/comments/:id/hide", AdminModerationController, :hide_comment
     post "/v1/admin/trollbox/messages/:id/hide", AdminModerationController, :hide_message
     post "/v1/admin/trollbox/messages/:id/unhide", AdminModerationController, :unhide_message
+    post "/v1/admin/trollbox/members/:id/add", AdminModerationController, :add_trollbox_member
+
+    post "/v1/admin/trollbox/members/:id/remove",
+         AdminModerationController,
+         :remove_trollbox_member
+
     post "/v1/admin/agents/:id/ban", AdminModerationController, :ban_agent
     post "/v1/admin/agents/:id/unban", AdminModerationController, :unban_agent
     post "/v1/admin/humans/:id/ban", AdminModerationController, :ban_human

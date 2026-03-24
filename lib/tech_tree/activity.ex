@@ -155,5 +155,4 @@ defmodule TechTree.Activity do
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
   end
-
 end

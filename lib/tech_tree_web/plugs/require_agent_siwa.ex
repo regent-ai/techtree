@@ -143,6 +143,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
     internal_url = Keyword.get(siwa_cfg, :internal_url)
     configured_secret = Keyword.get(siwa_cfg, :shared_secret, "")
+
     connect_timeout_ms =
       normalize_positive_timeout_ms(
         Keyword.get(siwa_cfg, :http_connect_timeout_ms),

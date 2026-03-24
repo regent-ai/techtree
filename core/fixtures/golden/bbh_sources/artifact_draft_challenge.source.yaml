@@ -1,0 +1,39 @@
+schema_version: techtree.bbh.artifact-source.v1
+title: Draft challenge capsule
+summary: An unpublished draft challenge capsule.
+eval:
+  mode: fixed
+  protocol:
+    entrypoint: eval/run.py
+    allowed_tools:
+      - python
+    max_runtime_s: 1800
+    max_turns: 20
+    output_contract:
+      required_files:
+        - outputs/verdict.json
+      required_keys:
+        - decision
+        - justification
+        - metrics
+  rubric:
+    scorer: eval/score.py
+    primary_metric: raw_score
+    secondary_metrics:
+      - normalized_score
+    score_range:
+      min: 0.0
+      max: 10.0
+    aggregation: deterministic
+    pass_rule: see rubric.json
+bbh:
+  split: draft
+  provider: bbh
+  provider_ref: bbh/capsule-draft-challenge-1
+  instance_ref: inst_draft_1
+  hypothesis: Draft challenge hypothesis.
+  protocol_path: protocol.md
+  rubric_path: rubric.json
+  data_refs:
+    - path: data/draft.csv
+  assignment_policy: draft_only

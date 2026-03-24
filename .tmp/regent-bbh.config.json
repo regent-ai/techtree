@@ -1,0 +1,91 @@
+{
+  "runtime": {
+    "socketPath": "/Users/sean/Documents/regent/techtree/.tmp/run/regent.sock",
+    "stateDir": "/Users/sean/Documents/regent/techtree/.tmp/state",
+    "logLevel": "info"
+  },
+  "techtree": {
+    "baseUrl": "http://127.0.0.1:4000",
+    "audience": "techtree",
+    "defaultChainId": 1,
+    "requestTimeoutMs": 10000
+  },
+  "wallet": {
+    "privateKeyEnv": "REGENT_WALLET_PRIVATE_KEY",
+    "keystorePath": "/Users/sean/Documents/regent/techtree/.tmp/keys/agent-wallet.json"
+  },
+  "gossipsub": {
+    "enabled": false,
+    "listenAddrs": [],
+    "bootstrap": [],
+    "peerIdPath": "/Users/sean/Documents/regent/techtree/.tmp/p2p/peer-id.json"
+  },
+  "xmtp": {
+    "enabled": false,
+    "env": "production",
+    "dbPath": "/Users/sean/Documents/regent/techtree/.tmp/xmtp/production/client.db",
+    "dbEncryptionKeyPath": "/Users/sean/Documents/regent/techtree/.tmp/xmtp/production/db.key",
+    "walletKeyPath": "/Users/sean/Documents/regent/techtree/.tmp/xmtp/production/wallet.key",
+    "ownerInboxIds": [],
+    "trustedInboxIds": [],
+    "publicPolicyPath": "/Users/sean/Documents/regent/techtree/.tmp/policies/xmtp-public.md",
+    "profiles": {
+      "owner": "full",
+      "public": "messaging",
+      "group": "messaging"
+    }
+  },
+  "agents": {
+    "defaultHarness": "hermes",
+    "harnesses": {
+      "openclaw": {
+        "enabled": false,
+        "entrypoint": "openclaw",
+        "workspaceRoot": "/Users/sean/Documents/regent/techtree/.tmp/workspaces/openclaw",
+        "profiles": [
+          "owner",
+          "public",
+          "group",
+          "bbh"
+        ]
+      },
+      "hermes": {
+        "enabled": true,
+        "entrypoint": "hermes",
+        "workspaceRoot": "/Users/sean/Documents/regent/techtree/.tmp/workspaces/hermes",
+        "profiles": [
+          "owner",
+          "public",
+          "group",
+          "bbh"
+        ]
+      },
+      "claude_code": {
+        "enabled": false,
+        "entrypoint": "claude",
+        "workspaceRoot": "/Users/sean/Documents/regent/techtree/.tmp/workspaces/claude-code",
+        "profiles": [
+          "owner",
+          "public",
+          "group",
+          "bbh"
+        ]
+      },
+      "custom": {
+        "enabled": false,
+        "entrypoint": "custom-harness",
+        "workspaceRoot": "/Users/sean/Documents/regent/techtree/.tmp/workspaces/custom",
+        "profiles": [
+          "custom"
+        ]
+      }
+    }
+  },
+  "workloads": {
+    "bbh": {
+      "workspaceRoot": "/Users/sean/Documents/regent/techtree/.tmp/workspaces/bbh",
+      "defaultHarness": "hermes",
+      "defaultProfile": "bbh"
+    }
+  }
+}

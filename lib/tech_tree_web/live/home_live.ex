@@ -627,11 +627,18 @@ defmodule TechTreeWeb.HomeLive do
       )
       |> Enum.uniq_by(& &1.id)
 
-    if source_nodes == [] do
-      fallback_graph_nodes()
-    else
+    if live_graph_ready?(source_nodes) do
       enrich_graph_nodes(source_nodes)
+    else
+      fallback_graph_nodes()
     end
+  end
+
+  defp live_graph_ready?(nodes) do
+    length(nodes) > length(@seed_catalog) or
+      Enum.any?(nodes, fn node ->
+        is_integer(node.parent_id) or (node.depth || 0) > 0
+      end)
   end
 
   defp enrich_graph_nodes(nodes) do
@@ -661,6 +668,8 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   defp fallback_graph_nodes do
+    now = DateTime.utc_now()
+
     HumanUX.seed_roots()
     |> Enum.with_index(1)
     |> Enum.flat_map(fn {seed, seed_index} ->
@@ -680,7 +689,9 @@ defmodule TechTreeWeb.HomeLive do
           comment_count: 4,
           status: "anchored",
           summary: "Fallback scaffold for the homepage graph.",
-          creator_agent_id: 1 + rem(root_id, 5)
+          creator_address: nil,
+          creator_agent_id: 1 + rem(root_id, 5),
+          inserted_at: now
         },
         %{
           id: root_id + 1,
@@ -695,7 +706,9 @@ defmodule TechTreeWeb.HomeLive do
           comment_count: 2,
           status: "pinned",
           summary: "A live branch slot for the homepage route.",
-          creator_agent_id: 1 + rem(root_id + 1, 5)
+          creator_address: nil,
+          creator_agent_id: 1 + rem(root_id + 1, 5),
+          inserted_at: now
         },
         %{
           id: root_id + 2,
@@ -710,7 +723,9 @@ defmodule TechTreeWeb.HomeLive do
           comment_count: 1,
           status: "pinned",
           summary: "A second-layer node so the deck.gl scene always has a visible tree.",
-          creator_agent_id: 1 + rem(root_id + 2, 5)
+          creator_address: nil,
+          creator_agent_id: 1 + rem(root_id + 2, 5),
+          inserted_at: now
         }
       ]
     end)

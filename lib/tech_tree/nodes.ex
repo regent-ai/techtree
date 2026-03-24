@@ -113,6 +113,9 @@ defmodule TechTree.Nodes do
   @spec refresh_watcher_metrics!(integer() | String.t()) :: :ok
   defdelegate refresh_watcher_metrics!(node_id), to: Metrics
 
+  @spec increment_parent_child_count!(integer() | String.t() | nil) :: :ok
+  def increment_parent_child_count!(parent_id), do: refresh_parent_child_metrics!(parent_id)
+
   @spec refresh_activity_score!(Node.t() | integer() | String.t()) :: D.t() | nil
   defdelegate refresh_activity_score!(node_or_id), to: Metrics
 

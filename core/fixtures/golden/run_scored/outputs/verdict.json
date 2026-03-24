@@ -1,0 +1,11 @@
+{
+  "decision": "pass",
+  "justification": "The run achieved a stable score.",
+  "metrics": {
+    "score": 8.4,
+    "values": {
+      "evidence_quality": 8,
+      "calibration": 0.73
+    }
+  }
+}

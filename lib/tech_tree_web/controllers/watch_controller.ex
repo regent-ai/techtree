@@ -4,6 +4,8 @@ defmodule TechTreeWeb.WatchController do
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTreeWeb.PublicEncoding
+  alias TechTree.Nodes.Node
+  alias TechTree.Repo
   alias TechTree.Watches
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -19,10 +21,14 @@ defmodule TechTreeWeb.WatchController do
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, params) do
     with {:ok, node_id} <- parse_node_id(params),
+         {:ok, _node} <- fetch_node(node_id),
          {:ok, watch} <-
            Watches.watch_agent(node_id, ControllerHelpers.ensure_current_agent(conn).id) do
       json(conn, %{data: PublicEncoding.encode_watch(watch)})
     else
+      {:error, :node_not_found} ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+
       {:error, :node_id_required} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
 
@@ -46,9 +52,13 @@ defmodule TechTreeWeb.WatchController do
   @spec delete(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def delete(conn, params) do
     with {:ok, node_id} <- parse_node_id(params),
+         {:ok, _node} <- fetch_node(node_id),
          :ok <- Watches.unwatch_agent(node_id, ControllerHelpers.ensure_current_agent(conn).id) do
       json(conn, %{ok: true})
     else
+      {:error, :node_not_found} ->
+        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+
       {:error, :node_id_required} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
 
@@ -63,6 +73,14 @@ defmodule TechTreeWeb.WatchController do
       {:ok, node_id} -> {:ok, node_id}
       {:error, :required} -> {:error, :node_id_required}
       {:error, :invalid} -> {:error, :invalid_node_id}
+    end
+  end
+
+  @spec fetch_node(integer()) :: {:ok, Node.t()} | {:error, :node_not_found}
+  defp fetch_node(node_id) do
+    case Repo.get(Node, node_id) do
+      nil -> {:error, :node_not_found}
+      %Node{} = node -> {:ok, node}
     end
   end
 end

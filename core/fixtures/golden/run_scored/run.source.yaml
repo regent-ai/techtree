@@ -1,0 +1,18 @@
+schema_version: techtree.run-source.v1
+
+artifact_id: "0xad83a1fc9478c285f340540f47d7b7316d395e1b7d223e825d934a907ae44dd4"
+
+executor:
+  type: genome
+  id: "genome:bbh-py-champion-v12"
+  version_ref: "git:example/genomes#2222222"
+
+instance:
+  seed: 8821381
+  instance_id: "capsule-002"
+  params:
+    prompt_style: verbose
+
+execution:
+  output_dir: outputs
+  allow_resume: false

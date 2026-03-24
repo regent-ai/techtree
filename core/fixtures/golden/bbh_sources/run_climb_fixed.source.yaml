@@ -1,0 +1,26 @@
+schema_version: techtree.bbh.run-source.v1
+artifact_ref: cap_climb_fixed_1
+executor:
+  type: genome
+  id: genome:alpha
+  harness: hermes
+  harness_version: 1.0.0
+  profile: bbh
+instance:
+  instance_ref: inst_climb_1
+  family_ref: null
+  seed: null
+origin:
+  workload: bbh
+  transport: api
+  trigger: assignment
+status: completed
+score:
+  raw: 4.2
+  normalized: 0.84
+  scorer_version: v1
+bbh:
+  split: climb
+  genome_ref: genome:alpha
+  provider: bbh_train
+  keep_decision: pending

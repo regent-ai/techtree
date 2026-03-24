@@ -1,0 +1,12 @@
+{
+  "schema_version": "techtree.bbh.artifact-source.v1",
+  "bbh": {
+    "split": "climb",
+    "provider": "bbh_train",
+    "provider_ref": "local/climb-001",
+    "family_ref": null,
+    "instance_ref": "climb-local-001",
+    "assignment_policy": "public_next",
+    "mode": "fixed"
+  }
+}

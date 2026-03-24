@@ -77,6 +77,23 @@ defmodule TechTreeWeb.SkillControllerTest do
     end
   end
 
+  describe "GET /skills/:slug/raw" do
+    test "returns the latest markdown body through the public raw endpoint", %{conn: conn} do
+      slug = "raw-#{System.unique_integer([:positive])}"
+
+      _skill =
+        create_skill_node!(%{
+          skill_slug: slug,
+          skill_version: "3.0.0",
+          skill_md_body: "# raw skill"
+        })
+
+      raw_conn = get(conn, "/skills/#{slug}/raw")
+
+      assert response(raw_conn, 200) == "# raw skill"
+    end
+  end
+
   defp create_skill_node!(attrs) do
     unique = System.unique_integer([:positive])
     creator = create_agent!("skill-controller")

@@ -4,6 +4,7 @@ defmodule TechTree.RateLimit do
   require Logger
 
   alias TechTree.Dragonfly
+  alias TechTree.QueryHelpers
 
   @ets_table :tech_tree_rate_limit
   @backend_status_key {:meta, :backend_status}
@@ -11,6 +12,8 @@ defmodule TechTree.RateLimit do
   @reaction_policy %{capacity: 20, refill_tokens: 10, refill_interval_ms: 10_000}
   @node_create_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 3_600_000}
   @comment_create_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 300_000}
+  @trollbox_post_cooldown_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 1_000}
+  @trollbox_post_burst_policy %{capacity: 10, refill_tokens: 10, refill_interval_ms: 60_000}
   @duplicate_cooldown_ms 30_000
 
   @bucket_script """
@@ -126,6 +129,50 @@ defmodule TechTree.RateLimit do
     result
   end
 
+  @spec check_node_create!(String.t() | nil) :: :ok | {:error, :rate_limited}
+  def check_node_create!(wallet_address) when is_binary(wallet_address) do
+    strict_consume_bucket(
+      "watch:node:create:#{String.trim(wallet_address)}",
+      @node_create_policy
+    )
+  end
+
+  def check_node_create!(_wallet_address), do: {:error, :rate_limited}
+
+  @spec check_comment_create!(String.t() | nil, integer() | String.t() | nil) ::
+          :ok | {:error, :rate_limited}
+  def check_comment_create!(wallet_address, node_id)
+      when is_binary(wallet_address) and not is_nil(node_id) do
+    strict_consume_bucket(
+      "watch:comment:create:#{String.trim(wallet_address)}:#{QueryHelpers.normalize_id(node_id)}",
+      @comment_create_policy
+    )
+  rescue
+    _ -> {:error, :rate_limited}
+  end
+
+  def check_comment_create!(_wallet_address, _node_id), do: {:error, :rate_limited}
+
+  @spec check_trollbox_post!(String.t() | nil) :: :ok | {:error, :rate_limited}
+  def check_trollbox_post!(identity) when is_binary(identity) do
+    normalized_identity = String.trim(identity)
+
+    with :ok <-
+           strict_consume_bucket(
+             "rl:trollbox:post:#{normalized_identity}",
+             @trollbox_post_cooldown_policy
+           ),
+         :ok <-
+           strict_consume_bucket(
+             "rl:trollbox:burst:#{normalized_identity}",
+             @trollbox_post_burst_policy
+           ) do
+      :ok
+    end
+  end
+
+  def check_trollbox_post!(_identity), do: {:error, :rate_limited}
+
   defp emit_throttle_event(:ok, _subject), do: :ok
 
   defp emit_throttle_event({:error, %{code: code, retry_after_ms: retry_after_ms}}, :message) do
@@ -180,6 +227,28 @@ defmodule TechTree.RateLimit do
         {:error, _limit_error} = error -> {:halt, error}
       end
     end)
+  end
+
+  defp strict_consume_bucket(key, policy) do
+    args = [
+      @bucket_script,
+      "1",
+      key,
+      Integer.to_string(System.system_time(:millisecond)),
+      Integer.to_string(policy.capacity),
+      Integer.to_string(policy.refill_tokens),
+      Integer.to_string(policy.refill_interval_ms),
+      "1"
+    ]
+
+    case Dragonfly.command(["EVAL" | args]) do
+      {:ok, [1, 0]} -> :ok
+      {:ok, [0, _retry_after_ms]} -> {:error, :rate_limited}
+      {:error, _reason} -> {:error, :rate_limited}
+      _ -> {:error, :rate_limited}
+    end
+  rescue
+    _ -> {:error, :rate_limited}
   end
 
   defp scopes(opts) do

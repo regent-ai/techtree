@@ -1,0 +1,839 @@
+{
+  "$defs": {
+    "ArtifactLicenses": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Data"
+        },
+        "notebook": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notebook"
+        },
+        "outputs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outputs"
+        }
+      },
+      "title": "ArtifactLicenses",
+      "type": "object"
+    },
+    "AssignmentPolicy": {
+      "enum": [
+        "public_next",
+        "operator_assigned",
+        "validator_assigned",
+        "draft_only"
+      ],
+      "title": "AssignmentPolicy",
+      "type": "string"
+    },
+    "BbhArtifactProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_policy": {
+          "$ref": "#/$defs/AssignmentPolicy"
+        },
+        "data_refs": {
+          "items": {
+            "$ref": "#/$defs/BbhDataRef"
+          },
+          "title": "Data Refs",
+          "type": "array"
+        },
+        "difficulty": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Difficulty"
+        },
+        "family_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family Ref"
+        },
+        "hypothesis": {
+          "minLength": 1,
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "instance_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Ref"
+        },
+        "language": {
+          "const": "python",
+          "default": "python",
+          "title": "Language",
+          "type": "string"
+        },
+        "protocol_path": {
+          "default": "protocol.md",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Protocol Path",
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/Provider"
+        },
+        "provider_ref": {
+          "minLength": 1,
+          "title": "Provider Ref",
+          "type": "string"
+        },
+        "rubric_path": {
+          "default": "rubric.json",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Rubric Path",
+          "type": "string"
+        },
+        "source_paper_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Paper Ref"
+        },
+        "split": {
+          "$ref": "#/$defs/Split"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "split",
+        "provider",
+        "provider_ref",
+        "hypothesis",
+        "assignment_policy"
+      ],
+      "title": "BbhArtifactProfile",
+      "type": "object"
+    },
+    "BbhDataRef": {
+      "additionalProperties": false,
+      "properties": {
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "BbhDataRef",
+      "type": "object"
+    },
+    "ClaimSource": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "ClaimSource",
+      "type": "object"
+    },
+    "EnvironmentSource": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "lockfile_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "uv.lock",
+          "title": "Lockfile Path"
+        },
+        "runtime_policy": {
+          "$ref": "#/$defs/RuntimePolicy"
+        },
+        "system": {
+          "$ref": "#/$defs/EnvironmentSystem"
+        }
+      },
+      "title": "EnvironmentSource",
+      "type": "object"
+    },
+    "EnvironmentSystem": {
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "default": "linux/amd64",
+          "title": "Platform",
+          "type": "string"
+        },
+        "python": {
+          "default": "3.11",
+          "title": "Python",
+          "type": "string"
+        }
+      },
+      "title": "EnvironmentSystem",
+      "type": "object"
+    },
+    "FamilyEvalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "generator": {
+          "$ref": "#/$defs/FamilyGeneratorSpec"
+        },
+        "mode": {
+          "const": "family",
+          "default": "family",
+          "title": "Mode",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/ProtocolSpec"
+        },
+        "rubric": {
+          "$ref": "#/$defs/RubricSpec"
+        }
+      },
+      "required": [
+        "generator"
+      ],
+      "title": "FamilyEvalSpec",
+      "type": "object"
+    },
+    "FamilyGeneratorSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "determinism": {
+          "default": "seed_only",
+          "enum": [
+            "seed_only",
+            "seed_plus_params"
+          ],
+          "title": "Determinism",
+          "type": "string"
+        },
+        "entrypoint": {
+          "default": "eval/generate.py",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "params_schema": {
+          "default": "schemas/family.json",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Params Schema",
+          "type": "string"
+        },
+        "seed_type": {
+          "const": "uint64",
+          "default": "uint64",
+          "title": "Seed Type",
+          "type": "string"
+        }
+      },
+      "title": "FamilyGeneratorSpec",
+      "type": "object"
+    },
+    "FilesystemPolicy": {
+      "enum": [
+        "read_only",
+        "workspace_write"
+      ],
+      "title": "FilesystemPolicy",
+      "type": "string"
+    },
+    "FixedEvalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "const": "fixed",
+          "default": "fixed",
+          "title": "Mode",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/ProtocolSpec"
+        },
+        "rubric": {
+          "$ref": "#/$defs/RubricSpec"
+        }
+      },
+      "title": "FixedEvalSpec",
+      "type": "object"
+    },
+    "NetworkPolicy": {
+      "enum": [
+        "none",
+        "declared"
+      ],
+      "title": "NetworkPolicy",
+      "type": "string"
+    },
+    "NotebookSource": {
+      "additionalProperties": false,
+      "properties": {
+        "entrypoint": {
+          "default": "analysis.py",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "exclude": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        },
+        "include": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Include",
+          "type": "array"
+        },
+        "marimo_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Marimo Version"
+        }
+      },
+      "title": "NotebookSource",
+      "type": "object"
+    },
+    "OutputContract": {
+      "additionalProperties": false,
+      "properties": {
+        "required_files": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Required Files",
+          "type": "array"
+        },
+        "required_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Keys",
+          "type": "array"
+        }
+      },
+      "title": "OutputContract",
+      "type": "object"
+    },
+    "ParentLink": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "relation": {
+          "$ref": "#/$defs/ParentRelation"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "relation"
+      ],
+      "title": "ParentLink",
+      "type": "object"
+    },
+    "ParentRelation": {
+      "enum": [
+        "revision",
+        "fork",
+        "derivative",
+        "reference"
+      ],
+      "title": "ParentRelation",
+      "type": "string"
+    },
+    "ProtocolSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array"
+        },
+        "entrypoint": {
+          "default": "eval/run.py",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "max_runtime_s": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1800,
+          "title": "Max Runtime S"
+        },
+        "max_turns": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 20,
+          "title": "Max Turns"
+        },
+        "output_contract": {
+          "$ref": "#/$defs/OutputContract"
+        }
+      },
+      "title": "ProtocolSpec",
+      "type": "object"
+    },
+    "ProvenanceSource": {
+      "additionalProperties": false,
+      "properties": {
+        "build_attestation_files": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Build Attestation Files",
+          "type": "array"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_repo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Repo"
+        }
+      },
+      "title": "ProvenanceSource",
+      "type": "object"
+    },
+    "Provider": {
+      "enum": [
+        "bbh",
+        "bbh_train",
+        "techtree"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "RubricSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "default": "deterministic",
+          "enum": [
+            "deterministic",
+            "mean",
+            "custom"
+          ],
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "pass_rule": {
+          "default": "see rubric.json",
+          "title": "Pass Rule",
+          "type": "string"
+        },
+        "primary_metric": {
+          "default": "raw_score",
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "score_range": {
+          "$ref": "#/$defs/ScoreRange"
+        },
+        "scorer": {
+          "default": "eval/score.py",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Scorer",
+          "type": "string"
+        },
+        "secondary_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Secondary Metrics",
+          "type": "array"
+        }
+      },
+      "title": "RubricSpec",
+      "type": "object"
+    },
+    "RuntimePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": {
+          "$ref": "#/$defs/FilesystemPolicy",
+          "default": "workspace_write"
+        },
+        "gpu": {
+          "default": false,
+          "title": "Gpu",
+          "type": "boolean"
+        },
+        "network": {
+          "$ref": "#/$defs/NetworkPolicy",
+          "default": "none"
+        },
+        "secrets": {
+          "$ref": "#/$defs/SecretsPolicy",
+          "default": "forbidden"
+        }
+      },
+      "title": "RuntimePolicy",
+      "type": "object"
+    },
+    "ScoreRange": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "default": 10.0,
+          "title": "Max",
+          "type": "number"
+        },
+        "min": {
+          "default": 0.0,
+          "title": "Min",
+          "type": "number"
+        }
+      },
+      "title": "ScoreRange",
+      "type": "object"
+    },
+    "SecretsPolicy": {
+      "enum": [
+        "forbidden",
+        "declared"
+      ],
+      "title": "SecretsPolicy",
+      "type": "string"
+    },
+    "SourceKind": {
+      "enum": [
+        "paper",
+        "dataset",
+        "code",
+        "website",
+        "artifact",
+        "other"
+      ],
+      "title": "SourceKind",
+      "type": "string"
+    },
+    "SourceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "ref": {
+          "minLength": 1,
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "SourceRef",
+      "type": "object"
+    },
+    "Split": {
+      "enum": [
+        "climb",
+        "benchmark",
+        "challenge",
+        "draft"
+      ],
+      "title": "Split",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bbh": {
+      "$ref": "#/$defs/BbhArtifactProfile"
+    },
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/ClaimSource"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "env": {
+      "$ref": "#/$defs/EnvironmentSource"
+    },
+    "eval": {
+      "discriminator": {
+        "mapping": {
+          "family": "#/$defs/FamilyEvalSpec",
+          "fixed": "#/$defs/FixedEvalSpec"
+        },
+        "propertyName": "mode"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/FixedEvalSpec"
+        },
+        {
+          "$ref": "#/$defs/FamilyEvalSpec"
+        }
+      ],
+      "title": "Eval"
+    },
+    "licenses": {
+      "$ref": "#/$defs/ArtifactLicenses"
+    },
+    "notebook": {
+      "$ref": "#/$defs/NotebookSource"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "parents": {
+      "items": {
+        "$ref": "#/$defs/ParentLink"
+      },
+      "title": "Parents",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/ProvenanceSource"
+    },
+    "schema_version": {
+      "const": "techtree.bbh.artifact-source.v1",
+      "default": "techtree.bbh.artifact-source.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceRef"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "summary": {
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "summary",
+    "eval",
+    "bbh"
+  ],
+  "title": "BbhArtifactSourceV1",
+  "type": "object"
+}

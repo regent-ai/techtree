@@ -42,6 +42,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
         manifest_uri = resolve_manifest_uri!(node)
         manifest_hash = resolve_manifest_hash!(node)
         idempotency_key = resolve_idempotency_key!(node, args)
+
         attempt =
           Nodes.touch_publish_attempt!(node.id, idempotency_key, manifest_uri, manifest_hash)
 

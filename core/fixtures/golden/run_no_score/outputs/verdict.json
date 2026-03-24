@@ -1,0 +1,10 @@
+{
+  "decision": "pass",
+  "justification": "The run completed without a score.",
+  "metrics": {
+    "values": {
+      "evidence_quality": 8,
+      "calibration": 0.52
+    }
+  }
+}

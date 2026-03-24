@@ -84,5 +84,4 @@ defmodule TechTree.Opportunities do
   @spec maybe_filter_kind(Ecto.Query.t(), [Node.kind()]) :: Ecto.Query.t()
   defp maybe_filter_kind(query, []), do: query
   defp maybe_filter_kind(query, kinds), do: where(query, [n], n.kind in ^kinds)
-
 end

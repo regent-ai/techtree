@@ -1,0 +1,88 @@
+schema_version: techtree.artifact-source.v1
+
+title: "Capsule family for blinded discrimination"
+summary: "Family of tasks that separate signal from artifact."
+
+parents:
+  - artifact_id: "0x3333333333333333333333333333333333333333333333333333333333333333"
+    relation: derivative
+    note: "Family extracted from prior notebook"
+
+notebook:
+  entrypoint: notebooks/capsule_family.py
+  include:
+    - notebooks/**/*.py
+    - eval/**/*.py
+    - schemas/**/*.json
+    - pyproject.toml
+    - uv.lock
+    - attestations/**/*
+  exclude:
+    - outputs/**
+    - dist/**
+  marimo_version: "0.11.8"
+
+env:
+  lockfile_path: uv.lock
+  image: "oci:sha256:ee0dcaab7b91fa3d6df6ec2fd0b9c9db6a1fce4ef1e4bd4d0f5d2f0a0a912345"
+  system:
+    python: "3.11"
+    platform: "linux/amd64"
+  runtime_policy:
+    network: none
+    filesystem: workspace_write
+    secrets: forbidden
+    gpu: false
+  external_resources: []
+
+provenance:
+  source_repo: "git:example/family-capsule"
+  source_commit: "cccccccccccccccccccccccccccccccccccccccc"
+  build_attestation_files:
+    - attestations/build.intoto.jsonl
+
+claims:
+  - text: "Higher scores correspond to better discrimination between signal and artifact."
+
+sources:
+  - kind: artifact
+    ref: "0x3333333333333333333333333333333333333333333333333333333333333333"
+    license: MIT
+    note: "Parent artifact"
+
+licenses:
+  notebook: MIT
+  data: CC-BY-4.0
+  outputs: CC-BY-4.0
+
+eval:
+  mode: family
+  protocol:
+    entrypoint: eval/run.py
+    allowed_tools:
+      - python
+    max_runtime_s: 1800
+    output_contract:
+      required_files:
+        - outputs/verdict.json
+      required_keys:
+        - decision
+        - justification
+        - metrics
+  rubric:
+    scorer: eval/score.py
+    primary_metric: total_score
+    secondary_metrics:
+      - evidence_quality
+      - calibration
+    score_range:
+      min: 0
+      max: 10
+    aggregation: mean
+    pass_rule: "total_score >= 7.0"
+  generator:
+    entrypoint: eval/generate.py
+    seed_type: uint64
+    determinism: seed_only
+    params_schema: schemas/family.json
+  hidden_eval_commitment: "sha256:9ef28d0b9474b44ccdb4fdb6a4165d4f6a24bb9b132d49b7e2eb45644e5f3333"

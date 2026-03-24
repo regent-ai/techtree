@@ -105,8 +105,10 @@ config :tech_tree, :internal_shared_secret, env_or_dotenv.("INTERNAL_SHARED_SECR
 config :tech_tree, :siwa,
   internal_url: env_or_dotenv.("SIWA_INTERNAL_URL", "http://siwa-sidecar:4100"),
   shared_secret: env_or_dotenv.("SIWA_SHARED_SECRET", ""),
-  http_connect_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_CONNECT_TIMEOUT_MS", "2000")),
-  http_receive_timeout_ms: String.to_integer(env_or_dotenv.("SIWA_HTTP_RECEIVE_TIMEOUT_MS", "5000"))
+  http_connect_timeout_ms:
+    String.to_integer(env_or_dotenv.("SIWA_HTTP_CONNECT_TIMEOUT_MS", "2000")),
+  http_receive_timeout_ms:
+    String.to_integer(env_or_dotenv.("SIWA_HTTP_RECEIVE_TIMEOUT_MS", "5000"))
 
 existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
 

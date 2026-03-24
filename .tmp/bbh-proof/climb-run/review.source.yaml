@@ -1,0 +1,17 @@
+{
+  "schema_version": "techtree.bbh.review-source.v1",
+  "target": {
+    "type": "run",
+    "id": "climb-run"
+  },
+  "kind": "validation",
+  "method": "replay",
+  "result": "confirmed",
+  "summary": "Replay confirmed the submitted BBH verdict within tolerance.",
+  "bbh": {
+    "role": "official",
+    "reproduced_raw_score": 0,
+    "reproduced_normalized_score": 0,
+    "raw_abs_tolerance": 0.01
+  }
+}

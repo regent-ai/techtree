@@ -1,0 +1,296 @@
+{
+  "$defs": {
+    "ReviewAttachment": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size",
+        "media_type",
+        "role"
+      ],
+      "title": "ReviewAttachment",
+      "type": "object"
+    },
+    "ReviewEvidenceCanonical": {
+      "additionalProperties": false,
+      "properties": {
+        "attachments": {
+          "items": {
+            "$ref": "#/$defs/ReviewAttachment"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/ReviewEvidenceRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        }
+      },
+      "title": "ReviewEvidenceCanonical",
+      "type": "object"
+    },
+    "ReviewEvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "artifact",
+            "run",
+            "review"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "ReviewEvidenceRef",
+      "type": "object"
+    },
+    "ReviewFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "ReviewFinding",
+      "type": "object"
+    },
+    "ReviewProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "attestation_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attestation Files",
+          "type": "array"
+        },
+        "reviewer_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewer Id"
+        }
+      },
+      "title": "ReviewProvenance",
+      "type": "object"
+    },
+    "ReviewScope": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "whole",
+            "claim",
+            "eval",
+            "output",
+            "provenance",
+            "license",
+            "section"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "title": "ReviewScope",
+      "type": "object"
+    },
+    "ReviewTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "artifact",
+            "run"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "title": "ReviewTarget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "evidence": {
+      "$ref": "#/$defs/ReviewEvidenceCanonical"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/ReviewFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "validation",
+        "challenge"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "replay",
+        "replication",
+        "manual",
+        "provenance",
+        "lineage",
+        "license",
+        "policy",
+        "other"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "payload_hash": {
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "confirmed",
+        "rejected",
+        "mixed",
+        "needs_revision"
+      ],
+      "title": "Result",
+      "type": "string"
+    },
+    "review_provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReviewProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "techtree.review-manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ReviewScope"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/ReviewTarget"
+    }
+  },
+  "required": [
+    "schema_version",
+    "target",
+    "kind",
+    "method",
+    "scope",
+    "result",
+    "summary",
+    "evidence",
+    "payload_hash"
+  ],
+  "title": "ReviewManifestV1",
+  "type": "object"
+}

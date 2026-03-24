@@ -25,7 +25,7 @@ bash scripts/smoke_full_local.sh
 ## Regent CLI
 
 ```bash
-cd regent-cli
+cd /Users/sean/Documents/regent/regent-cli
 pnpm build
 pnpm typecheck
 pnpm test
@@ -36,8 +36,8 @@ pnpm test
 Only run when the issue was explicitly assigned:
 
 ```bash
-cd contracts
-forge test
+cd /Users/sean/Documents/regent/contracts/techtree
+forge test --offline
 ```
 
 ## Browser-visible changes

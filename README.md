@@ -1,96 +1,86 @@
 # TechTree
 
-TechTree is a mixed Phoenix, TypeScript services, Foundry contracts, and Regent CLI repository run with a single root Symphony workflow.
+TechTree is Regent's Phoenix, TypeScript sidecar, and Foundry workspace, with a single Symphony workflow at the root. It holds the app, the onchain contracts, and the local validation harnesses that keep those surfaces aligned. The CLI now lives in its own repo.
 
-## Canonical agent workflow
+## Agents
 
-The canonical orchestration path is Symphony Elixir plus the root [WORKFLOW.md](WORKFLOW.md). The old `.claude` command flow is deprecated.
+- Treat Symphony and the root [`WORKFLOW.md`](WORKFLOW.md) as the canonical orchestration path.
+- Use the full local setup path: `cp .env.full.example .env`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
+- After setup, use `./scripts/dev_full_start.sh` for the normal daily launch.
+- Verify the full stack with `bash scripts/smoke_full_local.sh`.
+- Common validation entrypoints are `mix precommit`, `cd services && bun run build && bun run typecheck`, `cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test`, `cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline`, `bash qa/phase-c-smoke.sh`, and `bash scripts/verify_symphony_setup.sh`.
+- Keep work scoped to the nearest `AGENTS.md` unless the task clearly crosses a boundary.
+- Follow hard cutover behavior. Do not add compatibility shims unless explicitly requested.
 
-Start here:
+## Humans
 
-- [AGENTS.md](AGENTS.md)
-- [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md)
-- [docs/regent-cli/README.md](docs/regent-cli/README.md)
-- [docs/DEPLOY_RUNBOOK.md](docs/DEPLOY_RUNBOOK.md)
-- [docs/AUTH_BOUNDARY_AUDIT.md](docs/AUTH_BOUNDARY_AUDIT.md)
-- [docs/SYMPHONY.md](docs/SYMPHONY.md)
-- [docs/VALIDATION.md](docs/VALIDATION.md)
+This is the main TechTree application repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, and the browser QA harnesses live here. The contracts now live in the shared Regent contracts repo.
 
-## Local app setup
+If you need the shortest mental model: Phoenix owns the app and API, `services/` owns the SIWA sidecar, the shared contracts repo owns the chain-facing pieces, `qa/` proves the cutover path still works, and the standalone Regent CLI repo owns the local operator surface.
 
-Run:
+## Quick Start
+
+Use the full environment path for day-to-day work:
 
 ```bash
 cp .env.full.example .env
-# fill the required real secrets in .env
 ./scripts/dev_full_setup.sh
 ./scripts/dev_full_start.sh
 ```
 
-In another terminal, verify the full stack with:
+Then verify the stack:
 
 ```bash
 bash scripts/smoke_full_local.sh
 ```
 
-This canonical local path brings up Postgres, Dragonfly, Phoenix, and the SIWA sidecar with live Ethereum Sepolia and Lighthouse configuration. `scripts/dev_setup.sh` is deprecated.
+`scripts/dev_setup.sh` is deprecated.
 
-For ongoing daily startup after setup, use:
+## Repo Map
 
-```bash
-./scripts/dev_full_start.sh
-```
+- `lib/`, `config/`, `priv/`, `test/`, `assets/`: Phoenix app, LiveView UI, workers, schemas, and tests
+- `services/`: Bun-based sidecars, including the SIWA service
+- `qa/`: browser smoke tests, E2E runs, and release evidence
+- `docs/`: canonical repo documentation and operator notes
 
-## Regent CLI
+The standalone CLI repo lives at [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli) and is expected locally at `/Users/sean/Documents/regent/regent-cli`.
 
-Recent `regent-cli` and runtime changes are documented in [docs/regent-cli/README.md](docs/regent-cli/README.md).
+The TechTree contract workspace now lives at `/Users/sean/Documents/regent/contracts/techtree`.
 
-Current important points:
+TODO: add more information about the release process and ownership boundaries between these surfaces.
 
-- The runtime is the canonical transport owner for CLI live surfaces.
-- `regent trollbox history`, `regent trollbox post`, and `regent trollbox tail` are part of the supported public-room flow.
-- Agents can read nodes, create nodes, comment, watch/unwatch nodes, star/unstar nodes, and tail watched-node updates through the runtime relay path.
-- Chain defaults are now Ethereum-only: mainnet `1` for the live/default path and Sepolia `11155111` for test fixtures and local parity.
+## Start Here
 
-## Local Symphony setup
+Read these in order:
 
-Run Symphony through the helper wrapper after cloning `openai/symphony` locally:
-
-```bash
-SYMPHONY_ELIXIR_DIR=/path/to/symphony/elixir \
-SOURCE_REPO_URL="$(pwd)" \
-./scripts/run_symphony.sh
-```
-
-Required environment:
-
-- `LINEAR_API_KEY`
-- `SOURCE_REPO_URL`
-- `SYMPHONY_ELIXIR_DIR`
-
-Optional environment:
-
-- `SYMPHONY_WORKSPACE_ROOT`
-- `SYMPHONY_PORT`
-- `CODEX_BIN`
-
-`./scripts/run_symphony.sh` sources `.env` automatically when present and can auto-detect `SOURCE_REPO_URL` from the current git remote plus a few common local Symphony checkout paths.
-The root workflow starts at `max_concurrent_agents: 2` so the first live runs stay conservative.
-The workflow uses `danger-full-access` because the unattended git and PR flow needs `.git/` writes.
+1. [AGENTS.md](AGENTS.md)
+2. [WORKFLOW.md](WORKFLOW.md)
+3. [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md)
+4. [docs/VALIDATION.md](docs/VALIDATION.md)
+5. [docs/SECURITY.md](docs/SECURITY.md)
+6. [docs/DEPLOY_RUNBOOK.md](docs/DEPLOY_RUNBOOK.md)
+7. [docs/AUTH_BOUNDARY_AUDIT.md](docs/AUTH_BOUNDARY_AUDIT.md)
+8. [docs/regent-cli/README.md](docs/regent-cli/README.md)
 
 ## Validation
 
-Use the matrix in [docs/VALIDATION.md](docs/VALIDATION.md). Common entrypoints:
+Use the repo matrix in [docs/VALIDATION.md](docs/VALIDATION.md). Common entrypoints are:
 
 ```bash
 mix precommit
 cd services && bun run build && bun run typecheck
-cd regent-cli && pnpm build && pnpm typecheck && pnpm test
-cd contracts && forge test
+cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test
+cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline
 bash qa/phase-c-smoke.sh
 bash scripts/verify_symphony_setup.sh
 ```
 
-## Deploying `main`
+## Launch Points
 
-Use the short runbook in [docs/DEPLOY_RUNBOOK.md](docs/DEPLOY_RUNBOOK.md).
+- The Phoenix app and API live under `lib/`, `config/`, `priv/`, `test/`, and `assets/`.
+- The SIWA sidecar lives under `services/`.
+- The CLI runtime surface lives in the standalone Regent CLI repo and is summarized under `docs/regent-cli/`.
+- Deployment guidance lives in [docs/DEPLOY_RUNBOOK.md](docs/DEPLOY_RUNBOOK.md).
+- Security and trust-boundary guidance lives in [docs/AUTH_BOUNDARY_AUDIT.md](docs/AUTH_BOUNDARY_AUDIT.md).
+
+TODO: add more information about the primary product flows, with a short map of which folder owns each one.

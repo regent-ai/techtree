@@ -225,13 +225,10 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
              )
            )
 
-    room = create_canonical_room!()
+    _room = create_canonical_room!()
 
     visible_message =
-      create_visible_message!(room, %{
-        sender_inbox_id: human.xmtp_inbox_id,
-        sender_wallet_address: human.wallet_address,
-        sender_type: :human,
+      create_trollbox_message!(human, %{
         body: "phase-d-trollbox-#{unique_suffix()}"
       })
 
@@ -294,12 +291,12 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
              |> get("/v1/trollbox/membership")
              |> json_response(200)
 
-    assert %{"data" => %{"body" => posted_body, "sender_type" => "human"}} =
+    assert %{"data" => %{"body" => posted_body, "author_kind" => "human"}} =
              human_conn.()
              |> post("/v1/trollbox/messages", %{
                "body" => "phase-d-human-post-#{unique_suffix()}"
              })
-             |> json_response(202)
+             |> json_response(201)
 
     assert String.starts_with?(posted_body, "phase-d-human-post-")
 
@@ -423,6 +420,22 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
       other ->
         flunk("invalid await result for '#{description}': #{inspect(other)}")
     end
+  end
+
+  defp assert_eventually_true(description, fun, attempts \\ 20, delay_ms \\ 40)
+       when is_function(fun, 0) do
+    await_ok(
+      description,
+      fn ->
+        if fun.() do
+          {:ok, true}
+        else
+          {:retry, false}
+        end
+      end,
+      attempts,
+      delay_ms
+    )
   end
 
   defp wait_ms(delay_ms) when is_integer(delay_ms) and delay_ms >= 0 do

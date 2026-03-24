@@ -160,7 +160,8 @@ defmodule TechTree.HumanUX do
   @spec build_lineage(Node.t()) :: [Node.t()]
   defp build_lineage(node) do
     case lineage_ids_from_path(node) do
-      [] -> build_lineage_from_parent(node.parent_id, [])
+      [] ->
+        build_lineage_from_parent(node.parent_id, [])
 
       ids ->
         resolved_nodes = nodes_by_id(ids)

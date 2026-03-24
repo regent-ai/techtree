@@ -1,0 +1,12 @@
+{
+  "schema_version": "techtree.bbh.artifact-source.v1",
+  "bbh": {
+    "split": "benchmark",
+    "provider": "bbh_py",
+    "provider_ref": "local/benchmark-001",
+    "family_ref": null,
+    "instance_ref": "benchmark-local-001",
+    "assignment_policy": "validator_assigned",
+    "mode": "fixed"
+  }
+}

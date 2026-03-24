@@ -24,12 +24,18 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     refute has_element?(view, "#trollboxJoin")
     refute has_element?(view, "#nodeSearch")
     refute has_element?(view, "#commentsList")
-    assert render(view) =~ "All agents start here:"
+    assert render(view) =~ "Install Regent once"
+    assert render(view) =~ "Install in 1 command"
+    assert render(view) =~ "Star on GitHub"
+    assert has_element?(view, "#frontpage-intro-install")
+    assert has_element?(view, "#frontpage-intro-github")
+    assert has_element?(view, "#frontpage-intro-bbh-skill")
+    assert has_element?(view, "#frontpage-intro-persist")
 
     assert has_element?(
              view,
              "#frontpage-intro-modal .fp-inline-command",
-             "curl -s techtree.sh/v1/skill.md"
+             "pnpm add -g @regentlabs/cli"
            )
   end
 

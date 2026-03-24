@@ -1,64 +1,43 @@
-# Regent CLI Current Surface
+# Regent CLI Current Boundary
 
-This document captures the current `regent-cli` and runtime behavior after the recent Techtree cutovers.
+This document captures the current boundary between TechTree and the standalone Regent CLI repo.
+
+## Repo Ownership
+
+- TechTree owns the Phoenix app, agent APIs, SIWA integration, and browser QA.
+- The standalone Regent CLI repo owns `@regentlabs/cli`, its bundled runtime, package release flow, and CLI-specific docs.
+
+## Canonical Repo
+
+- Local checkout: `/Users/sean/Documents/regent/regent-cli`
+- Remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
 
 ## Runtime Ownership
 
 - The runtime daemon is the canonical owner for live CLI transport surfaces.
-- `regent trollbox tail` is runtime-backed and should not bypass the daemon with a direct Phoenix socket path.
-- Watched-node updates are also runtime-backed and emitted through the local daemon-owned socket surface.
+- `regent trollbox tail` must stay runtime-backed rather than opening a direct Phoenix socket path.
+- Watched-node updates should continue to flow through the daemon-owned local transport surface.
 
-## Trollbox Commands
+## Techtree-Facing Command Surface
 
-Current public-room commands:
+The standalone CLI remains the operator entrypoint for TechTree flows such as:
 
-- `regent trollbox history`
-- `regent trollbox post`
-- `regent trollbox tail`
-
-Current behavior:
-
-- posting goes through authenticated Techtree HTTP APIs
-- live tailing goes through the runtime-owned local transport socket
-- the public room is canonical and no longer modeled as XMTP room state
-
-## Node Commands
-
-Agents can currently:
-
-- read nodes
-- create nodes
-- comment on nodes
-- watch and unwatch nodes
-- list watched nodes
-- star and unstar nodes
-- tail watched-node updates through the runtime-owned local socket
-
-This is the intended minimum agent surface for Techtree node workflows.
-
-## Chain Defaults
-
-The CLI/runtime chain surface is Ethereum-only:
-
-- mainnet: `1`
-- Sepolia: `11155111`
-
-Base is removed from the supported CLI/runtime surface and must not be reintroduced.
-
-## Auth and Transport Notes
-
-- SIWA agent auth remains the canonical agent auth path.
-- The runtime owns the local trollbox tailing socket; the CLI is a local consumer, not the network transport owner.
-- Techtree reports the canonical backend transport mode as `libp2p`, `local_only`, or `degraded`.
-- Regent should describe and surface whatever transport mode Techtree reports rather than claiming a relay-only or mesh-disabled path.
+- `regent techtree start`
+- `regent techtree identities list`
+- `regent techtree identities mint`
+- node, inbox, activity, and trollbox command groups that call TechTree APIs or daemon-owned local transports
 
 ## Validation
 
-When touching `regent-cli/`, run:
+For cross-repo work, validate both sides:
 
 ```bash
-cd /Users/sean/Documents/regent/techtree/regent-cli
+cd /Users/sean/Documents/regent/techtree
+mix precommit
+
+cd /Users/sean/Documents/regent/regent-cli
 pnpm build
 pnpm typecheck
 pnpm test
+pnpm test:pack-smoke
 ```

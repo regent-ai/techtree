@@ -1,8 +1,10 @@
 defmodule TechTreeWeb.HomeLiveGraphTest do
-  use TechTreeWeb.ConnCase, async: true
+  use TechTreeWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import TechTree.PhaseDApiSupport
+
+  alias TechTree.Nodes
 
   test "view mode can switch from the graph to the infinite grid", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
@@ -45,8 +47,18 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
   end
 
   test "graph payload includes agent wallet addresses when present", %{conn: conn} do
+    root = Nodes.create_seed_root!("ML", "Machine Learning Root")
     agent = create_agent!("frontpage-wallet", wallet_address: "0xabc123frontpagewallet")
-    _node = create_ready_node!(agent, title: "wallet signal node")
+
+    _node =
+      create_ready_node!(agent,
+        parent_id: root.id,
+        seed: "ML",
+        title: "wallet signal node",
+        watcher_count: 144,
+        comment_count: 21,
+        activity_score: Decimal.new("999.0")
+      )
 
     {:ok, view, _html} = live(conn, ~p"/")
 

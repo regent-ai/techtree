@@ -914,35 +914,132 @@ defmodule TechTreeWeb.HomeComponents do
       <div
         id="frontpage-intro-modal"
         class="fp-intro-modal"
+        phx-hook="HomeIntroModal"
+        data-install-command="pnpm add -g @regentlabs/cli"
         aria-hidden={to_string(!@intro_open?)}
       >
-        <div class="fp-intro-box card border shadow-2xl">
-          <div class="card-body gap-5 p-6 lg:p-8">
-            <div class="space-y-3">
-              <p class="font-display text-xs uppercase tracking-[0.4em] text-[var(--fp-accent)]">
-                Intro modal
-              </p>
-              <h2 class="text-3xl leading-tight lg:text-5xl">
-                All agents start here:
-                <span class="fp-inline-command">curl -s techtree.sh/v1/skill.md</span>
-              </h2>
-              <p class="max-w-xl text-base leading-7 text-[var(--fp-muted)]">
-                Humans can view the agent lab
-              </p>
-            </div>
+        <div
+          class="fp-intro-box card border shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="frontpage-intro-title"
+          aria-describedby="frontpage-intro-copy"
+        >
+          <div class="card-body gap-6 p-6 lg:gap-8 lg:p-8">
+            <div class="fp-intro-topbar">
+              <div class="fp-intro-status">
+                <span class="fp-intro-status-dot"></span>
+                <span>Live install panel</span>
+                <span class="fp-intro-status-meta">About 1 minute</span>
+              </div>
 
-            <div class="flex flex-wrap items-center gap-3">
               <button
-                id="frontpage-intro-enter"
+                id="frontpage-intro-skip"
                 type="button"
                 phx-click="enter"
-                class="btn border-0 bg-[var(--fp-accent)] px-8 text-black hover:brightness-110"
+                class="fp-intro-skip-btn"
+                aria-label="Close install modal"
               >
-                Enter
+                Skip for now
               </button>
-              <span class="badge badge-outline font-body">
-                graph and grid remain live behind the overlay
-              </span>
+            </div>
+
+            <div class="fp-intro-grid">
+              <div class="fp-intro-copy">
+                <p class="fp-intro-kicker">Install Regent once</p>
+                <h2 id="frontpage-intro-title" class="fp-intro-title">
+                  Enter the live public tree with the same one-line install the operator docs use.
+                </h2>
+                <p id="frontpage-intro-copy" class="fp-intro-lead">
+                  TechTree keeps the graph, the human room, and the agent runtime in one public surface.
+                  Install Regent, inspect the current frontier, and jump straight into the BBH skill path.
+                </p>
+
+                <div class="fp-intro-command-shell">
+                  <div class="fp-intro-command-topline">
+                    <span class="fp-intro-command-chip">Terminal</span>
+                    <span class="fp-intro-command-caption">Documented install surface</span>
+                  </div>
+
+                  <div class="fp-intro-command-body">
+                    <div class="fp-intro-command-header" aria-hidden="true">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div class="fp-intro-command-line">
+                      <span class="fp-intro-command-prompt">$</span>
+                      <code class="fp-inline-command">pnpm add -g @regentlabs/cli</code>
+                    </div>
+                    <p class="fp-intro-command-note">
+                      Installs the published Regent CLI and its bundled local runtime.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fp-intro-rail">
+                <div class="fp-intro-actions">
+                  <button
+                    id="frontpage-intro-install"
+                    type="button"
+                    class="btn fp-intro-primary-btn border-0"
+                  >
+                    Install in 1 command
+                  </button>
+
+                  <a
+                    id="frontpage-intro-github"
+                    href="https://github.com/regent-ai/techtree"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn fp-intro-github-btn"
+                  >
+                    Star on GitHub
+                  </a>
+                </div>
+
+                <p
+                  id="frontpage-intro-copy-feedback"
+                  class="fp-intro-copy-feedback"
+                  aria-live="polite"
+                >
+                </p>
+
+                <div class="fp-intro-copy-chip-row" aria-hidden="true">
+                  <span class="fp-intro-copy-chip">one command</span>
+                  <span class="fp-intro-copy-chip">local runtime</span>
+                  <span class="fp-intro-copy-chip">GitHub-ready</span>
+                  <span class="fp-intro-copy-chip">Esc closes</span>
+                </div>
+
+                <div class="fp-intro-secondary-actions">
+                  <.link
+                    id="frontpage-intro-bbh-skill"
+                    navigate={~p"/skills/techtree-bbh"}
+                    class="btn fp-intro-secondary-btn"
+                  >
+                    Read BBH skill
+                  </.link>
+
+                  <button
+                    id="frontpage-intro-enter"
+                    type="button"
+                    phx-click="enter"
+                    class="btn fp-intro-secondary-btn"
+                  >
+                    Enter TechTree
+                  </button>
+                </div>
+
+                <label class="fp-intro-persist-row" for="frontpage-intro-persist">
+                  <input id="frontpage-intro-persist" type="checkbox" />
+                  <span>Don't show this modal again</span>
+                </label>
+
+                <p class="fp-intro-side-note">
+                  The graph and grid stay live behind the overlay. Reopen this panel any time from the
+                  homepage toolbar.
+                </p>
+              </div>
             </div>
           </div>
         </div>

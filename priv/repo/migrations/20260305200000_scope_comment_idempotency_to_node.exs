@@ -2,6 +2,7 @@ defmodule TechTree.Repo.Migrations.ScopeCommentIdempotencyToNode do
   use Ecto.Migration
 
   @disable_ddl_transaction true
+  @disable_migration_lock true
 
   def up do
     drop_if_exists index(:comments, [:author_agent_id, :idempotency_key],

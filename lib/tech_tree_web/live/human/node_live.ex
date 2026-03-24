@@ -232,6 +232,7 @@ defmodule TechTreeWeb.Human.NodeLive do
     </main>
     """
   end
+
   defp format_activity(%Decimal{} = value) do
     value
     |> Decimal.round(2)

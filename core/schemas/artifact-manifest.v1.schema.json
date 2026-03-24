@@ -1,0 +1,747 @@
+{
+  "$defs": {
+    "ArtifactEnvCanonical": {
+      "additionalProperties": false,
+      "properties": {
+        "external_resources": {
+          "items": {
+            "$ref": "#/$defs/ExternalResource"
+          },
+          "title": "External Resources",
+          "type": "array"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "lockfile_path": {
+          "title": "Lockfile Path",
+          "type": "string"
+        },
+        "runtime_policy": {
+          "$ref": "#/$defs/RuntimePolicy"
+        },
+        "system": {
+          "$ref": "#/$defs/SystemSpec"
+        }
+      },
+      "required": [
+        "lockfile_path",
+        "system",
+        "runtime_policy"
+      ],
+      "title": "ArtifactEnvCanonical",
+      "type": "object"
+    },
+    "ArtifactEvalSource": {
+      "additionalProperties": false,
+      "properties": {
+        "generator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalGenerator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hidden_eval_commitment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden Eval Commitment"
+        },
+        "instance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalInstance"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance"
+        },
+        "mode": {
+          "enum": [
+            "fixed",
+            "family"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "protocol": {
+          "$ref": "#/$defs/EvalProtocol"
+        },
+        "rubric": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvalRubric"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "mode",
+        "protocol"
+      ],
+      "title": "ArtifactEvalSource",
+      "type": "object"
+    },
+    "ArtifactLicenses": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "title": "Data",
+          "type": "string"
+        },
+        "notebook": {
+          "title": "Notebook",
+          "type": "string"
+        },
+        "outputs": {
+          "title": "Outputs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook",
+        "data",
+        "outputs"
+      ],
+      "title": "ArtifactLicenses",
+      "type": "object"
+    },
+    "ArtifactNotebookSection": {
+      "additionalProperties": false,
+      "properties": {
+        "entrypoint": {
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "files": {
+          "items": {
+            "$ref": "#/$defs/NotebookFileEntry"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "marimo_version": {
+          "title": "Marimo Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entrypoint",
+        "marimo_version"
+      ],
+      "title": "ArtifactNotebookSection",
+      "type": "object"
+    },
+    "Claim": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "EvalGenerator": {
+      "additionalProperties": false,
+      "properties": {
+        "determinism": {
+          "enum": [
+            "seed_only",
+            "seed_plus_params"
+          ],
+          "title": "Determinism",
+          "type": "string"
+        },
+        "entrypoint": {
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "params_schema": {
+          "title": "Params Schema",
+          "type": "string"
+        },
+        "seed_type": {
+          "const": "uint64",
+          "title": "Seed Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entrypoint",
+        "seed_type",
+        "determinism",
+        "params_schema"
+      ],
+      "title": "EvalGenerator",
+      "type": "object"
+    },
+    "EvalInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "instance_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Id"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "EvalInstance",
+      "type": "object"
+    },
+    "EvalOutputContract": {
+      "additionalProperties": false,
+      "properties": {
+        "required_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Files",
+          "type": "array"
+        },
+        "required_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Keys",
+          "type": "array"
+        }
+      },
+      "title": "EvalOutputContract",
+      "type": "object"
+    },
+    "EvalProtocol": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array"
+        },
+        "entrypoint": {
+          "title": "Entrypoint",
+          "type": "string"
+        },
+        "max_runtime_s": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Runtime S"
+        },
+        "max_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Tokens"
+        },
+        "output_contract": {
+          "$ref": "#/$defs/EvalOutputContract"
+        }
+      },
+      "required": [
+        "entrypoint",
+        "output_contract"
+      ],
+      "title": "EvalProtocol",
+      "type": "object"
+    },
+    "EvalRubric": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "enum": [
+            "deterministic",
+            "mean",
+            "custom"
+          ],
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "pass_rule": {
+          "title": "Pass Rule",
+          "type": "string"
+        },
+        "primary_metric": {
+          "title": "Primary Metric",
+          "type": "string"
+        },
+        "score_range": {
+          "$ref": "#/$defs/EvalScoreRange"
+        },
+        "scorer": {
+          "title": "Scorer",
+          "type": "string"
+        },
+        "secondary_metrics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Secondary Metrics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scorer",
+        "primary_metric",
+        "score_range",
+        "aggregation",
+        "pass_rule"
+      ],
+      "title": "EvalRubric",
+      "type": "object"
+    },
+    "EvalScoreRange": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "title": "Max",
+          "type": "number"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "EvalScoreRange",
+      "type": "object"
+    },
+    "ExternalResource": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "ExternalResource",
+      "type": "object"
+    },
+    "NotebookFileEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size",
+        "media_type",
+        "role"
+      ],
+      "title": "NotebookFileEntry",
+      "type": "object"
+    },
+    "ParentLink": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "relation": {
+          "enum": [
+            "revision",
+            "fork",
+            "derivative",
+            "reference"
+          ],
+          "title": "Relation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "relation"
+      ],
+      "title": "ParentLink",
+      "type": "object"
+    },
+    "ProvenanceCanonical": {
+      "additionalProperties": false,
+      "properties": {
+        "build_attestation_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Build Attestation Files",
+          "type": "array"
+        },
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_repo": {
+          "title": "Source Repo",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_repo",
+        "source_commit"
+      ],
+      "title": "ProvenanceCanonical",
+      "type": "object"
+    },
+    "RuntimePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": {
+          "enum": [
+            "read_only",
+            "workspace_write"
+          ],
+          "title": "Filesystem",
+          "type": "string"
+        },
+        "gpu": {
+          "title": "Gpu",
+          "type": "boolean"
+        },
+        "network": {
+          "enum": [
+            "none",
+            "declared"
+          ],
+          "title": "Network",
+          "type": "string"
+        },
+        "secrets": {
+          "enum": [
+            "forbidden",
+            "declared"
+          ],
+          "title": "Secrets",
+          "type": "string"
+        }
+      },
+      "required": [
+        "network",
+        "filesystem",
+        "secrets",
+        "gpu"
+      ],
+      "title": "RuntimePolicy",
+      "type": "object"
+    },
+    "SourceCitation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "paper",
+            "dataset",
+            "code",
+            "website",
+            "artifact",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "title": "SourceCitation",
+      "type": "object"
+    },
+    "SystemSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "python": {
+          "title": "Python",
+          "type": "string"
+        }
+      },
+      "required": [
+        "python",
+        "platform"
+      ],
+      "title": "SystemSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/Claim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "env": {
+      "$ref": "#/$defs/ArtifactEnvCanonical"
+    },
+    "eval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactEvalSource"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "kind": {
+      "enum": [
+        "notebook",
+        "capsule"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "licenses": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ArtifactLicenses"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "notebook": {
+      "$ref": "#/$defs/ArtifactNotebookSection"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "parents": {
+      "items": {
+        "$ref": "#/$defs/ParentLink"
+      },
+      "title": "Parents",
+      "type": "array"
+    },
+    "payload_hash": {
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProvenanceCanonical"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": "techtree.artifact-manifest.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceCitation"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "summary": {
+      "title": "Summary",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "title",
+    "summary",
+    "notebook",
+    "env",
+    "payload_hash"
+  ],
+  "title": "ArtifactManifestV1",
+  "type": "object"
+}

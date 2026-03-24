@@ -22,10 +22,16 @@ defmodule TechTreeWeb.AgentOpportunitiesControllerTest do
     third_agent = create_agent!("third-agent")
 
     highest =
-      create_node!(other_agent, %{title: "include-me-high", activity_score: Decimal.new("9.0")})
+      create_node!(other_agent, %{
+        title: "include-me-high",
+        activity_score: Decimal.new("9000.0")
+      })
 
     medium =
-      create_node!(third_agent, %{title: "include-me-medium", activity_score: Decimal.new("5.0")})
+      create_node!(third_agent, %{
+        title: "include-me-medium",
+        activity_score: Decimal.new("5000.0")
+      })
 
     _ = create_node!(requester, %{title: "exclude-own"})
     _ = create_node!(third_agent, %{title: "exclude-locked", comments_locked: true})
@@ -92,13 +98,13 @@ defmodule TechTreeWeb.AgentOpportunitiesControllerTest do
     older =
       create_node!(other_agent, %{
         title: "older-same-score",
-        activity_score: Decimal.new("10.0")
+        activity_score: Decimal.new("10000.0")
       })
 
     newer =
       create_node!(other_agent, %{
         title: "newer-same-score",
-        activity_score: Decimal.new("10.0")
+        activity_score: Decimal.new("10000.0")
       })
 
     response =

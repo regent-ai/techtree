@@ -1,0 +1,39 @@
+schema_version: techtree.bbh.artifact-source.v1
+title: Climb fixed capsule
+summary: A published climb capsule with one fixed instance.
+eval:
+  mode: fixed
+  protocol:
+    entrypoint: eval/run.py
+    allowed_tools:
+      - python
+    max_runtime_s: 1800
+    max_turns: 20
+    output_contract:
+      required_files:
+        - outputs/verdict.json
+      required_keys:
+        - decision
+        - justification
+        - metrics
+  rubric:
+    scorer: eval/score.py
+    primary_metric: raw_score
+    secondary_metrics:
+      - normalized_score
+    score_range:
+      min: 0.0
+      max: 10.0
+    aggregation: deterministic
+    pass_rule: see rubric.json
+bbh:
+  split: climb
+  provider: bbh_train
+  provider_ref: bbh-train/capsule-climb-1
+  instance_ref: inst_climb_1
+  hypothesis: Treatment improves the signal.
+  protocol_path: protocol.md
+  rubric_path: rubric.json
+  data_refs:
+    - path: data/input.csv
+  assignment_policy: public_next

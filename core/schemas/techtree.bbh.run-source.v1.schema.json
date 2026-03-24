@@ -1,0 +1,440 @@
+{
+  "$defs": {
+    "BbhRunProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assignment Ref"
+        },
+        "child_genome_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Child Genome Ref"
+        },
+        "genome_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Genome Ref",
+          "type": "string"
+        },
+        "keep_decision": {
+          "$ref": "#/$defs/KeepDecision",
+          "default": "pending"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "parent_genome_ref": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Genome Ref"
+        },
+        "provider": {
+          "$ref": "#/$defs/Provider"
+        },
+        "split": {
+          "$ref": "#/$defs/Split"
+        }
+      },
+      "required": [
+        "split",
+        "genome_ref",
+        "provider"
+      ],
+      "title": "BbhRunProfile",
+      "type": "object"
+    },
+    "HarnessType": {
+      "enum": [
+        "openclaw",
+        "hermes",
+        "claude_code",
+        "custom"
+      ],
+      "title": "HarnessType",
+      "type": "string"
+    },
+    "KeepDecision": {
+      "enum": [
+        "keep",
+        "discard",
+        "pending"
+      ],
+      "title": "KeepDecision",
+      "type": "string"
+    },
+    "Provider": {
+      "enum": [
+        "bbh",
+        "bbh_train",
+        "techtree"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "RunExecutor": {
+      "additionalProperties": false,
+      "properties": {
+        "harness": {
+          "$ref": "#/$defs/HarnessType"
+        },
+        "harness_version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Harness Version",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile"
+        },
+        "type": {
+          "enum": [
+            "genome",
+            "actor",
+            "system"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "harness",
+        "harness_version"
+      ],
+      "title": "RunExecutor",
+      "type": "object"
+    },
+    "RunInstance": {
+      "additionalProperties": false,
+      "properties": {
+        "family_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Family Ref"
+        },
+        "instance_ref": {
+          "minLength": 1,
+          "title": "Instance Ref",
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "required": [
+        "instance_ref"
+      ],
+      "title": "RunInstance",
+      "type": "object"
+    },
+    "RunOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "transport": {
+          "default": "local",
+          "enum": [
+            "local",
+            "xmtp",
+            "gossipsub",
+            "api"
+          ],
+          "title": "Transport",
+          "type": "string"
+        },
+        "trigger": {
+          "default": "manual",
+          "enum": [
+            "manual",
+            "assignment",
+            "validator",
+            "automation"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        },
+        "workload": {
+          "const": "bbh",
+          "default": "bbh",
+          "title": "Workload",
+          "type": "string"
+        }
+      },
+      "title": "RunOrigin",
+      "type": "object"
+    },
+    "RunPaths": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_path": {
+          "default": "analysis.py",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Analysis Path",
+          "type": "string"
+        },
+        "final_answer_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "final_answer.md",
+          "title": "Final Answer Path"
+        },
+        "genome_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "genome.source.yaml",
+          "title": "Genome Path"
+        },
+        "log_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/run.log",
+          "title": "Log Path"
+        },
+        "report_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/report.html",
+          "title": "Report Path"
+        },
+        "verdict_path": {
+          "default": "outputs/verdict.json",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Verdict Path",
+          "type": "string"
+        }
+      },
+      "title": "RunPaths",
+      "type": "object"
+    },
+    "RunScore": {
+      "additionalProperties": false,
+      "properties": {
+        "normalized": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Normalized",
+          "type": "number"
+        },
+        "raw": {
+          "title": "Raw",
+          "type": "number"
+        },
+        "scorer_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scorer Version"
+        }
+      },
+      "required": [
+        "raw",
+        "normalized"
+      ],
+      "title": "RunScore",
+      "type": "object"
+    },
+    "RunStatus": {
+      "enum": [
+        "created",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    },
+    "Split": {
+      "enum": [
+        "climb",
+        "benchmark",
+        "challenge",
+        "draft"
+      ],
+      "title": "Split",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_ref": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Artifact Ref",
+      "type": "string"
+    },
+    "bbh": {
+      "$ref": "#/$defs/BbhRunProfile"
+    },
+    "executor": {
+      "$ref": "#/$defs/RunExecutor"
+    },
+    "instance": {
+      "$ref": "#/$defs/RunInstance"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "origin": {
+      "$ref": "#/$defs/RunOrigin"
+    },
+    "paths": {
+      "$ref": "#/$defs/RunPaths"
+    },
+    "schema_version": {
+      "const": "techtree.bbh.run-source.v1",
+      "default": "techtree.bbh.run-source.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunScore"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus",
+      "default": "created"
+    }
+  },
+  "required": [
+    "artifact_ref",
+    "executor",
+    "instance",
+    "bbh"
+  ],
+  "title": "BbhRunSourceV1",
+  "type": "object"
+}

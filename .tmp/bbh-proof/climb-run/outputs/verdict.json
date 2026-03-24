@@ -1,0 +1,10 @@
+{
+  "decision": "inconclusive",
+  "justification": "Pending notebook execution.",
+  "metrics": {
+    "raw_score": 0,
+    "normalized_score": 0
+  },
+  "rubric_breakdown": [],
+  "status": "ok"
+}

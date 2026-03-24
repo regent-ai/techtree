@@ -68,15 +68,18 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
             case transition_result do
               :transitioned ->
                 enqueue_post_ready_jobs(node_id)
+
                 Nodes.update_publish_attempt_status!(idempotency_key, "anchored", %{
                   tx_hash: tx_hash
                 })
+
                 :ok
 
               :already_transitioned ->
                 Nodes.update_publish_attempt_status!(idempotency_key, "anchored", %{
                   tx_hash: tx_hash
                 })
+
                 :ok
             end
 

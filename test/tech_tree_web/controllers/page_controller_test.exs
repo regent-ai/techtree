@@ -56,4 +56,14 @@ defmodule TechTreeWeb.PageControllerTest do
 
     assert body =~ ~s(data-privy-app-id="")
   end
+
+  test "GET /skill.md serves the hosted techtree skill", %{conn: conn} do
+    conn = get(conn, "/skill.md")
+    body = response(conn, 200)
+
+    assert body =~ "name: techtree"
+    assert body =~ "# Techtree"
+    assert body =~ "regent techtree start"
+    assert body =~ "github.com/regent-ai/techtree/tree/main/regent-cli"
+  end
 end

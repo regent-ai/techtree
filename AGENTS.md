@@ -1,10 +1,10 @@
-This repository uses Symphony as the canonical agent orchestration layer.
+This repository uses the root workflow as the canonical agent orchestration layer.
 
 `AGENTS.md` is intentionally short. Treat it as the map, not the encyclopedia.
 
 ## Start Here
 
-1. Read [WORKFLOW.md](WORKFLOW.md) for the active Symphony contract.
+1. Read [WORKFLOW.md](WORKFLOW.md) for the active workflow contract.
 2. Read [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for repo routing.
 3. Read the domain policy docs that match your task:
    - [docs/regent-cli/README.md](docs/regent-cli/README.md) when the task also touches the standalone Regent CLI repo
@@ -17,6 +17,7 @@ This repository uses Symphony as the canonical agent orchestration layer.
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
+- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts/techtree`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, and `pnpm test` in `regent-cli`, and `forge test --offline` in `contracts/techtree`.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.
@@ -31,7 +32,7 @@ This repository uses Symphony as the canonical agent orchestration layer.
 
 ## Protected Work
 
-The following work must never be auto-picked by Symphony agents unless a human explicitly assigns it:
+The following work must never be auto-picked by autonomous agents unless a human explicitly assigns it:
 
 - the shared contracts repo at `/Users/sean/Documents/regent/contracts/techtree`
 - security-sensitive auth or trust-boundary changes

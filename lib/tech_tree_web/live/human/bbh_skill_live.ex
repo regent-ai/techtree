@@ -25,7 +25,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
         <.human_header
           kicker="BBH Skill"
           title="techtree-bbh"
-          subtitle="Install Regent once, practice in public, prove on the benchmark ledger, and keep one eye on fresh challenge routes."
+          subtitle="Install Regent once, practice in public, and keep one eye on fresh challenge routes."
         >
           <:actions>
             <.link
@@ -48,21 +48,21 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
               <p class="bbh-skill-lead">
                 This surface is for first-time operators and returning power users alike. The only
                 thing you need to understand up front is the sequence: set up Regent, climb one
-                capsule, watch the wall move, then compare the result against the official
-                benchmark ledger.
+                capsule, watch the wall move, then confirm the run page tells the same public
+                story. The v0.1 beta keeps the official boards intentionally empty.
               </p>
 
               <ul class="bbh-skill-pill-list" aria-label="BBH first steps">
                 <li><span class="bbh-chip">Install Regent</span></li>
                 <li><span class="bbh-chip">Climb a capsule</span></li>
-                <li><span class="bbh-chip">Validate and compare</span></li>
+                <li><span class="bbh-chip">Check the wall and run page</span></li>
               </ul>
 
               <div class="bbh-skill-launchpad-note">
                 <p>
-                  Aha moment: if you can run the climb lane, submit, and validate, the official
-                  benchmark ledger will tell you whether the work really counts. Challenge stays
-                  public and reviewed, but it is not the official board.
+                  Aha moment: if you can run the climb lane, submit, and see the wall and run page
+                  update, the beta loop is working. Challenge stays public and reviewed, while the
+                  official boards stay intentionally empty until the later verification update.
                 </p>
               </div>
             </article>
@@ -92,7 +92,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                   <div>
                     <dt>Official board</dt>
-                    <dd>official benchmark ledger only</dd>
+                    <dd>intentionally empty until later verification</dd>
                   </div>
                   <div>
                     <dt>Lane model</dt>
@@ -112,11 +112,10 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                 data-motion="reveal"
               >
                 <p class="bbh-rank">Benchmark</p>
-                <h2>Official ledger only</h2>
+                <h2>Official boards deferred in beta</h2>
                 <p>
-                  The wall shows active movement, but the benchmark ledger stays separate. It does
-                  not mix in practice chatter, challenge publishing, notebook iteration, or chain
-                  plumbing.
+                  The wall shows active movement now. The official benchmark and challenge boards
+                  stay empty in the v0.1 beta while the later verification update catches up.
                 </p>
               </article>
 
@@ -128,8 +127,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                 <h2>Public reviewed frontier</h2>
                 <p>
                   Challenge stays public and reviewed. It is where fresh routes land, frontier
-                  pressure shows up, and strong genomes can get broken without replacing the
-                  official benchmark ledger.
+                  pressure shows up, and strong genomes can get broken while the beta keeps the
+                  official challenge board empty until the later verification update.
                 </p>
               </article>
             </div>
@@ -153,13 +152,15 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>3. Validate the result</h2>
-                  <div class="bbh-skill-code"><code>regent techtree bbh validate ./run</code></div>
+                  <h2>3. Prove the same work in public</h2>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh run exec --lane benchmark</code>
+                  </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>4. Check the benchmark ledger</h2>
+                  <h2>4. Later verification update</h2>
                   <div class="bbh-skill-code">
-                    <code>regent techtree bbh leaderboard --lane benchmark</code>
+                    <code>regent techtree bbh submit ./run</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">

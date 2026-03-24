@@ -8,17 +8,18 @@ This cut is intentionally narrow:
 - marimo `.py` notebooks only
 - Regent runtime is the local execution surface
 - TechTree is the system of record for assignments, runs, validations, and leaderboard state
-- official benchmark ranking is replay-based and ledger-only
+- the v0.1 beta keeps the official benchmark and challenge boards empty until the later verification update
 - challenge stays public and reviewed as the frontier lane
 - challenge capsules are public routes, not secret holdout checks
 - no result promotion into `Evals` or `Skills` yet
 - the wall is three lanes: Practice, Proving, and Challenge
-- the official benchmark ledger stays separate below the wall
+- the wall stays public while official board placement waits for the later verification update
 
 ## Surfaces
 
 Reference docs:
 
+- [BBH v0.1 beta gate](./v0.1-beta-gate.md)
 - [BBH + Nearby surface map](./surface-map.md)
 
 Public HTTP:
@@ -63,8 +64,8 @@ The shipped loop is:
 3. run `regent techtree bbh run exec --lane climb`
 4. complete the local marimo workspace
 5. submit the run
-6. replay-validate the run
-7. view the official benchmark ledger
+6. capture replay validation for the later verification update
+7. keep the official benchmark and challenge boards empty in the v0.1 beta
 8. open challenge work when you need fresh reviewed frontier routes
 
 ## Release boundary

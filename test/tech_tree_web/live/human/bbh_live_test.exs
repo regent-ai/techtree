@@ -43,7 +43,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "Frontier ticker"
     assert render(view) =~ "--lane climb / benchmark / challenge"
     assert render(view) =~ "public reviewed frontier lane"
-    assert render(view) =~ "validated benchmark runs"
+    assert render(view) =~ "later verification update"
     assert has_element?(view, "#bbh-capsule-#{capsule.capsule_id}")
     assert has_element?(view, "#bbh-official-strip")
     assert render(view) =~ "wall-leader"
@@ -126,7 +126,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert has_element?(view, "#bbh-run-page")
     assert has_element?(view, "#bbh-validation-#{validation.validation_id}")
     assert render(view) =~ "Proving lane"
-    assert render(view) =~ "official benchmark ledger"
+    assert render(view) =~ "official board sections stay empty"
     assert render(view) =~ capsule.title
     assert render(view) =~ "validated"
     assert render(view) =~ "Benchmark ledger boundary"

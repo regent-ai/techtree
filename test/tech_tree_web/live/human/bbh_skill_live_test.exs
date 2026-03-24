@@ -16,20 +16,19 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert render(view) =~ "5-minute path"
     assert render(view) =~ "Install Regent"
     assert render(view) =~ "Climb a capsule"
-    assert render(view) =~ "Validate and compare"
+    assert render(view) =~ "Check the wall and run page"
     assert render(view) =~ "Practice / Proving / Challenge"
-    assert render(view) =~ "practice in public, prove on the benchmark ledger"
+    assert render(view) =~ "beta loop is working"
 
     assert render(view) =~
-             "official benchmark ledger"
+             "official boards stay intentionally empty"
 
     assert render(view) =~ "regent techtree bbh run exec --lane climb"
     assert render(view) =~ "regent techtree bbh submit ./run"
-    assert render(view) =~ "regent techtree bbh validate ./run"
+    assert render(view) =~ "regent techtree bbh run exec --lane benchmark"
     assert render(view) =~ "Challenge stays public and reviewed"
     assert render(view) =~ "fresh routes land"
-    assert render(view) =~ "official benchmark ledger only"
-    assert render(view) =~ "regent techtree bbh leaderboard --lane benchmark"
+    assert render(view) =~ "intentionally empty until later verification"
     assert render(view) =~ "regent techtree bbh run exec --lane challenge"
   end
 end

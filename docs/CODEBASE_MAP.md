@@ -1,6 +1,6 @@
 # Codebase Map
 
-TechTree is a single repo with multiple execution surfaces. Symphony routes work across all of them from one root workflow.
+TechTree is a single repo with multiple execution surfaces. The root workflow routes work across all of them.
 
 ## Primary surfaces
 

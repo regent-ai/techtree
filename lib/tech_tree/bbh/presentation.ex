@@ -599,7 +599,7 @@ defmodule TechTree.BBH.Presentation do
         label: "Proving",
         operator_tag: "--lane benchmark",
         copy:
-          "Public benchmark work. Replay and validate it before it can touch the official ledger.",
+          "Public benchmark work. In the v0.1 beta it stays visible on the wall while official board placement waits for the later verification update.",
         count: length(capsules_by_lane[:proving] || []),
         capsules: capsules_by_lane[:proving] || []
       },
@@ -608,7 +608,7 @@ defmodule TechTree.BBH.Presentation do
         label: "Challenge",
         operator_tag: "--lane challenge",
         copy:
-          "Public frontier work. Fresh reviewed capsules land here while the official benchmark ledger stays separate below.",
+          "Public frontier work. Fresh reviewed capsules land here while the official board sections stay empty in the v0.1 beta.",
         count: length(capsules_by_lane[:challenge] || []),
         capsules: capsules_by_lane[:challenge] || []
       }
@@ -706,7 +706,7 @@ defmodule TechTree.BBH.Presentation do
   defp column_count(_count), do: 5
 
   defp event_headline(:validated_official_best, run, _validation) do
-    "#{display_name(run)} set a validated benchmark mark on #{short_capsule_label(run.capsule_id)}"
+    "#{display_name(run)} cleared replay on #{short_capsule_label(run.capsule_id)}"
   end
 
   defp event_headline(:validation_confirmed, run, _validation) do
@@ -899,21 +899,21 @@ defmodule TechTree.BBH.Presentation do
 
   defp run_subtitle("challenge", status_label),
     do:
-      "Challenge lane run, currently #{status_label}. Public reviewed frontier work stays visible even when it does not touch the official benchmark ledger."
+      "Challenge lane run, currently #{status_label}. Public reviewed frontier work stays visible even while the official board sections stay empty in the v0.1 beta."
 
   defp run_subtitle(_split, status_label),
     do:
-      "Proving lane run, currently #{status_label}. This is the apples-to-apples comparison lane for the official benchmark ledger."
+      "Proving lane run, currently #{status_label}. This is the apples-to-apples comparison lane, but the official board sections stay empty in the v0.1 beta."
 
   defp ledger_boundary_note("climb", status_label),
     do:
-      "This run sits in Practice and is currently marked #{status_label}. Practice stays visible on the wall, but only validated benchmark runs affect the official benchmark ledger."
+      "This run sits in Practice and is currently marked #{status_label}. Practice stays visible on the wall, and the official board sections stay intentionally empty in the v0.1 beta."
 
   defp ledger_boundary_note("challenge", status_label),
     do:
-      "This run sits in Challenge and is currently marked #{status_label}. Challenge stays public and reviewed on the frontier board, but only validated benchmark runs affect the official benchmark ledger."
+      "This run sits in Challenge and is currently marked #{status_label}. Challenge stays public and reviewed on the frontier board while the official board sections stay intentionally empty in the v0.1 beta."
 
   defp ledger_boundary_note(_split, status_label),
     do:
-      "This run sits in Proving and is currently marked #{status_label}. Only validated benchmark runs affect the official benchmark ledger."
+      "This run sits in Proving and is currently marked #{status_label}. In the v0.1 beta, the public wall and run page are the visible destination while the official board sections stay empty."
 end

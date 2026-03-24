@@ -64,7 +64,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
         <.human_header
           kicker="BBH Py"
           title="Wall board"
-          subtitle="Practice, Proving, and Challenge stay wall-first. The official benchmark ledger stays separate, and the pinned drilldown survives refresh."
+          subtitle="Practice, Proving, and Challenge stay wall-first. The official board sections start empty in this beta cut, and the pinned drilldown survives refresh."
         >
           <:actions>
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
@@ -87,7 +87,8 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                   <p class="bbh-wall-note">
                     Practice is public climb work, Proving is benchmark work, and Challenge is the
                     public reviewed frontier lane. Route setters keep Challenge fresh in public,
-                    while the official ledger still belongs only to validated benchmark runs.
+                    while the official board sections stay intentionally empty until the later
+                    verification update.
                   </p>
                 </div>
 

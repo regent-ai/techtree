@@ -1,10 +1,10 @@
 # BBH Validator Runbook
 
-This is the v0.1 runbook for official BBH-Py replay validation.
+This runbook is for the later BBH replay-verification update, not for the v0.1 public beta signoff.
 
 ## Goal
 
-Replay submitted runs outside the public web process and write the validation back to TechTree through the BBH surface.
+Replay submitted runs outside the public web process and write the validation back to TechTree through the BBH surface once the trusted official-board path is turned on.
 
 ## Expected inputs
 
@@ -15,15 +15,21 @@ Replay submitted runs outside the public web process and write the validation ba
 
 ## Expected output
 
-One replay validation written back through the BBH validation surface.
+One replay validation written back through the BBH validation surface for the later trusted-board cut.
 
-## Suggested v0.1 flow
+## Status
+
+- This is **not** part of the v0.1 beta launch checklist.
+- In the v0.1 beta, the public wall ships first and the official benchmark and challenge boards stay empty.
+- Keep this runbook as the operator path for the later capsule verification update.
+
+## Suggested later flow
 
 1. Pull or receive a completed BBH workspace.
 2. Inspect `run.source.yaml`, `genome.source.yaml`, and `outputs/verdict.json`.
 3. Replay the run through the local BBH-Py tooling in the benchmark lane.
 4. Compare the reproduced score to the submitted score within tolerance.
-5. Submit the official replay validation back to TechTree so the benchmark ledger stays official-only.
+5. Submit the replay validation back to TechTree when the trusted official-board path is live.
 
 ## Practical local commands
 
@@ -52,7 +58,7 @@ Smoke a workspace:
 uv run techtree-bbh smoke --split benchmark --workspace /tmp/bbh-workspace
 ```
 
-Replay and submit the official benchmark validation:
+Replay and submit the later trusted benchmark validation:
 
 ```bash
 regent techtree bbh validate /tmp/bbh-workspace
@@ -65,7 +71,7 @@ If replay does not match:
 
 - submit a replay validation with `result=rejected`
 - include mismatch reasons in the validation payload
-- keep the run off the official benchmark ledger
+- keep the run off the later trusted official board
 
 If the validator environment is broken:
 

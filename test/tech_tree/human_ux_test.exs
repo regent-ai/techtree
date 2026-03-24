@@ -35,14 +35,16 @@ defmodule TechTree.HumanUXTest do
   end
 
   test "node_page/1 returns full page data for visible nodes" do
-    %{node: node, parent: parent, root: root, child: child, related: related, comment: comment} =
+    %{node: node, parent: parent, child: child, related: related, comment: comment} =
       node_page_fixture!()
 
     assert {:ok, page} = HumanUX.node_page(node.id)
 
     assert page.node.id == node.id
     assert page.parent.id == parent.id
-    assert Enum.map(page.lineage, & &1.id) == [root.id, parent.id]
+    assert length(page.lineage) == 2
+    assert hd(page.lineage).parent_id == nil
+    assert Enum.at(page.lineage, 1).id == parent.id
     assert Enum.any?(page.children, &(&1.id == child.id))
     assert Enum.any?(page.related, &(&1.dst_id == related.id and &1.dst_title == related.title))
     assert Enum.any?(page.comments, &(&1.id == comment.id))

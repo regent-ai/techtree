@@ -1,6 +1,6 @@
 # Tech Debt Tracker
 
-Use this file to record recurring cleanup targets that should become Symphony maintenance work.
+Use this file to record recurring cleanup targets that should become recurring maintenance work.
 
 ## Current seeded categories
 

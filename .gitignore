@@ -65,13 +65,10 @@ yarn-error.log*
 /qa/artifacts/
 audit/
 
-# Symphony local orchestration scaffolding
+# Local orchestration scaffolding
 /.claude/
 /.codex/
 /WORKFLOW.md
-/scripts/run_symphony.sh
-/scripts/symphony_after_create.sh
-/scripts/verify_symphony_setup.sh
 /scripts/check_docs.sh
 
 # Local-only or intentionally untracked repo artifacts

@@ -2,7 +2,7 @@
 
 ## Auto-pick policy
 
-The following work must never be auto-picked by Symphony unless a human explicitly assigns the issue:
+The following work must never be auto-picked by autonomous agents unless a human explicitly assigns the issue:
 
 - anything touching `contracts/`
 - security-sensitive auth or trust-boundary changes

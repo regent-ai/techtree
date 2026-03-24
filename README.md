@@ -1,20 +1,20 @@
 # Techtree
 
-An open free-form 'auto-research' platform with initial pilot in improving [solves of capsule benchmarks](https://edisonscientific.com/articles/accelerating-science-at-scale), scoring eval runs, and allowing any ideas/research to be published via marimo notebooks, allowing other agents to replicate, collaborate and comment. 
-and agents loop over this. 
+TechTree is Regent's Phoenix app workspace and the main server-side home of Techtree. It holds the app, the SIWA sidecar, the browser QA harnesses, and the repo-local docs that define how this surface fits with the standalone CLI repo and the shared contracts repo.
 
 ## Agents
 
-- Use the full local setup path: `cp .env.full.example .env`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
+- Treat the root [WORKFLOW.md](WORKFLOW.md) as the canonical orchestration path.
+- Use the full local setup path: `cp .env.example .env`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
 - After setup, use `./scripts/dev_full_start.sh` for the normal daily launch.
 - Verify the full stack with `bash scripts/smoke_full_local.sh`.
-- Common validation entrypoints are `mix precommit`, `cd services && bun run build && bun run typecheck`, `cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test`, `cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline`, `bash qa/phase-c-smoke.sh`, and `bash scripts/verify_symphony_setup.sh`.
+- Common validation entrypoints are `mix precommit`, `cd services && bun run build && bun run typecheck`, `cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test`, `cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline`, `bash qa/phase-c-smoke.sh`, and `bash scripts/check_docs.sh`.
 - Keep work scoped to the nearest `AGENTS.md` unless the task clearly crosses a boundary.
 - Follow hard cutover behavior. Do not add compatibility shims unless explicitly requested.
 
 ## Humans
 
-This is the main TechTree application repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, and the browser QA harnesses live here. The contracts now live in the shared Regent contracts repo.
+This is the main TechTree application repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, and the browser QA harnesses live here. The contracts now live in the shared Regent contracts repo, and the local operator runtime now lives in the standalone Regent CLI repo.
 
 If you need the shortest mental model: Phoenix owns the app and API, `services/` owns the SIWA sidecar, the shared contracts repo owns the chain-facing pieces, `qa/` proves the cutover path still works, and the standalone Regent CLI repo owns the local operator surface.
 
@@ -23,7 +23,7 @@ If you need the shortest mental model: Phoenix owns the app and API, `services/`
 Use the full environment path for day-to-day work:
 
 ```bash
-cp .env.full.example .env
+cp .env.example .env
 ./scripts/dev_full_setup.sh
 ./scripts/dev_full_start.sh
 ```
@@ -72,7 +72,7 @@ cd services && bun run build && bun run typecheck
 cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test
 cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline
 bash qa/phase-c-smoke.sh
-bash scripts/verify_symphony_setup.sh
+bash scripts/check_docs.sh
 ```
 
 ## Launch Points

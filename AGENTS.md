@@ -17,7 +17,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
-- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts/techtree`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, and `pnpm test` in `regent-cli`, and `forge test --offline` in `contracts/techtree`.
+- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, and `pnpm test` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.
@@ -34,7 +34,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 The following work must never be auto-picked by autonomous agents unless a human explicitly assigns it:
 
-- the shared contracts repo at `/Users/sean/Documents/regent/contracts/techtree`
+- the shared contracts repo at `/Users/sean/Documents/regent/contracts`, including `/Users/sean/Documents/regent/contracts/techtree` and `/Users/sean/Documents/regent/contracts/autolaunch`
 - security-sensitive auth or trust-boundary changes
 - deploy and Fly.io changes
 - database migrations and schema transitions

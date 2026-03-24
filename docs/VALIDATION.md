@@ -33,7 +33,7 @@ pnpm test
 
 ## Contracts
 
-Only run when the issue was explicitly assigned:
+Only run when the issue was explicitly assigned. The contracts Git repo is `/Users/sean/Documents/regent/contracts`, and the Techtree Foundry workspace inside it is:
 
 ```bash
 cd /Users/sean/Documents/regent/contracts/techtree

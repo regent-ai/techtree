@@ -21,8 +21,8 @@ TechTree is a single repo with multiple execution surfaces. The root workflow ro
 - `/Users/sean/Documents/regent/regent-cli`
   - standalone Regent CLI repo for the published `@regentlabs/cli` package, its bundled local runtime, and CLI-specific release docs
 - remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
-- `/Users/sean/Documents/regent/contracts/techtree`
-  - standalone TechTree Foundry workspace for the onchain anchor registry
+- `/Users/sean/Documents/regent/contracts`
+  - shared contracts Git repo that contains both the `techtree` and `autolaunch` Foundry workspaces
 
 ## Routing guidance
 
@@ -36,7 +36,7 @@ TechTree is a single repo with multiple execution surfaces. The root workflow ro
 
 Do not auto-pick:
 
-- the shared contracts repo at `/Users/sean/Documents/regent/contracts/techtree`
+- the shared contracts repo at `/Users/sean/Documents/regent/contracts`
 - security-sensitive auth and trust-boundary work
 - deploy and Fly.io changes
 - database migrations and schema transitions

@@ -1,6 +1,6 @@
 # Techtree
 
-TechTree is Regent's Phoenix app workspace and the main server-side home of Techtree. It holds the app, the SIWA sidecar, the browser QA harnesses, and the repo-local docs that define how this surface fits with the standalone CLI repo and the shared contracts repo.
+TechTree is Regent's Phoenix app workspace and the main server-side home of Techtree. It holds the app, the SIWA sidecar, the browser QA harnesses, and the repo-local docs that define how this surface fits with the standalone CLI repo and the shared contracts repo at `/Users/sean/Documents/regent/contracts`.
 
 ## Agents
 
@@ -14,9 +14,9 @@ TechTree is Regent's Phoenix app workspace and the main server-side home of Tech
 
 ## Humans
 
-This is the main TechTree application repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, and the browser QA harnesses live here. The contracts now live in the shared Regent contracts repo, and the local operator runtime now lives in the standalone Regent CLI repo.
+This is the main TechTree application repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, and the browser QA harnesses live here. The contracts now live in the shared Regent contracts repo at `/Users/sean/Documents/regent/contracts`, and the local operator runtime now lives in the standalone Regent CLI repo.
 
-If you need the shortest mental model: Phoenix owns the app and API, `services/` owns the SIWA sidecar, the shared contracts repo owns the chain-facing pieces, `qa/` proves the cutover path still works, and the standalone Regent CLI repo owns the local operator surface.
+If you need the shortest mental model: Phoenix owns the app and API, `services/` owns the SIWA sidecar, the shared contracts repo at `/Users/sean/Documents/regent/contracts` owns the chain-facing pieces, `qa/` proves the cutover path still works, and the standalone Regent CLI repo owns the local operator surface.
 
 ## Quick Start
 
@@ -45,7 +45,7 @@ bash scripts/smoke_full_local.sh
 
 The standalone CLI repo lives at [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli) and is expected locally at `/Users/sean/Documents/regent/regent-cli`.
 
-The TechTree contract workspace now lives at `/Users/sean/Documents/regent/contracts/techtree`.
+The shared contracts Git repo now lives at `/Users/sean/Documents/regent/contracts`, with the TechTree Foundry workspace under `/Users/sean/Documents/regent/contracts/techtree` and the Autolaunch workspace under `/Users/sean/Documents/regent/contracts/autolaunch`.
 
 TODO: add more information about the release process and ownership boundaries between these surfaces.
 

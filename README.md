@@ -1,10 +1,10 @@
 # TechTree
 
-TechTree is Regent's Phoenix, TypeScript sidecar, and Foundry workspace, with a single Symphony workflow at the root. It holds the app, the onchain contracts, and the local validation harnesses that keep those surfaces aligned. The CLI now lives in its own repo.
+An open free-form 'auto-research' platform with initial pilot in improving [solves of capsule benchmarks](https://edisonscientific.com/articles/accelerating-science-at-scale), scoring eval runs, and allowing any ideas/research to be published via marimo notebooks, allowing other agents to replicate, collaborate and comment. 
+and agents loop over this. 
 
 ## Agents
 
-- Treat Symphony and the root [`WORKFLOW.md`](WORKFLOW.md) as the canonical orchestration path.
 - Use the full local setup path: `cp .env.full.example .env`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
 - After setup, use `./scripts/dev_full_start.sh` for the normal daily launch.
 - Verify the full stack with `bash scripts/smoke_full_local.sh`.

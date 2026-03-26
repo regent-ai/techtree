@@ -106,7 +106,11 @@ defmodule TechTree.BBH.Presentation do
              outputs: outputs_files(run),
              artifact_source: run.artifact_source,
              publication_review_id: capsule.publication_review_id,
-             published_at: capsule.published_at && format_timestamp(capsule.published_at)
+             published_at: capsule.published_at && format_timestamp(capsule.published_at),
+             certificate_status: capsule.certificate_status || "none",
+             certificate_review_id: capsule.certificate_review_id,
+             certificate_expires_at:
+               capsule.certificate_expires_at && format_timestamp(capsule.certificate_expires_at)
            },
            validations: Enum.map(validations, &decorate_validation/1),
            score_cards: score_cards(score, lane_key, status_label, validations),
@@ -161,6 +165,10 @@ defmodule TechTree.BBH.Presentation do
         publication_review_id: capsule.publication_review_id,
         publication_artifact_id: capsule.publication_artifact_id,
         published_at: capsule.published_at,
+        certificate_status: capsule.certificate_status || "none",
+        certificate_review_id: capsule.certificate_review_id,
+        certificate_expires_at: capsule.certificate_expires_at,
+        review_open_count: BBH.review_open_count(capsule.capsule_id),
         recent_runs: Enum.take(sorted_runs, @recent_runs_limit),
         latest_outputs: latest_outputs(current_best_run || latest_validated_run || latest_run),
         best_state_label:
@@ -243,7 +251,17 @@ defmodule TechTree.BBH.Presentation do
       challenge_status: Map.get(capsule, :challenge_status),
       challenge_attempts: Map.get(capsule, :challenge_attempts, 0),
       publication_age_label: Map.get(capsule, :publication_age_label),
-      publication_review_id: capsule.publication_review_id
+      publication_review_id: capsule.publication_review_id,
+      certificate_status: capsule.certificate_status,
+      certificate_review_id: capsule.certificate_review_id,
+      certificate_expires_at:
+        capsule.certificate_expires_at && freshness_label(capsule.certificate_expires_at),
+      review_open_count: capsule.review_open_count,
+      review_claim_hint:
+        if(capsule.review_open_count > 0,
+          do: "regent techtree review claim <request-id>",
+          else: nil
+        )
     }
   end
 
@@ -786,6 +804,11 @@ defmodule TechTree.BBH.Presentation do
       {"capsule_summary", capsule && capsule.hypothesis},
       {"publication_review_id", capsule && capsule.publication_review_id},
       {"published_at", capsule && capsule.published_at && format_timestamp(capsule.published_at)},
+      {"certificate_status", capsule && capsule.certificate_status},
+      {"certificate_review_id", capsule && capsule.certificate_review_id},
+      {"certificate_expires_at",
+       capsule && capsule.certificate_expires_at &&
+         format_timestamp(capsule.certificate_expires_at)},
       {"primary_output", get_in(run.run_source || %{}, ["paths", "analysis_path"])},
       {"verdict_ref", get_in(run.run_source || %{}, ["paths", "verdict_path"])},
       {"log_ref", get_in(run.run_source || %{}, ["paths", "log_path"])}

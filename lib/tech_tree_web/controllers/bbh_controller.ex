@@ -55,6 +55,19 @@ defmodule TechTreeWeb.BbhController do
     json(conn, %{data: present(BBH.list_validations(run_id))})
   end
 
+  def certificate(conn, %{"id" => capsule_id}) do
+    case BBH.certificate_summary(capsule_id) do
+      {:ok, summary} ->
+        json(conn, %{data: present(summary)})
+
+      {:error, :capsule_not_found} ->
+        ApiError.render_halted(conn, :not_found, %{
+          code: "bbh_capsule_not_found",
+          message: "BBH capsule not found"
+        })
+    end
+  end
+
   defp present(value) when is_list(value), do: Enum.map(value, &present/1)
 
   defp present(%Ecto.Association.NotLoaded{}), do: nil

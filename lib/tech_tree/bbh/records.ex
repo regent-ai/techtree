@@ -21,15 +21,40 @@ defmodule TechTree.BBH.Capsule do
     field :task_json, :map, default: %{}
     field :data_files, {:array, :map}, default: []
     field :artifact_source, :map, default: %{}
+    field :owner_wallet_address, :string
+    field :source_node_id, :integer
+    field :seed, :string
+    field :parent_id, :integer
+    field :workflow_state, :string, default: "authoring"
+    field :notebook_py, :string
+    field :capsule_source, :map, default: %{}
+    field :recommended_genome_source, :map, default: %{}
+    field :genome_notes_md, :string
     field :publication_artifact_id, :string
     field :publication_review_id, :string
     field :published_at, :utc_datetime_usec
+    field :certificate_status, :string, default: "none"
+    field :certificate_review_id, :string
+    field :certificate_scope, :string
+    field :certificate_expires_at, :utc_datetime_usec
 
     has_many :assignments, TechTree.BBH.Assignment,
       foreign_key: :capsule_id,
       references: :capsule_id
 
     has_many :runs, TechTree.BBH.Run, foreign_key: :capsule_id, references: :capsule_id
+
+    has_many :draft_proposals, TechTree.BBH.DraftProposal,
+      foreign_key: :capsule_id,
+      references: :capsule_id
+
+    has_many :review_requests, TechTree.BBH.ReviewRequest,
+      foreign_key: :capsule_id,
+      references: :capsule_id
+
+    has_many :review_submissions, TechTree.BBH.ReviewSubmission,
+      foreign_key: :capsule_id,
+      references: :capsule_id
 
     timestamps()
   end
@@ -53,9 +78,22 @@ defmodule TechTree.BBH.Capsule do
       :task_json,
       :data_files,
       :artifact_source,
+      :owner_wallet_address,
+      :source_node_id,
+      :seed,
+      :parent_id,
+      :workflow_state,
+      :notebook_py,
+      :capsule_source,
+      :recommended_genome_source,
+      :genome_notes_md,
       :publication_artifact_id,
       :publication_review_id,
-      :published_at
+      :published_at,
+      :certificate_status,
+      :certificate_review_id,
+      :certificate_scope,
+      :certificate_expires_at
     ])
     |> validate_required([
       :capsule_id,

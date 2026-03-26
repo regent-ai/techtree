@@ -1,7 +1,19 @@
 defmodule TechTree.BBHFixtures do
   @moduledoc false
 
-  alias TechTree.BBH.{Assignment, Capsule, Genome, Run, Validation}
+  alias TechTree.BBH.{
+    Assignment,
+    Capsule,
+    DraftProposal,
+    Genome,
+    OrcidLinkRequest,
+    ReviewRequest,
+    ReviewSubmission,
+    ReviewerProfile,
+    Run,
+    Validation
+  }
+
   alias TechTree.Repo
 
   def insert_capsule!(attrs \\ %{}) do
@@ -25,6 +37,12 @@ defmodule TechTree.BBHFixtures do
         "capsule_id" => "capsule_#{suffix}",
         "hypothesis" => "The treatment should improve the signal."
       },
+      workflow_state: "authoring",
+      notebook_py: "print('capsule')\n",
+      capsule_source: %{"schema_version" => "techtree.bbh.capsule-source.v1"},
+      recommended_genome_source: %{"schema_version" => "techtree.bbh.genome-source.v1"},
+      genome_notes_md: "",
+      certificate_status: "none",
       data_files: [%{"name" => "input.csv", "content" => "x,y\n1,2\n"}],
       artifact_source: %{"schema_version" => "techtree.bbh.artifact-source.v1"}
     }
@@ -49,6 +67,100 @@ defmodule TechTree.BBHFixtures do
 
     %Assignment{}
     |> Assignment.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
+  end
+
+  def insert_reviewer_profile!(attrs \\ %{}) do
+    defaults = %{
+      wallet_address: Map.get(attrs, :wallet_address, random_eth_address()),
+      orcid_id: Map.get(attrs, :orcid_id, "0000-0000-0000-0001"),
+      orcid_auth_kind: Map.get(attrs, :orcid_auth_kind, "oauth_authenticated"),
+      orcid_name: Map.get(attrs, :orcid_name, "Reviewer"),
+      vetting_status: Map.get(attrs, :vetting_status, "approved"),
+      domain_tags: Map.get(attrs, :domain_tags, ["scrna-seq"]),
+      payout_wallet: Map.get(attrs, :payout_wallet, random_eth_address())
+    }
+
+    %ReviewerProfile{}
+    |> ReviewerProfile.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
+  end
+
+  def insert_orcid_link_request!(attrs \\ %{}) do
+    defaults = %{
+      request_id: "orcid_req_#{suffix()}",
+      wallet_address: Map.get(attrs, :wallet_address, random_eth_address()),
+      state: Map.get(attrs, :state, "pending"),
+      expires_at: Map.get(attrs, :expires_at, DateTime.add(DateTime.utc_now(), 600, :second))
+    }
+
+    %OrcidLinkRequest{}
+    |> OrcidLinkRequest.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
+  end
+
+  def insert_review_request!(%Capsule{} = capsule, attrs \\ %{}) do
+    defaults = %{
+      request_id: "review_req_#{suffix()}",
+      capsule_id: capsule.capsule_id,
+      review_kind: Map.get(attrs, :review_kind, "certification"),
+      visibility: Map.get(attrs, :visibility, "public_claim"),
+      state: Map.get(attrs, :state, "open"),
+      claimed_by_wallet: Map.get(attrs, :claimed_by_wallet),
+      fee_quote_usdc: Map.get(attrs, :fee_quote_usdc),
+      holdback_usdc: Map.get(attrs, :holdback_usdc),
+      due_at: Map.get(attrs, :due_at)
+    }
+
+    %ReviewRequest{}
+    |> ReviewRequest.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
+  end
+
+  def insert_draft_proposal!(%Capsule{} = capsule, attrs \\ %{}) do
+    defaults = %{
+      proposal_id: "proposal_#{suffix()}",
+      capsule_id: capsule.capsule_id,
+      proposer_wallet_address: Map.get(attrs, :proposer_wallet_address, random_eth_address()),
+      summary: Map.get(attrs, :summary, "Tightened protocol"),
+      workspace_bundle:
+        Map.get(attrs, :workspace_bundle, %{
+          "notebook_py" => "print('proposal')\n",
+          "hypothesis_md" => capsule.hypothesis,
+          "protocol_md" => capsule.protocol_md,
+          "rubric_json" => capsule.rubric_json,
+          "capsule_source" => capsule.capsule_source,
+          "recommended_genome_source" => capsule.recommended_genome_source,
+          "genome_notes_md" => capsule.genome_notes_md
+        }),
+      patch_json: Map.get(attrs, :patch_json, %{}),
+      workspace_manifest_hash:
+        Map.get(attrs, :workspace_manifest_hash, "sha256:#{String.duplicate("1", 64)}"),
+      status: Map.get(attrs, :status, "open")
+    }
+
+    %DraftProposal{}
+    |> DraftProposal.changeset(Map.merge(defaults, attrs))
+    |> Repo.insert!()
+  end
+
+  def insert_review_submission!(%ReviewRequest{} = request, attrs \\ %{}) do
+    defaults = %{
+      submission_id: "review_sub_#{suffix()}",
+      request_id: request.request_id,
+      capsule_id: request.capsule_id,
+      reviewer_wallet: Map.get(attrs, :reviewer_wallet, random_eth_address()),
+      checklist_json: Map.get(attrs, :checklist_json, %{"decision" => "approve"}),
+      suggested_edits_json: Map.get(attrs, :suggested_edits_json, %{"edits" => []}),
+      decision: Map.get(attrs, :decision, "approve"),
+      summary_md: Map.get(attrs, :summary_md, "Looks good."),
+      genome_recommendation_source: Map.get(attrs, :genome_recommendation_source, %{}),
+      certificate_payload: Map.get(attrs, :certificate_payload, %{}),
+      review_node_id: Map.get(attrs, :review_node_id)
+    }
+
+    %ReviewSubmission{}
+    |> ReviewSubmission.changeset(Map.merge(defaults, attrs))
     |> Repo.insert!()
   end
 

@@ -180,6 +180,12 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                                 <span>{outline_label(capsule.route_maturity)}</span>
                                 <span>{capsule.active_agent_count} active</span>
                                 <span>{capsule.freshness_label}</span>
+                                <%= if capsule.certificate_status && capsule.certificate_status != "none" do %>
+                                  <span>cert {capsule.certificate_status}</span>
+                                <% end %>
+                                <%= if capsule.review_open_count > 0 do %>
+                                  <span>{capsule.review_open_count} review open</span>
+                                <% end %>
                                 <%= if capsule.challenge_status do %>
                                   <span>{capsule.challenge_status}</span>
                                 <% end %>
@@ -303,6 +309,37 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                       </p>
                     </div>
                   <% end %>
+
+                  <div class="bbh-drilldown-block">
+                    <h3>Certificate</h3>
+                    <p class="bbh-drilldown-copy">
+                      {(@drilldown_capsule.certificate_status || "none")
+                      |> to_string()
+                      |> String.replace("_", " ")}
+                    </p>
+                    <p class="bbh-drilldown-meta">
+                      <%= if @drilldown_capsule.certificate_review_id do %>
+                        review {@drilldown_capsule.certificate_review_id}
+                      <% else %>
+                        no certificate review yet
+                      <% end %>
+                      <%= if @drilldown_capsule.certificate_expires_at do %>
+                        · expires {@drilldown_capsule.certificate_expires_at}
+                      <% end %>
+                    </p>
+                  </div>
+
+                  <div class="bbh-drilldown-block">
+                    <h3>Review queue</h3>
+                    <%= if @drilldown_capsule.review_open_count > 0 do %>
+                      <p class="bbh-drilldown-copy">
+                        {@drilldown_capsule.review_open_count} review request(s) open.
+                      </p>
+                      <p class="bbh-drilldown-meta">{@drilldown_capsule.review_claim_hint}</p>
+                    <% else %>
+                      <p class="bbh-drilldown-copy">No public review requests are open.</p>
+                    <% end %>
+                  </div>
 
                   <div class="bbh-drilldown-block">
                     <h3>Active agents</h3>

@@ -104,6 +104,18 @@ defmodule TechTreeWeb.Human.BbhRunLive do
             </div>
           </.human_section>
 
+          <.human_section id="bbh-run-certificate" title="Certificate">
+            <div class="bbh-copy">
+              <p><strong>Status:</strong> {@run.certificate_status}</p>
+              <%= if @run.certificate_review_id do %>
+                <p><strong>Certificate review:</strong> {@run.certificate_review_id}</p>
+              <% end %>
+              <%= if @run.certificate_expires_at do %>
+                <p><strong>Certificate expires:</strong> {@run.certificate_expires_at}</p>
+              <% end %>
+            </div>
+          </.human_section>
+
           <.human_section id="bbh-run-execution" title="Execution">
             <ul class="hu-list">
               <%= for row <- @execution_rows do %>

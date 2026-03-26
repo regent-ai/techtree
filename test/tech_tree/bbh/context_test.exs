@@ -6,7 +6,7 @@ defmodule TechTree.BBH.ContextTest do
   alias TechTree.BBH
   alias TechTree.BBHFixtures
   alias TechTree.Repo
-  alias TechTree.BBH.{Assignment, Capsule}
+  alias TechTree.BBH.{Assignment, Capsule, ReviewRequest}
 
   test "promote_challenge_capsule publishes a reviewed draft capsule into the challenge lane" do
     %{capsule: capsule, publication_artifact_id: artifact_id, publication_review_id: review_id} =
@@ -96,5 +96,53 @@ defmodule TechTree.BBH.ContextTest do
              :count,
              :assignment_ref
            ) == 2
+  end
+
+  test "ready_draft creates an open review request and review submit activates certificate state" do
+    wallet = "0x1111111111111111111111111111111111111111"
+
+    capsule =
+      BBHFixtures.insert_capsule!(%{
+        split: "draft",
+        assignment_policy: "operator",
+        provider: "techtree",
+        owner_wallet_address: wallet,
+        title: "Draft for review"
+      })
+
+    reviewer =
+      BBHFixtures.insert_reviewer_profile!(%{
+        wallet_address: "0x2222222222222222222222222222222222222222",
+        vetting_status: "approved"
+      })
+
+    assert {:ok, %{capsule: %{workflow_state: "review_ready"}}} =
+             BBH.ready_draft(%{"wallet_address" => wallet}, capsule.capsule_id)
+
+    request = Repo.get_by!(ReviewRequest, capsule_id: capsule.capsule_id, state: "open")
+
+    assert {:ok, %{state: "claimed", claimed_by_wallet: claimed_by_wallet}} =
+             BBH.claim_review(%{"wallet_address" => reviewer.wallet_address}, request.request_id)
+
+    assert claimed_by_wallet == reviewer.wallet_address
+
+    assert {:ok, %{submission: %{decision: "approve", review_node_id: review_node_id}}} =
+             BBH.submit_review(
+               %{"wallet_address" => reviewer.wallet_address},
+               request.request_id,
+               %{
+                 "request_id" => request.request_id,
+                 "capsule_id" => capsule.capsule_id,
+                 "checklist_json" => %{"decision" => "approve"},
+                 "suggested_edits_json" => %{"edits" => []},
+                 "decision" => "approve",
+                 "summary_md" => "Approved."
+               }
+             )
+
+    updated = Repo.get!(Capsule, capsule.capsule_id)
+    assert updated.workflow_state == "approved"
+    assert updated.certificate_status == "active"
+    assert updated.certificate_review_id == review_node_id
   end
 end

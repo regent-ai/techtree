@@ -59,6 +59,13 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
         title: "Seeded Frontier Capsule"
       })
 
+    TechTree.Repo.get!(TechTree.BBH.Capsule, seeded_capsule.capsule_id)
+    |> Ecto.Changeset.change(%{
+      certificate_status: "active",
+      certificate_review_id: "0xreview#{String.duplicate("1", 58)}"
+    })
+    |> TechTree.Repo.update!()
+
     %{run: challenge_run} =
       BBHFixtures.insert_published_challenge_bundle!(%{
         title: "Reviewed Frontier Capsule",
@@ -72,6 +79,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert has_element?(view, "#bbh-lane-challenge")
     assert has_element?(view, "#bbh-capsule-#{seeded_capsule.capsule_id}")
     assert render(view) =~ "awaiting first run"
+    assert render(view) =~ "cert active"
     assert render(view) =~ "reviewed route, waiting for first attempt"
     assert has_element?(view, "#bbh-challenge-strip")
     assert render(view) =~ "Challenge board"
@@ -133,6 +141,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ capsule.title
     assert render(view) =~ "validated"
     assert render(view) =~ "Benchmark ledger boundary"
+    assert render(view) =~ "Certificate"
     assert render(view) =~ "apples-to-apples comparison lane"
 
     {:ok, missing_view, _html} =

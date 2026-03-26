@@ -155,6 +155,30 @@ defmodule TechTreeWeb.BbhControllerTest do
     assert response["data"]["entries"] == []
   end
 
+  test "GET /v1/bbh/capsules/:id/certificate returns certificate summary for public capsules", %{
+    conn: conn
+  } do
+    %{capsule: capsule} =
+      BBHFixtures.insert_published_challenge_capsule!(%{
+        title: "Certified Challenge"
+      })
+
+    TechTree.Repo.get!(TechTree.BBH.Capsule, capsule.capsule_id)
+    |> Ecto.Changeset.change(%{
+      certificate_status: "active",
+      certificate_review_id: "0xreview#{String.duplicate("1", 58)}"
+    })
+    |> TechTree.Repo.update!()
+
+    response =
+      conn
+      |> get("/v1/bbh/capsules/#{capsule.capsule_id}/certificate")
+      |> json_response(200)
+
+    assert get_in(response, ["data", "status"]) == "active"
+    assert get_in(response, ["data", "certificate_review_id"]) =~ "0xreview"
+  end
+
   test "GET /v1/bbh/genomes/:id, /runs/:id, and /runs/:id/validations return BBH records", %{
     conn: conn
   } do

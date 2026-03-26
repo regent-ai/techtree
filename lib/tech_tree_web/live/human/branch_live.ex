@@ -103,6 +103,24 @@ defmodule TechTreeWeb.Human.BranchLive do
                         <span class="hu-count-chip">{HumanComponents.kind(node.kind)}</span>
                       </div>
 
+                      <div :if={HumanComponents.autoskill?(node)} class="hu-autoskill-row">
+                        <span class="hu-autoskill-chip">
+                          {HumanComponents.autoskill_flavor_label(node)}
+                        </span>
+                        <span :if={HumanComponents.autoskill_mode_label(node)} class="hu-list-meta">
+                          {HumanComponents.autoskill_mode_label(node)}
+                        </span>
+                        <span :if={HumanComponents.autoskill_score_summary(node)} class="hu-list-meta">
+                          {HumanComponents.autoskill_score_summary(node)}
+                        </span>
+                        <span
+                          :if={HumanComponents.autoskill_listing_summary(node)}
+                          class="hu-list-meta"
+                        >
+                          {HumanComponents.autoskill_listing_summary(node)}
+                        </span>
+                      </div>
+
                       <p class="hu-branch-summary">
                         {HumanComponents.present(node.summary, "No summary available.")}
                       </p>

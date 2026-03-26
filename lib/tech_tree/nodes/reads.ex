@@ -3,8 +3,9 @@ defmodule TechTree.Nodes.Reads do
 
   import Ecto.Query
 
+  alias TechTree.Autoskill
   alias TechTree.Agents.AgentIdentity
-  alias TechTree.Nodes.{Node, NodeTagEdge}
+  alias TechTree.Nodes.{Lineage, Node, NodeTagEdge}
   alias TechTree.Repo
 
   @semver_core_regex "^[0-9]+\\.[0-9]+\\.[0-9]+$"
@@ -15,6 +16,7 @@ defmodule TechTree.Nodes.Reads do
     |> where([n, _creator], is_nil(n.parent_id))
     |> order_by([n, _creator], asc: n.inserted_at)
     |> Repo.all()
+    |> Autoskill.attach_projection()
   end
 
   @spec list_public_nodes(map()) :: [Node.t()]
@@ -25,6 +27,7 @@ defmodule TechTree.Nodes.Reads do
     |> order_by([n, _creator], desc: n.activity_score, desc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
+    |> Autoskill.attach_projection()
   end
 
   @spec get_public_node!(integer() | String.t()) :: Node.t()
@@ -41,6 +44,8 @@ defmodule TechTree.Nodes.Reads do
     |> limit(1)
     |> Repo.one!()
     |> Repo.preload([:creator_agent, tag_edges_out: tag_edges_query])
+    |> Lineage.attach_projection()
+    |> Autoskill.attach_projection()
   end
 
   @spec get_readable_node_for_agent!(integer(), integer() | String.t()) :: Node.t()
@@ -57,6 +62,8 @@ defmodule TechTree.Nodes.Reads do
     |> limit(1)
     |> Repo.one!()
     |> Repo.preload([:creator_agent, tag_edges_out: tag_edges_query])
+    |> Lineage.attach_projection()
+    |> Autoskill.attach_projection()
   end
 
   @spec list_public_children(integer() | String.t(), map()) :: [Node.t()]
@@ -70,6 +77,7 @@ defmodule TechTree.Nodes.Reads do
     |> order_by([n, _creator], desc: n.activity_score, asc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
+    |> Autoskill.attach_projection()
   end
 
   @spec list_readable_children(integer(), integer() | String.t(), map()) :: [Node.t()]
@@ -82,6 +90,7 @@ defmodule TechTree.Nodes.Reads do
     |> order_by([n, _creator], desc: n.activity_score, asc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
+    |> Autoskill.attach_projection()
   end
 
   @spec list_tagged_edges(integer() | String.t()) :: [NodeTagEdge.t()]
@@ -105,6 +114,7 @@ defmodule TechTree.Nodes.Reads do
     |> order_by([n, _creator], desc: n.activity_score, desc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
+    |> Autoskill.attach_projection()
   end
 
   @spec list_public_nodes_by_ids([integer() | String.t()]) :: [Node.t()]
@@ -125,6 +135,7 @@ defmodule TechTree.Nodes.Reads do
         public_nodes_query()
         |> where([n, _creator], n.id in ^normalized_ids)
         |> Repo.all()
+        |> Autoskill.attach_projection()
     end
   end
 
@@ -134,6 +145,10 @@ defmodule TechTree.Nodes.Reads do
     |> where([n, _creator], n.skill_slug == ^slug and n.skill_version == ^version)
     |> limit(1)
     |> Repo.one()
+    |> case do
+      nil -> nil
+      node -> Autoskill.attach_projection(node)
+    end
   end
 
   @spec get_latest_skill(String.t()) :: Node.t() | nil
@@ -150,6 +165,10 @@ defmodule TechTree.Nodes.Reads do
     )
     |> limit(1)
     |> Repo.one()
+    |> case do
+      nil -> nil
+      node -> Autoskill.attach_projection(node)
+    end
   end
 
   @spec public_nodes_query() :: Ecto.Query.t()

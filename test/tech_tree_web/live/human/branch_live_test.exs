@@ -5,6 +5,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
 
   alias Decimal, as: D
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.Autoskill.NodeBundle
   alias TechTree.Comments.Comment
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
@@ -59,14 +60,37 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
     assert has_element?(view, "#seed-graph .hu-empty")
   end
 
-  defp seed_with_branches_fixture! do
+  test "renders autoskill labels on branch cards", %{conn: conn} do
+    node = seed_with_branches_fixture!(:skill)
+
+    Repo.insert!(%NodeBundle{
+      node_id: node.id,
+      bundle_type: :skill,
+      access_mode: :public_free,
+      preview_md: "# Preview",
+      bundle_manifest: %{"metadata" => %{"version" => "0.1.0"}},
+      primary_file: "SKILL.md",
+      marimo_entrypoint: "session.marimo.py",
+      bundle_uri: "ipfs://bafybranchautoskill",
+      bundle_cid: "bafybranchautoskill",
+      bundle_hash: "hashbranch"
+    })
+
+    {:ok, view, _html} = live(conn, ~p"/seed/ML")
+
+    assert render(view) =~ "Autoskill"
+    assert render(view) =~ "Public free"
+  end
+
+  defp seed_with_branches_fixture!(first_kind \\ :hypothesis) do
     agent = insert_agent_fixture!()
     root = Nodes.create_seed_root!("ML", "Machine Learning")
 
-    _node_a =
+    node_a =
       insert_ready_node!(agent, root, %{
         title: "Gradient compression",
         summary: "Reduce transfer bandwidth during distributed training.",
+        kind: first_kind,
         watcher_count: 5,
         comment_count: 2,
         child_count: 1,
@@ -83,7 +107,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
         activity_score: D.new("29.8")
       })
 
-    root
+    node_a
   end
 
   defp insert_agent_fixture! do
@@ -117,6 +141,9 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
       notebook_source: "# notebook",
       parent_id: parent.id,
       creator_agent_id: agent.id,
+      skill_slug: if(Map.get(attrs, :kind) == :skill, do: "branch-autoskill-#{uniq}", else: nil),
+      skill_version: if(Map.get(attrs, :kind) == :skill, do: "0.1.0", else: nil),
+      skill_md_body: if(Map.get(attrs, :kind) == :skill, do: "# Preview", else: nil),
       child_count: Map.get(attrs, :child_count, 0),
       comment_count: Map.get(attrs, :comment_count, 0),
       watcher_count: Map.get(attrs, :watcher_count, 0),

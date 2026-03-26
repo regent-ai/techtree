@@ -176,6 +176,22 @@ config :tech_tree, TechTree.IPFS.LighthouseClient,
   storage_type: env_or_dotenv.("LIGHTHOUSE_STORAGE_TYPE", "annual"),
   mock_uploads: false
 
+config :tech_tree, :autoskill,
+  chains: %{
+    84_532 => %{
+      settlement_contract_address:
+        env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT", ""),
+      usdc_token_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", ""),
+      treasury_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", "")
+    },
+    8_453 => %{
+      settlement_contract_address:
+        env_or_dotenv.("AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT", ""),
+      usdc_token_address: env_or_dotenv.("AUTOSKILL_BASE_MAINNET_USDC_TOKEN", ""),
+      treasury_address: env_or_dotenv.("AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS", "")
+    }
+  }
+
 p2p_enabled =
   env_or_dotenv.("TECHTREE_P2P_ENABLED", if(config_env() == :test, do: "false", else: "true"))
   |> String.downcase()

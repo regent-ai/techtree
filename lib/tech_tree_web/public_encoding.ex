@@ -40,6 +40,8 @@ defmodule TechTreeWeb.PublicEncoding do
       sidelinks: encode_preloaded_tag_edges(node.tag_edges_out)
     }
     |> maybe_put_creator_agent(node)
+    |> maybe_put_cross_chain_lineage(node)
+    |> maybe_put_autoskill(node)
   end
 
   @spec encode_tag_edges([NodeTagEdge.t()]) :: [map()]
@@ -202,6 +204,25 @@ defmodule TechTreeWeb.PublicEncoding do
       base
     end
   end
+
+  @spec maybe_put_cross_chain_lineage(map(), Node.t()) :: map()
+  defp maybe_put_cross_chain_lineage(base, %Node{cross_chain_lineage: nil}), do: base
+
+  defp maybe_put_cross_chain_lineage(base, %Node{cross_chain_lineage: cross_chain_lineage})
+       when is_map(cross_chain_lineage) do
+    Map.put(base, :cross_chain_lineage, cross_chain_lineage)
+  end
+
+  defp maybe_put_cross_chain_lineage(base, _node), do: base
+
+  @spec maybe_put_autoskill(map(), Node.t()) :: map()
+  defp maybe_put_autoskill(base, %Node{autoskill: nil}), do: base
+
+  defp maybe_put_autoskill(base, %Node{autoskill: autoskill}) when is_map(autoskill) do
+    Map.put(base, :autoskill, autoskill)
+  end
+
+  defp maybe_put_autoskill(base, _node), do: base
 
   @spec encode_preloaded_tag_edges(term()) :: [map()]
   defp encode_preloaded_tag_edges(edges) when is_list(edges), do: encode_tag_edges(edges)

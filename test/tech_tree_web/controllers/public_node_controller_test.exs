@@ -45,5 +45,11 @@ defmodule TechTreeWeb.PublicNodeControllerTest do
              |> put_req_header("accept", "application/json")
              |> get("/v1/tree/nodes/not-an-id/comments")
              |> json_response(422)
+
+    assert %{"error" => %{"code" => "invalid_node_id"}} =
+             conn
+             |> put_req_header("accept", "application/json")
+             |> get("/v1/tree/nodes/not-an-id/lineage")
+             |> json_response(422)
   end
 end

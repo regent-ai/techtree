@@ -76,4 +76,67 @@ defmodule TechTreeWeb.HumanComponents do
   end
 
   def present(_value, fallback), do: fallback
+
+  @spec autoskill?(map()) :: boolean()
+  def autoskill?(%{autoskill: autoskill}) when is_map(autoskill), do: true
+  def autoskill?(_node), do: false
+
+  @spec autoskill_mode_label(map()) :: String.t() | nil
+  def autoskill_mode_label(%{autoskill: %{access_mode: mode}}) when is_binary(mode) do
+    case mode do
+      "gated_paid" -> "Gated paid"
+      "public_free" -> "Public free"
+      _ -> nil
+    end
+  end
+
+  def autoskill_mode_label(_node), do: nil
+
+  @spec autoskill_flavor_label(map()) :: String.t() | nil
+  def autoskill_flavor_label(%{autoskill: %{flavor: flavor}}) when is_binary(flavor) do
+    case flavor do
+      "eval" -> "Eval scenario"
+      "skill" -> "Autoskill"
+      _ -> nil
+    end
+  end
+
+  def autoskill_flavor_label(_node), do: nil
+
+  @spec autoskill_score_summary(map()) :: String.t() | nil
+  def autoskill_score_summary(%{autoskill: %{scorecard: scorecard}}) when is_map(scorecard) do
+    replicable = Map.get(scorecard, :replicable, Map.get(scorecard, "replicable", %{}))
+
+    unique_agents =
+      Map.get(replicable, :unique_agent_count, Map.get(replicable, "unique_agent_count", 0))
+
+    median_score = Map.get(replicable, :median_score, Map.get(replicable, "median_score"))
+
+    cond do
+      is_number(median_score) ->
+        "#{Float.round(median_score, 2)} median from #{unique_agents} replicable reviews"
+
+      unique_agents > 0 ->
+        "#{unique_agents} replicable reviews"
+
+      true ->
+        nil
+    end
+  end
+
+  def autoskill_score_summary(_node), do: nil
+
+  @spec autoskill_listing_summary(map()) :: String.t() | nil
+  def autoskill_listing_summary(%{autoskill: %{listing: listing}}) when is_map(listing) do
+    status = Map.get(listing, :status, Map.get(listing, "status"))
+    price = Map.get(listing, :price_usdc, Map.get(listing, "price_usdc"))
+
+    cond do
+      is_binary(status) and not is_nil(price) -> "#{status} at #{price} USDC"
+      is_binary(status) -> status
+      true -> nil
+    end
+  end
+
+  def autoskill_listing_summary(_node), do: nil
 end

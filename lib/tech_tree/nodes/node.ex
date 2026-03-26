@@ -4,13 +4,31 @@ defmodule TechTree.Nodes.Node do
 
   alias TechTree.Types.{Ltree, Tsvector}
 
-  @node_kinds [:hypothesis, :data, :result, :null_result, :review, :synthesis, :meta, :skill]
+  @node_kinds [
+    :hypothesis,
+    :data,
+    :result,
+    :null_result,
+    :review,
+    :synthesis,
+    :meta,
+    :skill,
+    :eval
+  ]
   @node_statuses [:pinned, :anchored, :failed_anchor, :hidden, :deleted]
   @skill_slug_regex ~r/^[a-z0-9]+(?:-[a-z0-9]+)*$/
   @skill_version_regex ~r/^[0-9]+\.[0-9]+\.[0-9]+$/
 
   @type kind ::
-          :hypothesis | :data | :result | :null_result | :review | :synthesis | :meta | :skill
+          :hypothesis
+          | :data
+          | :result
+          | :null_result
+          | :review
+          | :synthesis
+          | :meta
+          | :skill
+          | :eval
 
   @type t :: %__MODULE__{
           id: integer() | nil,
@@ -71,6 +89,8 @@ defmodule TechTree.Nodes.Node do
 
     field(:comments_locked, :boolean, default: false)
     field(:search_document, Tsvector)
+    field(:cross_chain_lineage, :map, virtual: true)
+    field(:autoskill, :map, virtual: true)
 
     belongs_to(:parent, __MODULE__)
     belongs_to(:creator_agent, TechTree.Agents.AgentIdentity)
@@ -82,6 +102,13 @@ defmodule TechTree.Nodes.Node do
     has_many(:watchers, TechTree.Watches.NodeWatcher)
     has_many(:stars, TechTree.Stars.NodeStar)
     has_one(:chain_receipt, TechTree.Nodes.NodeChainReceipt)
+    has_many(:cross_chain_links, TechTree.Nodes.NodeCrossChainLink)
+    has_many(:lineage_claims, TechTree.Nodes.NodeLineageClaim, foreign_key: :subject_node_id)
+    has_one(:node_bundle, TechTree.Autoskill.NodeBundle)
+    has_many(:autoskill_results, TechTree.Autoskill.Result, foreign_key: :skill_node_id)
+    has_many(:autoskill_eval_results, TechTree.Autoskill.Result, foreign_key: :eval_node_id)
+    has_many(:autoskill_reviews, TechTree.Autoskill.Review, foreign_key: :skill_node_id)
+    has_one(:autoskill_listing, TechTree.Autoskill.Listing, foreign_key: :skill_node_id)
 
     timestamps()
   end

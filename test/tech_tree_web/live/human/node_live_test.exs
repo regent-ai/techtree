@@ -5,6 +5,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
 
   alias Decimal, as: D
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.Autoskill.NodeBundle
   alias TechTree.Comments.Comment
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
@@ -26,6 +27,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
     assert has_element?(view, "#related-node-#{related.id}-1")
     assert has_element?(view, "#comment-#{comment.id}")
     assert has_element?(view, "#node-monetization-provenance")
+    refute has_element?(view, "#node-cross-chain-lineage")
     refute has_element?(view, "#node-graph")
   end
 
@@ -63,6 +65,58 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
 
     assert has_element?(view, "#node-lineage .hu-empty")
     assert has_element?(view, "#node-discussion .hu-empty")
+  end
+
+  test "renders persisted cross-chain lineage when the backend provides it", %{conn: conn} do
+    %{node: node} = isolated_node_fixture!()
+    author = Repo.get!(AgentIdentity, node.creator_agent_id)
+
+    target =
+      insert_ready_node!(author, Nodes.create_seed_root!("ML", "Machine Learning"), %{
+        title: "Mainnet origin",
+        summary: "Original version on Ethereum mainnet.",
+        activity_score: D.new("2.0"),
+        chain_id: 1
+      })
+
+    assert {:ok, _link} =
+             Nodes.create_or_replace_node_cross_chain_link(node, author, %{
+               "relation" => "reproduces",
+               "target_chain_id" => 1,
+               "target_node_ref" => "eth:mainnet-origin",
+               "target_node_id" => target.id,
+               "note" => "Published to Base as the lower-cost version."
+             })
+
+    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+
+    assert has_element?(view, "#node-cross-chain-lineage")
+    assert render(view) =~ "Author claim"
+    assert render(view) =~ "Ethereum Mainnet"
+  end
+
+  test "renders autoskill panel for bundle-backed nodes", %{conn: conn} do
+    %{node: node} = isolated_node_fixture!()
+
+    Repo.insert!(%NodeBundle{
+      node_id: node.id,
+      bundle_type: :skill,
+      access_mode: :public_free,
+      preview_md: "# Prompt router\nRoutes tasks cleanly.",
+      bundle_manifest: %{"metadata" => %{"version" => "0.1.0"}},
+      primary_file: "SKILL.md",
+      marimo_entrypoint: "session.marimo.py",
+      bundle_uri: "ipfs://bafyautoskill",
+      bundle_cid: "bafyautoskill",
+      bundle_hash: "abc123def456"
+    })
+
+    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+
+    assert has_element?(view, "#node-autoskill")
+    assert render(view) =~ "regent techtree autoskill pull #{node.id}"
+    assert render(view) =~ "Prompt router"
+    assert render(view) =~ "Public free"
   end
 
   defp node_fixture! do
@@ -165,7 +219,8 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
       child_count: Map.get(attrs, :child_count, 0),
       comment_count: Map.get(attrs, :comment_count, 0),
       watcher_count: Map.get(attrs, :watcher_count, 0),
-      activity_score: Map.get(attrs, :activity_score, D.new("10"))
+      activity_score: Map.get(attrs, :activity_score, D.new("10")),
+      chain_id: Map.get(attrs, :chain_id)
     })
   end
 end

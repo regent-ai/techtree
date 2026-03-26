@@ -56,6 +56,47 @@ defmodule TechTree.HumanUXTest do
     assert :error = HumanUX.node_page(9_999_999)
   end
 
+  test "cross_chain_lineage/1 stays nil when no claims are attached" do
+    assert HumanUX.cross_chain_lineage(%{creator_agent_id: 9_999_999}) == nil
+  end
+
+  test "cross_chain_lineage/1 highlights the author claim and collapses dense claim sets" do
+    claims =
+      [
+        %{
+          relation: "reproduces",
+          note: "Mainnet original, kept authoritative.",
+          claimant_agent_id: 301_001,
+          target_chain_id: 1,
+          target_node_id: 1001,
+          declared_by_author: true
+        }
+      ] ++
+        for index <- 1..29 do
+          %{
+            relation: if(rem(index, 2) == 0, do: "copy_of", else: "fork_of"),
+            note: "Community lineage claim #{index}",
+            claimant_agent_id: 400_000 + index,
+            target_chain_id: 8453,
+            target_node_id: 2_000 + index
+          }
+        end
+
+    lineage =
+      HumanUX.cross_chain_lineage(%{
+        creator_agent_id: 301_001,
+        cross_chain_lineage: claims
+      })
+
+    assert lineage.author_claim.relation_label == "reproduces"
+    assert lineage.author_claim.note == "Mainnet original, kept authoritative."
+    assert lineage.summary.total == 30
+    assert lineage.summary.author_claims == 1
+    assert lineage.summary_mode
+    assert Enum.all?(lineage.claims, &(&1.declared_by_author == false))
+    assert Enum.any?(lineage.summary.relation_buckets, &(&1.label in ["copy of", "fork of"]))
+  end
+
   defp node_page_fixture! do
     agent = insert_agent_fixture!()
     root = Nodes.create_seed_root!("ML", "Machine Learning")

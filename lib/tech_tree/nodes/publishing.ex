@@ -7,7 +7,7 @@ defmodule TechTree.Nodes.Publishing do
   alias Ecto.Multi
   alias TechTree.Agents
   alias TechTree.IPFS.NodeBundleBuilder
-  alias TechTree.Nodes.{Node, NodeChainReceipt, NodeTagEdge}
+  alias TechTree.Nodes.{Lineage, Node, NodeChainReceipt, NodeTagEdge}
   alias TechTree.Nodes.Reads
   alias TechTree.Repo
   alias TechTree.Workers.AnchorNodeWorker
@@ -498,6 +498,14 @@ defmodule TechTree.Nodes.Publishing do
     end)
     |> Multi.run(:sidelinks, fn repo, %{node: node} ->
       insert_sidelinks(repo, node.id, normalized_attrs["sidelinks"] || [])
+    end)
+    |> Multi.run(:cross_chain_link, fn repo, %{node: node} ->
+      Lineage.create_initial_author_link(
+        repo,
+        node,
+        Agents.get_agent!(agent_id),
+        normalized_attrs["cross_chain_link"]
+      )
     end)
     |> Multi.run(:publish_attempt, fn repo, %{node: node} ->
       {:ok,

@@ -2155,6 +2155,41 @@ h6 {
   background: color-mix(in srgb, var(--color-base-100) 92%, transparent);
 }
 
+.hu-list-link-stack {
+  display: grid;
+  justify-content: stretch;
+}
+
+.hu-autoskill-row,
+.hu-autoskill-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.hu-autoskill-row {
+  margin: 0.45rem 0 0;
+}
+
+.hu-autoskill-panel {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.hu-autoskill-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--tt-border));
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .hu-comment-item {
   border: 1px solid var(--tt-border);
   border-radius: 0.66rem;
@@ -2171,6 +2206,130 @@ h6 {
 .hu-comment-meta {
   display: block;
   margin-top: 0.35rem;
+}
+
+.hu-lineage-hero,
+.hu-lineage-claim,
+.hu-lineage-summary {
+  border: 1px solid var(--tt-border);
+  border-radius: 0.78rem;
+  background: color-mix(in srgb, var(--color-base-100) 90%, transparent);
+}
+
+.hu-lineage-hero {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.72rem 0.78rem;
+  margin-bottom: 0.62rem;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-base-100));
+}
+
+.hu-lineage-hero-head,
+.hu-lineage-claim-head,
+.hu-lineage-meta-row,
+.hu-lineage-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.hu-lineage-kicker,
+.hu-lineage-claim-relation {
+  margin: 0;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+}
+
+.hu-lineage-hero-relation {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
+
+.hu-lineage-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--tt-border));
+  background: color-mix(in srgb, var(--color-base-100) 84%, transparent);
+  font-size: 0.61rem;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hu-lineage-note {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  opacity: 0.88;
+}
+
+.hu-lineage-summary {
+  display: grid;
+  gap: 0.62rem;
+  padding: 0.7rem;
+  margin-bottom: 0.62rem;
+}
+
+.hu-lineage-chart,
+.hu-lineage-claim-list {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.hu-lineage-bar {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.hu-lineage-bar-head {
+  font-size: 0.68rem;
+  opacity: 0.84;
+}
+
+.hu-lineage-bar-track {
+  overflow: hidden;
+  height: 0.46rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tt-border) 52%, transparent);
+}
+
+.hu-lineage-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 76%, white), color-mix(in srgb, var(--color-accent) 70%, white));
+}
+
+.hu-lineage-claim-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hu-lineage-claim {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0.7rem 0.78rem;
+}
+
+.hu-lineage-claim--author {
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--tt-border));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-base-100));
+}
+
+.hu-lineage-claim-head {
+  align-items: baseline;
 }
 
 @media (max-width: 700px) {

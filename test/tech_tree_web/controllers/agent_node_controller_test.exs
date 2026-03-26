@@ -172,6 +172,54 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     assert %{"error" => %{"code" => "parent_not_anchored"}} = response
   end
 
+  test "POST /v1/tree/nodes persists an optional author cross-chain link", %{conn: conn} do
+    headers = create_agent_headers!("agent-node-cross-chain")
+    parent = create_public_parent!(headers.agent)
+
+    target =
+      create_public_parent!(headers.agent,
+        title: "agent-node-cross-chain-target",
+        chain_id: 1
+      )
+
+    response =
+      conn
+      |> with_siwa_headers(headers)
+      |> post("/v1/tree/nodes", %{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "agent-node-with-cross-chain-link",
+        "parent_id" => parent.id,
+        "notebook_source" => "print('agent node with cross-chain link')",
+        "cross_chain_link" => %{
+          "relation" => "reproduces",
+          "target_chain_id" => 1,
+          "target_node_ref" => "eth:agent-node-cross-chain-target",
+          "target_node_id" => target.id,
+          "note" => "Attached during node creation."
+        }
+      })
+      |> json_response(201)
+
+    assert %{"data" => %{"node_id" => node_id}} = response
+
+    assert %{
+             "data" => [
+               %{
+                 "relation" => "reproduces",
+                 "target_chain_label" => "Ethereum Mainnet",
+                 "target_node_id" => target_node_id
+               }
+             ]
+           } =
+             Phoenix.ConnTest.build_conn()
+             |> with_siwa_headers(headers)
+             |> get("/v1/agent/tree/nodes/#{node_id}/cross-chain-links")
+             |> json_response(200)
+
+    assert target_node_id == target.id
+  end
+
   test "POST /v1/tree/nodes rate limits repeated non-idempotent creates per agent", %{conn: conn} do
     headers = create_agent_headers!("agent-node-rate-limit")
     parent = create_public_parent!(headers.agent)
@@ -246,11 +294,12 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
       depth: 0,
       seed: "ML",
       kind: :hypothesis,
-      title: "agent-node-parent-#{unique}",
+      title: Keyword.get(attrs, :title, "agent-node-parent-#{unique}"),
       status: Keyword.get(attrs, :status, :anchored),
       notebook_source: "print('parent')",
       publish_idempotency_key: "agent-node-parent:#{unique}",
-      creator_agent_id: creator.id
+      creator_agent_id: creator.id,
+      chain_id: Keyword.get(attrs, :chain_id)
     })
     |> Repo.insert!()
   end

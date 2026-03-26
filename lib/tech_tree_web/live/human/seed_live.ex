@@ -110,10 +110,33 @@ defmodule TechTreeWeb.Human.SeedLive do
                     <ul class="hu-list">
                       <%= for node <- Enum.take(lane.branches, 4) do %>
                         <li id={"seed-lane-node-#{lane.seed}-#{node.id}"}>
-                          <.link navigate={~p"/node/#{node.id}"} class="hu-list-link">
-                            <span>{node.title}</span>
+                          <div class="hu-list-link hu-list-link-stack">
+                            <.link navigate={~p"/node/#{node.id}"} class="hu-inline-link">
+                              {node.title}
+                            </.link>
                             <span class="hu-list-meta">{HumanComponents.kind(node.kind)}</span>
-                          </.link>
+                            <span :if={HumanComponents.autoskill?(node)} class="hu-autoskill-chip">
+                              {HumanComponents.autoskill_flavor_label(node)}
+                            </span>
+                            <span
+                              :if={HumanComponents.autoskill_mode_label(node)}
+                              class="hu-list-meta"
+                            >
+                              {HumanComponents.autoskill_mode_label(node)}
+                            </span>
+                            <span
+                              :if={HumanComponents.autoskill_score_summary(node)}
+                              class="hu-list-meta"
+                            >
+                              {HumanComponents.autoskill_score_summary(node)}
+                            </span>
+                            <span
+                              :if={HumanComponents.autoskill_listing_summary(node)}
+                              class="hu-list-meta"
+                            >
+                              {HumanComponents.autoskill_listing_summary(node)}
+                            </span>
+                          </div>
                         </li>
                       <% end %>
                     </ul>

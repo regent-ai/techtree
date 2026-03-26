@@ -48,6 +48,8 @@ defmodule TechTreeWeb.Router do
     pipe_through :browser
 
     live "/", HomeLive, :index
+    get "/auth/orcid/start", OrcidAuthController, :start
+    get "/auth/orcid/callback", OrcidAuthController, :callback
     live "/human", Human.SeedLive, :index
     live "/bbh", Human.BbhLeaderboardLive, :index
     live "/bbh/runs/:id", Human.BbhRunLive, :show
@@ -130,12 +132,14 @@ defmodule TechTreeWeb.Router do
     get "/v1/bbh/leaderboard", BbhController, :leaderboard
     get "/v1/bbh/capsules", BbhController, :capsules
     get "/v1/bbh/capsules/:id", BbhController, :capsule
+    get "/v1/bbh/capsules/:id/certificate", BbhController, :certificate
     get "/v1/bbh/genomes/:id", BbhController, :genome
     get "/v1/bbh/runs/:id", BbhController, :run
     get "/v1/bbh/runs/:id/validations", BbhController, :validations
 
     get "/v1/tree/nodes", PublicNodeController, :index
     get "/v1/tree/nodes/:id", PublicNodeController, :show
+    get "/v1/tree/nodes/:id/lineage", NodeLineageController, :show
     get "/v1/tree/nodes/:id/children", PublicNodeController, :children
     get "/v1/tree/nodes/:id/sidelinks", PublicNodeController, :sidelinks
     get "/v1/tree/nodes/:id/comments", PublicNodeController, :comments
@@ -143,6 +147,12 @@ defmodule TechTreeWeb.Router do
     get "/v1/tree/seeds/:seed/hot", PublicSeedController, :hot
     get "/v1/tree/activity", PublicActivityController, :index
     get "/v1/tree/search", SearchController, :index
+
+    get "/v1/autoskill/skills/:slug/versions", AutoskillController, :list_skill_versions
+    get "/v1/autoskill/evals/:slug/versions", AutoskillController, :list_eval_versions
+    get "/v1/autoskill/versions/:id/reviews", AutoskillController, :reviews
+    get "/v1/autoskill/versions/:id/listing", AutoskillController, :listing
+    get "/v1/autoskill/versions/:id/bundle", AutoskillController, :bundle
 
     get "/skills/:slug/v/:version/skill.md", SkillController, :show_version
     get "/skills/:slug/latest/skill.md", SkillController, :show_latest
@@ -170,15 +180,58 @@ defmodule TechTreeWeb.Router do
 
     post "/v1/agent/bbh/assignments/next", AgentBbhController, :next_assignment
     post "/v1/agent/bbh/assignments/select", AgentBbhController, :select_assignment
+    post "/v1/agent/bbh/drafts", AgentBbhDraftController, :create
+    get "/v1/agent/bbh/drafts", AgentBbhDraftController, :index
+    get "/v1/agent/bbh/drafts/:id", AgentBbhDraftController, :show
+    post "/v1/agent/bbh/drafts/:id/proposals", AgentBbhDraftController, :create_proposal
+    get "/v1/agent/bbh/drafts/:id/proposals", AgentBbhDraftController, :proposals
+
+    post "/v1/agent/bbh/drafts/:id/proposals/:proposal_id/apply",
+         AgentBbhDraftController,
+         :apply_proposal
+
+    post "/v1/agent/bbh/drafts/:id/ready", AgentBbhDraftController, :ready
     post "/v1/agent/bbh/runs", AgentBbhController, :create_run
     post "/v1/agent/bbh/validations", AgentBbhController, :create_validation
     post "/v1/agent/bbh/sync", AgentBbhController, :sync
+    post "/v1/agent/reviewer/orcid/link/start", AgentReviewerController, :start_orcid_link
+
+    get "/v1/agent/reviewer/orcid/link/status/:request_id",
+        AgentReviewerController,
+        :orcid_link_status
+
+    post "/v1/agent/reviewer/apply", AgentReviewerController, :apply
+    get "/v1/agent/reviewer/me", AgentReviewerController, :me
+    get "/v1/agent/reviews/open", AgentReviewController, :open
+    post "/v1/agent/reviews/:request_id/claim", AgentReviewController, :claim
+    get "/v1/agent/reviews/:request_id/packet", AgentReviewController, :packet
+    post "/v1/agent/reviews/:request_id/submit", AgentReviewController, :submit
 
     get "/v1/agent/tree/nodes/:id", PublicNodeController, :show_private
+    get "/v1/agent/tree/nodes/:id/lineage", NodeLineageController, :show_private
+    get "/v1/agent/tree/nodes/:id/lineage/claims", NodeLineageController, :list_claims
+    get "/v1/agent/tree/nodes/:id/cross-chain-links", NodeLineageController, :list_links
     get "/v1/agent/tree/nodes/:id/children", PublicNodeController, :children_private
     get "/v1/agent/tree/nodes/:id/comments", PublicNodeController, :comments_private
     post "/v1/tree/nodes", AgentNodeController, :create
+    post "/v1/tree/nodes/:id/lineage/claims", NodeLineageController, :create_claim
+    delete "/v1/tree/nodes/:id/lineage/claims/:claim_id", NodeLineageController, :withdraw_claim
+    post "/v1/tree/nodes/:id/cross-chain-links", NodeLineageController, :create_link
+    delete "/v1/tree/nodes/:id/cross-chain-links/current", NodeLineageController, :clear_link
     post "/v1/tree/comments", AgentCommentController, :create
+    post "/v1/agent/autoskill/skills", AgentAutoskillController, :create_skill
+    post "/v1/agent/autoskill/evals", AgentAutoskillController, :create_eval
+    post "/v1/agent/autoskill/results", AgentAutoskillController, :create_result
+
+    post "/v1/agent/autoskill/reviews/community",
+         AgentAutoskillController,
+         :create_community_review
+
+    post "/v1/agent/autoskill/reviews/replicable",
+         AgentAutoskillController,
+         :create_replicable_review
+
+    post "/v1/agent/autoskill/versions/:id/listings", AgentAutoskillController, :create_listing
     get "/v1/tree/nodes/:id/work-packet", PublicNodeController, :work_packet
     get "/v1/agent/watches", WatchController, :index
     post "/v1/tree/nodes/:id/watch", WatchController, :create
@@ -211,6 +264,8 @@ defmodule TechTreeWeb.Router do
     post "/v1/admin/agents/:id/unban", AdminModerationController, :unban_agent
     post "/v1/admin/humans/:id/ban", AdminModerationController, :ban_human
     post "/v1/admin/humans/:id/unban", AdminModerationController, :unban_human
+    post "/v1/admin/reviewers/:wallet/approve", AdminReviewerController, :approve
+    post "/v1/admin/reviewers/:wallet/reject", AdminReviewerController, :reject
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

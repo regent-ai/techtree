@@ -2,7 +2,16 @@ defmodule TechTree.Nodes do
   @moduledoc false
 
   alias Decimal, as: D
-  alias TechTree.Nodes.{Metrics, Node, Publishing, Reads}
+
+  alias TechTree.Nodes.{
+    Lineage,
+    Metrics,
+    Node,
+    NodeCrossChainLink,
+    NodeLineageClaim,
+    Publishing,
+    Reads
+  }
 
   @seed_roots ["ML", "Bioscience", "Polymarket", "DeFi", "Firmware", "Skills", "Evals"]
 
@@ -80,6 +89,42 @@ defmodule TechTree.Nodes do
 
   @spec create_seed_root!(String.t(), String.t()) :: Node.t()
   defdelegate create_seed_root!(seed_name, title), to: Publishing
+
+  @spec attach_cross_chain_lineage(Node.t()) :: Node.t()
+  defdelegate attach_cross_chain_lineage(node), to: Lineage, as: :attach_projection
+
+  @spec cross_chain_lineage(Node.t()) :: Lineage.projection() | nil
+  defdelegate cross_chain_lineage(node), to: Lineage, as: :projection
+
+  @spec list_node_cross_chain_links(Node.t()) :: [NodeCrossChainLink.t()]
+  defdelegate list_node_cross_chain_links(node), to: Lineage, as: :list_links
+
+  @spec list_node_lineage_claims(Node.t()) :: [NodeLineageClaim.t()]
+  defdelegate list_node_lineage_claims(node), to: Lineage, as: :list_claims
+
+  @spec create_node_lineage_claim(Node.t(), TechTree.Agents.AgentIdentity.t(), map()) ::
+          {:ok, NodeLineageClaim.t()} | {:error, term()}
+  defdelegate create_node_lineage_claim(node, agent, attrs), to: Lineage, as: :create_claim
+
+  @spec withdraw_node_lineage_claim(Node.t(), integer(), TechTree.Agents.AgentIdentity.t()) ::
+          :ok | {:error, term()}
+  defdelegate withdraw_node_lineage_claim(node, claim_id, agent),
+    to: Lineage,
+    as: :withdraw_claim
+
+  @spec create_or_replace_node_cross_chain_link(
+          Node.t(),
+          TechTree.Agents.AgentIdentity.t(),
+          map()
+        ) ::
+          {:ok, NodeCrossChainLink.t()} | {:error, term()}
+  defdelegate create_or_replace_node_cross_chain_link(node, agent, attrs),
+    to: Lineage,
+    as: :create_or_replace_author_link
+
+  @spec clear_node_cross_chain_link(Node.t(), TechTree.Agents.AgentIdentity.t()) ::
+          :ok | {:error, term()}
+  defdelegate clear_node_cross_chain_link(node, agent), to: Lineage, as: :clear_author_link
 
   @spec get_agent_node_by_idempotency(integer(), String.t() | nil) :: Node.t() | nil
   defdelegate get_agent_node_by_idempotency(agent_id, idempotency_key), to: Publishing

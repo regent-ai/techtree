@@ -90,3 +90,7 @@ audit/
 /coverage/
 /playwright-report/
 /test-results/
+
+# Python cache artifacts
+__pycache__/
+*.py[cod]

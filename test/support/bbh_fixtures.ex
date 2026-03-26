@@ -16,7 +16,7 @@ defmodule TechTree.BBHFixtures do
       split: "climb",
       language: "python",
       mode: "fixed",
-      assignment_policy: "public_next",
+      assignment_policy: "auto_or_select",
       title: "Capsule #{suffix}",
       hypothesis: "The treatment should improve the signal.",
       protocol_md: "1. Read the data\n2. Score the hypothesis\n",
@@ -150,12 +150,12 @@ defmodule TechTree.BBHFixtures do
     capsule =
       insert_capsule!(
         Map.merge(
-          %{split: "benchmark", assignment_policy: "validator_assigned"},
+          %{split: "benchmark", assignment_policy: "select"},
           Map.take(attrs, [:capsule_id, :title, :split, :assignment_policy, :provider])
         )
       )
 
-    assignment = insert_assignment!(capsule, %{origin: "validator_assigned"})
+    assignment = insert_assignment!(capsule, %{origin: capsule.assignment_policy})
     genome = insert_genome!(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
 
     run =
@@ -371,7 +371,7 @@ defmodule TechTree.BBHFixtures do
     %{capsule: capsule, publication_artifact_id: artifact_id, publication_review_id: review_id} =
       insert_published_challenge_capsule!(attrs)
 
-    assignment = insert_assignment!(capsule, %{origin: "operator_assigned"})
+    assignment = insert_assignment!(capsule, %{origin: capsule.assignment_policy})
     genome = insert_genome!(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
 
     run =
@@ -410,7 +410,7 @@ defmodule TechTree.BBHFixtures do
         Map.merge(
           %{
             split: "draft",
-            assignment_policy: "draft_only",
+            assignment_policy: "operator",
             provider: "techtree",
             family_ref: Map.get(attrs, :family_ref, "challenge-family"),
             instance_ref: nil,
@@ -480,7 +480,8 @@ defmodule TechTree.BBHFixtures do
     {:ok, capsule} =
       TechTree.BBH.promote_challenge_capsule(capsule.capsule_id, %{
         "publication_artifact_id" => artifact_id,
-        "publication_review_id" => review_id
+        "publication_review_id" => review_id,
+        "assignment_policy" => Map.get(attrs, :assignment_policy, "auto_or_select")
       })
 
     %{

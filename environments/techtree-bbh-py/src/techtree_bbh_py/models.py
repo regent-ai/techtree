@@ -8,7 +8,7 @@ from typing import Any, Literal
 BbhSplit = Literal["climb", "benchmark", "challenge", "draft"]
 BbhMode = Literal["fixed", "family"]
 BbhProvider = Literal["bbh", "bbh_train", "techtree"]
-BbhAssignmentPolicy = Literal["public_next", "operator_assigned", "validator_assigned", "draft_only"]
+BbhAssignmentPolicy = Literal["auto", "select", "auto_or_select", "operator"]
 BbhHarnessType = Literal["openclaw", "hermes", "claude_code", "custom"]
 
 

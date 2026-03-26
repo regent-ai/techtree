@@ -36,4 +36,4 @@ bbh:
   rubric_path: rubric.json
   data_refs:
     - path: data/draft.csv
-  assignment_policy: draft_only
+  assignment_policy: operator

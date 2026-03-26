@@ -41,4 +41,4 @@ bbh:
   rubric_path: rubric.json
   data_refs:
     - path: data/challenge.csv
-  assignment_policy: validator_assigned
+  assignment_policy: auto_or_select

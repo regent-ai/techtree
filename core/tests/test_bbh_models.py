@@ -65,28 +65,28 @@ def test_family_artifact_requires_family_ref() -> None:
         BbhArtifactSourceV1.model_validate(payload)
 
 
-def test_climb_capsules_cannot_use_draft_only() -> None:
+def test_public_capsules_cannot_use_operator() -> None:
     payload = load_fixture("artifact_climb_fixed.source.yaml")
-    payload["bbh"]["assignment_policy"] = "draft_only"
+    payload["bbh"]["assignment_policy"] = "operator"
 
-    with pytest.raises(ValueError, match="climb capsules cannot use assignment_policy=draft_only"):
+    with pytest.raises(ValueError, match="public capsules cannot use assignment_policy=operator"):
         BbhArtifactSourceV1.model_validate(payload)
 
 
 @pytest.mark.parametrize("fixture_name", ["artifact_benchmark_fixed.source.yaml", "artifact_published_challenge.source.yaml"])
-def test_benchmark_and_challenge_capsules_cannot_use_public_next(fixture_name: str) -> None:
+def test_benchmark_and_challenge_capsules_allow_selectable_policies(fixture_name: str) -> None:
     payload = load_fixture(fixture_name)
-    payload["bbh"]["assignment_policy"] = "public_next"
+    payload["bbh"]["assignment_policy"] = "select"
 
-    with pytest.raises(ValueError, match="benchmark/challenge capsules cannot use assignment_policy=public_next"):
-        BbhArtifactSourceV1.model_validate(payload)
+    validated = BbhArtifactSourceV1.model_validate(payload)
+    assert validated.bbh.assignment_policy == "select"
 
 
-def test_draft_capsules_must_use_draft_only() -> None:
+def test_draft_capsules_must_use_operator() -> None:
     payload = load_fixture("artifact_draft_challenge.source.yaml")
-    payload["bbh"]["assignment_policy"] = "operator_assigned"
+    payload["bbh"]["assignment_policy"] = "auto_or_select"
 
-    with pytest.raises(ValueError, match="draft capsules must use assignment_policy=draft_only"):
+    with pytest.raises(ValueError, match="draft capsules must use assignment_policy=operator"):
         BbhArtifactSourceV1.model_validate(payload)
 
 

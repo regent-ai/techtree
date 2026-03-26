@@ -12,10 +12,15 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
              conn
              |> post("/v1/agent/bbh/assignments/next", %{})
              |> json_response(401)
+
+    assert %{"error" => %{"code" => "agent_auth_required"}} =
+             conn
+             |> post("/v1/agent/bbh/assignments/select", %{"capsule_id" => "capsule_123"})
+             |> json_response(401)
   end
 
   test "POST /v1/agent/bbh/assignments/next returns the next climb capsule", %{conn: conn} do
-    _capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "public_next"})
+    _capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "auto_or_select"})
 
     response =
       conn
@@ -37,8 +42,43 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     assert response["data"]["capsule"]["protocol_md"]
   end
 
+  test "POST /v1/agent/bbh/assignments/select returns a selected climb capsule", %{conn: conn} do
+    capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "auto_or_select"})
+
+    response =
+      conn
+      |> with_siwa_headers([])
+      |> post("/v1/agent/bbh/assignments/select", %{"capsule_id" => capsule.capsule_id})
+      |> json_response(200)
+
+    assert %{
+             "data" => %{
+               "assignment_ref" => assignment_ref,
+               "split" => "climb",
+               "capsule" => %{"capsule_id" => capsule_id}
+             }
+           } = response
+
+    assert is_binary(assignment_ref) and assignment_ref != ""
+    assert capsule_id == capsule.capsule_id
+  end
+
+  test "POST /v1/agent/bbh/assignments/select rejects visible operator capsules", %{conn: conn} do
+    %{capsule: capsule} =
+      BBHFixtures.insert_published_challenge_capsule!(%{
+        title: "Read-only Challenge",
+        assignment_policy: "operator"
+      })
+
+    assert %{"error" => %{"code" => "bbh_capsule_not_selectable"}} =
+             conn
+             |> with_siwa_headers([])
+             |> post("/v1/agent/bbh/assignments/select", %{"capsule_id" => capsule.capsule_id})
+             |> json_response(422)
+  end
+
   test "POST /v1/agent/bbh/runs creates a completed BBH run", %{conn: conn} do
-    capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "public_next"})
+    capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "auto_or_select"})
     payload = BBHFixtures.run_submit_payload(capsule, %{normalized_score: 0.83, raw_score: 4.2})
 
     response =
@@ -68,7 +108,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     capsule =
       BBHFixtures.insert_capsule!(%{
         split: "benchmark",
-        assignment_policy: "validator_assigned"
+        assignment_policy: "select"
       })
 
     payload = BBHFixtures.run_submit_payload(capsule, %{assignment_ref: nil})
@@ -84,7 +124,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     _draft_capsule =
       BBHFixtures.insert_capsule!(%{
         split: "draft",
-        assignment_policy: "draft_only",
+        assignment_policy: "operator",
         provider: "techtree"
       })
 

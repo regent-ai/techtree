@@ -113,9 +113,10 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
               </div>
 
               <div class="bbh-wall-caption">
-                <span class="bbh-chip">Practice = --lane climb</span>
-                <span class="bbh-chip">Proving = --lane benchmark</span>
-                <span class="bbh-chip">Challenge = --lane challenge</span>
+                <span class="bbh-chip">auto: --lane climb</span>
+                <span class="bbh-chip">auto: --lane benchmark</span>
+                <span class="bbh-chip">auto: --lane challenge</span>
+                <span class="bbh-chip">manual: --capsule &lt;capsule_id&gt;</span>
                 <span class="bbh-chip bbh-chip-official">selected capsule stays pinned</span>
               </div>
 

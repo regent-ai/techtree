@@ -36,4 +36,4 @@ bbh:
   rubric_path: rubric.json
   data_refs:
     - path: data/published-challenge.csv
-  assignment_policy: operator_assigned
+  assignment_policy: auto_or_select

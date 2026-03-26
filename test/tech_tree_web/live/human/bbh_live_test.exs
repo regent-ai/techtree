@@ -16,7 +16,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     pending_capsule =
       BBHFixtures.insert_capsule!(%{
         split: "climb",
-        assignment_policy: "public_next",
+        assignment_policy: "auto_or_select",
         title: "Capsule Beta"
       })
 
@@ -41,7 +41,10 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "Challenge"
     assert render(view) =~ "Benchmark ledger"
     assert render(view) =~ "Frontier ticker"
-    assert render(view) =~ "--lane climb / benchmark / challenge"
+    assert render(view) =~ "auto: --lane climb"
+    assert render(view) =~ "auto: --lane benchmark"
+    assert render(view) =~ "auto: --lane challenge"
+    assert render(view) =~ "manual: --capsule &lt;capsule_id&gt;"
     assert render(view) =~ "public reviewed frontier lane"
     assert render(view) =~ "later verification update"
     assert has_element?(view, "#bbh-capsule-#{capsule.capsule_id}")

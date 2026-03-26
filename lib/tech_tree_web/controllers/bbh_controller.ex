@@ -8,6 +8,23 @@ defmodule TechTreeWeb.BbhController do
     json(conn, %{data: BBH.leaderboard(params)})
   end
 
+  def capsules(conn, params) do
+    json(conn, %{data: BBH.list_public_capsules(params)})
+  end
+
+  def capsule(conn, %{"id" => capsule_id}) do
+    case BBH.get_public_capsule(capsule_id) do
+      nil ->
+        ApiError.render_halted(conn, :not_found, %{
+          code: "bbh_capsule_not_found",
+          message: "BBH capsule not found"
+        })
+
+      capsule ->
+        json(conn, %{data: capsule})
+    end
+  end
+
   def genome(conn, %{"id" => genome_id}) do
     case BBH.get_genome(genome_id) do
       nil ->

@@ -128,6 +128,8 @@ defmodule TechTreeWeb.Router do
     pipe_through :api
 
     get "/v1/bbh/leaderboard", BbhController, :leaderboard
+    get "/v1/bbh/capsules", BbhController, :capsules
+    get "/v1/bbh/capsules/:id", BbhController, :capsule
     get "/v1/bbh/genomes/:id", BbhController, :genome
     get "/v1/bbh/runs/:id", BbhController, :run
     get "/v1/bbh/runs/:id/validations", BbhController, :validations
@@ -167,6 +169,7 @@ defmodule TechTreeWeb.Router do
     pipe_through :api_agent
 
     post "/v1/agent/bbh/assignments/next", AgentBbhController, :next_assignment
+    post "/v1/agent/bbh/assignments/select", AgentBbhController, :select_assignment
     post "/v1/agent/bbh/runs", AgentBbhController, :create_run
     post "/v1/agent/bbh/validations", AgentBbhController, :create_validation
     post "/v1/agent/bbh/sync", AgentBbhController, :sync

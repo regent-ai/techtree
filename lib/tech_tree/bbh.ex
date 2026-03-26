@@ -14,6 +14,8 @@ defmodule TechTree.BBH do
   @draft_split "draft"
   @public_splits [@climb_split, @benchmark_split, @challenge_split]
   @official_splits [@benchmark_split, @challenge_split]
+  @auto_assignment_policies ["auto", "auto_or_select"]
+  @select_assignment_policies ["select", "auto_or_select"]
 
   def next_assignment(agent_claims, attrs \\ %{}) do
     split = Map.get(attrs, "split", @climb_split)
@@ -24,40 +26,29 @@ defmodule TechTree.BBH do
         Capsule
         |> where([capsule], capsule.split == ^split)
         |> maybe_limit_to_published_challenges(split)
+        |> where([capsule], capsule.assignment_policy in ^@auto_assignment_policies)
         |> order_by([capsule], asc: capsule.inserted_at, asc: capsule.capsule_id)
         |> limit(1)
         |> Repo.one()
 
-      case capsule do
-        nil ->
-          {:error, :assignment_not_available}
-
-        %Capsule{} = capsule ->
-          assignment_ref = "asg_" <> Integer.to_string(System.unique_integer([:positive]), 36)
-
-          attrs = %{
-            assignment_ref: assignment_ref,
-            capsule_id: capsule.capsule_id,
-            split: split,
-            status: "assigned",
-            origin: capsule.assignment_policy,
-            agent_wallet_address: Map.get(agent_claims, "wallet_address"),
-            agent_token_id: Map.get(agent_claims, "token_id")
-          }
-
-          with {:ok, assignment} <- %Assignment{} |> Assignment.changeset(attrs) |> Repo.insert() do
-            {:ok,
-             %{
-               assignment_ref: assignment.assignment_ref,
-               split: assignment.split,
-               capsule: capsule_payload(capsule)
-             }}
-          end
-      end
+      build_assignment_payload(agent_claims, capsule)
     else
       false -> {:error, :invalid_split}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  def select_assignment(agent_claims, attrs) when is_map(attrs) do
+    capsule_id = required_binary(attrs, "capsule_id")
+
+    with :ok <- ensure_inventory_loaded(),
+         {:ok, capsule} <- fetch_capsule(capsule_id),
+         :ok <- ensure_public_capsule_visible?(capsule),
+         :ok <- ensure_capsule_selectable(capsule) do
+      build_assignment_payload(agent_claims, capsule)
+    end
+  rescue
+    error in [ArgumentError] -> {:error, error}
   end
 
   def create_run(attrs) when is_map(attrs) do
@@ -231,6 +222,27 @@ defmodule TechTree.BBH do
     |> Repo.all()
   end
 
+  def list_public_capsules(opts \\ %{}) do
+    split = Map.get(opts, "split") || Map.get(opts, :split)
+
+    Capsule
+    |> maybe_filter_capsules_by_split(split)
+    |> order_by([capsule], asc: capsule.inserted_at, asc: capsule.capsule_id)
+    |> Repo.all()
+    |> Enum.filter(&public_capsule_visible?/1)
+    |> Enum.map(&public_capsule_card/1)
+  end
+
+  def get_public_capsule(capsule_id) when is_binary(capsule_id) do
+    case Repo.get(Capsule, capsule_id) do
+      nil ->
+        nil
+
+      %Capsule{} = capsule ->
+        if public_capsule_visible?(capsule), do: public_capsule_detail(capsule), else: nil
+    end
+  end
+
   def get_run(run_id) when is_binary(run_id) do
     Run
     |> Repo.get(run_id)
@@ -311,6 +323,31 @@ defmodule TechTree.BBH do
     end
   end
 
+  defp build_assignment_payload(_agent_claims, nil), do: {:error, :assignment_not_available}
+
+  defp build_assignment_payload(agent_claims, %Capsule{} = capsule) do
+    assignment_ref = "asg_" <> Integer.to_string(System.unique_integer([:positive]), 36)
+
+    attrs = %{
+      assignment_ref: assignment_ref,
+      capsule_id: capsule.capsule_id,
+      split: capsule.split,
+      status: "assigned",
+      origin: capsule.assignment_policy,
+      agent_wallet_address: Map.get(agent_claims, "wallet_address"),
+      agent_token_id: Map.get(agent_claims, "token_id")
+    }
+
+    with {:ok, assignment} <- %Assignment{} |> Assignment.changeset(attrs) |> Repo.insert() do
+      {:ok,
+       %{
+         assignment_ref: assignment.assignment_ref,
+         split: assignment.split,
+         capsule: capsule_payload(capsule)
+       }}
+    end
+  end
+
   defp capsule_payload(capsule) do
     %{
       capsule_id: capsule.capsule_id,
@@ -362,6 +399,53 @@ defmodule TechTree.BBH do
   defp maybe_filter_capsules_by_split(query, splits) when is_list(splits) do
     where(query, [capsule], capsule.split in ^splits)
   end
+
+  defp public_capsule_visible?(%Capsule{split: @draft_split}), do: false
+  defp public_capsule_visible?(%Capsule{split: @challenge_split, published_at: nil}), do: false
+  defp public_capsule_visible?(%Capsule{}), do: true
+
+  defp public_capsule_card(%Capsule{} = capsule) do
+    %{
+      capsule_id: capsule.capsule_id,
+      split: capsule.split,
+      title: capsule.title,
+      hypothesis: capsule.hypothesis,
+      provider: capsule.provider,
+      provider_ref: capsule.provider_ref,
+      assignment_policy: capsule.assignment_policy,
+      published_at: capsule.published_at
+    }
+  end
+
+  defp public_capsule_detail(%Capsule{} = capsule) do
+    Map.merge(public_capsule_card(capsule), %{
+      family_ref: capsule.family_ref,
+      instance_ref: capsule.instance_ref,
+      language: capsule.language,
+      mode: capsule.mode,
+      task_summary: capsule.task_json,
+      rubric_summary: capsule.rubric_json,
+      data_manifest:
+        Enum.map(capsule.data_files || [], fn file ->
+          Map.take(file, ["name", "path", "sha256", "bytes"])
+        end),
+      artifact_source: capsule.artifact_source
+    })
+  end
+
+  defp ensure_public_capsule_visible?(%Capsule{} = capsule) do
+    if public_capsule_visible?(capsule) do
+      :ok
+    else
+      {:error, :capsule_not_found}
+    end
+  end
+
+  defp ensure_capsule_selectable(%Capsule{assignment_policy: policy})
+       when policy in @select_assignment_policies,
+       do: :ok
+
+  defp ensure_capsule_selectable(%Capsule{}), do: {:error, :capsule_not_selectable}
 
   defp validate_assignment_requirement(split, assignment_ref)
        when split in @official_splits and (is_nil(assignment_ref) or assignment_ref == ""),
@@ -532,6 +616,9 @@ defmodule TechTree.BBH do
     artifact_id = required_binary(attrs, "publication_artifact_id")
     review_id = required_binary(attrs, "publication_review_id")
 
+    assignment_policy =
+      Map.get(attrs, "assignment_policy") || Map.get(attrs, :assignment_policy, "auto_or_select")
+
     with %Capsule{} = capsule <- Repo.get(Capsule, capsule_id),
          true <- capsule.split == @draft_split || {:error, :capsule_not_draft},
          %Artifact{} <- Repo.get(Artifact, artifact_id) || {:error, :artifact_not_found},
@@ -540,7 +627,7 @@ defmodule TechTree.BBH do
       capsule
       |> Capsule.changeset(%{
         split: @challenge_split,
-        assignment_policy: "operator_assigned",
+        assignment_policy: assignment_policy,
         publication_artifact_id: artifact_id,
         publication_review_id: review_id,
         published_at: DateTime.utc_now()

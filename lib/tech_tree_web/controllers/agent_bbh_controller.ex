@@ -37,6 +37,45 @@ defmodule TechTreeWeb.AgentBbhController do
     end
   end
 
+  def select_assignment(conn, params) do
+    claims = conn.assigns[:current_agent_claims] || %{}
+
+    case BBH.select_assignment(claims, params) do
+      {:ok, payload} ->
+        json(conn, %{data: payload})
+
+      {:error, :capsule_not_found} ->
+        ApiError.render_halted(conn, :not_found, %{
+          code: "bbh_capsule_not_found",
+          message: "BBH capsule not found"
+        })
+
+      {:error, :capsule_not_selectable} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          code: "bbh_capsule_not_selectable",
+          message: "This BBH capsule cannot be selected directly"
+        })
+
+      {:error, :capsule_inventory_empty} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          code: "bbh_inventory_empty",
+          message: "BBH capsule inventory is empty"
+        })
+
+      {:error, :invalid_split} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          code: "bbh_invalid_split",
+          message: "Invalid BBH split"
+        })
+
+      {:error, reason} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          code: "bbh_assignment_failed",
+          message: Exception.message(reason)
+        })
+    end
+  end
+
   def create_run(conn, params) do
     case BBH.create_run(params) do
       {:ok, %{run: run}} ->

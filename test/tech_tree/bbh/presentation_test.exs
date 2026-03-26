@@ -17,12 +17,12 @@ defmodule TechTree.BBH.PresentationTest do
     rejected_capsule =
       BBHFixtures.insert_capsule!(%{
         split: "benchmark",
-        assignment_policy: "validator_assigned",
+        assignment_policy: "select",
         title: "Rejected Capsule"
       })
 
     rejected_assignment =
-      BBHFixtures.insert_assignment!(rejected_capsule, %{origin: "validator_assigned"})
+      BBHFixtures.insert_assignment!(rejected_capsule, %{origin: "select:auto"})
 
     rejected_genome =
       BBHFixtures.insert_genome!(%{label: "rejected-runner", model_id: "gpt-rejected"})

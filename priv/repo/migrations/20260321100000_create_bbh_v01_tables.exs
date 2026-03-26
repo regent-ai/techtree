@@ -38,7 +38,7 @@ defmodule TechTree.Repo.Migrations.CreateBbhV01Tables do
       add :status, :text, null: false
       add :agent_wallet_address, :text
       add :agent_token_id, :text
-      add :origin, :text, null: false, default: "public_next"
+      add :origin, :text, null: false, default: "auto_or_select:auto"
       add :completed_at, :utc_datetime_usec
 
       timestamps(type: :utc_datetime_usec)

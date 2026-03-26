@@ -51,10 +51,10 @@ class HarnessType(str, Enum):
 
 
 class AssignmentPolicy(str, Enum):
-    public_next = "public_next"
-    operator_assigned = "operator_assigned"
-    validator_assigned = "validator_assigned"
-    draft_only = "draft_only"
+    auto = "auto"
+    select = "select"
+    auto_or_select = "auto_or_select"
+    operator = "operator"
 
 
 class KeepDecision(str, Enum):
@@ -296,12 +296,10 @@ class BbhArtifactProfile(BbhBaseModel):
 
     @model_validator(mode="after")
     def validate_split_policy(self) -> "BbhArtifactProfile":
-        if self.split == Split.climb and self.assignment_policy == AssignmentPolicy.draft_only:
-            raise ValueError("climb capsules cannot use assignment_policy=draft_only")
-        if self.split in {Split.benchmark, Split.challenge} and self.assignment_policy == AssignmentPolicy.public_next:
-            raise ValueError("benchmark/challenge capsules cannot use assignment_policy=public_next")
-        if self.split == Split.draft and self.assignment_policy != AssignmentPolicy.draft_only:
-            raise ValueError("draft capsules must use assignment_policy=draft_only")
+        if self.split != Split.draft and self.assignment_policy == AssignmentPolicy.operator:
+            raise ValueError("public capsules cannot use assignment_policy=operator")
+        if self.split == Split.draft and self.assignment_policy != AssignmentPolicy.operator:
+            raise ValueError("draft capsules must use assignment_policy=operator")
         return self
 
 

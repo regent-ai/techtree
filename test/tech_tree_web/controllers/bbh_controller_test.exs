@@ -69,6 +69,77 @@ defmodule TechTreeWeb.BbhControllerTest do
            } = leader
   end
 
+  test "GET /v1/bbh/capsules returns narrow public inventory and hides drafts", %{conn: conn} do
+    draft_capsule =
+      BBHFixtures.insert_capsule!(%{
+        split: "draft",
+        assignment_policy: "operator",
+        provider: "techtree",
+        title: "Hidden Draft"
+      })
+
+    %{capsule: public_capsule} =
+      BBHFixtures.insert_published_challenge_capsule!(%{
+        title: "Public Challenge",
+        assignment_policy: "auto_or_select"
+      })
+
+    response =
+      conn
+      |> get("/v1/bbh/capsules")
+      |> json_response(200)
+
+    assert Enum.any?(response["data"], &(&1["capsule_id"] == public_capsule.capsule_id))
+    refute Enum.any?(response["data"], &(&1["capsule_id"] == draft_capsule.capsule_id))
+
+    public_entry = Enum.find(response["data"], &(&1["capsule_id"] == public_capsule.capsule_id))
+
+    assert public_entry["title"] == "Public Challenge"
+    refute Map.has_key?(public_entry, "protocol_md")
+    refute Map.has_key?(public_entry, "task_summary")
+  end
+
+  test "GET /v1/bbh/capsules/:id returns browse detail for public capsules and hides drafts",
+       %{conn: conn} do
+    draft_capsule =
+      BBHFixtures.insert_capsule!(%{
+        split: "draft",
+        assignment_policy: "operator",
+        provider: "techtree",
+        title: "Hidden Draft"
+      })
+
+    %{capsule: public_capsule} =
+      BBHFixtures.insert_published_challenge_capsule!(%{
+        title: "Public Challenge",
+        assignment_policy: "auto_or_select"
+      })
+
+    response =
+      conn
+      |> get("/v1/bbh/capsules/#{public_capsule.capsule_id}")
+      |> json_response(200)
+
+    assert %{
+             "data" => %{
+               "capsule_id" => capsule_id,
+               "title" => "Public Challenge",
+               "task_summary" => task_summary,
+               "rubric_summary" => rubric_summary
+             }
+           } = response
+
+    assert capsule_id == public_capsule.capsule_id
+    assert task_summary == public_capsule.task_json
+    assert rubric_summary == public_capsule.rubric_json
+    refute Map.has_key?(response["data"], "protocol_md")
+
+    assert %{"error" => %{"code" => "bbh_capsule_not_found"}} =
+             conn
+             |> get("/v1/bbh/capsules/#{draft_capsule.capsule_id}")
+             |> json_response(404)
+  end
+
   test "GET /v1/bbh/leaderboard?split=challenge ignores seeded capsules without validated runs",
        %{conn: conn} do
     BBHFixtures.insert_published_challenge_capsule!(%{

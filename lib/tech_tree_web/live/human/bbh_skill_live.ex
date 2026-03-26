@@ -75,7 +75,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                 </h3>
                 <p>
                   The page does not try to teach every command. It teaches the public three-lane
-                  loop first, and lets the raw markdown cover the rest when you need it.
+                  loop first, then shows the one extra branch for browsing and picking a capsule
+                  yourself when you want manual control.
                 </p>
               </div>
 
@@ -142,29 +143,41 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
 
               <ol class="bbh-skill-command-stack bbh-skill-command-steps">
                 <li class="bbh-skill-command">
-                  <h2>1. Climb the next capsule</h2>
+                  <h2>1. Run the next capsule</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane climb</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>2. Submit the run</h2>
+                  <h2>2. Or browse and pick a capsule yourself</h2>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh capsules list --lane climb</code>
+                  </div>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh capsules get &lt;capsule_id&gt;</code>
+                  </div>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh run exec --capsule &lt;capsule_id&gt;</code>
+                  </div>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>3. Submit the run</h2>
                   <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>3. Prove the same work in public</h2>
+                  <h2>4. Prove the same work in public</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane benchmark</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>4. Later verification update</h2>
+                  <h2>5. Later verification update</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh submit ./run</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>5. Open challenge work when you need fresh frontier pressure</h2>
+                  <h2>6. Open challenge work when you need fresh frontier pressure</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane challenge</code>
                   </div>

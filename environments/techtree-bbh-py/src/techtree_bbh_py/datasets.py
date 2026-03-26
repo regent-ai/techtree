@@ -31,11 +31,9 @@ def _assignment_policy(split: str, raw: dict[str, Any]) -> str:
     configured = _as_text(raw.get("assignment_policy"))
     if configured:
         return configured
-    if split == "climb":
-        return "public_next"
-    if split in {"benchmark", "challenge"}:
-        return "validator_assigned"
-    return "draft_only"
+    if split == "draft":
+        return "operator"
+    return "auto_or_select"
 
 
 def _provider(split: str, source_dataset: str, raw: dict[str, Any]) -> str:

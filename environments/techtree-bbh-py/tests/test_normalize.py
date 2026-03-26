@@ -20,7 +20,7 @@ def test_load_split_rows_hard_cuts_climb_fixture_names() -> None:
 
     assert [capsule.capsule_id for capsule in capsules] == ["climb-001"]
     assert capsules[0].split == "climb"
-    assert capsules[0].assignment_policy == "public_next"
+    assert capsules[0].assignment_policy == "auto_or_select"
 
 
 def test_load_split_rows_supports_public_challenge_family_capsules() -> None:
@@ -32,7 +32,7 @@ def test_load_split_rows_supports_public_challenge_family_capsules() -> None:
     ]
     assert capsules[1].mode == "family"
     assert capsules[1].family_ref == "family-challenge-001"
-    assert capsules[1].assignment_policy == "validator_assigned"
+    assert capsules[1].assignment_policy == "auto_or_select"
 
 
 def test_load_split_rows_supports_family_capsules_for_draft() -> None:

@@ -45,10 +45,10 @@
     },
     "AssignmentPolicy": {
       "enum": [
-        "public_next",
-        "operator_assigned",
-        "validator_assigned",
-        "draft_only"
+        "auto",
+        "select",
+        "auto_or_select",
+        "operator"
       ],
       "title": "AssignmentPolicy",
       "type": "string"

@@ -120,6 +120,9 @@ ethereum_chain_id =
 
 ethereum_rpc_url =
   case ethereum_chain_id do
+    "84532" ->
+      env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+
     "11155111" ->
       env_or_dotenv.("ETHEREUM_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
 
@@ -132,6 +135,9 @@ ethereum_rpc_url =
 
 ethereum_writer_private_key =
   case ethereum_chain_id do
+    "84532" ->
+      env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+
     "11155111" ->
       env_or_dotenv.("ETHEREUM_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
 

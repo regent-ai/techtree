@@ -1,0 +1,291 @@
+# Techtree + Regent CLI Local And Fly Testing
+
+This guide is the real testing path after the chain split:
+
+- agent identity login stays on Ethereum Sepolia
+- Techtree registry publishing runs on Base Sepolia
+- autoskill settlement testing also stays on Base Sepolia
+
+That split matters. If login works but publishing fails, the usual cause is that Sepolia identity settings and Base Sepolia registry settings were mixed together.
+
+## What has to be running
+
+Techtree is one Phoenix app for both the frontend and backend API. To work end to end with `regent-cli`, you also need:
+
+- Postgres
+- Dragonfly
+- the SIWA sidecar
+- Privy keys
+- Lighthouse API access
+- a live Base Sepolia registry contract and funded registry writer
+
+On the CLI side:
+
+- public reads hit Phoenix directly
+- protected reads and writes need a SIWA login first
+- SIWA login uses an Ethereum Sepolia ERC-8004 identity
+- node publishing then uses the Techtree app's Base Sepolia registry path
+
+## Contract deployment steps
+
+Validate the shared contracts workspace first:
+
+```bash
+cd /Users/sean/Documents/regent/contracts/techtree
+forge test --offline
+```
+
+Deploy the Base Sepolia registry:
+
+```bash
+cd /Users/sean/Documents/regent/contracts/techtree
+export DEPLOY_TARGET=base-sepolia
+export BASE_SEPOLIA_RPC_URL=...
+export BASE_SEPOLIA_PRIVATE_KEY=...
+
+forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --broadcast
+```
+
+Deploy the Base Sepolia autoskill settlement contract if you want autoskill coverage:
+
+```bash
+cd /Users/sean/Documents/regent/contracts/techtree
+export DEPLOY_TARGET=base-sepolia
+export BASE_SEPOLIA_RPC_URL=...
+export BASE_SEPOLIA_PRIVATE_KEY=...
+export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=...
+export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=...
+
+forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --broadcast
+```
+
+Save these values for the app:
+
+- `REGISTRY_CONTRACT_ADDRESS`
+- `REGISTRY_WRITER_PRIVATE_KEY`
+- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
+- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
+
+## Local Techtree setup
+
+Start from the checked-in example:
+
+```bash
+cd /Users/sean/Documents/regent/techtree
+cp .env.example .env
+```
+
+Fill the required app values:
+
+- `SECRET_KEY_BASE`
+- `INTERNAL_SHARED_SECRET`
+- `PRIVY_APP_ID`
+- `PRIVY_VERIFICATION_KEY`
+- `SIWA_SHARED_SECRET`
+- `SIWA_HMAC_SECRET`
+- `SIWA_RECEIPT_SECRET`
+- `LIGHTHOUSE_API_KEY`
+- `TECHTREE_CHAIN_ID=84532`
+- `BASE_SEPOLIA_RPC_URL`
+- `REGISTRY_CONTRACT_ADDRESS`
+- `REGISTRY_WRITER_PRIVATE_KEY`
+
+If you want autoskill coverage, also fill:
+
+- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
+- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
+
+The app does not need an Ethereum Sepolia RPC for the registry path anymore. Ethereum Sepolia is only for the separate identity login flow used by Regent.
+
+## Local app boot steps
+
+Bring up the full local stack:
+
+```bash
+cd /Users/sean/Documents/regent/techtree
+./scripts/dev_full_setup.sh
+./scripts/dev_full_start.sh
+```
+
+That path now checks the Base Sepolia registry contract and writer wallet before it starts the local app stack.
+
+Run the local smoke check:
+
+```bash
+cd /Users/sean/Documents/regent/techtree
+bash scripts/smoke_full_local.sh
+```
+
+That verifies:
+
+- Postgres
+- Dragonfly
+- Phoenix `/health`
+- SIWA `/health`
+- Phoenix to SIWA nonce flow
+- the configured Base Sepolia registry contract
+- the configured registry writer balance
+- Lighthouse upload access
+
+## Local Regent CLI setup
+
+Validate the CLI repo:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm build
+pnpm typecheck
+pnpm test
+```
+
+Set your local wallet:
+
+```bash
+export REGENT_WALLET_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+```
+
+Create the CLI config if you do not already have one:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent create init
+```
+
+The important Techtree config values are:
+
+- `techtree.baseUrl = http://127.0.0.1:4000`
+- `techtree.defaultChainId = 11155111`
+
+That default chain ID is for SIWA identity login, not the Base Sepolia publishing path.
+
+Start the local runtime:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent run
+```
+
+In another shell, run the guided setup if you want the full check:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree start
+```
+
+## Local CLI testing steps
+
+List or mint the Ethereum Sepolia identity used for SIWA:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree identities list --chain sepolia
+pnpm --filter @regentlabs/cli exec regent techtree identities mint --chain sepolia
+```
+
+Log in:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent auth siwa login \
+  --registry-address 0xYOUR_SEPOLIA_ERC8004_REGISTRY \
+  --token-id 123
+```
+
+Then run representative reads and writes:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent doctor techtree
+pnpm --filter @regentlabs/cli exec regent techtree nodes list --limit 5
+pnpm --filter @regentlabs/cli exec regent techtree activity --limit 10
+pnpm --filter @regentlabs/cli exec regent techtree inbox --limit 10
+pnpm --filter @regentlabs/cli exec regent techtree node create \
+  --seed ML \
+  --kind hypothesis \
+  --title "Base Sepolia test node" \
+  --parent-id 1 \
+  --notebook-source "# local test"
+```
+
+Success looks like this:
+
+- public reads return data
+- protected reads work after SIWA login
+- node creation returns a node id plus pending anchor data
+- the app writes the chain receipt against the Base Sepolia registry path
+
+## Fly deployment steps
+
+Techtree already has a Fly stack deploy script:
+
+```bash
+cd /Users/sean/Documents/regent/techtree
+./scripts/fly_deploy_stack.sh
+```
+
+Before you run it, export the required values:
+
+- `PRIVY_APP_ID`
+- `PRIVY_VERIFICATION_KEY`
+- `LIGHTHOUSE_API_KEY`
+- `TECHTREE_CHAIN_ID=84532`
+- `BASE_SEPOLIA_RPC_URL`
+- `REGISTRY_CONTRACT_ADDRESS`
+- `REGISTRY_WRITER_PRIVATE_KEY`
+
+The script now treats the first deploy path as Base Sepolia only.
+
+It still expects the Fly app config files already referenced by the repo:
+
+- `fly.phoenix.toml`
+- `fly.siwa.toml`
+- `fly.dragonfly.toml`
+
+If those files are not present in your checkout, stop there and add them before relying on the script for a real deploy.
+
+## Server testing steps
+
+After Fly deploy, check the services:
+
+```bash
+flyctl status --app techtree
+flyctl status --app techtree-siwa
+flyctl status --app techtree-dragonfly
+curl -fsS https://techtree.fly.dev/health
+```
+
+Then point the CLI at Fly:
+
+```bash
+export REGENT_WALLET_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+```
+
+Use a Regent config that targets the Fly server:
+
+- `techtree.baseUrl = https://techtree.fly.dev`
+- `techtree.defaultChainId = 11155111`
+
+Repeat the live tests:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent doctor techtree
+pnpm --filter @regentlabs/cli exec regent techtree identities list --chain sepolia
+pnpm --filter @regentlabs/cli exec regent auth siwa login \
+  --registry-address 0xYOUR_SEPOLIA_ERC8004_REGISTRY \
+  --token-id 123
+pnpm --filter @regentlabs/cli exec regent techtree inbox --limit 10
+pnpm --filter @regentlabs/cli exec regent techtree node create \
+  --seed ML \
+  --kind hypothesis \
+  --title "Fly Base Sepolia test node" \
+  --parent-id 1 \
+  --notebook-source "# fly test"
+```
+
+Server verification is complete when:
+
+- Fly health checks pass
+- SIWA login works with the Sepolia identity path
+- protected CLI reads work against Fly
+- a new node publish goes through with the Base Sepolia registry settings

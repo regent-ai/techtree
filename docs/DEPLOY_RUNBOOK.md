@@ -8,7 +8,7 @@ This runbook is for the first production cut:
 - region: `sjc`
 - org: `regent`
 - host: `techtree.fly.dev`
-- chain: Sepolia only
+- chain: Base Sepolia only
 - backend transport: local-only (`TECHTREE_P2P_ENABLED=false`)
 - Regent live tail is deferred from this deploy
 
@@ -47,12 +47,12 @@ Important runtime env also used by Phoenix:
 - `PORT`
 - `POOL_SIZE`
 - `TECHTREE_ETHEREUM_MODE=rpc`
-- `TECHTREE_CHAIN_ID=11155111`
+- `TECHTREE_CHAIN_ID=84532`
 - `TECHTREE_P2P_ENABLED=false`
 - `PRIVY_APP_ID`
 - `PRIVY_VERIFICATION_KEY`
 - `LIGHTHOUSE_API_KEY`
-- `ETHEREUM_SEPOLIA_RPC_URL`
+- `BASE_SEPOLIA_RPC_URL`
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
 
@@ -97,9 +97,9 @@ The stack deploy script will:
 2. allocate Flycast IPs for SIWA and Dragonfly
 3. create managed Postgres if missing
 4. attach Postgres to Phoenix
-5. require first-prod secrets for Privy, Lighthouse, and Sepolia chain publishing
+5. require first-prod secrets for Privy, Lighthouse, and Base Sepolia chain publishing
 6. generate or reuse the required shared secrets
-7. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=11155111` for Phoenix
+7. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=84532` for Phoenix
 8. deploy Dragonfly, then SIWA, then Phoenix
 
 ## Manual secret rotation
@@ -131,7 +131,7 @@ Then manually verify:
 - platform route `/platform`
 - public trollbox feed `/v1/trollbox/messages`
 - SIWA nonce endpoint `/v1/agent/siwa/nonce`
-- one authenticated agent write path on Sepolia-backed config
+- one authenticated agent write path on Base Sepolia-backed config
 
 Deferred from this first prod deploy:
 

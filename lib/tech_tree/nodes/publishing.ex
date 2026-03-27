@@ -650,13 +650,23 @@ defmodule TechTree.Nodes.Publishing do
 
     Repo.get_by(TechTree.Agents.AgentIdentity, id: system_id) ||
       Agents.upsert_verified_agent!(%{
-        chain_id: 11_155_111,
+        chain_id: configured_registry_chain_id(),
         registry_address: "0x0000000000000000000000000000000000000001",
         token_id: system_id,
         wallet_address: "0x" <> String.pad_leading(Integer.to_string(system_id, 16), 40, "0"),
         label: "system-agent-#{system_id}",
         status: "active"
       })
+  end
+
+  defp configured_registry_chain_id do
+    :tech_tree
+    |> Application.get_env(:ethereum, [])
+    |> Keyword.get(:chain_id, 84_532)
+    |> case do
+      value when is_integer(value) -> value
+      value when is_binary(value) -> String.to_integer(value)
+    end
   end
 
   defp ensure_chain_receipt!(node_id, attrs) do

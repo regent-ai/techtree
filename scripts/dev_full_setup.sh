@@ -46,6 +46,9 @@ require_env() {
 
 resolve_chain_rpc_url() {
   case "${TECHTREE_CHAIN_ID}" in
+    84532)
+      printf '%s\n' "${BASE_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
+      ;;
     11155111)
       printf '%s\n' "${ETHEREUM_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
       ;;
@@ -107,7 +110,7 @@ check_chain_contract() {
   local writer_balance
 
   rpc_url="$(resolve_chain_rpc_url)"
-  [[ -n "${rpc_url}" ]] || fail "missing chain-specific Ethereum RPC URL for TECHTREE_CHAIN_ID=${TECHTREE_CHAIN_ID}"
+  [[ -n "${rpc_url}" ]] || fail "missing chain-specific RPC URL for TECHTREE_CHAIN_ID=${TECHTREE_CHAIN_ID}"
 
   chain_id="$("${CAST_BIN:-cast}" chain-id --rpc-url "${rpc_url}")"
   [[ "${chain_id}" == "${TECHTREE_CHAIN_ID}" ]] || {
@@ -167,7 +170,7 @@ wait_for_postgres
 log "waiting for dragonfly"
 wait_for_dragonfly
 
-log "checking Ethereum RPC and registry contract"
+log "checking chain RPC and registry contract"
 check_chain_contract
 
 log "running mix setup"

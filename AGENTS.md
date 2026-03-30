@@ -29,6 +29,12 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
+- For API <-> backend functionality, treat the Regent CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regent-cli`, then update Techtree backend code to match.
+- The first files to check for API-contract work are:
+  - `/Users/sean/Documents/regent/regent-cli/docs/api-contract-workflow.md`
+  - `/Users/sean/Documents/regent/techtree/docs/api-contract.openapiv3.yaml`
+  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
+  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
 - If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
@@ -82,6 +88,7 @@ Open these files first:
 Main risks:
 - Privy browser auth and SIWA agent auth are different paths with different failure modes.
 - DB migrations and trust-boundary changes are high-risk by default.
+- API drift is now a workflow failure. Do not change Techtree HTTP behavior first and plan to “fix the CLI later.” Change the CLI-owned contract surface first, then make the backend match it.
 
 ### 3. Techtree Contracts
 
@@ -110,6 +117,11 @@ Open these files first:
 - `/Users/sean/Documents/regent/regent-cli/README.md`
 - `/Users/sean/Documents/regent/regent-cli/package.json`
 - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/package.json`
+- `/Users/sean/Documents/regent/regent-cli/docs/api-contract-workflow.md`
+- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
+- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
+- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/autolaunch-openapi.ts`
+- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/regent-services-openapi.ts`
 - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/index.ts`
 - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/commands/techtree-start.ts`
 - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/internal-runtime/runtime.ts`
@@ -120,7 +132,7 @@ Open these files first:
 
 Main risks:
 - The shipped package is nested under `packages/regent-cli`, so repo-root changes can be misleading.
-- CLI changes often need matching Techtree API or auth-contract updates.
+- The CLI contract files are the source of truth for API <-> backend functionality, so backend work that skips them will drift immediately.
 - Release and CI wiring are easy to miss because some validation lives from the Techtree side.
 
 ## Protected Work

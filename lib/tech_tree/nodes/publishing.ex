@@ -8,6 +8,7 @@ defmodule TechTree.Nodes.Publishing do
   alias TechTree.Agents
   alias TechTree.IPFS.NodeBundleBuilder
   alias TechTree.NodeAccess
+  alias TechTree.Nodes.Publishing.{Attrs, Idempotency, PublishAttempts, Transitions}
   alias TechTree.Nodes.{Lineage, Node, NodeChainReceipt, NodeTagEdge}
   alias TechTree.Nodes.Reads
   alias TechTree.Repo
@@ -19,8 +20,11 @@ defmodule TechTree.Nodes.Publishing do
           {:ok, Node.t()} | {:error, term()}
   def create_agent_node(agent, attrs, opts \\ []) do
     publish_start = System.monotonic_time()
-    normalized_attrs = normalize_create_attrs(attrs)
-    requested_publish_idempotency_key = attr_value(normalized_attrs, :publish_idempotency_key)
+    normalized_attrs = Attrs.normalize_create_attrs(attrs)
+
+    requested_publish_idempotency_key =
+      Attrs.attr_value(normalized_attrs, :publish_idempotency_key)
+
     skip_idempotency_lookup? = Keyword.get(opts, :skip_idempotency_lookup, false)
 
     result =
@@ -29,10 +33,13 @@ defmodule TechTree.Nodes.Publishing do
           agent,
           normalized_attrs,
           requested_publish_idempotency_key ||
-            build_requested_publish_idempotency_key(agent.id, normalized_attrs)
+            Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs)
         )
       else
-        case find_existing_node_by_idempotency(agent.id, requested_publish_idempotency_key) do
+        case Idempotency.find_existing_node_by_idempotency(
+               agent.id,
+               requested_publish_idempotency_key
+             ) do
           %Node{} = existing ->
             {:ok, existing}
 
@@ -41,7 +48,7 @@ defmodule TechTree.Nodes.Publishing do
               agent,
               normalized_attrs,
               requested_publish_idempotency_key ||
-                build_requested_publish_idempotency_key(agent.id, normalized_attrs)
+                Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs)
             )
         end
       end
@@ -87,7 +94,10 @@ defmodule TechTree.Nodes.Publishing do
 
   def get_agent_node_by_idempotency(agent_id, idempotency_key)
       when is_integer(agent_id) and is_binary(idempotency_key) do
-    find_existing_node_by_idempotency(agent_id, normalize_optional_text(idempotency_key))
+    Idempotency.find_existing_node_by_idempotency(
+      agent_id,
+      Attrs.normalize_optional_text(idempotency_key)
+    )
   end
 
   @spec mark_node_anchored!(integer() | String.t(), map()) ::
@@ -156,7 +166,7 @@ defmodule TechTree.Nodes.Publishing do
       extra_fields
       |> Map.put(:status, status)
       |> Map.put(:updated_at, now)
-      |> normalize_publish_attempt_update_fields(status)
+      |> PublishAttempts.normalize_publish_attempt_update_fields(status)
 
     updates = [set: Keyword.new(set_fields)]
 
@@ -243,48 +253,6 @@ defmodule TechTree.Nodes.Publishing do
     end
   end
 
-  defp normalize_create_attrs(attrs) do
-    attrs
-    |> Map.new(fn {k, v} -> {to_string(k), v} end)
-    |> Map.update("parent_id", nil, &normalize_optional_id/1)
-    |> Map.update("paid_payload", nil, &normalize_paid_payload/1)
-    |> normalize_publish_idempotency_key_attr()
-  end
-
-  defp normalize_publish_idempotency_key_attr(attrs) do
-    key =
-      attrs
-      |> Map.get("idempotency_key", Map.get(attrs, "publish_idempotency_key"))
-      |> normalize_optional_text()
-
-    case key do
-      nil -> Map.delete(attrs, "publish_idempotency_key")
-      normalized -> Map.put(attrs, "publish_idempotency_key", normalized)
-    end
-  end
-
-  defp normalize_optional_id(nil), do: nil
-  defp normalize_optional_id(value), do: Reads.normalize_id(value)
-
-  defp normalize_paid_payload(value) when is_map(value) do
-    Map.new(value, fn {key, payload_value} -> {to_string(key), payload_value} end)
-  end
-
-  defp normalize_paid_payload(_value), do: nil
-
-  defp find_existing_node_by_idempotency(_agent_id, nil), do: nil
-
-  defp find_existing_node_by_idempotency(agent_id, idempotency_key) do
-    Node
-    |> where(
-      [n],
-      n.creator_agent_id == ^agent_id and n.publish_idempotency_key == ^idempotency_key
-    )
-    |> order_by([n], desc: n.id)
-    |> limit(1)
-    |> Repo.one()
-  end
-
   defp fetch_node_for_update!(node_id) do
     Node
     |> where([n], n.id == ^node_id)
@@ -293,53 +261,56 @@ defmodule TechTree.Nodes.Publishing do
   end
 
   defp transition_node_to_anchored!(%Node{status: :anchored} = node, node_id, attrs) do
-    tx_hash = attr_value(attrs, :tx_hash)
+    tx_hash = Attrs.attr_value(attrs, :tx_hash)
 
-    if node.tx_hash == tx_hash do
-      ensure_chain_receipt!(node_id, attrs)
-      emit_anchor_stop(node_id, node, :already_transitioned)
+    case Transitions.anchored_decision(node, tx_hash) do
+      {:already_transitioned, reason} ->
+        ensure_chain_receipt!(node_id, attrs)
+        emit_anchor_stop(node_id, node, :already_transitioned)
 
-      emit_transition_event(node_id, :anchored, :anchored, :already_transitioned, %{
-        reason: "matching_tx_hash"
-      })
+        emit_transition_event(node_id, :anchored, :anchored, :already_transitioned, %{
+          reason: Atom.to_string(reason)
+        })
 
-      :already_transitioned
-    else
-      emit_transition_event(node_id, :anchored, :anchored, :rejected, %{
-        reason: "mismatched_tx_hash"
-      })
+        :already_transitioned
 
-      raise ArgumentError,
-            "cannot mark node #{node_id} anchored with mismatched tx hash"
+      {:error, reason} ->
+        emit_transition_event(node_id, :anchored, :anchored, :rejected, %{
+          reason: Atom.to_string(reason)
+        })
+
+        raise ArgumentError,
+              "cannot mark node #{node_id} anchored with mismatched tx hash"
     end
   end
 
   defp transition_node_to_anchored!(%Node{status: :pinned} = node, node_id, attrs) do
     ensure_materialized_payload!(node, node_id)
-    incoming_tx_hash = attr_value(attrs, :tx_hash)
+    incoming_tx_hash = Attrs.attr_value(attrs, :tx_hash)
 
-    if is_binary(node.tx_hash) and byte_size(node.tx_hash) > 0 and
-         node.tx_hash != incoming_tx_hash do
-      emit_transition_event(node_id, :pinned, :anchored, :rejected, %{
-        reason: "mismatched_pending_tx_hash"
-      })
+    case Transitions.anchored_decision(node, incoming_tx_hash) do
+      {:transition, reason} ->
+        node
+        |> Node.anchored_changeset(Map.put(attrs, :status, :anchored))
+        |> Repo.update!()
 
-      raise ArgumentError,
-            "cannot mark node #{node_id} anchored with mismatched pending tx hash"
+        ensure_chain_receipt!(node_id, attrs)
+        emit_anchor_stop(node_id, node, :transitioned)
+
+        emit_transition_event(node_id, :pinned, :anchored, :transitioned, %{
+          reason: Atom.to_string(reason)
+        })
+
+        :transitioned
+
+      {:error, reason} ->
+        emit_transition_event(node_id, :pinned, :anchored, :rejected, %{
+          reason: Atom.to_string(reason)
+        })
+
+        raise ArgumentError,
+              "cannot mark node #{node_id} anchored with mismatched pending tx hash"
     end
-
-    node
-    |> Node.anchored_changeset(Map.put(attrs, :status, :anchored))
-    |> Repo.update!()
-
-    ensure_chain_receipt!(node_id, attrs)
-    emit_anchor_stop(node_id, node, :transitioned)
-
-    emit_transition_event(node_id, :pinned, :anchored, :transitioned, %{
-      reason: "receipt_recorded"
-    })
-
-    :transitioned
   end
 
   defp transition_node_to_anchored!(%Node{status: status}, node_id, _attrs) do
@@ -350,33 +321,42 @@ defmodule TechTree.Nodes.Publishing do
   end
 
   defp transition_node_to_failed_anchor!(%Node{status: :failed_anchor}, node_id) do
-    emit_transition_event(node_id, :failed_anchor, :failed_anchor, :already_transitioned, %{
-      reason: "already_failed_anchor"
-    })
+    case Transitions.failed_anchor_decision(%Node{status: :failed_anchor}) do
+      {:already_transitioned, reason} ->
+        emit_transition_event(node_id, :failed_anchor, :failed_anchor, :already_transitioned, %{
+          reason: Atom.to_string(reason)
+        })
 
-    :already_transitioned
+        :already_transitioned
+    end
   end
 
   defp transition_node_to_failed_anchor!(%Node{status: :pinned} = node, node_id) do
-    node
-    |> Ecto.Changeset.change(status: :failed_anchor)
-    |> Repo.update!()
+    case Transitions.failed_anchor_decision(node) do
+      {:transition, reason} ->
+        node
+        |> Ecto.Changeset.change(status: :failed_anchor)
+        |> Repo.update!()
 
-    emit_transition_event(node_id, :pinned, :failed_anchor, :transitioned, %{
-      reason: "anchor_attempt_exhausted"
-    })
+        emit_transition_event(node_id, :pinned, :failed_anchor, :transitioned, %{
+          reason: Atom.to_string(reason)
+        })
 
-    emit_failed_anchor_event(node_id)
+        emit_failed_anchor_event(node_id)
 
-    :transitioned
+        :transitioned
+    end
   end
 
   defp transition_node_to_failed_anchor!(%Node{status: :anchored}, node_id) do
-    emit_transition_event(node_id, :anchored, :failed_anchor, :already_transitioned, %{
-      reason: "already_anchored"
-    })
+    case Transitions.failed_anchor_decision(%Node{status: :anchored}) do
+      {:already_transitioned, reason} ->
+        emit_transition_event(node_id, :anchored, :failed_anchor, :already_transitioned, %{
+          reason: Atom.to_string(reason)
+        })
 
-    :already_transitioned
+        :already_transitioned
+    end
   end
 
   defp transition_node_to_failed_anchor!(%Node{status: status}, node_id) do
@@ -386,54 +366,15 @@ defmodule TechTree.Nodes.Publishing do
           "cannot transition node #{node_id} from #{status} to failed_anchor"
   end
 
-  defp normalize_optional_text(value) when is_binary(value) do
-    case String.trim(value) do
-      "" -> nil
-      trimmed -> trimmed
-    end
-  end
-
-  defp normalize_optional_text(nil), do: nil
-  defp normalize_optional_text(value), do: value
-
-  defp normalize_publish_attempt_update_fields(extra_fields, status) do
-    inc_fields =
-      case status do
-        "submitted" -> [attempt_count: 1]
-        "failed_anchor" -> [attempt_count: 1]
-        _ -> []
-      end
-
-    set_fields =
-      extra_fields
-      |> Map.update(:last_error, default_last_error(status), &normalize_last_error(status, &1))
-      |> Enum.to_list()
-
-    {set_fields, inc_fields}
-  end
-
-  defp default_last_error("failed_anchor"), do: nil
-  defp default_last_error(_status), do: nil
-
-  defp normalize_last_error("failed_anchor", value), do: inspect(value)
-  defp normalize_last_error(_status, value), do: value
-
   defp build_path(nil, id), do: {"n#{id}", 0}
   defp build_path(parent, id), do: {"#{parent.path}.n#{id}", parent.depth + 1}
 
   defp build_and_pin_bundle(node, payload), do: NodeBundleBuilder.build_and_pin!(node, payload)
 
   defp build_bundle_for_node(node, normalized_attrs) do
-    {:ok, build_and_pin_bundle(node, build_bundle_payload(normalized_attrs))}
+    {:ok, build_and_pin_bundle(node, Attrs.build_bundle_payload(normalized_attrs))}
   rescue
     error -> {:error, error}
-  end
-
-  defp build_bundle_payload(normalized_attrs) do
-    %{
-      "notebook_source" => normalized_attrs["notebook_source"],
-      "skill_md_body" => normalized_attrs["skill_md_body"]
-    }
   end
 
   defp build_staged_node(agent, parent, normalized_attrs, requested_publish_idempotency_key) do
@@ -480,7 +421,7 @@ defmodule TechTree.Nodes.Publishing do
          requested_publish_idempotency_key
        ) do
     publish_idempotency_key =
-      normalize_publish_idempotency_key(
+      Idempotency.normalize_publish_idempotency_key(
         staged_node.id,
         bundle.manifest_hash_hex,
         normalized_attrs,
@@ -542,7 +483,11 @@ defmodule TechTree.Nodes.Publishing do
         {:ok, node}
 
       {:error, :node, %Ecto.Changeset{} = changeset, _changes} ->
-        maybe_resolve_idempotent_insert_conflict(agent_id, publish_idempotency_key, changeset)
+        Idempotency.maybe_resolve_idempotent_insert_conflict(
+          agent_id,
+          publish_idempotency_key,
+          changeset
+        )
 
       {:error, _step, reason, _changes} ->
         {:error, reason}
@@ -559,41 +504,6 @@ defmodule TechTree.Nodes.Publishing do
         unique: [period: 86_400, keys: [:node_id]]
       )
     )
-  end
-
-  defp maybe_resolve_idempotent_insert_conflict(agent_id, publish_idempotency_key, changeset) do
-    if publish_idempotency_conflict?(changeset) do
-      case find_existing_node_by_idempotency(agent_id, publish_idempotency_key) do
-        %Node{} = node -> {:ok, node}
-        nil -> {:error, changeset}
-      end
-    else
-      {:error, changeset}
-    end
-  end
-
-  defp publish_idempotency_conflict?(%Ecto.Changeset{} = changeset) do
-    Enum.any?(changeset.errors, fn
-      {:publish_idempotency_key, {_message, opts}} ->
-        opts[:constraint] == :unique
-
-      _ ->
-        false
-    end)
-  end
-
-  defp build_publish_idempotency_key(node_id, manifest_hash),
-    do: "node:#{node_id}:#{manifest_hash}"
-
-  defp build_requested_publish_idempotency_key(agent_id, attrs) do
-    attr_value(attrs, :publish_idempotency_key) ||
-      "node:req:#{agent_id}:#{System.unique_integer([:positive, :monotonic])}"
-  end
-
-  defp normalize_publish_idempotency_key(node_id, manifest_hash, attrs, existing) do
-    attr_value(attrs, :publish_idempotency_key) ||
-      existing ||
-      build_publish_idempotency_key(node_id, manifest_hash || "missing-manifest-hash")
   end
 
   defp upsert_publish_attempt_with_repo!(

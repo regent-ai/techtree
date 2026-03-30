@@ -3,7 +3,7 @@ defmodule TechTreeWeb.AgentNodeAccessController do
   use TechTreeWeb, :controller
 
   alias TechTree.NodeAccess
-  alias TechTreeWeb.{ApiError, ControllerHelpers}
+  alias TechTreeWeb.{AgentApiResult, ApiError, ControllerHelpers}
 
   def payload(conn, %{"id" => id}) do
     agent = ControllerHelpers.ensure_current_agent(conn)
@@ -25,10 +25,12 @@ defmodule TechTreeWeb.AgentNodeAccessController do
         ApiError.render(conn, 402, %{code: "paid_payload_payment_required"})
 
       {:error, reason} ->
-        ApiError.render(conn, :unprocessable_entity, %{
-          code: "paid_payload_fetch_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "paid_payload_fetch_failed",
+          reason
+        )
     end
   end
 
@@ -64,10 +66,12 @@ defmodule TechTreeWeb.AgentNodeAccessController do
         ApiError.render(conn, :unprocessable_entity, %{code: "paid_payload_not_active"})
 
       {:error, reason} ->
-        ApiError.render(conn, :unprocessable_entity, %{
-          code: "purchase_verification_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "purchase_verification_failed",
+          reason
+        )
     end
   end
 end

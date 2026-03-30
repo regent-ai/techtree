@@ -4,7 +4,7 @@ defmodule TechTreeWeb.AgentAutoskillController do
   alias TechTree.Autoskill
   alias TechTree.NodeAccess
   alias TechTree.IPFS.LighthouseClient
-  alias TechTreeWeb.{ApiError, ControllerHelpers}
+  alias TechTreeWeb.{AgentApiResult, ApiError, ControllerHelpers}
 
   def create_skill(conn, params) do
     agent = ControllerHelpers.ensure_current_agent(conn)
@@ -16,16 +16,20 @@ defmodule TechTreeWeb.AgentAutoskillController do
         |> json(%{data: %{node_id: node.id}})
 
       {:error, %Ecto.Changeset{} = cs} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_skill_invalid",
-          details: ApiError.translate_changeset(cs)
-        })
+        AgentApiResult.render_changeset(
+          conn,
+          :unprocessable_entity,
+          "autoskill_skill_invalid",
+          cs
+        )
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_skill_create_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "autoskill_skill_create_failed",
+          reason
+        )
     end
   end
 
@@ -39,16 +43,15 @@ defmodule TechTreeWeb.AgentAutoskillController do
         |> json(%{data: %{node_id: node.id}})
 
       {:error, %Ecto.Changeset{} = cs} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_eval_invalid",
-          details: ApiError.translate_changeset(cs)
-        })
+        AgentApiResult.render_changeset(conn, :unprocessable_entity, "autoskill_eval_invalid", cs)
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_eval_create_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "autoskill_eval_create_failed",
+          reason
+        )
     end
   end
 
@@ -62,16 +65,20 @@ defmodule TechTreeWeb.AgentAutoskillController do
         |> json(%{data: %{result_id: result.id}})
 
       {:error, %Ecto.Changeset{} = cs} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_result_invalid",
-          details: ApiError.translate_changeset(cs)
-        })
+        AgentApiResult.render_changeset(
+          conn,
+          :unprocessable_entity,
+          "autoskill_result_invalid",
+          cs
+        )
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_result_create_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "autoskill_result_create_failed",
+          reason
+        )
     end
   end
 
@@ -98,16 +105,20 @@ defmodule TechTreeWeb.AgentAutoskillController do
         })
 
       {:error, %Ecto.Changeset{} = cs} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_listing_invalid",
-          details: ApiError.translate_changeset(cs)
-        })
+        AgentApiResult.render_changeset(
+          conn,
+          :unprocessable_entity,
+          "autoskill_listing_invalid",
+          cs
+        )
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_listing_create_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "autoskill_listing_create_failed",
+          reason
+        )
     end
   end
 
@@ -159,10 +170,12 @@ defmodule TechTreeWeb.AgentAutoskillController do
           ApiError.render_halted(conn, 402, %{code: "autoskill_payment_required"})
 
         {:error, reason} ->
-          ApiError.render_halted(conn, :unprocessable_entity, %{
-            code: "autoskill_bundle_access_failed",
-            message: inspect(reason)
-          })
+          AgentApiResult.render_reason(
+            conn,
+            :unprocessable_entity,
+            "autoskill_bundle_access_failed",
+            reason
+          )
       end
     else
       {:error, _reason} ->
@@ -180,16 +193,20 @@ defmodule TechTreeWeb.AgentAutoskillController do
         |> json(%{data: %{review_id: review.id}})
 
       {:error, %Ecto.Changeset{} = cs} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_review_invalid",
-          details: ApiError.translate_changeset(cs)
-        })
+        AgentApiResult.render_changeset(
+          conn,
+          :unprocessable_entity,
+          "autoskill_review_invalid",
+          cs
+        )
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_review_create_failed",
-          message: inspect(reason)
-        })
+        AgentApiResult.render_reason(
+          conn,
+          :unprocessable_entity,
+          "autoskill_review_create_failed",
+          reason
+        )
     end
   end
 end

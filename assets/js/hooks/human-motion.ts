@@ -1,6 +1,9 @@
 import type { Hook, HookContext } from "phoenix_live_view"
 
-import { animate, stagger } from "../../vendor/anime.esm.js"
+import {
+  prefersReducedMotion,
+  revealSequence,
+} from "../../../../packages/regent_ui/assets/js/regent_motion"
 
 function revealImmediately(targets: HTMLElement[]) {
   targets.forEach((target) => {
@@ -10,59 +13,9 @@ function revealImmediately(targets: HTMLElement[]) {
   })
 }
 
-function revealAnimated(targets: HTMLElement[]) {
-  if (targets.length === 0) {
-    return
-  }
-
+function markDone(targets: HTMLElement[]) {
   targets.forEach((target) => {
     target.dataset.motionDone = "1"
-  })
-
-  animate(targets, {
-    opacity: [0, 1],
-    translateY: [16, 0],
-    duration: 620,
-    delay: stagger(80, { start: 35 }),
-    ease: "outQuad",
-  })
-}
-
-function revealGraphNodes(targets: HTMLElement[]) {
-  if (targets.length === 0) {
-    return
-  }
-
-  targets.forEach((target) => {
-    target.dataset.motionDone = "1"
-  })
-
-  animate(targets, {
-    opacity: [0, 1],
-    translateX: [-10, 0],
-    scale: [0.985, 1],
-    duration: 520,
-    delay: stagger(55, { start: 20 }),
-    ease: "outCubic",
-  })
-}
-
-function revealScoreBars(targets: HTMLElement[]) {
-  if (targets.length === 0) {
-    return
-  }
-
-  targets.forEach((target) => {
-    target.dataset.motionDone = "1"
-    target.style.transformOrigin = "left center"
-  })
-
-  animate(targets, {
-    scaleX: [0, 1],
-    opacity: [0.35, 1],
-    duration: 760,
-    delay: stagger(110, { start: 40 }),
-    ease: "outCubic",
   })
 }
 
@@ -77,7 +30,7 @@ type HumanMotionHook = HookContext &
 export const HumanMotion = {
   mounted(this: HumanMotionHook) {
     this.motionPreferenceMedia = window.matchMedia("(prefers-reduced-motion: reduce)")
-    this.reduceMotion = this.motionPreferenceMedia.matches
+    this.reduceMotion = prefersReducedMotion()
     const onMotionPreferenceChange = (event: MediaQueryListEvent) => {
       this.reduceMotion = event.matches
       this.runMotion()
@@ -101,6 +54,10 @@ export const HumanMotion = {
   },
 
   runMotion(this: HumanMotionHook) {
+    const revealSelector = "[data-motion='reveal']:not([data-motion-done='1'])"
+    const graphSelector = "[data-motion='graph-node']:not([data-motion-done='1'])"
+    const scoreSelector = "[data-motion='score-bar']:not([data-motion-done='1'])"
+
     const revealTargets = Array.from(
       this.el.querySelectorAll<HTMLElement>("[data-motion='reveal']:not([data-motion-done='1'])"),
     ) as HTMLElement[]
@@ -124,11 +81,14 @@ export const HumanMotion = {
       return
     }
 
-    revealAnimated(revealTargets)
-    revealScoreBars(scoreBarTargets)
+    revealSequence(this.el, revealSelector, { translateY: 16, duration: 620, delay: 80 })
+    markDone(revealTargets)
+    revealSequence(this.el, scoreSelector, { translateY: 8, duration: 520, delay: 110 })
+    markDone(scoreBarTargets)
 
     if (this.el.dataset.motionView === "graph") {
-      revealGraphNodes(graphTargets)
+      revealSequence(this.el, graphSelector, { translateY: 12, duration: 520, delay: 55 })
+      markDone(graphTargets)
     }
   },
 } as Hook & { runMotion(this: HumanMotionHook): void }

@@ -16,6 +16,7 @@ defmodule TechTree.Platform.Agent do
     field :token_id, :decimal
     field :agent_uri, :string
     field :external_url, :string
+    field :seller_summary, :map, virtual: true
 
     timestamps()
   end

@@ -5,7 +5,10 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
 
   alias Decimal, as: D
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.Autoskill.Listing
   alias TechTree.Autoskill.NodeBundle
+  alias TechTree.NodeAccess
+  alias TechTree.NodeAccess.NodePurchaseEntitlement
   alias TechTree.Comments.Comment
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
@@ -119,6 +122,85 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
     assert render(view) =~ "Public free"
   end
 
+  test "renders paid autoskill listing rows with verified purchase counts", %{conn: conn} do
+    agent = insert_agent_fixture!()
+    root = Nodes.create_seed_root!("Skills", "Skills")
+
+    node =
+      insert_ready_node!(agent, root, %{
+        kind: :skill,
+        title: "Paid prompt router",
+        summary: "Bundle-backed paid autoskill node.",
+        skill_slug: "paid-router",
+        skill_version: "0.1.0",
+        skill_md_body: "# Paid router"
+      })
+
+    Repo.insert!(%NodeBundle{
+      node_id: node.id,
+      bundle_type: :skill,
+      access_mode: :gated_paid,
+      preview_md: "# Paid router\nRoutes tasks cleanly.",
+      bundle_manifest: %{"metadata" => %{"version" => "0.1.0"}},
+      primary_file: "SKILL.md",
+      marimo_entrypoint: "session.marimo.py",
+      encrypted_bundle_uri: "ipfs://bafy-paid-router",
+      encrypted_bundle_cid: "bafy-paid-router",
+      bundle_hash: "paid-router-hash",
+      payment_rail: :onchain,
+      access_policy: %{"price" => "25.000000"}
+    })
+
+    Repo.insert!(%Listing{
+      skill_node_id: node.id,
+      seller_agent_id: agent.id,
+      status: :active,
+      payment_rail: :onchain,
+      chain_id: 8453,
+      usdc_token_address: "0x0000000000000000000000000000000000008453",
+      treasury_address: "0x0000000000000000000000000000000000000999",
+      seller_payout_address: agent.wallet_address,
+      price_usdc: D.new("25.000000"),
+      treasury_bps: 100,
+      seller_bps: 9900
+    })
+
+    {:ok, _payload} =
+      NodeAccess.upsert_paid_payload(node, agent, %{
+        "status" => "active",
+        "encrypted_payload_uri" => "ipfs://bafy-paid-router",
+        "encrypted_payload_cid" => "bafy-paid-router",
+        "payload_hash" => "paid-router-hash",
+        "chain_id" => 8453,
+        "settlement_contract_address" => "0x0000000000000000000000000000000000008456",
+        "usdc_token_address" => "0x0000000000000000000000000000000000008453",
+        "treasury_address" => "0x0000000000000000000000000000000000000999",
+        "seller_payout_address" => agent.wallet_address,
+        "price_usdc" => "25.000000"
+      })
+
+    Repo.insert!(%NodePurchaseEntitlement{
+      node_id: node.id,
+      seller_agent_id: agent.id,
+      buyer_wallet_address: "0x00000000000000000000000000000000000000aa",
+      tx_hash: "0x" <> String.duplicate("b", 64),
+      chain_id: 8453,
+      amount_usdc: D.new("25.000000"),
+      verification_status: :verified,
+      listing_ref:
+        Repo.get_by!(TechTree.NodeAccess.NodePaidPayload, node_id: node.id).listing_ref,
+      bundle_ref: Repo.get_by!(TechTree.NodeAccess.NodePaidPayload, node_id: node.id).bundle_ref
+    })
+
+    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+
+    assert has_element?(view, "#node-autoskill")
+    assert render(view) =~ "Listing active"
+    assert render(view) =~ "25.000000 USDC"
+    assert render(view) =~ "Chain 8453"
+    assert render(view) =~ "1 verified purchases"
+  end
+
   defp node_fixture! do
     agent = insert_agent_fixture!()
     root = Nodes.create_seed_root!("ML", "Machine Learning")
@@ -216,6 +298,9 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
       notebook_source: "# notebook",
       parent_id: parent.id,
       creator_agent_id: agent.id,
+      skill_slug: Map.get(attrs, :skill_slug),
+      skill_version: Map.get(attrs, :skill_version),
+      skill_md_body: Map.get(attrs, :skill_md_body),
       child_count: Map.get(attrs, :child_count, 0),
       comment_count: Map.get(attrs, :comment_count, 0),
       watcher_count: Map.get(attrs, :watcher_count, 0),

@@ -2,6 +2,8 @@ defmodule TechTreeWeb.AgentAutoskillController do
   use TechTreeWeb, :controller
 
   alias TechTree.Autoskill
+  alias TechTree.NodeAccess
+  alias TechTree.IPFS.LighthouseClient
   alias TechTreeWeb.{ApiError, ControllerHelpers}
 
   def create_skill(conn, params) do
@@ -106,6 +108,65 @@ defmodule TechTreeWeb.AgentAutoskillController do
           code: "autoskill_listing_create_failed",
           message: inspect(reason)
         })
+    end
+  end
+
+  def bundle(conn, %{"id" => id}) do
+    agent = ControllerHelpers.ensure_current_agent(conn)
+
+    with {:ok, node_id} <- ControllerHelpers.parse_positive_int(id) do
+      case Autoskill.fetch_bundle_for_agent_access(node_id, agent) do
+        {:ok, bundle} ->
+          payload =
+            case bundle.access_mode do
+              :gated_paid ->
+                case NodeAccess.fetch_payload_for_agent(node_id, agent) do
+                  {:ok, paid_payload} -> paid_payload
+                  _ -> %{}
+                end
+
+              :public_free ->
+                %{}
+            end
+
+          download_url =
+            cond do
+              is_binary(payload[:download_url] || payload["download_url"]) ->
+                payload[:download_url] || payload["download_url"]
+
+              cid = bundle.bundle_cid || bundle.encrypted_bundle_cid ->
+                LighthouseClient.gateway_url(cid)
+
+              true ->
+                nil
+            end
+
+          json(conn, %{
+            data: %{
+              node_id: node_id,
+              bundle_uri:
+                bundle.bundle_uri || bundle.encrypted_bundle_uri ||
+                  payload[:encrypted_payload_uri] || payload["encrypted_payload_uri"],
+              download_url: download_url,
+              manifest: bundle.bundle_manifest,
+              marimo_entrypoint: bundle.marimo_entrypoint,
+              primary_file: bundle.primary_file,
+              encryption_meta: payload[:encryption_meta] || payload["encryption_meta"] || %{}
+            }
+          })
+
+        {:error, :payment_required} ->
+          ApiError.render_halted(conn, 402, %{code: "autoskill_payment_required"})
+
+        {:error, reason} ->
+          ApiError.render_halted(conn, :unprocessable_entity, %{
+            code: "autoskill_bundle_access_failed",
+            message: inspect(reason)
+          })
+      end
+    else
+      {:error, _reason} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_node_id"})
     end
   end
 

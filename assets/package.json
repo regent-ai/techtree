@@ -1,6 +1,9 @@
 {
   "name": "techtree-assets",
   "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@deck.gl/core": "^9.2.11",
     "@deck.gl/extensions": "^9.2.11",

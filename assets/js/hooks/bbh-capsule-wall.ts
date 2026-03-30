@@ -45,7 +45,10 @@ function flashTarget(target: HTMLElement): HTMLElement | null {
   return target.querySelector<HTMLElement>("[data-bbh-motion-layer='flash']")
 }
 
-function pulseTile(target: HTMLElement, options: { scale?: [number, number, number]; boxShadow?: string[] }) {
+function pulseTile(
+  target: HTMLElement,
+  options: { scale?: [number, number, number]; boxShadow?: string[] } = {},
+) {
   animate(target, {
     scale: options.scale || [1, 1.02, 1],
     boxShadow:

@@ -643,9 +643,9 @@ defmodule TechTree.Trollbox do
   end
 
   defp normalize_agent_room(attrs, %AgentIdentity{id: id}) do
-    case Map.get(attrs, "room", Map.get(attrs, :room, "global")) do
+    case Map.get(attrs, "room", Map.get(attrs, :room, "agent")) do
       value when value in ["agent", :agent] -> "agent:#{id}"
-      _ -> @global_room
+      _ -> "agent:#{id}"
     end
   end
 

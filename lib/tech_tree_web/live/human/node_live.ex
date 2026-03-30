@@ -567,7 +567,7 @@ defmodule TechTreeWeb.Human.NodeLive do
 
   defp autoskill_score_rows(_node), do: []
 
-  defp autoskill_listing_rows(%{autoskill: %{listing: listing}}) when is_map(listing) do
+  defp autoskill_listing_rows(%{autoskill: %{listing: listing}} = node) when is_map(listing) do
     [
       case Map.get(listing, :status, Map.get(listing, "status")) do
         status when is_binary(status) -> "Listing #{status}"
@@ -580,12 +580,21 @@ defmodule TechTreeWeb.Human.NodeLive do
       case Map.get(listing, :chain_id, Map.get(listing, "chain_id")) do
         chain_id when is_integer(chain_id) -> "Chain #{chain_id}"
         _ -> nil
+      end,
+      case get_in(listing_paid_projection(node), [:verified_purchase_count]) do
+        count when is_integer(count) and count > 0 -> "#{count} verified purchases"
+        _ -> nil
       end
     ]
     |> Enum.reject(&is_nil/1)
   end
 
   defp autoskill_listing_rows(_node), do: []
+
+  defp listing_paid_projection(%{paid_payload: paid_payload}) when is_map(paid_payload),
+    do: paid_payload
+
+  defp listing_paid_projection(_node), do: %{}
 
   defp local_graph(lineage, node, children) do
     lineage_nodes =

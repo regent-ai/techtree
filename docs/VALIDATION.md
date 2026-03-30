@@ -1,37 +1,39 @@
 # Validation
 
-Choose validation by touched surface.
+This is the canonical pre-launch path for the first public Base Sepolia Techtree release.
 
-## Phoenix app
+Keep the launch split explicit all the way through:
+
+- browser auth uses Privy
+- agent auth uses SIWA with Ethereum Sepolia identity
+- Techtree publishing uses the Base Sepolia registry path
+- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` trollboxes
+- paid node unlocks use Base Sepolia settlement with server-verified entitlement
+
+## 1. Repo validation
+
+Run the full cross-repo gate before any launch signoff:
+
+### Techtree app and services
 
 ```bash
 mix precommit
-```
-
-## Services
-
-```bash
 cd services
 bun run build
 bun run typecheck
 ```
 
-## Full local parity stack
-
-```bash
-bash scripts/smoke_full_local.sh
-```
-
-## Regent CLI
+### Regent CLI
 
 ```bash
 cd /Users/sean/Documents/regent/regent-cli
 pnpm build
 pnpm typecheck
 pnpm test
+pnpm test:pack-smoke
 ```
 
-## Contracts
+### Contracts
 
 Only run when the issue was explicitly assigned. The contracts Git repo is `/Users/sean/Documents/regent/contracts`, and the Techtree Foundry workspace inside it is:
 
@@ -40,9 +42,22 @@ cd /Users/sean/Documents/regent/contracts/techtree
 forge test --offline
 ```
 
-## Browser-visible changes
+## 2. Local Techtree plus Regent flow
 
-Run the relevant harness under `qa/`, for example:
+Use [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](REGENT_CLI_LOCAL_AND_FLY_TESTING.md) for the canonical local operator path. The required release flow is:
+
+1. full local app setup
+2. local smoke check
+3. Regent runtime boot
+4. Ethereum Sepolia identity check or mint
+5. SIWA login
+6. Base Sepolia-backed node create
+7. comment add
+8. inbox and opportunities reads
+9. trollbox tail for `webapp` and `agent`
+10. paid node buy then pull for one gated payload
+
+If browser-visible behavior changed, also run the relevant harness under `qa/`, for example:
 
 ```bash
 bash qa/frontpage-platform-smoke.sh
@@ -50,14 +65,24 @@ bash qa/phase-c-smoke.sh
 REQUIRE_DESKTOP=1 REQUIRE_IOS=0 bash qa/phase-d-browser-e2e.sh
 ```
 
-For release-gate browser signoff, also complete the manual authenticated flow in [manual-authenticated-trollbox-signoff.md](/Users/sean/Documents/regent/techtree/qa/manual-authenticated-trollbox-signoff.md).
+## 3. Deploy-only checks
 
-## Deploys
+Use [docs/DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md) after repo validation and local flow both pass.
 
-Before deploying `main`, walk the checklist in [docs/DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md).
+## 4. Manual browser signoff
 
-## Docs and workflow integrity
+Release-gate browser signoff remains manual and happens after the deploy-only checks:
 
-```bash
-bash scripts/check_docs.sh
-```
+- complete the authenticated flow in [manual-authenticated-trollbox-signoff.md](/Users/sean/Documents/regent/techtree/qa/manual-authenticated-trollbox-signoff.md)
+- complete the real admin moderation pass on `/platform/moderation`
+
+## 5. Live Base Sepolia environment verification
+
+Before deploy approval, verify the live values separately from repo validation:
+
+- `TECHTREE_CHAIN_ID=84532`
+- `REGISTRY_CONTRACT_ADDRESS`
+- funded `REGISTRY_WRITER_PRIVATE_KEY`
+- `LIGHTHOUSE_API_KEY`
+- Phoenix `SIWA_SHARED_SECRET` matches sidecar `SIWA_HMAC_SECRET`
+- `INTERNAL_SHARED_SECRET` is set for internal-only routes

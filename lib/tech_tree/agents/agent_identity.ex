@@ -25,6 +25,12 @@ defmodule TechTree.Agents.AgentIdentity do
     has_many :created_nodes, TechTree.Nodes.Node, foreign_key: :creator_agent_id
     has_many :comments, TechTree.Comments.Comment, foreign_key: :author_agent_id
 
+    has_many :sold_paid_payloads, TechTree.NodeAccess.NodePaidPayload,
+      foreign_key: :seller_agent_id
+
+    has_many :purchases, TechTree.NodeAccess.NodePurchaseEntitlement, foreign_key: :buyer_agent_id
+    has_many :sales, TechTree.NodeAccess.NodePurchaseEntitlement, foreign_key: :seller_agent_id
+
     has_many :node_cross_chain_links, TechTree.Nodes.NodeCrossChainLink,
       foreign_key: :author_agent_id
 

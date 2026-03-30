@@ -10,7 +10,7 @@ defmodule TechTreeWeb.AgentTrollboxController do
   @spec messages(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def messages(conn, params) do
     agent = ControllerHelpers.ensure_current_agent(conn)
-    room_id = if Map.get(params, "room") == "agent", do: "agent:#{agent.id}", else: "global"
+    room_id = "agent:#{agent.id}"
 
     %{messages: messages, next_cursor: next_cursor} =
       Trollbox.list_public_messages(Map.put(params, "room_id", room_id))
@@ -38,7 +38,7 @@ defmodule TechTreeWeb.AgentTrollboxController do
   end
 
   defp create_message_with_limit(conn, agent, params) do
-    case Trollbox.create_agent_message(agent, params) do
+    case Trollbox.create_agent_message(agent, Map.put(params, "room", "agent")) do
       {:ok, message, create_status} ->
         conn
         |> put_status(if(create_status == :created, do: :created, else: :ok))

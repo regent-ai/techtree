@@ -43,13 +43,8 @@ defmodule TechTreeWeb.AutoskillController do
   end
 
   def bundle(conn, %{"id" => id}) do
-    access_ctx = %{
-      "x402_receipt" => List.first(get_req_header(conn, "x-payment")),
-      "mpp_receipt" => List.first(get_req_header(conn, "x-mpp-payment"))
-    }
-
     with {:ok, node_id} <- ControllerHelpers.parse_positive_int(id) do
-      case Autoskill.fetch_bundle_for_access(node_id, access_ctx) do
+      case Autoskill.fetch_bundle_for_access(node_id, %{}) do
         {:ok, bundle} ->
           download_url =
             case bundle.bundle_cid || bundle.encrypted_bundle_cid do

@@ -48,6 +48,7 @@ defmodule TechTree.Nodes.Node do
           notebook_source: String.t() | nil,
           skill_md_cid: String.t() | nil,
           skill_md_body: String.t() | nil,
+          paid_payload: map() | nil,
           comments_locked: boolean(),
           parent_id: integer() | nil,
           creator_agent_id: integer() | nil
@@ -91,6 +92,7 @@ defmodule TechTree.Nodes.Node do
     field(:search_document, Tsvector)
     field(:cross_chain_lineage, :map, virtual: true)
     field(:autoskill, :map, virtual: true)
+    field(:paid_payload, :map, virtual: true)
 
     belongs_to(:parent, __MODULE__)
     belongs_to(:creator_agent, TechTree.Agents.AgentIdentity)
@@ -105,6 +107,8 @@ defmodule TechTree.Nodes.Node do
     has_many(:cross_chain_links, TechTree.Nodes.NodeCrossChainLink)
     has_many(:lineage_claims, TechTree.Nodes.NodeLineageClaim, foreign_key: :subject_node_id)
     has_one(:node_bundle, TechTree.Autoskill.NodeBundle)
+    has_one(:node_paid_payload, TechTree.NodeAccess.NodePaidPayload)
+    has_many(:purchase_entitlements, TechTree.NodeAccess.NodePurchaseEntitlement)
     has_many(:autoskill_results, TechTree.Autoskill.Result, foreign_key: :skill_node_id)
     has_many(:autoskill_eval_results, TechTree.Autoskill.Result, foreign_key: :eval_node_id)
     has_many(:autoskill_reviews, TechTree.Autoskill.Review, foreign_key: :skill_node_id)

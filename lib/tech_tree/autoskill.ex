@@ -9,9 +9,9 @@ defmodule TechTree.Autoskill do
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Autoskill.{Listing, NodeBundle, Result, Review}
   alias TechTree.IPFS.{Digests, LighthouseClient}
+  alias TechTree.NodeAccess
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
-  alias TechTree.Payments
   alias TechTree.Repo
 
   @listing_threshold 10
@@ -108,10 +108,18 @@ defmodule TechTree.Autoskill do
          :ok <- ensure_bundle_type(skill.id, :skill),
          true <- eligible_for_listing?(skill.id),
          {:ok, listing_attrs} <- normalize_listing_attrs(attrs, skill.id, agent.id) do
-      %Listing{}
-      |> Listing.changeset(listing_attrs)
-      |> validate_listing_chain()
-      |> Repo.insert()
+      Repo.transaction(fn ->
+        with {:ok, listing} <-
+               %Listing{}
+               |> Listing.changeset(listing_attrs)
+               |> validate_listing_chain()
+               |> Repo.insert(),
+             {:ok, _payload} <- NodeAccess.activate_from_listing(listing) do
+          listing
+        else
+          {:error, reason} -> Repo.rollback(reason)
+        end
+      end)
     else
       false -> {:error, :replicable_review_threshold_not_met}
       {:error, reason} -> {:error, reason}
@@ -126,7 +134,7 @@ defmodule TechTree.Autoskill do
     end
   end
 
-  def fetch_bundle_for_access(node_id, access_ctx) do
+  def fetch_bundle_for_access(node_id, _access_ctx) do
     bundle = Repo.get_by!(NodeBundle, node_id: normalize_id(node_id))
 
     case bundle.access_mode do
@@ -134,10 +142,20 @@ defmodule TechTree.Autoskill do
         {:ok, bundle}
 
       :gated_paid ->
-        verify_receipt(bundle, access_ctx)
-        |> case do
-          :ok -> {:ok, bundle}
-          {:error, reason} -> {:error, reason}
+        {:error, :payment_required}
+    end
+  end
+
+  def fetch_bundle_for_agent_access(node_id, %AgentIdentity{} = agent) do
+    bundle = Repo.get_by!(NodeBundle, node_id: normalize_id(node_id))
+
+    case bundle.access_mode do
+      :public_free ->
+        {:ok, bundle}
+
+      :gated_paid ->
+        with {:ok, _download} <- NodeAccess.fetch_payload_for_agent(node_id, agent) do
+          {:ok, bundle}
         end
     end
   end
@@ -242,7 +260,8 @@ defmodule TechTree.Autoskill do
       with {:ok, parent_id} <- resolve_parent_id(kind, attrs),
            {:ok, node_attrs} <- build_node_attrs(kind, attrs, parent_id),
            {:ok, %Node{} = node} <- Nodes.create_agent_node(agent, node_attrs),
-           {:ok, %NodeBundle{} = bundle} <- create_bundle(node, kind, attrs) do
+           {:ok, %NodeBundle{} = bundle} <- create_bundle(node, kind, attrs),
+           {:ok, _payload} <- NodeAccess.sync_autoskill_bundle(node, agent, bundle) do
         %{node: attach_projection(node), bundle: bundle}
       else
         {:error, reason} -> Repo.rollback(reason)
@@ -347,14 +366,6 @@ defmodule TechTree.Autoskill do
     |> Repo.insert()
   end
 
-  defp verify_receipt(%NodeBundle{payment_rail: :x402} = bundle, access_ctx),
-    do: Payments.X402.verify_access(bundle, access_ctx)
-
-  defp verify_receipt(%NodeBundle{payment_rail: :mpp} = bundle, access_ctx),
-    do: Payments.MPP.verify_access(bundle, access_ctx)
-
-  defp verify_receipt(_bundle, _access_ctx), do: {:error, :payment_required}
-
   defp build_projection(node, bundle, scorecard, listing) do
     %{
       flavor: Atom.to_string(bundle.bundle_type),
@@ -454,7 +465,7 @@ defmodule TechTree.Autoskill do
      %{
        "skill_node_id" => skill_node_id,
        "seller_agent_id" => seller_agent_id,
-       "payment_rail" => attrs["payment_rail"] || attrs[:payment_rail],
+       "payment_rail" => attrs["payment_rail"] || attrs[:payment_rail] || "onchain",
        "chain_id" => attrs["chain_id"] || attrs[:chain_id],
        "usdc_token_address" => attrs["usdc_token_address"] || attrs[:usdc_token_address],
        "treasury_address" => attrs["treasury_address"] || attrs[:treasury_address],

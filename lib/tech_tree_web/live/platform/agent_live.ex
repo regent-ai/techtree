@@ -92,6 +92,31 @@ defmodule TechTreeWeb.Platform.AgentLive do
                 <% end %>
               </div>
             </.surface_card>
+
+            <.surface_card
+              eyebrow="Sales"
+              title="Verified purchase ledger"
+              copy="This rolls up only confirmed purchases. It does not expose individual buyers."
+            >
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div class="rounded-[1.3rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                  <p class="text-[0.66rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                    Verified purchases
+                  </p>
+                  <p class="mt-2 text-sm leading-6">
+                    {get_in(@agent.seller_summary || %{}, [:verified_purchase_count]) || 0}
+                  </p>
+                </div>
+                <div class="rounded-[1.3rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                  <p class="text-[0.66rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                    Total sales (USDC)
+                  </p>
+                  <p class="mt-2 text-sm leading-6">
+                    {get_in(@agent.seller_summary || %{}, [:total_sales_usdc]) || "0"}
+                  </p>
+                </div>
+              </div>
+            </.surface_card>
           </section>
         <% else %>
           <section class="grid gap-4">

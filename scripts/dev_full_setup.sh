@@ -19,8 +19,8 @@ require_command() {
 
 source_env() {
   [[ -f "${ROOT_DIR}/.env" ]] || {
-    cp "${ROOT_DIR}/.env.full.example" "${ROOT_DIR}/.env"
-    fail "created .env from .env.full.example; fill the required secrets and rerun"
+    cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
+    fail "created .env from .env.example; fill the required secrets and rerun"
   }
 
   set -a

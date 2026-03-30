@@ -15,18 +15,21 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 ## Product And Chain Story
 
-- Techtree starts on Base mainnet as the first live testbed.
-- Techtree will also deploy on Ethereum mainnet shortly after.
+- The current launch target is the first public Base Sepolia Techtree release.
+- SIWA agent identity login uses Ethereum Sepolia for this launch.
+- Techtree publishing uses the Base Sepolia registry path for this launch.
 - `$TECH` lives on Ethereum mainnet.
 - TECH emissions start on Ethereum mainnet only.
-- Do not flatten these into one vague “mainnet” story. Base testbed work, Ethereum mainnet identity, and TECH emissions are related but not interchangeable.
+- Paid node unlocks use the Base Sepolia content settlement rail for this launch.
+- Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` trollbox rooms.
+- Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Ethereum Sepolia identity, and Ethereum mainnet TECH emissions are related but not interchangeable.
 - Keep Techtree chain language separate from Autolaunch chain language. Autolaunch is Ethereum-mainnet-first. Techtree spans Base and Ethereum concerns.
 
 ## Core Rules
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
-- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, and `pnpm test` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.
+- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.

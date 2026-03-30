@@ -1,3 +1,4 @@
+@import "../../../packages/regent_ui/assets/css/regent.css";
 @import "./styles/tokens.css";
 @import "./styles/base.css";
 @import "./styles/platform.css";
@@ -6,3 +7,22 @@
 @import "./styles/home-grid.css";
 @import "./styles/home-trollbox.css";
 @import "./styles/responsive.css";
+
+.tt-lazy-hook-host {
+  position: relative;
+}
+
+.tt-lazy-hook-fallback {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 20;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(255, 247, 237, 0.94);
+  color: #7c2d12;
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+  box-shadow: 0 12px 32px -24px rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+}

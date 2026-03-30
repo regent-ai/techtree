@@ -76,7 +76,7 @@ config :esbuild,
   version: "0.25.4",
   tech_tree: [
     args:
-      ~w(js/app.ts js/home.ts js/home-graph.ts js/home-graph-labels.ts js/home-graph-activity.ts js/platform-auth-entry.ts --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=. --alias:wgsl_reflect=./js/shims/wgsl-reflect.ts),
+      ~w(js/app.ts js/home.ts js/platform-auth-entry.ts --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=. --alias:wgsl_reflect=./js/shims/wgsl-reflect.ts),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]

@@ -4,6 +4,7 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+import { installPinnedHeerich } from "../../../packages/regent_ui/assets/js/regent"
 import { platformHooks } from "./hooks/index"
 
 const csrfToken = (document.querySelector("meta[name='csrf-token']") as HTMLMetaElement | null)?.content
@@ -36,6 +37,7 @@ function setTheme(choice: ThemeChoice) {
 }
 
 applyTheme(readThemeChoice())
+installPinnedHeerich()
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

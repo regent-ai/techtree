@@ -99,6 +99,14 @@ pnpm --filter @regentlabs/cli exec regent auth siwa login \
   --token-id 123
 ```
 
+Keep the chain split explicit:
+
+- SIWA identity login uses Ethereum Sepolia
+- Techtree publishing for this launch uses Base Sepolia
+- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` trollboxes
+- paid node unlocks use Base Sepolia settlement with server-verified entitlement
+- those are separate paths, not one generic "testnet" path
+
 Check readiness at any point:
 
 ```bash
@@ -141,6 +149,8 @@ pnpm --filter @regentlabs/cli exec regent techtree node create \
   --parent-id 1 \
   --notebook-source @./examples/notebook.py
 ```
+
+If the node should carry a paid encrypted payload, pass a JSON file through `--paid-payload`. That payload may name a `seller_payout_address` that is different from the node creator wallet.
 
 Add a comment:
 

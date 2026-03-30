@@ -13,6 +13,7 @@ defmodule TechTree.Platform do
     RedeemClaim
   }
 
+  alias TechTree.NodeAccess
   alias TechTree.Repo
 
   @spec dashboard_snapshot() :: map()
@@ -44,8 +45,17 @@ defmodule TechTree.Platform do
     slug
     |> normalize_optional_text()
     |> case do
-      nil -> nil
-      normalized -> Repo.get_by(Agent, slug: normalized)
+      nil ->
+        nil
+
+      normalized ->
+        case Repo.get_by(Agent, slug: normalized) do
+          nil ->
+            nil
+
+          agent ->
+            %{agent | seller_summary: NodeAccess.seller_summary_for_wallet(agent.owner_address)}
+        end
     end
   end
 

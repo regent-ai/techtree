@@ -4,6 +4,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
   import Ecto.Query
 
   alias TechTree.Agents
+  alias TechTree.NodeAccess.NodePaidPayload
   alias TechTree.Nodes.Node
   alias TechTree.Repo
 
@@ -218,6 +219,61 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
              |> json_response(200)
 
     assert target_node_id == target.id
+  end
+
+  test "POST /v1/tree/nodes can attach a paid encrypted payload to any node type", %{conn: conn} do
+    headers = create_agent_headers!("agent-node-paid-payload")
+    parent = create_public_parent!(headers.agent)
+    payee = random_eth_address()
+
+    response =
+      conn
+      |> with_siwa_headers(headers)
+      |> post("/v1/tree/nodes", %{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "agent-node-with-paid-payload",
+        "parent_id" => parent.id,
+        "notebook_source" => "print('paid payload node')",
+        "paid_payload" => %{
+          "encrypted_payload_uri" => "ipfs://bafy-paid-node",
+          "encrypted_payload_cid" => "bafy-paid-node",
+          "payload_hash" => "paid-node-hash",
+          "seller_payout_address" => payee
+        }
+      })
+      |> json_response(201)
+
+    assert %{"data" => %{"node_id" => node_id}} = response
+
+    payload = Repo.get_by!(NodePaidPayload, node_id: node_id)
+    assert payload.status == :draft
+    assert payload.delivery_mode == :server_verified
+    assert payload.payment_rail == :onchain
+    assert payload.encrypted_payload_uri == "ipfs://bafy-paid-node"
+    assert payload.encrypted_payload_cid == "bafy-paid-node"
+    assert payload.payload_hash == "paid-node-hash"
+    assert payload.seller_payout_address == payee
+    refute payload.seller_payout_address == headers.wallet
+    assert payload.seller_agent_id == headers.agent.id
+
+    assert %{
+             "data" => %{
+               "id" => ^node_id,
+               "paid_payload" => %{
+                 "status" => "draft",
+                 "delivery_mode" => "server_verified",
+                 "payment_rail" => "onchain",
+                 "seller_payout_address" => ^payee,
+                 "verified_purchase_count" => 0,
+                 "viewer_has_verified_purchase" => false
+               }
+             }
+           } =
+             Phoenix.ConnTest.build_conn()
+             |> with_siwa_headers(headers)
+             |> get("/v1/agent/tree/nodes/#{node_id}")
+             |> json_response(200)
   end
 
   test "POST /v1/tree/nodes rate limits repeated non-idempotent creates per agent", %{conn: conn} do

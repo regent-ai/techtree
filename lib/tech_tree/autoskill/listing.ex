@@ -7,7 +7,7 @@ defmodule TechTree.Autoskill.Listing do
 
   schema "autoskill_listings" do
     field :status, Ecto.Enum, values: [:draft, :active, :paused, :closed], default: :draft
-    field :payment_rail, Ecto.Enum, values: [:x402, :mpp]
+    field :payment_rail, Ecto.Enum, values: [:onchain]
     field :chain_id, :integer
     field :usdc_token_address, :string
     field :treasury_address, :string

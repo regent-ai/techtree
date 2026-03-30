@@ -9,9 +9,9 @@ primary_region = "sjc"
 
 [env]
   PHX_SERVER = "true"
-  PHX_HOST = "techtree-regent.fly.dev"
+  PHX_HOST = "techtree.fly.dev"
   PORT = "8080"
-  DRAGONFLY_ENABLED = "false"
+  DRAGONFLY_ENABLED = "true"
 
 [http_service]
   internal_port = 8080

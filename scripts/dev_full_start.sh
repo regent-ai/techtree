@@ -15,7 +15,7 @@ fail() {
 }
 
 source_env() {
-  [[ -f "${ROOT_DIR}/.env" ]] || fail "missing .env; copy .env.full.example to .env first"
+  [[ -f "${ROOT_DIR}/.env" ]] || fail "missing .env; copy .env.example to .env first"
 
   set -a
   # shellcheck source=/dev/null

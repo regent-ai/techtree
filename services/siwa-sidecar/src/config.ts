@@ -17,6 +17,7 @@ export interface SidecarConfig {
 
 const parsePositiveInt = (
   value: string | undefined,
+  key: string,
   fallback: number,
 ): number => {
   if (!value) {
@@ -24,7 +25,7 @@ const parsePositiveInt = (
   }
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
+    throw new Error(`${key} must be a positive integer, received "${value}"`);
   }
   return parsed;
 };
@@ -91,8 +92,6 @@ const loadDotenvEnv = (): NodeJS.ProcessEnv => {
   return merged;
 };
 
-const DEV_ONLY_SECRET = "dev-only-change-me";
-
 const isProductionEnv = (env: NodeJS.ProcessEnv): boolean => {
   return (env.NODE_ENV ?? "").toLowerCase() === "production";
 };
@@ -105,16 +104,8 @@ const requireSecret = (
   const value = env[key] ?? fallback ?? "";
 
   if (typeof value !== "string" || value.trim() === "") {
-    if (isProductionEnv(env)) {
-      throw new Error(`Missing required SIWA secret: ${key}`);
-    }
-
-    return fallback ?? "";
-  }
-
-  if (isProductionEnv(env) && value === DEV_ONLY_SECRET) {
     throw new Error(
-      `Refusing to boot SIWA sidecar with insecure default for ${key}`,
+      `Missing required SIWA secret: ${key}. Set ${key} before starting the SIWA sidecar.`,
     );
   }
 
@@ -124,27 +115,42 @@ const requireSecret = (
 export const loadConfig = (
   env: NodeJS.ProcessEnv = loadDotenvEnv(),
 ): SidecarConfig => {
-  const hmacSecret = requireSecret(env, "SIWA_HMAC_SECRET", DEV_ONLY_SECRET);
-  const receiptSecret = requireSecret(env, "SIWA_RECEIPT_SECRET", hmacSecret);
+  const hmacSecret = requireSecret(env, "SIWA_HMAC_SECRET");
+  const receiptSecret = requireSecret(env, "SIWA_RECEIPT_SECRET");
 
   return {
-    port: parsePositiveInt(env.SIWA_PORT, 4100),
-    nonceTtlSeconds: parsePositiveInt(env.SIWA_NONCE_TTL_SECONDS, 300),
-    receiptTtlSeconds: parsePositiveInt(env.SIWA_RECEIPT_TTL_SECONDS, 900),
+    port: parsePositiveInt(env.SIWA_PORT, "SIWA_PORT", 4100),
+    nonceTtlSeconds: parsePositiveInt(
+      env.SIWA_NONCE_TTL_SECONDS,
+      "SIWA_NONCE_TTL_SECONDS",
+      300,
+    ),
+    receiptTtlSeconds: parsePositiveInt(
+      env.SIWA_RECEIPT_TTL_SECONDS,
+      "SIWA_RECEIPT_TTL_SECONDS",
+      900,
+    ),
     hmacSecret,
     receiptSecret,
     hmacKeyId: env.SIWA_HMAC_KEY_ID ?? "sidecar-internal-v1",
-    hmacMaxSkewSeconds: parsePositiveInt(env.SIWA_HMAC_MAX_SKEW_SECONDS, 300),
+    hmacMaxSkewSeconds: parsePositiveInt(
+      env.SIWA_HMAC_MAX_SKEW_SECONDS,
+      "SIWA_HMAC_MAX_SKEW_SECONDS",
+      300,
+    ),
     httpSignatureMaxAgeSeconds: parsePositiveInt(
       env.SIWA_HTTP_MAX_AGE_SECONDS,
+      "SIWA_HTTP_MAX_AGE_SECONDS",
       300,
     ),
     httpSignatureCreatedDriftSeconds: parsePositiveInt(
       env.SIWA_HTTP_CREATED_DRIFT_SECONDS,
+      "SIWA_HTTP_CREATED_DRIFT_SECONDS",
       5,
     ),
     httpReplayTtlSeconds: parsePositiveInt(
       env.SIWA_HTTP_REPLAY_TTL_SECONDS,
+      "SIWA_HTTP_REPLAY_TTL_SECONDS",
       300,
     ),
   };

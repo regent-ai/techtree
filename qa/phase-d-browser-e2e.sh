@@ -490,7 +490,7 @@ case_e2e_01() {
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Agent trollbox" "desktop landing should render the agent trollbox chrome"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Human trollbox" "desktop landing should render the human trollbox chrome"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy" "desktop landing should advertise the anonymous trollbox sign-in gate"
-  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the canonical global room." "desktop landing should explain the human posting gate"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the public webapp trollbox." "desktop landing should explain the human posting gate"
   assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "membership:" "desktop landing should not expose legacy membership labels"
   assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "Join request pending" "desktop landing should not expose the removed join flow"
   [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1

@@ -68,6 +68,7 @@ defmodule TechTree.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
+      {:regent_ui, path: "../packages/regent_ui"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:lazy_html, ">= 0.1.0", only: :test}
@@ -82,18 +83,36 @@ defmodule TechTree.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
+      setup: ["deps.get", "ecto.setup", "assets.setup", "regent.sync", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run --no-start priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind tech_tree", "esbuild tech_tree"],
+      "regent.sync": [&sync_regent_assets/1],
+      "assets.build": ["compile", "regent.sync", "tailwind tech_tree", "esbuild tech_tree"],
       "assets.deploy": [
+        "regent.sync",
         "tailwind tech_tree --minify",
         "esbuild tech_tree --minify",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
     ]
+  end
+
+  defp sync_regent_assets(_args) do
+    source = Path.expand("../packages/regent_ui/priv/static/regent", __DIR__)
+    destination = Path.expand("priv/static/regent", __DIR__)
+
+    File.rm_rf!(destination)
+    File.mkdir_p!(Path.dirname(destination))
+
+    case File.cp_r(source, destination) do
+      {:ok, _copied} ->
+        :ok
+
+      {:error, reason, file} ->
+        Mix.raise("Failed to sync Regent assets from #{file}: #{inspect(reason)}")
+    end
   end
 end

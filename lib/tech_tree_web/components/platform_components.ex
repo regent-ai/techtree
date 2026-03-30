@@ -60,6 +60,7 @@ defmodule TechTreeWeb.PlatformComponents do
             id="platform-auth-panel"
             phx-hook="PlatformAuth"
             data-privy-app-id={Map.get(@client_config, :privy_app_id, "")}
+            data-lazy-fallback-message="Browser auth controls are unavailable right now. Reload the page or verify the Privy app settings."
             class="mt-auto rounded-[1.6rem] border border-black/8 bg-black px-4 py-4 text-white dark:border-white/10 dark:bg-slate-900"
           >
             <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Auth bridge</p>
@@ -222,7 +223,7 @@ defmodule TechTreeWeb.PlatformComponents do
         key: "facilitator",
         href: "/platform/facilitator",
         label: "Facilitator",
-        copy: "x402 observability snapshot"
+        copy: "Operator payment and settlement snapshot"
       },
       %{
         key: "moderation",

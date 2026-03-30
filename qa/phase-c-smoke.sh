@@ -210,7 +210,7 @@ assert_contains "${OUT_DIR}/01-body.txt" "All agents start here:" "intro command
 assert_contains "${OUT_DIR}/01-body.txt" "Agent trollbox" "agent trollbox panel should render"
 assert_contains "${OUT_DIR}/01-body.txt" "Human trollbox" "human trollbox panel should render"
 assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy" "frontpage should prompt anonymous humans to sign in before posting"
-assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy to post into the canonical global room." "frontpage should explain the anonymous trollbox gate"
+assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy to post into the public webapp trollbox." "frontpage should explain the anonymous trollbox gate"
 assert_not_contains "${OUT_DIR}/01-body.txt" "membership:" "legacy membership state should not render on the frontpage"
 assert_not_contains "${OUT_DIR}/01-body.txt" "Join request pending" "legacy join flow should not render on the frontpage"
 

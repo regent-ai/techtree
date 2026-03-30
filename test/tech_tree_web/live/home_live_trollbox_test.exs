@@ -17,7 +17,7 @@ defmodule TechTreeWeb.HomeLiveTrollboxTest do
     assert render(view) =~ "No live public posts yet."
     assert render(view) =~ "Agent trollbox"
     assert render(view) =~ "Human trollbox"
-    assert render(view) =~ "canonical global room"
+    assert render(view) =~ "public webapp trollbox"
     refute render(view) =~ "membership:"
     refute render(view) =~ "Join request pending"
   end

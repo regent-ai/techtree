@@ -27,6 +27,8 @@ type PrivyUser =
 interface HomeTrollboxElement extends HTMLElement {
   _homeTrollboxCleanup?: () => void
   _homeTrollboxSeenKeys?: Set<string>
+  _homeTrollboxAbortControllers?: Set<AbortController>
+  _homeTrollboxMounted?: boolean
 }
 
 const labelForUser = (user: PrivyUser): string => {
@@ -59,6 +61,41 @@ const transportToneClasses: Record<TransportMode | "ready", string[]> = {
   degraded: ["border-[var(--color-warning)]", "bg-[var(--fp-chat-human-accent-bg)]", "text-[var(--fp-text)]"],
 }
 
+function registerAbortController(root: HomeTrollboxElement): AbortController {
+  const controller = new AbortController()
+  const controllers = root._homeTrollboxAbortControllers ?? new Set<AbortController>()
+  controllers.add(controller)
+  root._homeTrollboxAbortControllers = controllers
+  return controller
+}
+
+function finishAbortController(root: HomeTrollboxElement, controller: AbortController) {
+  root._homeTrollboxAbortControllers?.delete(controller)
+}
+
+async function fetchJson<T>(
+  root: HomeTrollboxElement,
+  input: string,
+  init: RequestInit,
+): Promise<T> {
+  const controller = registerAbortController(root)
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(await parseErrorMessage(response))
+    }
+
+    return (await response.json()) as T
+  } finally {
+    finishAbortController(root, controller)
+  }
+}
+
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as {
@@ -80,6 +117,8 @@ async function parseErrorMessage(response: Response): Promise<string> {
 export const HomeTrollbox: Hook = {
   mounted() {
     const root = this.el as HomeTrollboxElement
+    root._homeTrollboxMounted = true
+    root._homeTrollboxAbortControllers = new Set<AbortController>()
     const authButton = root.querySelector<HTMLButtonElement>("[data-trollbox-auth]")
     const sendButton = root.querySelector<HTMLButtonElement>("[data-trollbox-send]")
     const input = root.querySelector<HTMLInputElement>("[data-trollbox-input]")
@@ -104,6 +143,7 @@ export const HomeTrollbox: Hook = {
         : null
 
     const setState = (message: string) => {
+      if (!root._homeTrollboxMounted) return
       if (state.textContent === message) return
       state.textContent = message
       animate(state, {
@@ -115,6 +155,7 @@ export const HomeTrollbox: Hook = {
     }
 
     const paintTransport = (payload: NonNullable<TransportStatusPayload["data"]>) => {
+      if (!root._homeTrollboxMounted) return
       const nextLabel = buildTransportLabel(payload)
       const tone = payload.ready ? "ready" : (payload.mode ?? "local_only")
       const nextClasses = transportToneClasses[tone]
@@ -138,6 +179,7 @@ export const HomeTrollbox: Hook = {
     }
 
     const syncComposerState = () => {
+      if (!root._homeTrollboxMounted) return
       const connected = Boolean(currentUser?.id)
       const draft = input.value.trim()
 
@@ -146,7 +188,7 @@ export const HomeTrollbox: Hook = {
 
       input.disabled = privy == null || !connected || sending
       sendButton.disabled = privy == null || !connected || sending || draft.length === 0
-      sendButton.textContent = sending ? "Writing canonical row..." : "Send to global room"
+      sendButton.textContent = sending ? "Writing to webapp trollbox..." : "Send to webapp trollbox"
     }
 
     const syncSession = async (user: PrivyUser) => {
@@ -155,7 +197,7 @@ export const HomeTrollbox: Hook = {
       const token = await privy.getAccessToken()
       if (!token) return
 
-      await fetch(sessionUrl, {
+      await fetchJson<Record<string, never>>(root, sessionUrl, {
         method: "POST",
         headers: {
           accept: "application/json",
@@ -172,7 +214,7 @@ export const HomeTrollbox: Hook = {
     }
 
     const clearSession = async () => {
-      await fetch(sessionUrl, {
+      await fetchJson<Record<string, never>>(root, sessionUrl, {
         method: "DELETE",
         headers: {
           accept: "application/json",
@@ -192,13 +234,14 @@ export const HomeTrollbox: Hook = {
 
       try {
         const result = await privy.user.get()
+        if (!root._homeTrollboxMounted) return
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
           await syncSession(currentUser)
-          setState("Authenticated. Posts write to the canonical global room.")
+          setState("Authenticated. Posts write to the public webapp trollbox.")
         } else {
-          setState("Connect Privy to post into the canonical global room.")
+          setState("Connect Privy to post into the public webapp trollbox.")
         }
       } catch (error) {
         currentUser = null
@@ -222,6 +265,7 @@ export const HomeTrollbox: Hook = {
       try {
         await privy.auth.oauth.loginWithCode(code, oauthState, provider)
       } catch (error) {
+        if (!root._homeTrollboxMounted) return
         console.error("Home trollbox Privy OAuth failed", error)
         setState("Privy OAuth handoff failed.")
       } finally {
@@ -281,7 +325,7 @@ export const HomeTrollbox: Hook = {
           throw new Error("Privy access token missing")
         }
 
-        const response = await fetch(postUrl, {
+        const payload = await fetchJson<{ ok?: boolean }>(root, postUrl, {
           method: "POST",
           headers: {
             accept: "application/json",
@@ -295,10 +339,7 @@ export const HomeTrollbox: Hook = {
             client_message_id: crypto.randomUUID(),
           }),
         })
-
-        if (!response.ok) {
-          throw new Error(await parseErrorMessage(response))
-        }
+        if (!root._homeTrollboxMounted || payload.ok === false) return
 
         input.value = ""
         setState("Canonical row accepted. Mesh fanout will follow.")
@@ -317,21 +358,16 @@ export const HomeTrollbox: Hook = {
 
     const refreshTransport = async () => {
       try {
-        const response = await fetch(transportStatusUrl, {
+        const payload = await fetchJson<TransportStatusPayload>(root, transportStatusUrl, {
           method: "GET",
           headers: { accept: "application/json" },
           credentials: "same-origin",
         })
-
-        if (!response.ok) {
-          throw new Error(await parseErrorMessage(response))
-        }
-
-        const payload = (await response.json()) as TransportStatusPayload
         if (payload.data?.mode) {
           paintTransport(payload.data)
         }
       } catch (error) {
+        if (!root._homeTrollboxMounted) return
         transportBadge.textContent = "transport error"
         transportBadge.classList.add("border-[var(--color-error)]", "bg-[var(--color-error)]", "text-[var(--color-error-content)]")
         setState(error instanceof Error ? error.message : "Unable to load transport status.")
@@ -400,6 +436,9 @@ export const HomeTrollbox: Hook = {
     })()
 
     root._homeTrollboxCleanup = () => {
+      root._homeTrollboxMounted = false
+      root._homeTrollboxAbortControllers?.forEach((controller) => controller.abort())
+      root._homeTrollboxAbortControllers?.clear()
       window.clearInterval(pollId)
       input.removeEventListener("input", handleInput)
       input.removeEventListener("keydown", handleInputKeydown)

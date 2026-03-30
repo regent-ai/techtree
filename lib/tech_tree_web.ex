@@ -81,6 +81,7 @@ defmodule TechTreeWeb do
     quote do
       # Translation
       use Gettext, backend: TechTreeWeb.Gettext
+      use Regent
 
       # HTML escaping functionality
       import Phoenix.HTML

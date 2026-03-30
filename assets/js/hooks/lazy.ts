@@ -7,10 +7,19 @@ type LazyHookWindow = Window & {
   __techTreeLazyAssets?: Record<string, Promise<void>>;
 };
 
+type LazyAssetScript = HTMLScriptElement & {
+  readyState?: string;
+  dataset: DOMStringMap & {
+    techTreeLazyAsset?: string;
+    techTreeLazyLoaded?: string;
+  };
+};
+
 type LazyHookContext = HookContext & {
   __lazyDelegate?: Hook | null;
   __lazyLoading?: Promise<Hook | null>;
   __lazyDestroyed?: boolean;
+  __lazyFallback?: HTMLElement | null;
 };
 
 type RuntimeHook = Hook & {
@@ -22,6 +31,13 @@ type RuntimeHook = Hook & {
 
 type LazyHookOptions = {
   shouldLoad?: (context: LazyHookContext) => boolean;
+};
+
+type LazyHookElement = HTMLElement & {
+  dataset: DOMStringMap & {
+    lazyFallbackMessage?: string;
+    lazyHookState?: string;
+  };
 };
 
 function lazyWindow(): LazyHookWindow {
@@ -50,9 +66,14 @@ function loadAsset(assetPath: string): Promise<void> {
 
   const promise = new Promise<void>((resolve, reject) => {
     const selector = `script[data-tech-tree-lazy-asset="${assetPath}"]`;
-    const existing = document.querySelector<HTMLScriptElement>(selector);
+    const existing = document.querySelector<LazyAssetScript>(selector);
 
     if (existing) {
+      if (existing.dataset.techTreeLazyLoaded === "true" || existing.readyState === "complete") {
+        resolve();
+        return;
+      }
+
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener(
         "error",
@@ -62,11 +83,14 @@ function loadAsset(assetPath: string): Promise<void> {
       return;
     }
 
-    const script = document.createElement("script");
+    const script = document.createElement("script") as LazyAssetScript;
     script.defer = true;
     script.src = assetPath;
     script.dataset.techTreeLazyAsset = assetPath;
-    script.addEventListener("load", () => resolve(), { once: true });
+    script.addEventListener("load", () => {
+      script.dataset.techTreeLazyLoaded = "true";
+      resolve();
+    }, { once: true });
     script.addEventListener(
       "error",
       () => reject(new Error(`failed to load lazy asset ${assetPath}`)),
@@ -81,6 +105,56 @@ function loadAsset(assetPath: string): Promise<void> {
   };
 
   return promise;
+}
+
+function fallbackMessageFor(element: LazyHookElement, hookName: string): string {
+  return (
+    element.dataset.lazyFallbackMessage ||
+    `Unable to start ${hookName}. Reload the page or verify the related browser configuration.`
+  );
+}
+
+function ensureFallbackElement(context: LazyHookContext, hookName: string): HTMLElement {
+  if (context.__lazyFallback && context.__lazyFallback.isConnected) {
+    return context.__lazyFallback;
+  }
+
+  const root = context.el as LazyHookElement;
+  const existing = root.querySelector<HTMLElement>("[data-tech-tree-lazy-fallback]");
+
+  if (existing) {
+    context.__lazyFallback = existing;
+    return existing;
+  }
+
+  root.classList.add("tt-lazy-hook-host");
+
+  const fallback = document.createElement("div");
+  fallback.setAttribute("data-tech-tree-lazy-fallback", hookName);
+  fallback.setAttribute("role", "status");
+  fallback.className = "tt-lazy-hook-fallback";
+  fallback.hidden = true;
+  fallback.textContent = fallbackMessageFor(root, hookName);
+  root.prepend(fallback);
+  context.__lazyFallback = fallback;
+  return fallback;
+}
+
+function setLazyHookState(context: LazyHookContext, state: "idle" | "loading" | "ready" | "error") {
+  const root = context.el as LazyHookElement;
+  root.dataset.lazyHookState = state;
+  root.setAttribute("aria-busy", state == "loading" ? "true" : "false");
+}
+
+function showLazyHookFallback(context: LazyHookContext, hookName: string) {
+  const fallback = ensureFallbackElement(context, hookName);
+  fallback.hidden = false;
+  setLazyHookState(context, "error");
+}
+
+function hideLazyHookFallback(context: LazyHookContext) {
+  context.__lazyFallback?.setAttribute("hidden", "");
+  setLazyHookState(context, "ready");
 }
 
 async function ensureLazyHook(hookName: string, assetPath: string): Promise<Hook | null> {
@@ -118,11 +192,13 @@ function startLazyHookLoad(
   hookName: string,
   assetPath: string,
 ): Promise<Hook | null> {
+  setLazyHookState(context, "loading");
   context.__lazyLoading =
     context.__lazyLoading ||
     ensureLazyHook(hookName, assetPath)
       .then((resolvedHook) => {
         context.__lazyDelegate = resolvedHook;
+        hideLazyHookFallback(context);
 
         if (!context.__lazyDestroyed && typeof resolvedHook?.mounted === "function") {
           resolvedHook.mounted.call(context);
@@ -132,6 +208,7 @@ function startLazyHookLoad(
       })
       .catch((error) => {
         console.error(`Failed to initialize lazy hook "${hookName}"`, error);
+        showLazyHookFallback(context, hookName);
         return null;
       });
 
@@ -147,6 +224,7 @@ export function createLazyHook(
   const hook: RuntimeHook = {
     mounted(this: LazyHookContext) {
       this.__lazyDestroyed = false;
+      setLazyHookState(this, "idle");
 
       if (shouldLoad(this)) {
         startLazyHookLoad(this, hookName, assetPath);
@@ -165,6 +243,8 @@ export function createLazyHook(
     destroyed(this: LazyHookContext) {
       this.__lazyDestroyed = true;
       callLifecycle(this.__lazyDelegate as RuntimeHook | null | undefined, "destroyed", this);
+      this.__lazyFallback?.remove();
+      this.__lazyFallback = null;
     },
 
     disconnected(this: LazyHookContext) {

@@ -1,12 +1,19 @@
 # Techtree + Regent CLI Local And Fly Testing
 
-This guide is the real testing path after the chain split:
+This guide is step 2 of the canonical launch path in [docs/VALIDATION.md](VALIDATION.md).
+
+This is the real local operator flow after the chain split:
 
 - agent identity login stays on Ethereum Sepolia
 - Techtree registry publishing runs on Base Sepolia
-- autoskill settlement testing also stays on Base Sepolia
 
 That split matters. If login works but publishing fails, the usual cause is that Sepolia identity settings and Base Sepolia registry settings were mixed together.
+
+For v0.1 launch scope:
+
+- local-only Regent transport is in scope
+- CLI tail of the `webapp` and `agent` trollboxes is in scope
+- paid node unlocks use Base Sepolia settlement with server-verified entitlement
 
 ## What has to be running
 
@@ -48,25 +55,28 @@ forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
   --broadcast
 ```
 
-Deploy the Base Sepolia autoskill settlement contract if you want autoskill coverage:
+Save these values for the app:
+
+- `REGISTRY_CONTRACT_ADDRESS`
+- `REGISTRY_WRITER_PRIVATE_KEY`
+
+Deploy the Base Sepolia content settlement contract when you want paid node unlocks enabled:
 
 ```bash
 cd /Users/sean/Documents/regent/contracts/techtree
 export DEPLOY_TARGET=base-sepolia
 export BASE_SEPOLIA_RPC_URL=...
 export BASE_SEPOLIA_PRIVATE_KEY=...
-export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=...
-export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=...
+export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=0x...
+export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=0x...
 
 forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
   --rpc-url "$BASE_SEPOLIA_RPC_URL" \
   --broadcast
 ```
 
-Save these values for the app:
+Save these values too:
 
-- `REGISTRY_CONTRACT_ADDRESS`
-- `REGISTRY_WRITER_PRIVATE_KEY`
 - `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
 - `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
 - `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
@@ -94,9 +104,6 @@ Fill the required app values:
 - `BASE_SEPOLIA_RPC_URL`
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
-
-If you want autoskill coverage, also fill:
-
 - `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
 - `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
 - `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
@@ -200,22 +207,38 @@ pnpm --filter @regentlabs/cli exec regent doctor techtree
 pnpm --filter @regentlabs/cli exec regent techtree nodes list --limit 5
 pnpm --filter @regentlabs/cli exec regent techtree activity --limit 10
 pnpm --filter @regentlabs/cli exec regent techtree inbox --limit 10
+pnpm --filter @regentlabs/cli exec regent techtree opportunities --limit 10
 pnpm --filter @regentlabs/cli exec regent techtree node create \
   --seed ML \
   --kind hypothesis \
   --title "Base Sepolia test node" \
   --parent-id 1 \
   --notebook-source "# local test"
+pnpm --filter @regentlabs/cli exec regent techtree comment add \
+  --node-id 1 \
+  --body-markdown "Base Sepolia launch flow comment"
+pnpm --filter @regentlabs/cli exec regent trollbox tail --room webapp
+pnpm --filter @regentlabs/cli exec regent trollbox tail --room agent
+pnpm --filter @regentlabs/cli exec regent techtree autoskill buy 42
+pnpm --filter @regentlabs/cli exec regent techtree autoskill pull 42 ./pull-workspace
 ```
+
+If the created node should carry a paid encrypted payload, pass `--paid-payload @file.json`. That JSON may set `seller_payout_address` to a wallet that is different from the node creator wallet.
 
 Success looks like this:
 
 - public reads return data
 - protected reads work after SIWA login
 - node creation returns a node id plus pending anchor data
+- comment creation succeeds against the same authenticated identity
+- inbox and opportunities reads return without auth-envelope errors
 - the app writes the chain receipt against the Base Sepolia registry path
+- CLI tail works against both the `webapp` and `agent` trollbox rooms
+- paid bundle pull succeeds only after the onchain purchase is verified
 
 ## Fly deployment steps
+
+Only continue here after the repo validation and local flow both pass.
 
 Techtree already has a Fly stack deploy script:
 
@@ -235,6 +258,8 @@ Before you run it, export the required values:
 - `REGISTRY_WRITER_PRIVATE_KEY`
 
 The script now treats the first deploy path as Base Sepolia only.
+
+For paid node validation, include the content settlement env and deploy values above. Direct buyer-held key delivery remains out of scope; this guide assumes server-verified entitlement.
 
 It still expects the Fly app config files already referenced by the repo:
 

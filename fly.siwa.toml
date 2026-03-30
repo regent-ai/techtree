@@ -1,0 +1,21 @@
+app = "techtree-siwa"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile.siwa"
+
+[env]
+  SIWA_PORT = "4100"
+
+[http_service]
+  internal_port = 4100
+  force_https = false
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

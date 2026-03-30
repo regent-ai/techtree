@@ -29,7 +29,7 @@ defmodule TechTreeWeb.AutoskillControllerTest do
     assert String.contains?(download_url, "bafy-free-bundle")
   end
 
-  test "gated bundle endpoint requires a payment header", %{conn: conn} do
+  test "gated bundle endpoint requires a verified purchase", %{conn: conn} do
     %{eval: eval_node} = autoskill_fixture!()
 
     assert %{"error" => %{"code" => "autoskill_payment_required"}} =
@@ -37,20 +37,6 @@ defmodule TechTreeWeb.AutoskillControllerTest do
              |> put_req_header("accept", "application/json")
              |> get("/v1/autoskill/versions/#{eval_node.id}/bundle")
              |> json_response(402)
-
-    assert %{
-             "data" => %{
-               "node_id" => node_id,
-               "bundle_uri" => "ipfs://bafy-gated-bundle"
-             }
-           } =
-             conn
-             |> put_req_header("accept", "application/json")
-             |> put_req_header("x-payment", "receipt_123")
-             |> get("/v1/autoskill/versions/#{eval_node.id}/bundle")
-             |> json_response(200)
-
-    assert node_id == eval_node.id
   end
 
   defp autoskill_fixture! do
@@ -81,7 +67,7 @@ defmodule TechTreeWeb.AutoskillControllerTest do
       marimo_entrypoint: "session.marimo.py",
       encrypted_bundle_uri: "ipfs://bafy-gated-bundle",
       encrypted_bundle_cid: "bafy-gated-bundle",
-      payment_rail: :x402,
+      payment_rail: :onchain,
       access_policy: %{"price" => "25.000000"}
     })
 

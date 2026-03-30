@@ -5,6 +5,7 @@ defmodule TechTree.Nodes.Reads do
 
   alias TechTree.Autoskill
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.NodeAccess
   alias TechTree.Nodes.{Lineage, Node, NodeTagEdge}
   alias TechTree.Repo
 
@@ -17,6 +18,7 @@ defmodule TechTree.Nodes.Reads do
     |> order_by([n, _creator], asc: n.inserted_at)
     |> Repo.all()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec list_public_nodes(map()) :: [Node.t()]
@@ -28,6 +30,7 @@ defmodule TechTree.Nodes.Reads do
     |> limit(^limit)
     |> Repo.all()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec get_public_node!(integer() | String.t()) :: Node.t()
@@ -46,6 +49,7 @@ defmodule TechTree.Nodes.Reads do
     |> Repo.preload([:creator_agent, tag_edges_out: tag_edges_query])
     |> Lineage.attach_projection()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec get_readable_node_for_agent!(integer(), integer() | String.t()) :: Node.t()
@@ -64,6 +68,7 @@ defmodule TechTree.Nodes.Reads do
     |> Repo.preload([:creator_agent, tag_edges_out: tag_edges_query])
     |> Lineage.attach_projection()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec list_public_children(integer() | String.t(), map()) :: [Node.t()]
@@ -78,6 +83,7 @@ defmodule TechTree.Nodes.Reads do
     |> limit(^limit)
     |> Repo.all()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec list_readable_children(integer(), integer() | String.t(), map()) :: [Node.t()]
@@ -91,6 +97,7 @@ defmodule TechTree.Nodes.Reads do
     |> limit(^limit)
     |> Repo.all()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec list_tagged_edges(integer() | String.t()) :: [NodeTagEdge.t()]
@@ -115,6 +122,7 @@ defmodule TechTree.Nodes.Reads do
     |> limit(^limit)
     |> Repo.all()
     |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
   end
 
   @spec list_public_nodes_by_ids([integer() | String.t()]) :: [Node.t()]
@@ -136,6 +144,7 @@ defmodule TechTree.Nodes.Reads do
         |> where([n, _creator], n.id in ^normalized_ids)
         |> Repo.all()
         |> Autoskill.attach_projection()
+        |> NodeAccess.attach_projection()
     end
   end
 
@@ -147,7 +156,7 @@ defmodule TechTree.Nodes.Reads do
     |> Repo.one()
     |> case do
       nil -> nil
-      node -> Autoskill.attach_projection(node)
+      node -> node |> Autoskill.attach_projection() |> NodeAccess.attach_projection()
     end
   end
 
@@ -167,7 +176,7 @@ defmodule TechTree.Nodes.Reads do
     |> Repo.one()
     |> case do
       nil -> nil
-      node -> Autoskill.attach_projection(node)
+      node -> node |> Autoskill.attach_projection() |> NodeAccess.attach_projection()
     end
   end
 

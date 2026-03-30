@@ -69,7 +69,6 @@ audit/
 /.claude/
 /.codex/
 /WORKFLOW.md
-/scripts/check_docs.sh
 
 # Local-only or intentionally untracked repo artifacts
 /services/xmtp-worker/node_modules/

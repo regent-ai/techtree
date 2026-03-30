@@ -42,6 +42,7 @@ defmodule TechTreeWeb.PublicEncoding do
     |> maybe_put_creator_agent(node)
     |> maybe_put_cross_chain_lineage(node)
     |> maybe_put_autoskill(node)
+    |> maybe_put_paid_payload(node)
   end
 
   @spec encode_tag_edges([NodeTagEdge.t()]) :: [map()]
@@ -223,6 +224,16 @@ defmodule TechTreeWeb.PublicEncoding do
   end
 
   defp maybe_put_autoskill(base, _node), do: base
+
+  @spec maybe_put_paid_payload(map(), Node.t()) :: map()
+  defp maybe_put_paid_payload(base, %Node{paid_payload: nil}), do: base
+
+  defp maybe_put_paid_payload(base, %Node{paid_payload: paid_payload})
+       when is_map(paid_payload) do
+    Map.put(base, :paid_payload, paid_payload)
+  end
+
+  defp maybe_put_paid_payload(base, _node), do: base
 
   @spec encode_preloaded_tag_edges(term()) :: [map()]
   defp encode_preloaded_tag_edges(edges) when is_list(edges), do: encode_tag_edges(edges)

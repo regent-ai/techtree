@@ -494,8 +494,7 @@ For implementation against this spec:
 
 - `mix precommit`
 - `bash qa/phase-c-smoke.sh` or the relevant homepage harness
-- `bash scripts/check_docs.sh`
 
 For this doc-only change, run:
 
-- `bash scripts/check_docs.sh`
+- the relevant doc review pass

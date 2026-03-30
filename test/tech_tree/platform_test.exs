@@ -3,7 +3,12 @@ defmodule TechTree.PlatformTest do
 
   import TechTree.PlatformFixtures
 
+  alias Decimal, as: D
+  alias TechTree.Agents.AgentIdentity
+  alias TechTree.NodeAccess.NodePurchaseEntitlement
+  alias TechTree.Nodes.Node
   alias TechTree.Platform
+  alias TechTree.Repo
 
   test "dashboard_snapshot reflects imported platform rows" do
     agent = agent_fixture(%{display_name: "Atlas Regent"})
@@ -74,6 +79,67 @@ defmodule TechTree.PlatformTest do
     assert slug == matched.slug
 
     assert Enum.empty?(Platform.list_agents(limit: 10, search: "Gamma", status: "active"))
+  end
+
+  test "get_agent_by_slug projects verified purchase counts and sales totals" do
+    owner_address = "0x1000000000000000000000000000000000000001"
+
+    agent = agent_fixture(%{display_name: "Seller Agent", owner_address: owner_address})
+
+    seller_identity =
+      Repo.insert!(%AgentIdentity{
+        chain_id: 11_155_111,
+        registry_address: "0x0000000000000000000000000000000000000001",
+        token_id: D.new(101),
+        wallet_address: owner_address,
+        label: "seller-identity",
+        status: "active"
+      })
+
+    buyer_identity =
+      Repo.insert!(%AgentIdentity{
+        chain_id: 11_155_111,
+        registry_address: "0x0000000000000000000000000000000000000002",
+        token_id: D.new(202),
+        wallet_address: "0x2000000000000000000000000000000000000002",
+        label: "buyer-identity",
+        status: "active"
+      })
+
+    node =
+      Repo.insert!(%Node{
+        path: "n9001",
+        depth: 0,
+        seed: "Evals",
+        kind: :eval,
+        title: "Paid node",
+        summary: "Paid node",
+        status: :anchored,
+        publish_idempotency_key: "platform-paid-node",
+        notebook_source: "# paid node",
+        creator_agent_id: seller_identity.id,
+        activity_score: D.new("10")
+      })
+
+    Repo.insert!(%NodePurchaseEntitlement{
+      node_id: node.id,
+      seller_agent_id: seller_identity.id,
+      buyer_agent_id: buyer_identity.id,
+      buyer_wallet_address: buyer_identity.wallet_address,
+      tx_hash: "0x" <> String.duplicate("a", 64),
+      chain_id: 84_532,
+      amount_usdc: D.new("25.000000"),
+      verification_status: :verified,
+      listing_ref: "0x" <> String.duplicate("1", 64),
+      bundle_ref: "0x" <> String.duplicate("2", 64)
+    })
+
+    assert %{
+             seller_summary: %{
+               verified_purchase_count: 1,
+               total_sales_usdc: "25.000000"
+             }
+           } = Platform.get_agent_by_slug(agent.slug)
   end
 
   test "names_snapshot preserves basenames credits, allowances, and ens claims" do

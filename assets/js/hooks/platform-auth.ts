@@ -15,6 +15,39 @@ type PrivyUser =
 
 type PlatformAuthElement = HTMLElement & {
   _platformAuthCleanup?: () => void
+  _platformAuthMounted?: boolean
+  _platformAuthAbortControllers?: Set<AbortController>
+}
+
+function registerAbortController(root: PlatformAuthElement): AbortController {
+  const controller = new AbortController()
+  const controllers = root._platformAuthAbortControllers ?? new Set<AbortController>()
+  controllers.add(controller)
+  root._platformAuthAbortControllers = controllers
+  return controller
+}
+
+function finishAbortController(root: PlatformAuthElement, controller: AbortController) {
+  root._platformAuthAbortControllers?.delete(controller)
+}
+
+async function fetchSessionJson<T>(root: PlatformAuthElement, input: string, init: RequestInit): Promise<T> {
+  const controller = registerAbortController(root)
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      throw new Error(`platform auth request failed (${response.status})`)
+    }
+
+    return (await response.json().catch(() => ({}))) as T
+  } finally {
+    finishAbortController(root, controller)
+  }
 }
 
 function userLabel(user: PrivyUser): string {
@@ -30,6 +63,8 @@ function walletForUser(user: PrivyUser): string | null {
 export const PlatformAuth: Hook = {
   mounted() {
     const root = this.el as PlatformAuthElement
+    root._platformAuthMounted = true
+    root._platformAuthAbortControllers = new Set<AbortController>()
     const toggle = root.querySelector<HTMLButtonElement>("[data-platform-auth-action='toggle']")
     const state = root.querySelector<HTMLElement>("[data-platform-auth-state]")
     const appId = root.dataset.privyAppId?.trim() || ""
@@ -50,6 +85,7 @@ export const PlatformAuth: Hook = {
     let busy = false
 
     const setState = (message: string) => {
+      if (!root._platformAuthMounted) return
       if (state.textContent === message) return
       state.textContent = message
       animate(state, {
@@ -61,6 +97,7 @@ export const PlatformAuth: Hook = {
     }
 
     const syncControls = () => {
+      if (!root._platformAuthMounted) return
       toggle.disabled = busy || privy == null
       toggle.textContent = busy
         ? "Working..."
@@ -75,7 +112,7 @@ export const PlatformAuth: Hook = {
       const token = await privy.getAccessToken()
       if (!token) return
 
-      await fetch(sessionUrl, {
+      await fetchSessionJson<Record<string, never>>(root, sessionUrl, {
         method: "POST",
         headers: {
           accept: "application/json",
@@ -92,7 +129,7 @@ export const PlatformAuth: Hook = {
     }
 
     const clearSession = async () => {
-      await fetch(sessionUrl, {
+      await fetchSessionJson<Record<string, never>>(root, sessionUrl, {
         method: "DELETE",
         headers: {
           accept: "application/json",
@@ -112,6 +149,7 @@ export const PlatformAuth: Hook = {
 
       try {
         const result = await privy.user.get()
+        if (!root._platformAuthMounted) return
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
@@ -121,6 +159,7 @@ export const PlatformAuth: Hook = {
           setState("idle")
         }
       } catch (error) {
+        if (!root._platformAuthMounted) return
         console.error("platform auth refresh failed", error)
         currentUser = null
         setState("session error")
@@ -147,6 +186,7 @@ export const PlatformAuth: Hook = {
 
       try {
         await privy.auth.oauth.loginWithCode(code, oauthState, provider)
+        if (!root._platformAuthMounted) return
         url.searchParams.delete("code")
         url.searchParams.delete("state")
         url.searchParams.delete("provider")
@@ -217,6 +257,9 @@ export const PlatformAuth: Hook = {
     toggle.addEventListener("click", onToggle)
 
     root._platformAuthCleanup = () => {
+      root._platformAuthMounted = false
+      root._platformAuthAbortControllers?.forEach((controller) => controller.abort())
+      root._platformAuthAbortControllers?.clear()
       toggle.removeEventListener("click", onToggle)
     }
 

@@ -1,2 +1,2 @@
-web: bash -lc 'set -euo pipefail; [[ -f .env ]] || { echo "Missing .env. Copy .env.full.example to .env first." >&2; exit 1; }; set -a; source .env; set +a; exec mix phx.server'
-siwa: bash -lc 'set -euo pipefail; [[ -f .env ]] || { echo "Missing .env. Copy .env.full.example to .env first." >&2; exit 1; }; set -a; source .env; set +a; cd services; exec bun run dev:siwa'
+web: bash -lc 'set -euo pipefail; [[ -f .env ]] || { echo "Missing .env. Copy .env.example to .env first." >&2; exit 1; }; set -a; source .env; set +a; exec mix phx.server'
+siwa: bash -lc 'set -euo pipefail; [[ -f .env ]] || { echo "Missing .env. Copy .env.example to .env first." >&2; exit 1; }; set -a; source .env; set +a; cd services; exec bun run dev:siwa'

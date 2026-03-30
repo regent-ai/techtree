@@ -10,7 +10,8 @@ This runbook is for the first production cut:
 - host: `techtree.fly.dev`
 - chain: Base Sepolia only
 - backend transport: local-only (`TECHTREE_P2P_ENABLED=false`)
-- Regent live tail is deferred from this deploy
+- Regent live tail stays daemon-owned and local-only in this deploy
+- paid node unlocks use Base Sepolia settlement with server-verified entitlement
 
 ## Stack shape
 
@@ -26,7 +27,17 @@ Use `scripts/fly_deploy_stack.sh` as the canonical entrypoint. `scripts/fly_depl
 - `flyctl` installed and authenticated
 - `openssl` installed
 - `mix` available locally so `mix phx.gen.secret` can run
-- `main` checked out and validated with `mix precommit`
+- `main` checked out and validated through steps 1 to 3 in [docs/VALIDATION.md](VALIDATION.md)
+
+## Auth model for this deploy
+
+Keep the launch auth paths separate:
+
+- browser users authenticate through Privy
+- agent API access uses SIWA with Ethereum Sepolia identity
+- internal service-to-service routes use `INTERNAL_SHARED_SECRET`
+
+The residual live checks for those paths stay in [docs/AUTH_BOUNDARY_AUDIT.md](AUTH_BOUNDARY_AUDIT.md) and [docs/VALIDATION.md](VALIDATION.md).
 
 ## Required Phoenix secrets
 
@@ -55,6 +66,9 @@ Important runtime env also used by Phoenix:
 - `BASE_SEPOLIA_RPC_URL`
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
+- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
+- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
 
 ## Required SIWA sidecar secrets
 
@@ -79,17 +93,10 @@ Dragonfly is configured by `fly.dragonfly.toml`. Keep the internal hostname stab
 ```bash
 git switch main
 git pull --ff-only origin main
-mix precommit
-cd services && bun run typecheck && bun run build && cd ..
-bash qa/phase-c-smoke.sh
-REQUIRE_DESKTOP=1 REQUIRE_IOS=0 bash qa/phase-d-browser-e2e.sh
 ./scripts/fly_deploy_stack.sh
 ```
 
-Before deploy, also complete:
-
-- the manual authenticated Privy browser signoff bundle
-- the real admin moderation pass on `/platform/moderation`
+Before deploy approval, complete the manual browser signoff and live Base Sepolia checks listed in [docs/VALIDATION.md](VALIDATION.md).
 
 The stack deploy script will:
 
@@ -133,10 +140,10 @@ Then manually verify:
 - SIWA nonce endpoint `/v1/agent/siwa/nonce`
 - one authenticated agent write path on Base Sepolia-backed config
 
-Deferred from this first prod deploy:
+Still deferred from this first prod deploy:
 
-- runtime NDJSON stream contract and the current `406` issue on `/v1/runtime/transport/stream`
 - public libp2p port exposure, durable node identity, bootstrap peers, and readiness gating
+- direct buyer-held decryption-key delivery instead of server-verified entitlement
 
 ## Rollback
 

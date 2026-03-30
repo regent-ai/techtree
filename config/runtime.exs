@@ -41,6 +41,44 @@ env_or_dotenv = fn key, default ->
   System.get_env(key) || Map.get(dotenv_values, key, default)
 end
 
+required_runtime_value = fn key, value, hint ->
+  normalized =
+    cond do
+      is_binary(value) -> String.trim(value)
+      is_nil(value) -> ""
+      true -> to_string(value) |> String.trim()
+    end
+
+  if config_env() == :prod and normalized == "" do
+    raise """
+    environment variable #{key} is missing.
+    #{hint}
+    """
+  end
+
+  value
+end
+
+validate_chain_id = fn chain_id ->
+  supported_chain_ids = ["31337", "84532", "8453", "11155111", "1"]
+
+  normalized =
+    cond do
+      is_binary(chain_id) -> String.trim(chain_id)
+      is_integer(chain_id) -> Integer.to_string(chain_id)
+      true -> ""
+    end
+
+  if normalized in supported_chain_ids do
+    normalized
+  else
+    raise """
+    environment variable TECHTREE_CHAIN_ID is invalid: #{inspect(chain_id)}.
+    Supported values: #{Enum.join(supported_chain_ids, ", ")}
+    """
+  end
+end
+
 cfg_fetch = fn cfg, key ->
   cond do
     Keyword.keyword?(cfg) -> Keyword.get(cfg, key)
@@ -117,6 +155,7 @@ ethereum_chain_id =
     "TECHTREE_CHAIN_ID",
     env_or_dotenv.("ETHEREUM_CHAIN_ID", cfg_fetch.(existing_ethereum_cfg, :chain_id))
   )
+  |> validate_chain_id.()
 
 ethereum_rpc_url =
   case ethereum_chain_id do
@@ -174,8 +213,25 @@ config :tech_tree, :ethereum,
   chain_id: ethereum_chain_id,
   cast_bin: env_or_dotenv.("CAST_BIN", cfg_fetch.(existing_ethereum_cfg, :cast_bin) || "cast")
 
+registry_address =
+  env_or_dotenv.(
+    "REGISTRY_CONTRACT_ADDRESS",
+    env_or_dotenv.(
+      "TECHTREE_REGISTRY",
+      cfg_fetch.(existing_ethereum_cfg, :registry_address)
+    )
+  )
+
+registry_writer_private_key =
+  env_or_dotenv.(
+    "REGISTRY_WRITER_PRIVATE_KEY",
+    ethereum_writer_private_key || cfg_fetch.(existing_ethereum_cfg, :writer_private_key)
+  )
+
+lighthouse_api_key = env_or_dotenv.("LIGHTHOUSE_API_KEY", "")
+
 config :tech_tree, TechTree.IPFS.LighthouseClient,
-  api_key: env_or_dotenv.("LIGHTHOUSE_API_KEY", ""),
+  api_key: lighthouse_api_key,
   base_url: env_or_dotenv.("LIGHTHOUSE_BASE_URL", "https://upload.lighthouse.storage"),
   gateway_base:
     env_or_dotenv.("LIGHTHOUSE_GATEWAY_BASE", "https://gateway.lighthouse.storage/ipfs"),
@@ -265,6 +321,56 @@ if config_env() == :prod do
       """
 
   host = System.get_env("PHX_HOST") || "example.com"
+
+  required_runtime_value.(
+    "INTERNAL_SHARED_SECRET",
+    env_or_dotenv.("INTERNAL_SHARED_SECRET", ""),
+    "Set INTERNAL_SHARED_SECRET before enabling internal-only routes."
+  )
+
+  required_runtime_value.(
+    "SIWA_SHARED_SECRET",
+    env_or_dotenv.("SIWA_SHARED_SECRET", ""),
+    "Set SIWA_SHARED_SECRET to the same value as the sidecar SIWA_HMAC_SECRET."
+  )
+
+  required_runtime_value.(
+    "PRIVY_APP_ID",
+    env_or_dotenv.("PRIVY_APP_ID", ""),
+    "Set the production Privy app id before browser signoff or deploy."
+  )
+
+  required_runtime_value.(
+    "PRIVY_VERIFICATION_KEY",
+    env_or_dotenv.("PRIVY_VERIFICATION_KEY", ""),
+    "Set the production Privy verification key before browser signoff or deploy."
+  )
+
+  if ethereum_chain_id == "84532" do
+    required_runtime_value.(
+      "BASE_SEPOLIA_RPC_URL",
+      ethereum_rpc_url,
+      "Base Sepolia publishing needs a reachable RPC URL."
+    )
+
+    required_runtime_value.(
+      "REGISTRY_CONTRACT_ADDRESS",
+      registry_address,
+      "Set the Base Sepolia registry contract address for launch publishing."
+    )
+
+    required_runtime_value.(
+      "REGISTRY_WRITER_PRIVATE_KEY",
+      registry_writer_private_key,
+      "Set the funded Base Sepolia registry writer key for launch publishing."
+    )
+
+    required_runtime_value.(
+      "LIGHTHOUSE_API_KEY",
+      lighthouse_api_key,
+      "Set LIGHTHOUSE_API_KEY before any launch publish flow."
+    )
+  end
 
   config :tech_tree, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 

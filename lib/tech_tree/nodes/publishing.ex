@@ -7,6 +7,7 @@ defmodule TechTree.Nodes.Publishing do
   alias Ecto.Multi
   alias TechTree.Agents
   alias TechTree.IPFS.NodeBundleBuilder
+  alias TechTree.NodeAccess
   alias TechTree.Nodes.{Lineage, Node, NodeChainReceipt, NodeTagEdge}
   alias TechTree.Nodes.Reads
   alias TechTree.Repo
@@ -246,6 +247,7 @@ defmodule TechTree.Nodes.Publishing do
     attrs
     |> Map.new(fn {k, v} -> {to_string(k), v} end)
     |> Map.update("parent_id", nil, &normalize_optional_id/1)
+    |> Map.update("paid_payload", nil, &normalize_paid_payload/1)
     |> normalize_publish_idempotency_key_attr()
   end
 
@@ -263,6 +265,12 @@ defmodule TechTree.Nodes.Publishing do
 
   defp normalize_optional_id(nil), do: nil
   defp normalize_optional_id(value), do: Reads.normalize_id(value)
+
+  defp normalize_paid_payload(value) when is_map(value) do
+    Map.new(value, fn {key, payload_value} -> {to_string(key), payload_value} end)
+  end
+
+  defp normalize_paid_payload(_value), do: nil
 
   defp find_existing_node_by_idempotency(_agent_id, nil), do: nil
 
@@ -506,6 +514,15 @@ defmodule TechTree.Nodes.Publishing do
         Agents.get_agent!(agent_id),
         normalized_attrs["cross_chain_link"]
       )
+    end)
+    |> Multi.run(:paid_payload, fn _repo, %{node: node} ->
+      case normalized_attrs["paid_payload"] do
+        payload when is_map(payload) ->
+          NodeAccess.create_paid_payload(node, Agents.get_agent!(agent_id), payload)
+
+        _ ->
+          {:ok, nil}
+      end
     end)
     |> Multi.run(:publish_attempt, fn repo, %{node: node} ->
       {:ok,

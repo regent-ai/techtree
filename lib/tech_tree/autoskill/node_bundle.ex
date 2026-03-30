@@ -18,7 +18,7 @@ defmodule TechTree.Autoskill.NodeBundle do
     field :encrypted_bundle_uri, :string
     field :encrypted_bundle_cid, :string
     field :encryption_meta, :map
-    field :payment_rail, Ecto.Enum, values: [:x402, :mpp, :manual]
+    field :payment_rail, Ecto.Enum, values: [:onchain]
     field :access_policy, :map
 
     belongs_to :node, TechTree.Nodes.Node
@@ -109,8 +109,8 @@ defmodule TechTree.Autoskill.NodeBundle do
 
       :gated_paid ->
         changeset
-        |> validate_required([:encrypted_bundle_uri, :payment_rail])
         |> validate_required([:access_policy])
+        |> validate_at_least_one_location([:encrypted_bundle_uri, :encrypted_bundle_cid])
 
       _ ->
         changeset

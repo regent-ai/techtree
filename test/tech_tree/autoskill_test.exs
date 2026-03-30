@@ -5,6 +5,8 @@ defmodule TechTree.AutoskillTest do
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Autoskill
   alias TechTree.Autoskill.{Listing, NodeBundle, Result, Review}
+  alias TechTree.NodeAccess
+  alias TechTree.NodeAccess.NodePaidPayload
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
   alias TechTree.Repo
@@ -71,7 +73,8 @@ defmodule TechTree.AutoskillTest do
     skill =
       insert_bundle_backed_node!(author, "Skills", :skill, %{
         skill_slug: "router",
-        skill_version: "0.1.0"
+        skill_version: "0.1.0",
+        access_mode: :gated_paid
       })
 
     eval_node = insert_bundle_backed_node!(author, "Evals", :eval, %{slug: "router-benchmark"})
@@ -104,7 +107,7 @@ defmodule TechTree.AutoskillTest do
 
     assert {:ok, %Listing{} = listing} =
              Autoskill.create_listing(author, skill.id, %{
-               "payment_rail" => "x402",
+               "payment_rail" => "onchain",
                "chain_id" => 8453,
                "usdc_token_address" => "0x0000000000000000000000000000000000008453",
                "treasury_address" => "0x0000000000000000000000000000000000000999",
@@ -115,6 +118,15 @@ defmodule TechTree.AutoskillTest do
     assert listing.chain_id == 8453
     assert listing.treasury_bps == 100
     assert listing.seller_bps == 9900
+
+    payload = Repo.get_by!(NodePaidPayload, node_id: skill.id)
+
+    assert payload.status == :draft
+    assert payload.chain_id == 8453
+    assert payload.usdc_token_address == "0x0000000000000000000000000000000000008453"
+    assert payload.treasury_address == "0x0000000000000000000000000000000000000999"
+    assert payload.seller_payout_address == "0x0000000000000000000000000000000000000777"
+    assert D.equal?(payload.price_usdc, D.new("25.000000"))
   end
 
   defp insert_bundle_backed_node!(agent, seed, kind, attrs) do
@@ -141,18 +153,46 @@ defmodule TechTree.AutoskillTest do
         activity_score: D.new("10")
       })
 
-    Repo.insert!(%NodeBundle{
-      node_id: node.id,
-      bundle_type: if(kind == :skill, do: :skill, else: :eval),
-      access_mode: :public_free,
-      preview_md: "# preview",
-      bundle_manifest: %{"metadata" => %{"version" => "0.1.0"}},
-      primary_file: if(kind == :skill, do: "SKILL.md", else: "scenario.yaml"),
-      marimo_entrypoint: "session.marimo.py",
-      bundle_uri: "ipfs://bafy#{uniq}",
-      bundle_cid: "bafy#{uniq}",
-      bundle_hash: "hash#{uniq}"
-    })
+    bundle =
+      Repo.insert!(%NodeBundle{
+        node_id: node.id,
+        bundle_type: if(kind == :skill, do: :skill, else: :eval),
+        access_mode: Map.get(attrs, :access_mode, :public_free),
+        preview_md: "# preview",
+        bundle_manifest: %{"metadata" => %{"version" => "0.1.0"}},
+        primary_file: if(kind == :skill, do: "SKILL.md", else: "scenario.yaml"),
+        marimo_entrypoint: "session.marimo.py",
+        bundle_uri:
+          if(Map.get(attrs, :access_mode, :public_free) == :public_free,
+            do: "ipfs://bafy#{uniq}",
+            else: nil
+          ),
+        bundle_cid:
+          if(Map.get(attrs, :access_mode, :public_free) == :public_free,
+            do: "bafy#{uniq}",
+            else: nil
+          ),
+        bundle_hash: "hash#{uniq}",
+        encrypted_bundle_uri:
+          if(Map.get(attrs, :access_mode, :public_free) == :gated_paid,
+            do: "ipfs://enc#{uniq}",
+            else: nil
+          ),
+        encrypted_bundle_cid:
+          if(Map.get(attrs, :access_mode, :public_free) == :gated_paid,
+            do: "enc#{uniq}",
+            else: nil
+          ),
+        payment_rail:
+          if(Map.get(attrs, :access_mode, :public_free) == :gated_paid, do: :onchain, else: nil),
+        access_policy:
+          if(Map.get(attrs, :access_mode, :public_free) == :gated_paid,
+            do: %{"price" => "25.000000"},
+            else: nil
+          )
+      })
+
+    NodeAccess.sync_autoskill_bundle(node, agent, bundle)
 
     node
   end

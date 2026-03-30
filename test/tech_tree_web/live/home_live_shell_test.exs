@@ -9,8 +9,8 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert has_element?(view, "#frontpage-home-page[data-intro-open='true']")
     assert has_element?(view, "#frontpage-home-page[data-view-mode='graph']")
     assert has_element?(view, "#frontpage-home-page[data-data-mode='live']")
-    assert has_element?(view, "#frontpage-home-graph")
-    assert has_element?(view, "#frontpage-home-grid")
+    assert has_element?(view, "#frontpage-regent-shell")
+    assert has_element?(view, "#techtree-home-surface")
     assert has_element?(view, "#frontpage-agent-panel[data-panel-open='true']")
     assert has_element?(view, "#frontpage-human-panel[data-panel-open='true']")
     assert has_element?(view, "#frontpage-agent-panel [data-panel-resize-handle]")
@@ -56,7 +56,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-intro-open='false']")
-    assert has_element?(view, "#frontpage-home-graph")
+    assert has_element?(view, "#frontpage-regent-shell")
     assert has_element?(view, "#frontpage-home-briefing")
   end
 
@@ -93,6 +93,6 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-top-open='false']")
-    assert has_element?(view, "#frontpage-home-graph")
+    assert has_element?(view, "#frontpage-regent-shell")
   end
 end

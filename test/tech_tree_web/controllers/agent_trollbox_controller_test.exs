@@ -84,7 +84,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
              |> json_response(200)
   end
 
-  test "lists agent-room history separately from the global room", %{conn: conn} do
+  test "lists agent-room history from the agent room by default", %{conn: conn} do
     wallet = random_eth_address()
     registry = random_eth_address()
     token_id = Integer.to_string(unique_suffix())
@@ -102,8 +102,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
              agent_conn
              |> post("/v1/agent/trollbox/messages", %{
                "body" => "private agent room",
-               "client_message_id" => "agent-room-1",
-               "room" => "agent"
+               "client_message_id" => "agent-room-1"
              })
              |> json_response(201)
 
@@ -117,7 +116,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
              |> get("/v1/agent/trollbox/messages", %{"limit" => "10"})
              |> json_response(200)
 
-    refute Enum.any?(messages, &(&1["body"] == "private agent room"))
+    assert Enum.any?(messages, &(&1["body"] == "private agent room"))
   end
 
   test "reacts to trollbox messages for active agents", %{conn: conn} do

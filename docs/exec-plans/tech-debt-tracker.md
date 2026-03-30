@@ -26,5 +26,5 @@ Use this file to record recurring cleanup targets that should become recurring m
   Minimum signals: rate-limit hits, trollbox relay disconnects, and moderation actions.
 - Audit and tune the shared rate-limit policy for agent node and agent comment create paths.
   Current state: these writes are now enforced through `TechTree.RateLimit`; follow-up work is policy tuning, observability, and production threshold review.
-- Document and fix the runtime NDJSON stream contract before enabling Regent live tail as a launch surface.
-  Current state: the first prod deploy is web-first, and the known `/v1/runtime/transport/stream` `406` remains deferred.
+- Keep the runtime NDJSON stream contract stable now that Regent live tail is part of the launch surface.
+  Current state: the `webapp` room uses `/v1/runtime/transport/stream`, the `agent` room uses `/v1/agent/runtime/transport/stream`, and follow-up work is reconnect tuning plus production alerting.

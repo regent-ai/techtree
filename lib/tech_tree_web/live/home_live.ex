@@ -7,7 +7,8 @@ defmodule TechTreeWeb.HomeLive do
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Trollbox
   alias TechTree.{HumanUX, Nodes, Repo}
-  alias TechTreeWeb.{HomeComponents, HomePresenter}
+  alias TechTreeWeb.HomeLive.State, as: HomeState
+  alias TechTreeWeb.{HomeComponents, HomePresenter, HomeRegentScene}
 
   @dev_dataset_toggle? Application.compile_env(:tech_tree, :dev_routes, false)
   @default_view_mode "graph"
@@ -150,21 +151,13 @@ defmodule TechTreeWeb.HomeLive do
 
   @impl true
   def handle_event("toggle_panel", %{"panel" => panel}, socket) do
-    socket =
-      case panel do
-        "top" -> update(socket, :top_section_open?, &(!&1))
-        "agent" -> update(socket, :agent_panel_open?, &(!&1))
-        "human" -> update(socket, :human_panel_open?, &(!&1))
-        _ -> socket
-      end
-
-    {:noreply, socket}
+    {:noreply, assign(socket, HomeState.toggle_panel(panel, socket.assigns))}
   end
 
   @impl true
   def handle_event("set-view-mode", %{"mode" => mode}, socket) do
-    next_mode = if mode in ["graph", "grid"], do: mode, else: socket.assigns.view_mode
-    {:noreply, assign(socket, :view_mode, next_mode)}
+    next_mode = HomeState.next_view_mode(mode, socket.assigns.view_mode)
+    {:noreply, socket |> assign(:view_mode, next_mode) |> sync_regent_scene()}
   end
 
   @impl true
@@ -174,151 +167,75 @@ defmodule TechTreeWeb.HomeLive do
 
   @impl true
   def handle_event("select-node", %{"node_id" => node_id}, socket) do
-    selected_node_id =
-      case Integer.parse(to_string(node_id)) do
-        {parsed, ""} -> parsed
-        _ -> socket.assigns.selected_node_id
-      end
-
     {:noreply,
      socket
-     |> assign(:selected_node_id, selected_node_id)
-     |> assign(:selected_node, selected_node(socket.assigns.graph_nodes, selected_node_id))
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+     |> assign(
+       HomeState.select_node(node_id, socket.assigns.graph_nodes, socket.assigns.selected_node_id)
+     )
+     |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("focus-agent", params, socket) do
-    next_agent_id =
-      params
-      |> Map.get("agent_id")
-      |> parse_optional_integer()
-      |> toggle_integer_focus(socket.assigns.selected_agent_id)
-
-    next_query =
-      HomePresenter.focus_agent_input(socket.assigns.agent_focus_options, next_agent_id)
-
     {:noreply,
      socket
-     |> assign(:selected_agent_id, next_agent_id)
-     |> assign(:graph_agent_query, next_query)
      |> assign(
-       :graph_agent_matches,
-       HomePresenter.matching_agent_focus_options(socket.assigns.agent_focus_options, next_query)
+       HomeState.focus_agent(
+         Map.get(params, "agent_id"),
+         socket.assigns.selected_agent_id,
+         socket.assigns.agent_focus_options
+       )
      )
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+     |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("update-agent-query", %{"agent_query" => query}, socket) do
-    {:noreply,
-     socket
-     |> assign(:graph_agent_query, query)
-     |> assign(
-       :graph_agent_matches,
-       HomePresenter.matching_agent_focus_options(socket.assigns.agent_focus_options, query)
-     )}
+    {:noreply, assign(socket, HomeState.update_agent_query(query, socket.assigns.agent_focus_options))}
   end
 
   @impl true
   def handle_event("focus-agent-query", %{"agent_query" => query}, socket) do
-    next_agent_id =
-      socket.assigns.agent_focus_options
-      |> HomePresenter.resolve_agent_focus(query)
-      |> case do
-        nil -> nil
-        option -> option.id
-      end
-
     {:noreply,
      socket
-     |> assign(:graph_agent_query, query)
-     |> assign(
-       :graph_agent_matches,
-       HomePresenter.matching_agent_focus_options(socket.assigns.agent_focus_options, query)
-     )
-     |> assign(:selected_agent_id, next_agent_id)
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+     |> assign(HomeState.focus_agent_query(query, socket.assigns.agent_focus_options))
+     |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("focus-subtree", params, socket) do
-    subtree_mode =
-      case Map.get(params, "mode") do
-        "children" -> "children"
-        "descendants" -> "descendants"
-        _ -> nil
-      end
-
-    subtree_root_id =
-      params
-      |> Map.get("node_id")
-      |> parse_optional_integer()
-      |> case do
-        nil -> socket.assigns.selected_node_id
-        parsed -> parsed
-      end
-
-    {next_root_id, next_mode} =
-      cond do
-        is_nil(subtree_mode) or is_nil(subtree_root_id) ->
-          {nil, nil}
-
-        socket.assigns.subtree_root_id == subtree_root_id and
-            socket.assigns.subtree_mode == subtree_mode ->
-          {nil, nil}
-
-        true ->
-          {subtree_root_id, subtree_mode}
-      end
-
     {:noreply,
      socket
-     |> assign(:subtree_root_id, next_root_id)
-     |> assign(:subtree_mode, next_mode)
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+     |> assign(
+       HomeState.focus_subtree(
+         params,
+         socket.assigns.selected_node_id,
+         socket.assigns.subtree_root_id,
+         socket.assigns.subtree_mode
+       )
+     )
+     |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("toggle-null-results", _params, socket) do
-    {:noreply,
-     socket
-     |> update(:show_null_results?, &(!&1))
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+    {:noreply, socket |> assign(HomeState.toggle_show_null_results(socket.assigns)) |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("filter-null-results", _params, socket) do
-    socket =
-      socket
-      |> update(:filter_to_null_results?, &(!&1))
-      |> ensure_null_highlight_visible()
-      |> sync_graph_focus()
-
-    {:noreply, push_graph_focus_event(socket)}
+    {:noreply,
+     socket
+     |> assign(HomeState.toggle_filter_null_results(socket.assigns))
+     |> sync_regent_scene()}
   end
 
   @impl true
   def handle_event("clear-graph-focus", _params, socket) do
     {:noreply,
      socket
-     |> assign(:selected_agent_id, nil)
-     |> assign(:subtree_root_id, nil)
-     |> assign(:subtree_mode, nil)
-     |> assign(:show_null_results?, false)
-     |> assign(:filter_to_null_results?, false)
-     |> assign(:graph_agent_query, "")
-     |> assign(
-       :graph_agent_matches,
-       HomePresenter.matching_agent_focus_options(socket.assigns.agent_focus_options, "")
-     )
-     |> sync_graph_focus()
-     |> push_graph_focus_event()}
+     |> assign(HomeState.clear_graph_focus(socket.assigns.agent_focus_options))
+     |> sync_regent_scene()}
   end
 
   @impl true
@@ -330,17 +247,52 @@ defmodule TechTreeWeb.HomeLive do
       parsed_node_id ->
         {:noreply,
          socket
-         |> assign(:selected_node_id, parsed_node_id)
-         |> assign(:selected_node, selected_node(socket.assigns.graph_nodes, parsed_node_id))
-         |> sync_graph_focus()
-         |> push_graph_focus_event()
-         |> assign_grid_modal(parsed_node_id)}
+         |> assign(
+           HomeState.select_node(
+             parsed_node_id,
+             socket.assigns.graph_nodes,
+             socket.assigns.selected_node_id
+           )
+         )
+         |> assign_grid_modal(parsed_node_id)
+         |> sync_regent_scene()}
     end
   end
 
   @impl true
+  def handle_event("regent:node_select", %{"face_id" => face_id, "meta" => meta}, socket) do
+    action =
+      meta["face_action"] ||
+        if(face_id == "grid", do: "open-grid-node", else: "select-node")
+
+    node_id = meta["node_id"] || Map.get(meta, :node_id)
+
+    case action do
+      "return-grid-level" ->
+        handle_event("return-grid-level", %{}, socket)
+
+      "open-grid-node" ->
+        handle_event("open-grid-node", %{"node_id" => node_id}, socket)
+
+      _ ->
+        handle_event("select-node", %{"node_id" => node_id}, socket)
+    end
+  end
+
+  @impl true
+  def handle_event("regent:node_hover", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("regent:surface_ready", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("regent:surface_error", _params, socket) do
+    {:noreply, put_flash(socket, :error, "The Regent homepage surface failed to render in this browser session.")}
+  end
+
+  @impl true
   def handle_event("close-grid-node-modal", _params, socket) do
-    {:noreply, assign_grid_modal(socket, nil)}
+    {:noreply, socket |> assign_grid_modal(nil) |> sync_regent_scene()}
   end
 
   @impl true
@@ -355,14 +307,18 @@ defmodule TechTreeWeb.HomeLive do
         if child_count > 0 do
           {:noreply,
            socket
-           |> assign(:selected_node_id, parsed_node_id)
-           |> assign(:selected_node, selected_node(socket.assigns.graph_nodes, parsed_node_id))
-           |> sync_graph_focus()
-           |> push_graph_focus_event()
+           |> assign(
+             HomeState.select_node(
+               parsed_node_id,
+               socket.assigns.graph_nodes,
+               socket.assigns.selected_node_id
+             )
+           )
            |> assign_grid_modal(nil)
-           |> assign_grid_view(socket.assigns.grid_view_stack ++ [parsed_node_id])}
+           |> assign_grid_view(socket.assigns.grid_view_stack ++ [parsed_node_id])
+           |> sync_regent_scene()}
         else
-          {:noreply, assign_grid_modal(socket, nil)}
+          {:noreply, socket |> assign_grid_modal(nil) |> sync_regent_scene()}
         end
     end
   end
@@ -378,7 +334,8 @@ defmodule TechTreeWeb.HomeLive do
     {:noreply,
      socket
      |> assign_grid_modal(nil)
-     |> assign_grid_view(next_stack)}
+     |> assign_grid_view(next_stack)
+     |> sync_regent_scene()}
   end
 
   @impl true
@@ -449,26 +406,11 @@ defmodule TechTreeWeb.HomeLive do
     selected_node = default_selected_node(graph_nodes)
     agent_focus_options = HomePresenter.agent_focus_options(graph_nodes)
 
-    graph_focus =
-      graph_focus_payload(%{
-        selected_node_id: selected_node && selected_node.id,
-        selected_agent_id: nil,
-        subtree_root_id: nil,
-        subtree_mode: nil,
-        show_null_results?: false,
-        filter_to_null_results?: false
-      })
-
     socket
     |> assign(:agent_focus_options, agent_focus_options)
     |> assign(:data_mode, data_mode)
     |> assign(:graph_nodes, graph_nodes)
     |> assign(:graph_edges, graph_edges)
-    |> assign(
-      :graph_payload_json,
-      Jason.encode!(graph_payload(graph_nodes, graph_edges, graph_meta))
-    )
-    |> assign(:graph_focus_json, Jason.encode!(graph_focus))
     |> assign(:graph_meta, graph_meta)
     |> assign(:seed_catalog, seed_catalog)
     |> assign(:agent_labels_by_id, HomePresenter.agent_labels_by_id(graph_nodes))
@@ -488,6 +430,7 @@ defmodule TechTreeWeb.HomeLive do
     |> assign(:graph_children_by_parent, graph_children_by_parent(graph_nodes))
     |> assign_grid_modal(nil)
     |> assign_grid_view([])
+    |> sync_regent_scene()
   end
 
   defp assign_public_trollbox_panels(socket) do
@@ -742,10 +685,6 @@ defmodule TechTreeWeb.HomeLive do
     )
   end
 
-  defp selected_node(graph_nodes, selected_node_id) do
-    Enum.find(graph_nodes, &(&1.id == selected_node_id))
-  end
-
   defp assign_grid_view(socket, view_stack) do
     children_by_parent = socket.assigns.graph_children_by_parent
     seed_catalog = socket.assigns.seed_catalog
@@ -767,8 +706,7 @@ defmodule TechTreeWeb.HomeLive do
       grid_view_key: grid_view_key(view_stack),
       grid_view_parent_id: view_parent_id,
       grid_view_nodes: view_nodes,
-      grid_child_counts: view_child_counts,
-      grid_payload_json: Jason.encode!(HomePresenter.grid_payload(view_nodes, seed_catalog))
+      grid_child_counts: view_child_counts
     )
   end
 
@@ -969,56 +907,6 @@ defmodule TechTreeWeb.HomeLive do
     end)
   end
 
-  defp graph_payload(graph_nodes, graph_edges, graph_meta) do
-    %{
-      nodes: graph_nodes,
-      edges: graph_edges,
-      meta: %{
-        revision: graph_meta.revision,
-        layout_mode: @design.layout_mode
-      }
-    }
-  end
-
-  defp graph_focus_payload(assigns) do
-    %{
-      selected_node_id: assigns.selected_node_id,
-      selected_agent_id: assigns.selected_agent_id,
-      subtree_root_id: assigns.subtree_root_id,
-      subtree_mode: assigns.subtree_mode,
-      show_null_results: assigns.show_null_results?,
-      filter_to_null_results: assigns.filter_to_null_results?
-    }
-  end
-
-  defp sync_graph_focus(socket) do
-    assign(socket, :graph_focus_json, Jason.encode!(graph_focus_payload(socket.assigns)))
-  end
-
-  defp push_graph_focus_event(socket) do
-    push_event(socket, "frontpage:graph-focus", graph_focus_payload(socket.assigns))
-  end
-
-  defp ensure_null_highlight_visible(socket) do
-    if socket.assigns.filter_to_null_results? do
-      assign(socket, :show_null_results?, true)
-    else
-      socket
-    end
-  end
-
-  defp parse_optional_integer(nil), do: nil
-
-  defp parse_optional_integer(value) do
-    case Integer.parse(to_string(value)) do
-      {parsed, ""} -> parsed
-      _ -> nil
-    end
-  end
-
-  defp toggle_integer_focus(value, current) when value == current, do: nil
-  defp toggle_integer_focus(value, _current), do: value
-
   defp normalize_status(nil), do: "pinned"
   defp normalize_status(value) when is_atom(value), do: Atom.to_string(value)
   defp normalize_status(value) when is_binary(value), do: value
@@ -1039,6 +927,32 @@ defmodule TechTreeWeb.HomeLive do
   defp graph_timestamp(_value), do: nil
 
   defp graph_children_by_parent(nodes), do: Enum.group_by(nodes, & &1.parent_id)
+
+  defp sync_regent_scene(socket) do
+    next_version = (socket.assigns[:regent_scene_version] || 0) + 1
+
+    scene =
+      socket.assigns
+      |> Map.put(:regent_scene_version, next_version)
+      |> HomeRegentScene.build()
+
+    selected_node_id =
+      cond do
+        socket.assigns.grid_modal_node ->
+          Integer.to_string(socket.assigns.grid_modal_node.id)
+
+        is_integer(socket.assigns.selected_node_id) ->
+          Integer.to_string(socket.assigns.selected_node_id)
+
+        true ->
+          nil
+      end
+
+    socket
+    |> assign(:regent_scene_version, next_version)
+    |> assign(:regent_scene, scene)
+    |> assign(:regent_selected_node_id, selected_node_id)
+  end
 
   defp clampf(value, min, _max) when value < min, do: min
   defp clampf(value, _min, max) when value > max, do: max

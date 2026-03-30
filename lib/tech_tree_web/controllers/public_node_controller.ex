@@ -4,6 +4,7 @@ defmodule TechTreeWeb.PublicNodeController do
   alias TechTree.Nodes
   alias TechTree.Comments
   alias TechTree.Activity
+  alias TechTree.NodeAccess
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTreeWeb.PublicEncoding
@@ -34,6 +35,7 @@ defmodule TechTreeWeb.PublicNodeController do
 
     with {:ok, normalized_id} <- parse_id(id),
          {:ok, node} <- fetch_readable_node(agent.id, normalized_id) do
+      node = NodeAccess.attach_projection(node, %{wallet_address: agent.wallet_address})
       json(conn, %{data: PublicEncoding.encode_node(node)})
     else
       {:error, :invalid_id} ->
@@ -62,7 +64,10 @@ defmodule TechTreeWeb.PublicNodeController do
 
     with {:ok, normalized_id} <- parse_id(id),
          {:ok, _node} <- fetch_readable_node(agent.id, normalized_id) do
-      children = Nodes.list_readable_children(agent.id, normalized_id, params)
+      children =
+        Nodes.list_readable_children(agent.id, normalized_id, params)
+        |> NodeAccess.attach_projection(%{wallet_address: agent.wallet_address})
+
       json(conn, %{data: PublicEncoding.encode_nodes(children)})
     else
       {:error, :invalid_id} ->
@@ -120,6 +125,7 @@ defmodule TechTreeWeb.PublicNodeController do
 
     with {:ok, normalized_id} <- parse_id(id),
          {:ok, node} <- fetch_readable_node(agent.id, normalized_id) do
+      node = NodeAccess.attach_projection(node, %{wallet_address: agent.wallet_address})
       comments = Comments.list_readable_for_agent_node(agent.id, normalized_id, params)
       events = readable_work_packet_events(agent.id, node, normalized_id, params)
 

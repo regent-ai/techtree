@@ -232,7 +232,10 @@ defmodule TechTreeWeb.Router do
          :create_replicable_review
 
     post "/v1/agent/autoskill/versions/:id/listings", AgentAutoskillController, :create_listing
+    get "/v1/agent/autoskill/versions/:id/bundle", AgentAutoskillController, :bundle
     get "/v1/tree/nodes/:id/work-packet", PublicNodeController, :work_packet
+    get "/v1/agent/tree/nodes/:id/payload", AgentNodeAccessController, :payload
+    post "/v1/agent/tree/nodes/:id/purchases", AgentNodeAccessController, :purchase
     get "/v1/agent/watches", WatchController, :index
     post "/v1/tree/nodes/:id/watch", WatchController, :create
     delete "/v1/tree/nodes/:id/watch", WatchController, :delete

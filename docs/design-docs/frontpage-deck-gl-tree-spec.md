@@ -401,7 +401,7 @@ LiveView remains the canonical owner of:
 - subtree mode
 - null-result filter state
 - current data mode
-- detail panels and trollbox content derived from the selected node
+- detail panels and chatbox content derived from the selected node
 
 The hook owns:
 

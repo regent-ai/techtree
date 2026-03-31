@@ -103,7 +103,7 @@ Keep the chain split explicit:
 
 - SIWA identity login uses Ethereum Sepolia
 - Techtree publishing for this launch uses Base Sepolia
-- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` trollboxes
+- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` chatboxes
 - paid node unlocks use Base Sepolia settlement with server-verified entitlement
 - those are separate paths, not one generic "testnet" path
 

@@ -1,7 +1,7 @@
 defmodule TechTreeWeb.HomePresenter do
   @moduledoc false
 
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox.Message
 
   def graph_meta(graph_nodes, graph_edges) do
     %{
@@ -77,6 +77,32 @@ defmodule TechTreeWeb.HomePresenter do
     end
   end
 
+  def matching_node_options(nodes, seed_catalog, query) do
+    normalized = normalize_focus_query(query)
+
+    nodes
+    |> Enum.filter(fn node ->
+      normalized == "" or not is_nil(node_focus_rank(node, seed_catalog, normalized))
+    end)
+    |> Enum.sort_by(fn node ->
+      node_focus_rank(node, seed_catalog, normalized) ||
+        {4, String.downcase(display_node_title(node, seed_catalog)), node.id}
+    end)
+    |> Enum.take(6)
+    |> Enum.map(fn node ->
+      %{
+        id: node.id,
+        label: display_node_title(node, seed_catalog)
+      }
+    end)
+  end
+
+  def resolve_node_focus(nodes, seed_catalog, query) do
+    nodes
+    |> matching_node_options(seed_catalog, query)
+    |> List.first()
+  end
+
   def agent_focus_chip_label(option) do
     case short_creator_address(option.wallet_address) do
       nil -> option.label
@@ -113,11 +139,11 @@ defmodule TechTreeWeb.HomePresenter do
   def view_mode_title(_mode), do: "Viewport graph substrate"
 
   def view_mode_summary("grid") do
-    "The same public tree reflows into a hex lattice. Seed roots anchor the opening spiral while the briefing drawer and both trollboxes keep floating above the field."
+    "The same public tree reflows into a hex lattice. Seed roots anchor the opening spiral while the briefing drawer and both chatboxes keep floating above the field."
   end
 
   def view_mode_summary(_mode) do
-    "The live node field owns the page. The briefing drawer and both trollboxes float above it and can hide without interrupting the running graph."
+    "The live node field owns the page. The briefing drawer and both chatboxes float above it and can hide without interrupting the running graph."
   end
 
   def view_mode_instruction("grid") do
@@ -203,74 +229,74 @@ defmodule TechTreeWeb.HomePresenter do
     |> Enum.map(fn {%Message{} = message, index} ->
       %{
         key: message.transport_msg_id || "message-#{message.id || index}",
-        author: frontpage_trollbox_author(message),
-        stamp: frontpage_trollbox_stamp(message.inserted_at),
+        author: frontpage_chatbox_author(message),
+        stamp: frontpage_chatbox_stamp(message.inserted_at),
         tone: if(index == 0, do: "accent", else: "muted"),
         body: message.body
       }
     end)
   end
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :human,
         author_human: %{display_name: display_name}
       })
       when is_binary(display_name) and display_name != "",
       do: display_name
 
-  def frontpage_trollbox_author(%Message{author_kind: :agent, author_agent: %{label: label}})
+  def frontpage_chatbox_author(%Message{author_kind: :agent, author_agent: %{label: label}})
       when is_binary(label) and label != "",
       do: label
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :human,
         author_human: %{wallet_address: wallet}
       })
       when is_binary(wallet),
       do: short_creator_address(wallet)
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :agent,
         author_agent: %{wallet_address: wallet}
       })
       when is_binary(wallet),
       do: short_creator_address(wallet)
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :human,
         author_display_name_snapshot: display_name
       })
       when is_binary(display_name) and display_name != "",
       do: display_name
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :agent,
         author_label_snapshot: label
       })
       when is_binary(label) and label != "",
       do: label
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :human,
         author_wallet_address_snapshot: wallet
       })
       when is_binary(wallet),
       do: short_creator_address(wallet)
 
-  def frontpage_trollbox_author(%Message{
+  def frontpage_chatbox_author(%Message{
         author_kind: :agent,
         author_wallet_address_snapshot: wallet
       })
       when is_binary(wallet),
       do: short_creator_address(wallet)
 
-  def frontpage_trollbox_author(%Message{author_kind: :human, author_human_id: id}),
+  def frontpage_chatbox_author(%Message{author_kind: :human, author_human_id: id}),
     do: "human ##{id}"
 
-  def frontpage_trollbox_author(%Message{author_kind: :agent, author_agent_id: id}),
+  def frontpage_chatbox_author(%Message{author_kind: :agent, author_agent_id: id}),
     do: "agent ##{id}"
 
-  def frontpage_trollbox_stamp(%DateTime{} = value) do
+  def frontpage_chatbox_stamp(%DateTime{} = value) do
     seconds = max(DateTime.diff(DateTime.utc_now(), value, :second), 0)
 
     cond do
@@ -281,7 +307,7 @@ defmodule TechTreeWeb.HomePresenter do
     end
   end
 
-  def frontpage_trollbox_stamp(_value), do: "-"
+  def frontpage_chatbox_stamp(_value), do: "-"
 
   def normalize_agent_label(value, id) when is_binary(value) do
     case String.trim(value) do
@@ -324,6 +350,22 @@ defmodule TechTreeWeb.HomePresenter do
       wallet != "" and String.starts_with?(wallet, query) -> {1, String.length(wallet), label}
       String.contains?(label, query) -> {2, String.length(label), label}
       wallet != "" and String.contains?(wallet, query) -> {3, String.length(wallet), label}
+      true -> nil
+    end
+  end
+
+  defp node_focus_rank(node, seed_catalog, query) do
+    title = normalize_focus_query(display_node_title(node, seed_catalog))
+    seed = normalize_focus_query(node.seed)
+    id = Integer.to_string(node.id)
+
+    cond do
+      query == id -> {0, 0, title}
+      query == title -> {0, 1, title}
+      seed != "" and query == seed -> {1, 0, title}
+      String.starts_with?(title, query) -> {1, 1, title}
+      String.contains?(title, query) -> {2, 0, title}
+      seed != "" and String.contains?(seed, query) -> {3, 0, title}
       true -> nil
     end
   end

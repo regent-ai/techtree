@@ -1,18 +1,18 @@
-defmodule TechTreeWeb.TrollboxController do
+defmodule TechTreeWeb.ChatboxController do
   use TechTreeWeb, :controller
 
   alias TechTree.RateLimit
-  alias TechTree.Trollbox
+  alias TechTree.Chatbox
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTreeWeb.PublicEncoding
 
   @spec messages(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def messages(conn, params) do
-    %{messages: messages, next_cursor: next_cursor} = Trollbox.list_public_messages(params)
+    %{messages: messages, next_cursor: next_cursor} = Chatbox.list_public_messages(params)
 
     json(conn, %{
-      data: PublicEncoding.encode_trollbox_messages(messages),
+      data: PublicEncoding.encode_chatbox_messages(messages),
       next_cursor: next_cursor
     })
   end
@@ -22,10 +22,10 @@ defmodule TechTreeWeb.TrollboxController do
     human = conn.assigns.current_human
 
     with :ok <- enforce_message_limit(conn, human, params),
-         {:ok, message, create_status} <- Trollbox.create_human_message(human, params) do
+         {:ok, message, create_status} <- Chatbox.create_human_message(human, params) do
       conn
       |> put_status(if(create_status == :created, do: :created, else: :ok))
-      |> json(%{data: PublicEncoding.encode_trollbox_message(message)})
+      |> json(%{data: PublicEncoding.encode_chatbox_message(message)})
     else
       {:error, %{code: :rate_limited, retry_after_ms: retry_after_ms}} ->
         render_rate_limit(conn, "message_rate_limited", retry_after_ms)
@@ -36,7 +36,7 @@ defmodule TechTreeWeb.TrollboxController do
       {:error, :human_banned} ->
         ApiError.render(conn, :forbidden, %{
           code: "human_banned",
-          message: "banned humans cannot post to trollbox"
+          message: "banned humans cannot post to chatbox"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -85,14 +85,14 @@ defmodule TechTreeWeb.TrollboxController do
   end
 
   defp react_message_with_limit(conn, human, message_id, params) do
-    case Trollbox.react_to_message(human, message_id, params) do
+    case Chatbox.react_to_message(human, message_id, params) do
       {:ok, message} ->
-        json(conn, %{data: PublicEncoding.encode_trollbox_message(message)})
+        json(conn, %{data: PublicEncoding.encode_chatbox_message(message)})
 
       {:error, :human_banned} ->
         ApiError.render(conn, :forbidden, %{
           code: "human_banned",
-          message: "banned humans cannot react in trollbox"
+          message: "banned humans cannot react in chatbox"
         })
 
       {:error, :message_not_found} ->
@@ -122,7 +122,7 @@ defmodule TechTreeWeb.TrollboxController do
   end
 
   defp enforce_message_limit(conn, human, params) do
-    RateLimit.allow_trollbox_message(
+    RateLimit.allow_chatbox_message(
       actor_scope: "human:#{human.id}",
       principal_scope: "privy:#{human.privy_user_id}",
       ip_scope: ControllerHelpers.client_ip_scope(conn),
@@ -132,7 +132,7 @@ defmodule TechTreeWeb.TrollboxController do
   end
 
   defp enforce_reaction_limit(conn, human) do
-    RateLimit.allow_trollbox_reaction(
+    RateLimit.allow_chatbox_reaction(
       actor_scope: "human:#{human.id}",
       principal_scope: "privy:#{human.privy_user_id}",
       ip_scope: ControllerHelpers.client_ip_scope(conn)

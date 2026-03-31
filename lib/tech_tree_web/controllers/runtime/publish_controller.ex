@@ -1,8 +1,8 @@
-defmodule TechTreeWeb.V1.PublishController do
+defmodule TechTreeWeb.Runtime.PublishController do
   use TechTreeWeb, :controller
 
   alias TechTree.V1
-  alias TechTreeWeb.{ApiError, V1Encoding}
+  alias TechTreeWeb.{ApiError, RuntimeEncoding}
 
   def compile_artifact(conn, params), do: compile(conn, "artifact", params)
   def compile_run(conn, params), do: compile(conn, "run", params)
@@ -28,7 +28,7 @@ defmodule TechTreeWeb.V1.PublishController do
 
   def submit(conn, params) do
     case V1.submit_publish(params) do
-      {:ok, node} -> conn |> put_status(:created) |> json(%{data: V1Encoding.encode_node(node)})
+      {:ok, node} -> conn |> put_status(:created) |> json(%{data: RuntimeEncoding.encode_node(node)})
       {:error, reason} -> render_error(conn, "publish_submit_failed", reason)
     end
   end

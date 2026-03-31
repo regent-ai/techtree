@@ -6,7 +6,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
   import TechTree.PlatformFixtures
 
   alias TechTree.Repo
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox.Message
 
   test "platform home renders the cutover shell", %{conn: conn} do
     agent_fixture(%{display_name: "Home Agent"})
@@ -176,7 +176,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
   } do
     admin = create_human!("platform-moderation-admin", role: "admin")
     author = create_human!("platform-moderation-author", role: "user")
-    message = create_trollbox_message!(author, %{body: "platform moderation live message"})
+    message = create_chatbox_message!(author, %{body: "platform moderation live message"})
 
     {:ok, view, _html} =
       conn
@@ -198,8 +198,8 @@ defmodule TechTreeWeb.PlatformLiveTest do
     |> render_click()
 
     assert Repo.get!(Message, message.id).moderation_state == "visible"
-    assert render(view) =~ "hide trollbox_message"
-    assert render(view) =~ "unhide trollbox_message"
+    assert render(view) =~ "hide chatbox_message"
+    assert render(view) =~ "unhide chatbox_message"
   end
 
   test "platform cutover flow stays aligned across home, explorer, api, and detail routes", %{

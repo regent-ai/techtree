@@ -24,11 +24,11 @@ type PrivyUser =
     }
   | null
 
-interface HomeTrollboxElement extends HTMLElement {
-  _homeTrollboxCleanup?: () => void
-  _homeTrollboxSeenKeys?: Set<string>
-  _homeTrollboxAbortControllers?: Set<AbortController>
-  _homeTrollboxMounted?: boolean
+interface HomeChatboxElement extends HTMLElement {
+  _homeChatboxCleanup?: () => void
+  _homeChatboxSeenKeys?: Set<string>
+  _homeChatboxAbortControllers?: Set<AbortController>
+  _homeChatboxMounted?: boolean
 }
 
 const labelForUser = (user: PrivyUser): string => {
@@ -61,20 +61,20 @@ const transportToneClasses: Record<TransportMode | "ready", string[]> = {
   degraded: ["border-[var(--color-warning)]", "bg-[var(--fp-chat-human-accent-bg)]", "text-[var(--fp-text)]"],
 }
 
-function registerAbortController(root: HomeTrollboxElement): AbortController {
+function registerAbortController(root: HomeChatboxElement): AbortController {
   const controller = new AbortController()
-  const controllers = root._homeTrollboxAbortControllers ?? new Set<AbortController>()
+  const controllers = root._homeChatboxAbortControllers ?? new Set<AbortController>()
   controllers.add(controller)
-  root._homeTrollboxAbortControllers = controllers
+  root._homeChatboxAbortControllers = controllers
   return controller
 }
 
-function finishAbortController(root: HomeTrollboxElement, controller: AbortController) {
-  root._homeTrollboxAbortControllers?.delete(controller)
+function finishAbortController(root: HomeChatboxElement, controller: AbortController) {
+  root._homeChatboxAbortControllers?.delete(controller)
 }
 
 async function fetchJson<T>(
-  root: HomeTrollboxElement,
+  root: HomeChatboxElement,
   input: string,
   init: RequestInit,
 ): Promise<T> {
@@ -114,18 +114,18 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 }
 
-export const HomeTrollbox: Hook = {
+export const HomeChatbox: Hook = {
   mounted() {
-    const root = this.el as HomeTrollboxElement
-    root._homeTrollboxMounted = true
-    root._homeTrollboxAbortControllers = new Set<AbortController>()
-    const authButton = root.querySelector<HTMLButtonElement>("[data-trollbox-auth]")
-    const sendButton = root.querySelector<HTMLButtonElement>("[data-trollbox-send]")
-    const input = root.querySelector<HTMLInputElement>("[data-trollbox-input]")
-    const state = root.querySelector<HTMLElement>("[data-trollbox-state]")
-    const transportBadge = root.querySelector<HTMLElement>("[data-trollbox-transport]")
+    const root = this.el as HomeChatboxElement
+    root._homeChatboxMounted = true
+    root._homeChatboxAbortControllers = new Set<AbortController>()
+    const authButton = root.querySelector<HTMLButtonElement>("[data-chatbox-auth]")
+    const sendButton = root.querySelector<HTMLButtonElement>("[data-chatbox-send]")
+    const input = root.querySelector<HTMLInputElement>("[data-chatbox-input]")
+    const state = root.querySelector<HTMLElement>("[data-chatbox-state]")
+    const transportBadge = root.querySelector<HTMLElement>("[data-chatbox-transport]")
     const transportStatusUrl = root.dataset.transportStatusUrl?.trim() || "/v1/runtime/transport"
-    const postUrl = root.dataset.postUrl?.trim() || "/v1/trollbox/messages"
+    const postUrl = root.dataset.postUrl?.trim() || "/v1/chatbox/messages"
     const sessionUrl = root.dataset.sessionUrl?.trim() || "/api/platform/auth/privy/session"
     const privyAppId = root.dataset.privyAppId?.trim() || ""
     const csrfToken =
@@ -143,7 +143,7 @@ export const HomeTrollbox: Hook = {
         : null
 
     const setState = (message: string) => {
-      if (!root._homeTrollboxMounted) return
+      if (!root._homeChatboxMounted) return
       if (state.textContent === message) return
       state.textContent = message
       animate(state, {
@@ -155,7 +155,7 @@ export const HomeTrollbox: Hook = {
     }
 
     const paintTransport = (payload: NonNullable<TransportStatusPayload["data"]>) => {
-      if (!root._homeTrollboxMounted) return
+      if (!root._homeChatboxMounted) return
       const nextLabel = buildTransportLabel(payload)
       const tone = payload.ready ? "ready" : (payload.mode ?? "local_only")
       const nextClasses = transportToneClasses[tone]
@@ -179,7 +179,7 @@ export const HomeTrollbox: Hook = {
     }
 
     const syncComposerState = () => {
-      if (!root._homeTrollboxMounted) return
+      if (!root._homeChatboxMounted) return
       const connected = Boolean(currentUser?.id)
       const draft = input.value.trim()
 
@@ -188,7 +188,7 @@ export const HomeTrollbox: Hook = {
 
       input.disabled = privy == null || !connected || sending
       sendButton.disabled = privy == null || !connected || sending || draft.length === 0
-      sendButton.textContent = sending ? "Writing to webapp trollbox..." : "Send to webapp trollbox"
+      sendButton.textContent = sending ? "Writing to webapp chatbox..." : "Send to webapp chatbox"
     }
 
     const syncSession = async (user: PrivyUser) => {
@@ -234,18 +234,18 @@ export const HomeTrollbox: Hook = {
 
       try {
         const result = await privy.user.get()
-        if (!root._homeTrollboxMounted) return
+        if (!root._homeChatboxMounted) return
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
           await syncSession(currentUser)
-          setState("Authenticated. Posts write to the public webapp trollbox.")
+          setState("Authenticated. Posts write to the public webapp chatbox.")
         } else {
-          setState("Connect Privy to post into the public webapp trollbox.")
+          setState("Connect Privy to post into the public webapp chatbox.")
         }
       } catch (error) {
         currentUser = null
-        console.error("Home trollbox Privy refresh failed", error)
+        console.error("Home chatbox Privy refresh failed", error)
         setState("Privy session lookup failed.")
       } finally {
         syncComposerState()
@@ -265,8 +265,8 @@ export const HomeTrollbox: Hook = {
       try {
         await privy.auth.oauth.loginWithCode(code, oauthState, provider)
       } catch (error) {
-        if (!root._homeTrollboxMounted) return
-        console.error("Home trollbox Privy OAuth failed", error)
+        if (!root._homeChatboxMounted) return
+        console.error("Home chatbox Privy OAuth failed", error)
         setState("Privy OAuth handoff failed.")
       } finally {
         window.localStorage.removeItem(PROVIDER_STORAGE_KEY)
@@ -339,7 +339,7 @@ export const HomeTrollbox: Hook = {
             client_message_id: crypto.randomUUID(),
           }),
         })
-        if (!root._homeTrollboxMounted || payload.ok === false) return
+        if (!root._homeChatboxMounted || payload.ok === false) return
 
         input.value = ""
         setState("Canonical row accepted. Mesh fanout will follow.")
@@ -349,7 +349,7 @@ export const HomeTrollbox: Hook = {
           ease: "outExpo",
         })
       } catch (error) {
-        setState(error instanceof Error ? error.message : "Unable to post trollbox message.")
+        setState(error instanceof Error ? error.message : "Unable to post chatbox message.")
       } finally {
         sending = false
         syncComposerState()
@@ -367,7 +367,7 @@ export const HomeTrollbox: Hook = {
           paintTransport(payload.data)
         }
       } catch (error) {
-        if (!root._homeTrollboxMounted) return
+        if (!root._homeChatboxMounted) return
         transportBadge.textContent = "transport error"
         transportBadge.classList.add("border-[var(--color-error)]", "bg-[var(--color-error)]", "text-[var(--color-error-content)]")
         setState(error instanceof Error ? error.message : "Unable to load transport status.")
@@ -375,8 +375,8 @@ export const HomeTrollbox: Hook = {
     }
 
     const observeFeed = (initial: boolean) => {
-      const seenKeys = root._homeTrollboxSeenKeys ?? new Set<string>()
-      const entries = Array.from(root.querySelectorAll<HTMLElement>("[data-trollbox-entry]"))
+      const seenKeys = root._homeChatboxSeenKeys ?? new Set<string>()
+      const entries = Array.from(root.querySelectorAll<HTMLElement>("[data-chatbox-entry]"))
       const newEntries = entries.filter((entry) => {
         const key = entry.dataset.messageKey || entry.id
         if (seenKeys.has(key)) {
@@ -387,7 +387,7 @@ export const HomeTrollbox: Hook = {
         return true
       })
 
-      root._homeTrollboxSeenKeys = seenKeys
+      root._homeChatboxSeenKeys = seenKeys
 
       if (!initial && newEntries.length > 0) {
         animate(newEntries, {
@@ -435,10 +435,10 @@ export const HomeTrollbox: Hook = {
       await refreshTransport()
     })()
 
-    root._homeTrollboxCleanup = () => {
-      root._homeTrollboxMounted = false
-      root._homeTrollboxAbortControllers?.forEach((controller) => controller.abort())
-      root._homeTrollboxAbortControllers?.clear()
+    root._homeChatboxCleanup = () => {
+      root._homeChatboxMounted = false
+      root._homeChatboxAbortControllers?.forEach((controller) => controller.abort())
+      root._homeChatboxAbortControllers?.clear()
       window.clearInterval(pollId)
       input.removeEventListener("input", handleInput)
       input.removeEventListener("keydown", handleInputKeydown)
@@ -448,11 +448,11 @@ export const HomeTrollbox: Hook = {
   },
 
   updated() {
-    const root = this.el as HomeTrollboxElement
-    const seenKeys = root._homeTrollboxSeenKeys ?? new Set<string>()
-    root._homeTrollboxSeenKeys = seenKeys
+    const root = this.el as HomeChatboxElement
+    const seenKeys = root._homeChatboxSeenKeys ?? new Set<string>()
+    root._homeChatboxSeenKeys = seenKeys
 
-    const entries = Array.from(root.querySelectorAll<HTMLElement>("[data-trollbox-entry]"))
+    const entries = Array.from(root.querySelectorAll<HTMLElement>("[data-chatbox-entry]"))
     const newEntries = entries.filter((entry) => {
       const key = entry.dataset.messageKey || entry.id
       if (seenKeys.has(key)) {
@@ -476,7 +476,7 @@ export const HomeTrollbox: Hook = {
   },
 
   destroyed() {
-    const root = this.el as HomeTrollboxElement
-    root._homeTrollboxCleanup?.()
+    const root = this.el as HomeChatboxElement
+    root._homeChatboxCleanup?.()
   },
 }

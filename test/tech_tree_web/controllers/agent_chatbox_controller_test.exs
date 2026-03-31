@@ -1,24 +1,24 @@
-defmodule TechTreeWeb.AgentTrollboxControllerTest do
+defmodule TechTreeWeb.AgentChatboxControllerTest do
   use TechTreeWeb.ConnCase, async: false
 
   import TechTree.PhaseDApiSupport
 
   alias Phoenix.Socket.Broadcast
   alias TechTree.Agents
-  alias TechTree.Trollbox
+  alias TechTree.Chatbox
 
   test "requires SIWA auth", %{conn: conn} do
     response =
       conn
       |> put_req_header("accept", "application/json")
-      |> post("/v1/agent/trollbox/messages", %{})
+      |> post("/v1/agent/chatbox/messages", %{})
       |> json_response(401)
 
     assert %{"error" => %{"code" => "agent_auth_required"}} = response
   end
 
-  test "creates and broadcasts trollbox messages for active agents", %{conn: conn} do
-    Phoenix.PubSub.subscribe(TechTree.PubSub, Trollbox.channel_topic())
+  test "creates and broadcasts chatbox messages for active agents", %{conn: conn} do
+    Phoenix.PubSub.subscribe(TechTree.PubSub, Chatbox.channel_topic())
 
     wallet = random_eth_address()
     registry = random_eth_address()
@@ -35,14 +35,14 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
 
     assert %{"data" => %{"id" => message_id, "author_kind" => "agent"}} =
              agent_conn
-             |> post("/v1/agent/trollbox/messages", %{
+             |> post("/v1/agent/chatbox/messages", %{
                "body" => "agent live message",
                "client_message_id" => "agent-post-1"
              })
              |> json_response(201)
 
     assert_receive %Broadcast{
-      topic: "trollbox:public",
+      topic: "chatbox:public",
       event: "message.created",
       payload: %{message: %{id: ^message_id, author_kind: "agent"}}
     }
@@ -66,7 +66,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
 
     assert %{"data" => %{"id" => message_id}} =
              agent_conn
-             |> post("/v1/agent/trollbox/messages", payload)
+             |> post("/v1/agent/chatbox/messages", payload)
              |> json_response(201)
 
     assert %{"data" => %{"id" => ^message_id, "body" => "agent repeat"}} =
@@ -77,7 +77,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
                registry_address: registry,
                token_id: token_id
              )
-             |> post("/v1/agent/trollbox/messages", %{
+             |> post("/v1/agent/chatbox/messages", %{
                "body" => "agent repeat updated",
                "client_message_id" => "agent-post-2"
              })
@@ -100,7 +100,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
 
     assert %{"data" => %{"room_id" => "agent:" <> _agent_room_id, "body" => "private agent room"}} =
              agent_conn
-             |> post("/v1/agent/trollbox/messages", %{
+             |> post("/v1/agent/chatbox/messages", %{
                "body" => "private agent room",
                "client_message_id" => "agent-room-1"
              })
@@ -108,18 +108,18 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
 
     assert %{"data" => [%{"body" => "private agent room", "room_id" => "agent:" <> _}]} =
              agent_conn
-             |> get("/v1/agent/trollbox/messages", %{"room" => "agent", "limit" => "10"})
+             |> get("/v1/agent/chatbox/messages", %{"room" => "agent", "limit" => "10"})
              |> json_response(200)
 
     assert %{"data" => messages} =
              agent_conn
-             |> get("/v1/agent/trollbox/messages", %{"limit" => "10"})
+             |> get("/v1/agent/chatbox/messages", %{"limit" => "10"})
              |> json_response(200)
 
     assert Enum.any?(messages, &(&1["body"] == "private agent room"))
   end
 
-  test "reacts to trollbox messages for active agents", %{conn: conn} do
+  test "reacts to chatbox messages for active agents", %{conn: conn} do
     wallet = random_eth_address()
     registry = random_eth_address()
     token_id = Integer.to_string(unique_suffix())
@@ -133,7 +133,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
         "label" => "agent-reactor"
       })
 
-    message = create_trollbox_message!(create_human!("react-target"), %{body: "react target"})
+    message = create_chatbox_message!(create_human!("react-target"), %{body: "react target"})
     message_id = message.id
 
     assert %{"data" => %{"id" => ^message_id, "reactions" => %{"🔥" => 1}}} =
@@ -144,11 +144,11 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
                registry_address: agent.registry_address,
                token_id: Decimal.to_string(agent.token_id)
              )
-             |> post("/v1/agent/trollbox/messages/#{message.id}/reactions", %{"emoji" => "🔥"})
+             |> post("/v1/agent/chatbox/messages/#{message.id}/reactions", %{"emoji" => "🔥"})
              |> json_response(200)
   end
 
-  test "rate limits agent trollbox bursts and repeated reactions", %{conn: conn} do
+  test "rate limits agent chatbox bursts and repeated reactions", %{conn: conn} do
     wallet = random_eth_address()
     registry = random_eth_address()
     token_id = Integer.to_string(unique_suffix())
@@ -167,13 +167,13 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
 
       assert %{"data" => %{"body" => ^body}} =
                agent_conn
-               |> post("/v1/agent/trollbox/messages", %{"body" => body})
+               |> post("/v1/agent/chatbox/messages", %{"body" => body})
                |> json_response(201)
     end)
 
     assert %{"error" => %{"code" => "message_rate_limited", "retry_after_ms" => retry_after_ms}} =
              agent_conn
-             |> post("/v1/agent/trollbox/messages", %{"body" => "agent-burst-7"})
+             |> post("/v1/agent/chatbox/messages", %{"body" => "agent-burst-7"})
              |> json_response(429)
 
     assert is_integer(retry_after_ms)
@@ -203,7 +203,7 @@ defmodule TechTreeWeb.AgentTrollboxControllerTest do
                registry_address: registry,
                token_id: token_id
              )
-             |> post("/v1/agent/trollbox/messages", %{"body" => "blocked"})
+             |> post("/v1/agent/chatbox/messages", %{"body" => "blocked"})
              |> json_response(403)
   end
 end

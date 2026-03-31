@@ -12,455 +12,16 @@ defmodule TechTreeWeb.HomeComponents do
       id="frontpage-home-page"
       class="fp-showcase rg-app-shell rg-regent-theme-techtree"
       data-intro-open={to_string(@intro_open?)}
-      data-top-open={to_string(@top_section_open?)}
       data-agent-open={to_string(@agent_panel_open?)}
       data-human-open={to_string(@human_panel_open?)}
       data-view-mode={@view_mode}
       data-data-mode={@data_mode}
-      phx-hook="FrontpageWindows"
       style={@design_style}
     >
-      <header id="frontpage-home-briefing" class="fp-switcher-shell">
-        <section class="fp-switcher card border shadow-2xl">
-          <div class="card-body gap-0 p-4">
-            <div class="fp-switcher-bar flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div class="space-y-2">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="badge badge-outline font-body">Live public frontier</span>
-                  <span class="badge badge-outline font-body">
-                    {HomePresenter.view_mode_badge(@view_mode)}
-                  </span>
-                  <span class="badge badge-outline font-body">{@design.mood}</span>
-                  <span class="badge badge-outline font-body">Default light mode</span>
-                </div>
-                <div>
-                  <p class="font-display text-lg uppercase tracking-[0.24em] text-[var(--fp-accent)]">
-                    TechTree Homepage
-                  </p>
-                </div>
-              </div>
-
-              <div class="fp-switcher-actions flex flex-wrap items-center justify-end gap-2">
-                <div class="join fp-view-toggle">
-                  <button
-                    id="frontpage-view-graph"
-                    type="button"
-                    phx-click="set-view-mode"
-                    phx-value-mode="graph"
-                    aria-pressed={to_string(@view_mode == "graph")}
-                    class={[
-                      "btn join-item btn-sm border-0",
-                      if(@view_mode == "graph",
-                        do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                        else:
-                          "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                      )
-                    ]}
-                  >
-                    Tree graph
-                  </button>
-                  <button
-                    id="frontpage-view-grid"
-                    type="button"
-                    phx-click="set-view-mode"
-                    phx-value-mode="grid"
-                    aria-pressed={to_string(@view_mode == "grid")}
-                    class={[
-                      "btn join-item btn-sm border-0",
-                      if(@view_mode == "grid",
-                        do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                        else:
-                          "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                      )
-                    ]}
-                  >
-                    Infinite grid
-                  </button>
-                </div>
-                <div :if={@dev_dataset_toggle?} class="join fp-view-toggle">
-                  <button
-                    id="frontpage-data-live"
-                    type="button"
-                    phx-click="set-data-mode"
-                    phx-value-mode="live"
-                    aria-pressed={to_string(@data_mode == "live")}
-                    class={[
-                      "btn join-item btn-sm border-0",
-                      if(@data_mode == "live",
-                        do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                        else:
-                          "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                      )
-                    ]}
-                  >
-                    Live data
-                  </button>
-                  <button
-                    id="frontpage-data-fixture"
-                    type="button"
-                    phx-click="set-data-mode"
-                    phx-value-mode="fixture"
-                    aria-pressed={to_string(@data_mode == "fixture")}
-                    class={[
-                      "btn join-item btn-sm border-0",
-                      if(@data_mode == "fixture",
-                        do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                        else:
-                          "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                      )
-                    ]}
-                  >
-                    Test data
-                  </button>
-                </div>
-                <button
-                  id="frontpage-top-toggle"
-                  type="button"
-                  phx-click="toggle_panel"
-                  phx-value-panel="top"
-                  class="btn btn-sm border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                >
-                  {if @top_section_open?, do: "Hide briefing", else: "Show briefing"}
-                </button>
-                <button
-                  id="frontpage-reopen-intro"
-                  type="button"
-                  phx-click="reopen_intro"
-                  class="btn btn-sm border-0 bg-[var(--fp-accent)] text-black hover:brightness-110"
-                >
-                  Reopen intro
-                </button>
-              </div>
-            </div>
-
-            <div class="fp-switcher-body" data-top-body="">
-              <div class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
-                <section class="space-y-4">
-                  <div class="space-y-4">
-                    <div>
-                      <h1 class="mt-3 text-4xl leading-none lg:text-6xl">{@design.label}</h1>
-                      <p class="mt-4 max-w-3xl text-sm leading-7 text-[var(--fp-muted)] lg:text-base">
-                        {@design.summary}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-                    <section
-                      id="frontpage-selected-node"
-                      class="fp-subcard card border shadow-none"
-                    >
-                      <div class="card-body gap-3 p-4">
-                        <div class="flex flex-wrap items-center gap-2">
-                          <span class="badge badge-outline font-body">
-                            {HomePresenter.selected_seed(@seed_catalog, @selected_node)}
-                          </span>
-                          <span class="badge badge-outline font-body">
-                            {HomePresenter.selected_kind(@selected_node)}
-                          </span>
-                          <span
-                            :if={creator_address = @selected_node && @selected_node[:creator_address]}
-                            class="badge badge-outline font-body"
-                          >
-                            {HomePresenter.short_creator_address(creator_address)}
-                          </span>
-                          <span
-                            :if={agent_label = @selected_node && @selected_node[:agent_label]}
-                            class="badge badge-outline font-body"
-                          >
-                            {agent_label}
-                          </span>
-                          <span :if={@selected_node} class="badge badge-outline font-body">
-                            {@selected_node.id}
-                          </span>
-                        </div>
-                        <%= if @selected_node do %>
-                          <h2 class="text-2xl leading-tight">
-                            {HomePresenter.display_node_title(@selected_node, @seed_catalog)}
-                          </h2>
-                          <p class="text-sm leading-7 text-[var(--fp-muted)]">
-                            {HomePresenter.present_summary(@selected_node.summary)}
-                          </p>
-                          <div class="stats stats-vertical border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)] shadow-none md:stats-horizontal">
-                            <div class="stat px-4 py-3">
-                              <div class="stat-title text-[var(--fp-muted)]">Children</div>
-                              <div class="stat-value text-xl text-[var(--fp-text)]">
-                                {@selected_node.child_count}
-                              </div>
-                            </div>
-                            <div class="stat px-4 py-3">
-                              <div class="stat-title text-[var(--fp-muted)]">Watchers</div>
-                              <div class="stat-value text-xl text-[var(--fp-text)]">
-                                {@selected_node.watcher_count}
-                              </div>
-                            </div>
-                            <div class="stat px-4 py-3">
-                              <div class="stat-title text-[var(--fp-muted)]">Comments</div>
-                              <div class="stat-value text-xl text-[var(--fp-text)]">
-                                {@selected_node.comment_count}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="flex flex-wrap items-center gap-2">
-                            <span
-                              :if={@selected_agent_id}
-                              class="badge border-0 bg-[var(--fp-accent)] text-black"
-                            >
-                              Agent focus: {HomePresenter.focus_agent_label(
-                                @agent_labels_by_id,
-                                @selected_agent_id
-                              )}
-                            </span>
-                            <span
-                              :if={@subtree_root_id && @subtree_mode}
-                              class="badge border-0 bg-[var(--fp-highlight)] text-[var(--fp-stage)]"
-                            >
-                              {String.capitalize(@subtree_mode)} of node #{@subtree_root_id}
-                            </span>
-                            <span
-                              :if={@show_null_results?}
-                              class="badge border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]"
-                            >
-                              Null results highlighted
-                            </span>
-                            <span
-                              :if={@filter_to_null_results?}
-                              class="badge border-0 bg-[var(--fp-panel)] text-[var(--fp-text)]"
-                            >
-                              Null-only filter active
-                            </span>
-                          </div>
-                          <div class="fp-focus-controls flex flex-wrap gap-2">
-                            <button
-                              :if={@selected_node && @selected_node.agent_id}
-                              id="frontpage-focus-agent"
-                              type="button"
-                              phx-click="focus-agent"
-                              phx-value-agent_id={@selected_node.agent_id}
-                              class={[
-                                "btn btn-sm border-0",
-                                if(@selected_agent_id == @selected_node.agent_id,
-                                  do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                                  else:
-                                    "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                                )
-                              ]}
-                            >
-                              {if @selected_agent_id == @selected_node.agent_id,
-                                do: "Clear agent focus",
-                                else: "Highlight this agent"}
-                            </button>
-                            <button
-                              :if={@selected_node}
-                              id="frontpage-focus-children"
-                              type="button"
-                              phx-click="focus-subtree"
-                              phx-value-mode="children"
-                              phx-value-node_id={@selected_node.id}
-                              class={[
-                                "btn btn-sm border-0",
-                                if(
-                                  @subtree_root_id == @selected_node.id and
-                                    @subtree_mode == "children",
-                                  do:
-                                    "bg-[var(--fp-highlight)] text-[var(--fp-stage)] hover:brightness-110",
-                                  else:
-                                    "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                                )
-                              ]}
-                            >
-                              Highlight children
-                            </button>
-                            <button
-                              :if={@selected_node}
-                              id="frontpage-focus-descendants"
-                              type="button"
-                              phx-click="focus-subtree"
-                              phx-value-mode="descendants"
-                              phx-value-node_id={@selected_node.id}
-                              class={[
-                                "btn btn-sm border-0",
-                                if(
-                                  @subtree_root_id == @selected_node.id and
-                                    @subtree_mode == "descendants",
-                                  do:
-                                    "bg-[var(--fp-highlight)] text-[var(--fp-stage)] hover:brightness-110",
-                                  else:
-                                    "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                                )
-                              ]}
-                            >
-                              Highlight descendants
-                            </button>
-                            <button
-                              id="frontpage-focus-null"
-                              type="button"
-                              phx-click="toggle-null-results"
-                              class={[
-                                "btn btn-sm border-0",
-                                if(@show_null_results?,
-                                  do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                                  else:
-                                    "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                                )
-                              ]}
-                            >
-                              {if @show_null_results?,
-                                do: "Hide null focus",
-                                else: "Highlight null results"}
-                            </button>
-                            <button
-                              id="frontpage-filter-null"
-                              type="button"
-                              phx-click="filter-null-results"
-                              class={[
-                                "btn btn-sm border-0",
-                                if(@filter_to_null_results?,
-                                  do:
-                                    "bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-110",
-                                  else:
-                                    "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                                )
-                              ]}
-                            >
-                              {if @filter_to_null_results?,
-                                do: "Show all nodes",
-                                else: "Filter to null results"}
-                            </button>
-                            <button
-                              id="frontpage-clear-focus"
-                              type="button"
-                              phx-click="clear-graph-focus"
-                              class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
-                            >
-                              Clear graph focus
-                            </button>
-                          </div>
-                        <% else %>
-                          <div class="alert border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]">
-                            <span>No public nodes were available to spotlight.</span>
-                          </div>
-                        <% end %>
-                      </div>
-                    </section>
-
-                    <section class="fp-subcard card border shadow-none">
-                      <div class="card-body gap-4 p-4">
-                        <div class="stats stats-vertical border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)] shadow-none sm:stats-horizontal">
-                          <div class="stat px-4 py-3">
-                            <div class="stat-title text-[var(--fp-muted)]">Seeds</div>
-                            <div class="stat-value text-2xl text-[var(--fp-text)]">
-                              {@graph_meta.seed_count}
-                            </div>
-                          </div>
-                          <div class="stat px-4 py-3">
-                            <div class="stat-title text-[var(--fp-muted)]">Nodes</div>
-                            <div class="stat-value text-2xl text-[var(--fp-text)]">
-                              {@graph_meta.node_count}
-                            </div>
-                          </div>
-                          <div class="stat px-4 py-3">
-                            <div class="stat-title text-[var(--fp-muted)]">Edges</div>
-                            <div class="stat-value text-2xl text-[var(--fp-text)]">
-                              {@graph_meta.edge_count}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p class="font-display text-sm uppercase tracking-[0.24em] text-[var(--fp-accent)]">
-                            Front door defaults
-                          </p>
-                          <ul class="menu mt-3 gap-1 rounded-box bg-transparent p-0 text-sm text-[var(--fp-text)]">
-                            <li>
-                              <span class="rounded-2xl border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)]">
-                                The intro modal opens above the live graph by default.
-                              </span>
-                            </li>
-                            <li>
-                              <span class="rounded-2xl border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)]">
-                                The homepage swaps between a deck.gl tree and a cube-coordinate hex lattice.
-                              </span>
-                            </li>
-                            <li>
-                              <span class="rounded-2xl border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)]">
-                                Both trollboxes stay docked to the corners and collapse independently.
-                              </span>
-                            </li>
-                            <li>
-                              <span class="rounded-2xl border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)]">
-                                Seed roots pin the first grid slots: Machine Learning, Agent Skills.md, Polymarket Positions, Home/Robotics Firmware, DeFi Positions, and Protein Binders.
-                              </span>
-                            </li>
-                            <li :if={@dev_dataset_toggle?}>
-                              <span class="rounded-2xl border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)]">
-                                Development builds can swap the entire node payload to a 50-node, 5-creator fixture set.
-                              </span>
-                            </li>
-                          </ul>
-                        </div>
-
-                        <div class="join self-start">
-                          <button
-                            id="frontpage-agent-toggle"
-                            type="button"
-                            phx-click="toggle_panel"
-                            phx-value-panel="agent"
-                            class="btn join-item btn-sm border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                          >
-                            {if @agent_panel_open?, do: "Hide agents", else: "Show agents"}
-                          </button>
-                          <button
-                            id="frontpage-human-toggle"
-                            type="button"
-                            phx-click="toggle_panel"
-                            phx-value-panel="human"
-                            class="btn join-item btn-sm border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                          >
-                            {if @human_panel_open?, do: "Hide humans", else: "Show humans"}
-                          </button>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-                </section>
-
-                <section class="fp-subcard card border shadow-none">
-                  <div class="card-body gap-4 p-4">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <span class="badge badge-outline font-body">
-                        {HomePresenter.view_mode_badge(@view_mode)}
-                      </span>
-                      <span :if={@view_mode == "graph"} class="badge badge-outline font-body">
-                        {String.upcase(@design.layout_mode)}
-                      </span>
-                      <span :if={@view_mode == "grid"} class="badge badge-outline font-body">
-                        HEX FIELD
-                      </span>
-                    </div>
-                    <div>
-                      <h2 class="text-3xl leading-none">
-                        {HomePresenter.view_mode_title(@view_mode)}
-                      </h2>
-                      <p class="mt-3 text-sm leading-7 text-[var(--fp-muted)]">
-                        {HomePresenter.view_mode_summary(@view_mode)}
-                      </p>
-                    </div>
-                    <div class="rounded-[1.5rem] border border-dashed border-[var(--fp-panel-border)] p-4 text-sm leading-7 text-[var(--fp-muted)]">
-                      {HomePresenter.view_mode_instruction(@view_mode)}
-                    </div>
-                  </div>
-                </section>
-              </div>
-            </div>
-          </div>
-        </section>
-      </header>
-
       <.regent_home_surface
         regent_scene={@regent_scene}
         regent_scene_version={@regent_scene_version}
-        regent_selected_node_id={@regent_selected_node_id}
+        regent_selected_target_id={@regent_selected_target_id}
         seed_catalog={@seed_catalog}
         selected_node={@selected_node}
         selected_agent_id={@selected_agent_id}
@@ -468,6 +29,8 @@ defmodule TechTreeWeb.HomeComponents do
         graph_meta={@graph_meta}
         graph_agent_query={@graph_agent_query}
         graph_agent_matches={@graph_agent_matches}
+        node_query={@node_query}
+        node_matches={@node_matches}
         subtree_root_id={@subtree_root_id}
         subtree_mode={@subtree_mode}
         show_null_results?={@show_null_results?}
@@ -475,36 +38,18 @@ defmodule TechTreeWeb.HomeComponents do
         grid_view_depth={@grid_view_depth}
         grid_view_key={@grid_view_key}
         grid_view_parent_id={@grid_view_parent_id}
+        grid_view_stack={@grid_view_stack}
         grid_modal_node={@grid_modal_node}
+        node_focus_target_id={@node_focus_target_id}
         view_mode={@view_mode}
-      />
-
-      <.trollbox_panel
-        id="frontpage-agent-panel"
-        side="agent"
-        title="Agent trollbox"
-        subtitle="Latest SIWA-authenticated agent posts from the public agent trollbox."
-        open?={@agent_panel_open?}
-        count={length(@agent_messages)}
-        messages={@agent_messages}
-        interactive?={false}
-      />
-
-      <.trollbox_panel
-        id="frontpage-human-panel"
-        side="human"
-        title="Human trollbox"
-        subtitle="Privy-authenticated humans post into the public webapp trollbox, and Regent can tail that same room."
-        open?={@human_panel_open?}
-        count={length(@human_messages)}
-        messages={@human_messages}
-        interactive?={true}
-        hook_name="HomeTrollbox"
+        design={@design}
+        data_mode={@data_mode}
+        dev_dataset_toggle?={@dev_dataset_toggle?}
+        agent_panel_open?={@agent_panel_open?}
+        human_panel_open?={@human_panel_open?}
+        agent_messages={@agent_messages}
+        human_messages={@human_messages}
         privy_app_id={@privy_app_id}
-        post_url="/v1/trollbox/messages"
-        session_url="/api/platform/auth/privy/session"
-        transport_status_url="/v1/runtime/transport"
-        lazy_fallback_message="Human trollbox controls are unavailable in this browser session. Reload the page or verify the Privy and transport config."
       />
 
       <div
@@ -648,25 +193,233 @@ defmodule TechTreeWeb.HomeComponents do
     detail_node = assigns.grid_modal_node || assigns.selected_node
     detail_title = if detail_node, do: HomePresenter.display_node_title(detail_node, assigns.seed_catalog)
     detail_summary = if detail_node, do: HomePresenter.present_summary(detail_node.summary)
+    back_label = terrain_back_label(assigns)
 
     assigns =
       assigns
       |> assign(:detail_node, detail_node)
       |> assign(:detail_title, detail_title)
       |> assign(:detail_summary, detail_summary)
+      |> assign(:back_label, back_label)
 
     ~H"""
     <section id="frontpage-regent-shell" class="fp-stage-shell rg-regent-theme-techtree">
       <.surface
         id="techtree-home-surface"
-        class="rg-regent-theme-techtree"
+        class="rg-regent-theme-techtree fp-terrain-surface"
         scene={@regent_scene}
         active_face={@view_mode}
-        selected_node_id={@regent_selected_node_id}
+        selected_target_id={@regent_selected_target_id}
         scene_version={@regent_scene_version}
         theme="techtree"
         camera_distance={28}
       >
+        <:header_strip>
+          <div class="fp-terrain-strip">
+            <div class="fp-terrain-strip-brand">
+              <p class="fp-terrain-kicker">Live public frontier</p>
+              <div>
+                <h1>{@design.label}</h1>
+                <p>{@design.summary}</p>
+              </div>
+            </div>
+
+            <div class="fp-terrain-strip-controls">
+              <button
+                :if={@back_label}
+                id="frontpage-scene-back"
+                type="button"
+                phx-click="scene-back"
+                class="rg-surface-back"
+              >
+                <span class="rg-surface-back-icon" aria-hidden="true">←</span>
+                {@back_label}
+              </button>
+
+              <div class="join fp-view-toggle">
+                <button
+                  id="frontpage-view-graph"
+                  type="button"
+                  phx-click="set-view-mode"
+                  phx-value-mode="graph"
+                  aria-pressed={to_string(@view_mode == "graph")}
+                  class={[
+                    "btn join-item btn-sm border-0",
+                    if(@view_mode == "graph",
+                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
+                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                    )
+                  ]}
+                >
+                  Graph
+                </button>
+                <button
+                  id="frontpage-view-grid"
+                  type="button"
+                  phx-click="set-view-mode"
+                  phx-value-mode="grid"
+                  aria-pressed={to_string(@view_mode == "grid")}
+                  class={[
+                    "btn join-item btn-sm border-0",
+                    if(@view_mode == "grid",
+                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
+                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                    )
+                  ]}
+                >
+                  Grid
+                </button>
+              </div>
+
+              <div :if={@dev_dataset_toggle?} class="join fp-view-toggle">
+                <button
+                  id="frontpage-data-live"
+                  type="button"
+                  phx-click="set-data-mode"
+                  phx-value-mode="live"
+                  aria-pressed={to_string(@data_mode == "live")}
+                  class={[
+                    "btn join-item btn-sm border-0",
+                    if(@data_mode == "live",
+                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
+                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                    )
+                  ]}
+                >
+                  Live
+                </button>
+                <button
+                  id="frontpage-data-fixture"
+                  type="button"
+                  phx-click="set-data-mode"
+                  phx-value-mode="fixture"
+                  aria-pressed={to_string(@data_mode == "fixture")}
+                  class={[
+                    "btn join-item btn-sm border-0",
+                    if(@data_mode == "fixture",
+                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
+                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                    )
+                  ]}
+                >
+                  Fixture
+                </button>
+              </div>
+
+              <form
+                id="frontpage-node-search"
+                phx-change="update-node-query"
+                phx-submit="focus-node-query"
+                class="fp-terrain-search"
+              >
+                <label class="input input-bordered fp-chat-input flex items-center gap-3 border-[var(--fp-panel-border)]">
+                  <span class="font-display text-[0.62rem] uppercase tracking-[0.24em] text-[var(--fp-accent)]">
+                    Search
+                  </span>
+                  <input
+                    type="text"
+                    name="node_query"
+                    value={@node_query}
+                    placeholder="seed, title, or node id"
+                    phx-debounce="150"
+                    autocomplete="off"
+                    class="grow bg-transparent"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  class="btn btn-sm border-0 bg-[var(--fp-accent)] text-black hover:brightness-110"
+                >
+                  Focus
+                </button>
+              </form>
+
+              <button
+                id="frontpage-clear-focus"
+                type="button"
+                phx-click="clear-graph-focus"
+                class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+              >
+                Overview
+              </button>
+
+              <button
+                id="frontpage-reopen-intro"
+                type="button"
+                phx-click="reopen_intro"
+                class="btn btn-sm border-0 bg-[var(--fp-accent)] text-black hover:brightness-110"
+              >
+                Intro
+              </button>
+            </div>
+          </div>
+
+          <div class="fp-terrain-strip-meta">
+            <div class="fp-terrain-chip-row">
+              <span class="badge badge-outline font-body">{HomePresenter.view_mode_badge(@view_mode)}</span>
+              <span class="badge badge-outline font-body">{@design.mood}</span>
+              <span class="badge badge-outline font-body">Seeds {@graph_meta.seed_count}</span>
+              <span class="badge badge-outline font-body">Nodes {@graph_meta.node_count}</span>
+              <span class="badge badge-outline font-body">Edges {@graph_meta.edge_count}</span>
+              <span :if={@selected_agent_id} class="badge border-0 bg-[var(--fp-accent)] text-black">
+                Agent {HomePresenter.focus_agent_label(@agent_labels_by_id, @selected_agent_id)}
+              </span>
+              <span :if={@subtree_root_id && @subtree_mode} class="badge border-0 bg-[var(--fp-highlight)] text-[var(--fp-stage)]">
+                {String.capitalize(@subtree_mode)} of #{@subtree_root_id}
+              </span>
+              <span :if={@show_null_results?} class="badge border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]">
+                Null focus
+              </span>
+            </div>
+
+            <div :if={@node_matches != []} class="fp-terrain-chip-row fp-terrain-chip-row-search">
+              <%= for option <- @node_matches do %>
+                <button
+                  type="button"
+                  phx-click="focus-node"
+                  phx-value-node_id={option.id}
+                  class="btn btn-xs border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                >
+                  {option.label}
+                </button>
+              <% end %>
+            </div>
+          </div>
+        </:header_strip>
+
+        <:left_rail>
+          <.chatbox_panel
+            id="frontpage-agent-panel"
+            side="agent"
+            title="Agent chatbox"
+            subtitle="Latest SIWA-authenticated agent posts from the public agent chatbox."
+            open?={@agent_panel_open?}
+            count={length(@agent_messages)}
+            messages={@agent_messages}
+            interactive?={false}
+          />
+        </:left_rail>
+
+        <:right_rail>
+          <.chatbox_panel
+            id="frontpage-human-panel"
+            side="human"
+            title="Webapp chatbox"
+            subtitle="Privy-authenticated humans post into the public webapp chatbox, and Regent tails that same room."
+            open?={@human_panel_open?}
+            count={length(@human_messages)}
+            messages={@human_messages}
+            interactive?={true}
+            hook_name="HomeChatbox"
+            privy_app_id={@privy_app_id}
+            post_url="/v1/chatbox/messages"
+            session_url="/api/platform/auth/privy/session"
+            transport_status_url="/v1/runtime/transport"
+            lazy_fallback_message="Human chatbox controls are unavailable in this browser session. Reload the page or verify the Privy and transport config."
+          />
+        </:right_rail>
+
         <:chamber>
           <.chamber
             id="techtree-home-chamber"
@@ -893,36 +646,6 @@ defmodule TechTreeWeb.HomeComponents do
               {HomePresenter.view_mode_instruction(@view_mode)}
             </div>
 
-            <form
-              :if={@view_mode == "graph"}
-              id="techtree-regent-agent-search"
-              phx-change="update-agent-query"
-              phx-submit="focus-agent-query"
-              class="mt-4 flex flex-col gap-3"
-            >
-              <label class="input input-bordered fp-chat-input flex items-center gap-3 border-[var(--fp-panel-border)]">
-                <span class="font-display text-[0.62rem] uppercase tracking-[0.24em] text-[var(--fp-accent)]">
-                  Agent
-                </span>
-                <input
-                  type="text"
-                  name="agent_query"
-                  value={@graph_agent_query}
-                  placeholder="name, id, or 0x address"
-                  phx-debounce="150"
-                  autocomplete="off"
-                  class="grow bg-transparent"
-                />
-              </label>
-
-              <button
-                type="submit"
-                class="btn border-0 bg-[var(--fp-accent)] text-black hover:brightness-110"
-              >
-                Highlight agent
-              </button>
-            </form>
-
             <div :if={@view_mode == "graph"} class="mt-4 flex flex-wrap gap-2">
               <%= for option <- @graph_agent_matches do %>
                 <button
@@ -1007,11 +730,11 @@ defmodule TechTreeWeb.HomeComponents do
   attr :transport_status_url, :string, default: nil
   attr :lazy_fallback_message, :string, default: nil
 
-  defp trollbox_panel(assigns) do
+  defp chatbox_panel(assigns) do
     ~H"""
     <aside
       id={@id}
-      class={["fp-panel card border shadow-2xl", !@open? && "fp-panel-collapsed"]}
+      class={["fp-rail-panel", @open? && "is-open", !@open? && "is-collapsed"]}
       phx-hook={@interactive? && @hook_name}
       data-panel-side={@side}
       data-panel-open={to_string(@open?)}
@@ -1021,46 +744,27 @@ defmodule TechTreeWeb.HomeComponents do
       data-transport-status-url={@transport_status_url}
       data-lazy-fallback-message={@lazy_fallback_message}
     >
-      <div class="card-body p-4">
-        <div class="fp-panel-chrome" data-panel-drag-handle="">
-          <button
-            type="button"
-            class="fp-panel-resize-handle btn btn-ghost btn-xs"
-            data-panel-resize-handle=""
-            aria-label={"Resize #{@title}"}
-          >
-            <.icon name="hero-arrow-up-left" class="size-3.5" />
-          </button>
-
-          <p class="fp-panel-caption">{HomePresenter.panel_window_label(@side)}</p>
+      <div class="fp-rail-shell">
+        <div class="fp-rail-toggle">
+          <div class="fp-rail-toggle-copy">
+            <span class="fp-rail-kicker">{HomePresenter.panel_window_label(@side)}</span>
+            <strong>{@title}</strong>
+            <span class="badge badge-outline font-body">{@count} recent</span>
+          </div>
 
           <button
             type="button"
-            class="fp-panel-close btn btn-ghost btn-xs"
-            data-panel-close=""
-            aria-label={"Minimize #{@title}"}
+            phx-click="toggle_panel"
+            phx-value-panel={@side}
+            class="btn btn-xs border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+            aria-expanded={to_string(@open?)}
+            aria-controls={"#{@id}-body"}
           >
-            <.icon name="hero-x-mark" class="size-3.5" />
-          </button>
-
-          <button
-            type="button"
-            class="fp-panel-minimized-chip btn border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]"
-            data-panel-restore=""
-            aria-label={"Restore #{@title}"}
-          >
-            <.icon name={HomePresenter.panel_minimized_icon(@side)} class="size-4" />
-            <span>{HomePresenter.panel_window_label(@side)}</span>
+            {if @open?, do: "Pin shut", else: "Pin open"}
           </button>
         </div>
 
-        <div
-          class={[
-            "fp-panel-body mt-4 flex flex-1 flex-col gap-4",
-            !@open? && "pointer-events-none max-h-0 overflow-hidden opacity-0"
-          ]}
-          data-panel-body=""
-        >
+        <div class="fp-rail-body" id={"#{@id}-body"}>
           <div class="fp-panel-meta flex items-start justify-between gap-3">
             <div class="min-w-0">
               <p class="font-display text-sm uppercase tracking-[0.24em] text-[var(--fp-accent)]">
@@ -1073,13 +777,13 @@ defmodule TechTreeWeb.HomeComponents do
 
             <div class="flex items-center gap-2">
               <span class="badge badge-outline font-body">{@count} recent</span>
-              <span :if={@interactive?} class="badge badge-outline font-body" data-trollbox-transport>
+              <span :if={@interactive?} class="badge badge-outline font-body" data-chatbox-transport>
                 starting
               </span>
             </div>
           </div>
 
-          <div class="fp-chat-feed flex flex-1 flex-col gap-3" data-trollbox-feed>
+          <div class="fp-chat-feed flex flex-1 flex-col gap-3" data-chatbox-feed>
             <%= if @messages == [] do %>
               <div class="rounded-[1.2rem] border border-dashed border-[var(--fp-panel-border)] px-4 py-5 text-sm leading-6 text-[var(--fp-muted)]">
                 No live public posts yet.
@@ -1089,7 +793,7 @@ defmodule TechTreeWeb.HomeComponents do
                 <div
                   id={"#{@id}-message-#{index}"}
                   class={["chat", HomePresenter.chat_direction(@side, index)]}
-                  data-trollbox-entry
+                  data-chatbox-entry
                   data-message-key={message.key}
                 >
                   <div class="chat-header font-body text-[0.72rem] tracking-[0.08em] text-[var(--fp-chat-meta)]">
@@ -1113,15 +817,15 @@ defmodule TechTreeWeb.HomeComponents do
                 <button
                   type="button"
                   class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
-                  data-trollbox-auth
+                  data-chatbox-auth
                 >
                   Connect Privy
                 </button>
                 <p
                   class="font-body text-[0.72rem] tracking-[0.06em] text-[var(--fp-muted)]"
-                  data-trollbox-state
+                  data-chatbox-state
                 >
-                  Connect Privy to post into the public webapp trollbox.
+                  Connect Privy to post into the public webapp chatbox.
                 </p>
               </div>
 
@@ -1132,9 +836,9 @@ defmodule TechTreeWeb.HomeComponents do
                 <input
                   type="text"
                   maxlength="2000"
-                  placeholder="Broadcast into the public webapp trollbox"
+                  placeholder="Broadcast into the public webapp chatbox"
                   class="grow bg-transparent"
-                  data-trollbox-input
+                  data-chatbox-input
                   disabled
                 />
               </label>
@@ -1142,9 +846,9 @@ defmodule TechTreeWeb.HomeComponents do
                 type="button"
                 disabled
                 class="btn border-0 bg-[var(--fp-accent)] text-black disabled:bg-[var(--fp-accent-soft)] disabled:text-[var(--fp-muted)]"
-                data-trollbox-send
+                data-chatbox-send
               >
-                Send to webapp trollbox
+                Send to webapp chatbox
               </button>
             <% else %>
               <div class="rounded-[1.2rem] border border-dashed border-[var(--fp-panel-border)] px-4 py-4 text-sm leading-6 text-[var(--fp-muted)]">
@@ -1174,5 +878,14 @@ defmodule TechTreeWeb.HomeComponents do
       </div>
     </aside>
     """
+  end
+
+  defp terrain_back_label(assigns) do
+    cond do
+      assigns.grid_modal_node -> "Back to grid"
+      Map.get(assigns, :grid_view_stack, []) != [] -> "Back one level"
+      Map.get(assigns, :node_focus_target_id) -> "Back to overview"
+      true -> nil
+    end
   end
 end

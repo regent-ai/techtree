@@ -56,7 +56,7 @@ assert_contains "${OUT_DIR}/frontpage-body.txt" "Install in 1 command"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Star on GitHub"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "pnpm add -g @regentlabs/cli"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy to post into the public webapp trollbox."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy to post into the public webapp chatbox."
 
 ab eval '(() => {
   const modal = document.querySelector("#frontpage-intro-modal");

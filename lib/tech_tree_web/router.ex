@@ -102,7 +102,7 @@ defmodule TechTreeWeb.Router do
     delete "/privy/session", PlatformAuthController, :delete
   end
 
-  scope "/api/v1", TechTreeWeb.V1 do
+  scope "/v1/runtime", TechTreeWeb.Runtime do
     pipe_through :api
 
     get "/nodes/:id", NodeController, :show
@@ -158,9 +158,9 @@ defmodule TechTreeWeb.Router do
     get "/skills/:slug/latest/skill.md", SkillController, :show_latest
     get "/skills/:slug/raw", SkillController, :show_raw
 
-    get "/v1/trollbox/messages", TrollboxController, :messages
+    get "/v1/chatbox/messages", ChatboxController, :messages
     get "/v1/runtime/transport", RuntimeTransportController, :show
-    get "/v1/runtime/transport/stream", TrollboxStreamController, :index
+    get "/v1/runtime/transport/stream", ChatboxStreamController, :index
 
     post "/v1/agent/siwa/nonce", AgentSiwaController, :nonce
     post "/v1/agent/siwa/verify", AgentSiwaController, :verify
@@ -169,10 +169,10 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api_privy
 
-    get "/v1/trollbox/membership", TrollboxMembershipController, :membership
-    post "/v1/trollbox/request-join", TrollboxMembershipController, :request_join
-    post "/v1/trollbox/messages", TrollboxController, :create_message
-    post "/v1/trollbox/messages/:id/reactions", TrollboxController, :react_message
+    get "/v1/chatbox/membership", ChatboxMembershipController, :membership
+    post "/v1/chatbox/request-join", ChatboxMembershipController, :request_join
+    post "/v1/chatbox/messages", ChatboxController, :create_message
+    post "/v1/chatbox/messages/:id/reactions", ChatboxController, :react_message
   end
 
   scope "/", TechTreeWeb do
@@ -244,10 +244,10 @@ defmodule TechTreeWeb.Router do
 
     get "/v1/agent/inbox", AgentInboxController, :index
     get "/v1/agent/opportunities", AgentOpportunitiesController, :index
-    get "/v1/agent/trollbox/messages", AgentTrollboxController, :messages
-    post "/v1/agent/trollbox/messages", AgentTrollboxController, :create_message
-    post "/v1/agent/trollbox/messages/:id/reactions", AgentTrollboxController, :react_message
-    get "/v1/agent/runtime/transport/stream", TrollboxStreamController, :index
+    get "/v1/agent/chatbox/messages", AgentChatboxController, :messages
+    post "/v1/agent/chatbox/messages", AgentChatboxController, :create_message
+    post "/v1/agent/chatbox/messages/:id/reactions", AgentChatboxController, :react_message
+    get "/v1/agent/runtime/transport/stream", ChatboxStreamController, :index
   end
 
   scope "/", TechTreeWeb do
@@ -255,13 +255,13 @@ defmodule TechTreeWeb.Router do
 
     post "/v1/admin/nodes/:id/hide", AdminModerationController, :hide_node
     post "/v1/admin/comments/:id/hide", AdminModerationController, :hide_comment
-    post "/v1/admin/trollbox/messages/:id/hide", AdminModerationController, :hide_message
-    post "/v1/admin/trollbox/messages/:id/unhide", AdminModerationController, :unhide_message
-    post "/v1/admin/trollbox/members/:id/add", AdminModerationController, :add_trollbox_member
+    post "/v1/admin/chatbox/messages/:id/hide", AdminModerationController, :hide_message
+    post "/v1/admin/chatbox/messages/:id/unhide", AdminModerationController, :unhide_message
+    post "/v1/admin/chatbox/members/:id/add", AdminModerationController, :add_chatbox_member
 
-    post "/v1/admin/trollbox/members/:id/remove",
+    post "/v1/admin/chatbox/members/:id/remove",
          AdminModerationController,
-         :remove_trollbox_member
+         :remove_chatbox_member
 
     post "/v1/admin/agents/:id/ban", AdminModerationController, :ban_agent
     post "/v1/admin/agents/:id/unban", AdminModerationController, :unban_agent

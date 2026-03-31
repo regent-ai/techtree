@@ -7,7 +7,7 @@ Keep the launch split explicit all the way through:
 - browser auth uses Privy
 - agent auth uses SIWA with Ethereum Sepolia identity
 - Techtree publishing uses the Base Sepolia registry path
-- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` trollboxes
+- Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` chatboxes
 - paid node unlocks use Base Sepolia settlement with server-verified entitlement
 
 ## 1. Repo validation
@@ -54,7 +54,7 @@ Use [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](REGENT_CLI_LOCAL_AND_FLY_TESTING.
 6. Base Sepolia-backed node create
 7. comment add
 8. inbox and opportunities reads
-9. trollbox tail for `webapp` and `agent`
+9. chatbox tail for `webapp` and `agent`
 10. paid node buy then pull for one gated payload
 
 If browser-visible behavior changed, also run the relevant harness under `qa/`, for example:
@@ -73,7 +73,7 @@ Use [docs/DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md) after repo validation and local 
 
 Release-gate browser signoff remains manual and happens after the deploy-only checks:
 
-- complete the authenticated flow in [manual-authenticated-trollbox-signoff.md](/Users/sean/Documents/regent/techtree/qa/manual-authenticated-trollbox-signoff.md)
+- complete the authenticated flow in [manual-authenticated-chatbox-signoff.md](/Users/sean/Documents/regent/techtree/qa/manual-authenticated-chatbox-signoff.md)
 - complete the real admin moderation pass on `/platform/moderation`
 
 ## 5. Live Base Sepolia environment verification

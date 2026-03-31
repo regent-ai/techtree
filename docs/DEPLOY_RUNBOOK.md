@@ -136,7 +136,7 @@ Then manually verify:
 
 - homepage route `/`
 - platform route `/platform`
-- public trollbox feed `/v1/trollbox/messages`
+- public chatbox feed `/v1/chatbox/messages`
 - SIWA nonce endpoint `/v1/agent/siwa/nonce`
 - one authenticated agent write path on Base Sepolia-backed config
 

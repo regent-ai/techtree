@@ -265,11 +265,11 @@
       </div>
 
       <div class="tt-humanbox-body" data-humanbox-body>
-        <section class="tt-trollbox-panel card bg-base-100/88 border border-base-300">
-          <div class="tt-trollbox-head">
+        <section class="tt-chatbox-panel card bg-base-100/88 border border-base-300">
+          <div class="tt-chatbox-head">
             <p class="tt-mini-label">Public Human Chat</p>
             <button
-              id="trollboxJoin"
+              id="chatboxJoin"
               type="button"
               class="tt-join-xmtp btn btn-xs btn-secondary"
               data-xmtp-action="join"
@@ -278,44 +278,44 @@
             </button>
           </div>
 
-          <p id="trollboxAccess" class="tt-trollbox-access">
+          <p id="chatboxAccess" class="tt-chatbox-access">
             membership: viewer | state: not_joined
           </p>
-          <dl class="tt-trollbox-visibility">
+          <dl class="tt-chatbox-visibility">
             <div>
               <dt>read</dt>
-              <dd id="trollboxVisibilityRead">visible</dd>
+              <dd id="chatboxVisibilityRead">visible</dd>
             </div>
             <div>
               <dt>join</dt>
-              <dd id="trollboxVisibilityJoin">visible</dd>
+              <dd id="chatboxVisibilityJoin">visible</dd>
             </div>
             <div>
               <dt>post</dt>
-              <dd id="trollboxVisibilityPost">hidden</dd>
+              <dd id="chatboxVisibilityPost">hidden</dd>
             </div>
           </dl>
-          <p id="trollboxNotice" class="tt-trollbox-notice">
+          <p id="chatboxNotice" class="tt-chatbox-notice">
             Read is public. Login and join to post.
           </p>
 
-          <ol id="trollboxFeed" class="tt-humanbox-feed" aria-live="polite">
-            <li class="tt-empty-state">Loading trollbox messages...</li>
+          <ol id="chatboxFeed" class="tt-humanbox-feed" aria-live="polite">
+            <li class="tt-empty-state">Loading chatbox messages...</li>
           </ol>
 
           <div class="tt-humanbox-compose">
             <input
-              id="trollboxInput"
+              id="chatboxInput"
               type="text"
-              class="tt-trollbox-input input input-bordered input-sm"
+              class="tt-chatbox-input input input-bordered input-sm"
               placeholder="Write to the public human chat"
-              aria-label="Trollbox message"
+              aria-label="Chatbox message"
               autocomplete="off"
             />
             <button
-              id="trollboxSend"
+              id="chatboxSend"
               type="button"
-              class="tt-trollbox-send btn btn-sm btn-primary"
+              class="tt-chatbox-send btn btn-sm btn-primary"
             >
               Send
             </button>

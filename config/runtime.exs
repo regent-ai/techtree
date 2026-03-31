@@ -279,7 +279,7 @@ config :tech_tree, TechTree.P2P,
   min_ready_peers: String.to_integer(env_or_dotenv.("TECHTREE_P2P_MIN_READY_PEERS", "1")),
   identity_path: env_or_dotenv.("TECHTREE_P2P_IDENTITY_PATH", p2p_identity_path_default),
   origin_node_id: env_or_dotenv.("TECHTREE_P2P_ORIGIN_NODE_ID", "techtree-#{config_env()}"),
-  topic_prefix: env_or_dotenv.("TECHTREE_P2P_TOPIC_PREFIX", "regent.#{config_env()}.trollbox"),
+  topic_prefix: env_or_dotenv.("TECHTREE_P2P_TOPIC_PREFIX", "regent.#{config_env()}.chatbox"),
   allowed_peer_ids:
     env_or_dotenv.("TECHTREE_P2P_ALLOWED_PEER_IDS", "")
     |> String.split(",", trim: true)

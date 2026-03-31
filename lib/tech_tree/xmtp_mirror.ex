@@ -14,7 +14,7 @@ defmodule TechTree.XMTPMirror do
     XmtpRoom
   }
 
-  @canonical_room_key "public-trollbox"
+  @canonical_room_key "public-chatbox"
   @default_limit 50
   @default_capacity 200
   @default_presence_ttl_seconds 120
@@ -593,7 +593,7 @@ defmodule TechTree.XMTPMirror do
       case ensure_room(%{
              room_key: shard_key,
              xmtp_group_id: "xmtp-#{shard_key}",
-             name: "#{canonical_room.name || "Public Trollbox"} ##{next_number}",
+             name: "#{canonical_room.name || "Public Chatbox"} ##{next_number}",
              status: canonical_room.status || "active",
              presence_ttl_seconds:
                canonical_room.presence_ttl_seconds || @default_presence_ttl_seconds

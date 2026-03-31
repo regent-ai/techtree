@@ -106,11 +106,11 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
       ]
 
       assert :ok =
-               Task.async(fn -> TechTree.RateLimit.allow_trollbox_message(message_opts) end)
+               Task.async(fn -> TechTree.RateLimit.allow_chatbox_message(message_opts) end)
                |> Task.await()
 
       assert {:error, %{code: :duplicate_message, retry_after_ms: retry_after_ms}} =
-               Task.async(fn -> TechTree.RateLimit.allow_trollbox_message(message_opts) end)
+               Task.async(fn -> TechTree.RateLimit.allow_chatbox_message(message_opts) end)
                |> Task.await()
 
       assert retry_after_ms > 0
@@ -124,7 +124,7 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
       Application.put_env(:tech_tree, TechTree.RateLimit, backend: :dragonfly)
 
       assert :ok =
-               TechTree.RateLimit.allow_trollbox_message(
+               TechTree.RateLimit.allow_chatbox_message(
                  actor_scope: "actor:#{System.unique_integer([:positive])}",
                  principal_scope: "principal:#{System.unique_integer([:positive])}",
                  ip_scope: "127.0.0.1",

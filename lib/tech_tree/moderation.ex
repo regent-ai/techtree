@@ -11,8 +11,8 @@ defmodule TechTree.Moderation do
   alias TechTree.Comments.Comment
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Accounts.HumanUser
-  alias TechTree.Trollbox
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox
+  alias TechTree.Chatbox.Message
 
   @default_dashboard_limit 60
 
@@ -37,19 +37,19 @@ defmodule TechTree.Moderation do
     :ok
   end
 
-  @spec hide_trollbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def hide_trollbox_message(id, admin, reason) do
-    {:ok, message} = Trollbox.hide_message(id)
+  @spec hide_chatbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
+  def hide_chatbox_message(id, admin, reason) do
+    {:ok, message} = Chatbox.hide_message(id)
 
-    log!(:trollbox_message, message.id, "hide", admin, reason)
+    log!(:chatbox_message, message.id, "hide", admin, reason)
     :ok
   end
 
-  @spec unhide_trollbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def unhide_trollbox_message(id, admin, reason) do
-    {:ok, message} = Trollbox.unhide_message(id)
+  @spec unhide_chatbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
+  def unhide_chatbox_message(id, admin, reason) do
+    {:ok, message} = Chatbox.unhide_message(id)
 
-    log!(:trollbox_message, message.id, "unhide", admin, reason)
+    log!(:chatbox_message, message.id, "unhide", admin, reason)
     :ok
   end
 
@@ -91,8 +91,8 @@ defmodule TechTree.Moderation do
     :ok
   end
 
-  @spec list_trollbox_dashboard_messages(map()) :: [Message.t()]
-  def list_trollbox_dashboard_messages(filters \\ %{}) when is_map(filters) do
+  @spec list_chatbox_dashboard_messages(map()) :: [Message.t()]
+  def list_chatbox_dashboard_messages(filters \\ %{}) when is_map(filters) do
     limit =
       filters
       |> Map.get("limit", Map.get(filters, :limit, @default_dashboard_limit))
@@ -118,8 +118,8 @@ defmodule TechTree.Moderation do
     |> Repo.all()
   end
 
-  @spec list_trollbox_author_history(:human | :agent, integer(), keyword()) :: [Message.t()]
-  def list_trollbox_author_history(author_kind, author_ref, opts \\ [])
+  @spec list_chatbox_author_history(:human | :agent, integer(), keyword()) :: [Message.t()]
+  def list_chatbox_author_history(author_kind, author_ref, opts \\ [])
       when author_kind in [:human, :agent] and is_integer(author_ref) and author_ref > 0 do
     limit = opts |> Keyword.get(:limit, 20) |> normalize_limit()
 

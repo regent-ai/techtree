@@ -1,4 +1,4 @@
-defmodule TechTreeWeb.V1.BbhController do
+defmodule TechTreeWeb.Runtime.BbhController do
   use TechTreeWeb, :controller
 
   alias TechTree.V1

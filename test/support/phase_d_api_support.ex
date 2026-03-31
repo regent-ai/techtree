@@ -5,7 +5,7 @@ defmodule TechTree.PhaseDApiSupport do
 
   alias TechTree.{Accounts, Agents, Nodes, Repo}
   alias TechTree.Nodes.Node
-  alias TechTree.Trollbox.Message, as: TrollboxMessage
+  alias TechTree.Chatbox.Message, as: ChatboxMessage
   alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
   alias Decimal, as: D
 
@@ -141,23 +141,23 @@ defmodule TechTree.PhaseDApiSupport do
     end
   end
 
-  @spec create_trollbox_message!(
+  @spec create_chatbox_message!(
           TechTree.Accounts.HumanUser.t() | TechTree.Agents.AgentIdentity.t(),
           map()
         ) ::
-          TrollboxMessage.t()
-  def create_trollbox_message!(author, attrs \\ %{})
+          ChatboxMessage.t()
+  def create_chatbox_message!(author, attrs \\ %{})
 
-  def create_trollbox_message!(%TechTree.Accounts.HumanUser{} = human, attrs) do
-    %TrollboxMessage{}
-    |> TrollboxMessage.changeset(%{
+  def create_chatbox_message!(%TechTree.Accounts.HumanUser{} = human, attrs) do
+    %ChatboxMessage{}
+    |> ChatboxMessage.changeset(%{
       author_kind: :human,
       author_scope: "human:#{human.id}",
       author_human_id: human.id,
       client_message_id: Map.get(attrs, :client_message_id),
-      body: Map.get(attrs, :body, "trollbox-human-#{unique_suffix()}"),
+      body: Map.get(attrs, :body, "chatbox-human-#{unique_suffix()}"),
       transport_msg_id: Map.get(attrs, :transport_msg_id, "transport-human-#{unique_suffix()}"),
-      transport_topic: Map.get(attrs, :transport_topic, "trollbox:global"),
+      transport_topic: Map.get(attrs, :transport_topic, "chatbox:global"),
       reply_to_message_id: Map.get(attrs, :reply_to_message_id),
       reactions: Map.get(attrs, :reactions, %{}),
       moderation_state: Map.get(attrs, :moderation_state, "visible")
@@ -166,16 +166,16 @@ defmodule TechTree.PhaseDApiSupport do
     |> Repo.preload([:author_human, :author_agent])
   end
 
-  def create_trollbox_message!(%TechTree.Agents.AgentIdentity{} = agent, attrs) do
-    %TrollboxMessage{}
-    |> TrollboxMessage.changeset(%{
+  def create_chatbox_message!(%TechTree.Agents.AgentIdentity{} = agent, attrs) do
+    %ChatboxMessage{}
+    |> ChatboxMessage.changeset(%{
       author_kind: :agent,
       author_scope: "agent:#{agent.id}",
       author_agent_id: agent.id,
       client_message_id: Map.get(attrs, :client_message_id),
-      body: Map.get(attrs, :body, "trollbox-agent-#{unique_suffix()}"),
+      body: Map.get(attrs, :body, "chatbox-agent-#{unique_suffix()}"),
       transport_msg_id: Map.get(attrs, :transport_msg_id, "transport-agent-#{unique_suffix()}"),
-      transport_topic: Map.get(attrs, :transport_topic, "trollbox:global"),
+      transport_topic: Map.get(attrs, :transport_topic, "chatbox:global"),
       reply_to_message_id: Map.get(attrs, :reply_to_message_id),
       reactions: Map.get(attrs, :reactions, %{}),
       moderation_state: Map.get(attrs, :moderation_state, "visible")
@@ -188,10 +188,10 @@ defmodule TechTree.PhaseDApiSupport do
   def create_canonical_room! do
     %XmtpRoom{}
     |> XmtpRoom.changeset(%{
-      room_key: "public-trollbox",
-      name: "Public Trollbox",
+      room_key: "public-chatbox",
+      name: "Public Chatbox",
       status: "active",
-      xmtp_group_id: "group-public-trollbox-#{unique_suffix()}"
+      xmtp_group_id: "group-public-chatbox-#{unique_suffix()}"
     })
     |> Repo.insert!()
   end

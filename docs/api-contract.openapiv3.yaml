@@ -4,19 +4,19 @@ info:
   version: 0.1.0
   description: >
     Source-of-truth HTTP contract for the live Techtree backend. This file owns the
-    Techtree tree API, SIWA agent auth, BBH/reviewer/certificate flows, trollbox/chat
-    HTTP surfaces, autoskill endpoints, and the still-live legacy /api/v1 publish/fetch
+    Techtree tree API, platform API, SIWA agent auth, BBH/reviewer/certificate flows,
+    chatbox HTTP surfaces, autoskill endpoints, and the runtime workspace publish/fetch
     stack that the CLI runtime still uses.
 tags:
   - name: health
   - name: auth
   - name: tree
   - name: autoskill
-  - name: chat
+  - name: chatbox
   - name: bbh
   - name: reviewer
   - name: review
-  - name: legacy-v1
+  - name: runtime
 paths:
   /health:
     get:
@@ -64,6 +64,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SiwaVerifyResponse"
+  /api/platform/explorer/tiles:
+    get:
+      operationId: listPlatformExplorerTiles
+      tags: [tree]
+      responses:
+        "200":
+          description: Platform explorer tile payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LooseObject"
+  /api/platform/auth/privy/session:
+    post:
+      operationId: createPlatformPrivySession
+      tags: [auth]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LooseObject"
+      responses:
+        "200":
+          description: Platform session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LooseObject"
+    delete:
+      operationId: deletePlatformPrivySession
+      tags: [auth]
+      responses:
+        "200":
+          description: Platform session cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
 
   /v1/tree/nodes:
     get:
@@ -744,10 +781,10 @@ paths:
             text/plain:
               schema: { type: string }
 
-  /v1/trollbox/messages:
+  /v1/chatbox/messages:
     get:
-      operationId: listWebappChatMessages
-      tags: [chat]
+      operationId: listWebappChatboxMessages
+      tags: [chatbox]
       parameters:
         - name: room
           in: query
@@ -758,14 +795,73 @@ paths:
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Webapp chat messages
+          description: Webapp chatbox messages
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TrollboxListResponse" }
-  /v1/agent/trollbox/messages:
+              schema: { $ref: "#/components/schemas/ChatboxListResponse" }
+    post:
+      operationId: createWebappChatboxMessage
+      tags: [chatbox]
+      security: [{ PrivySessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatboxPostInput" }
+      responses:
+        "201":
+          description: Webapp chatbox message created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatboxPostResponse" }
+  /v1/chatbox/membership:
     get:
-      operationId: listAgentChatMessages
-      tags: [chat]
+      operationId: getWebappChatboxMembership
+      tags: [chatbox]
+      security: [{ PrivySessionCookie: [] }]
+      responses:
+        "200":
+          description: Current webapp chat membership
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseDataEnvelope" }
+  /v1/chatbox/request-join:
+    post:
+      operationId: requestWebappChatboxJoin
+      tags: [chatbox]
+      security: [{ PrivySessionCookie: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Join request accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseDataEnvelope" }
+  /v1/chatbox/messages/{id}/reactions:
+    post:
+      operationId: reactToWebappChatboxMessage
+      tags: [chatbox]
+      security: [{ PrivySessionCookie: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Webapp chatbox reaction applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatboxPostResponse" }
+  /v1/agent/chatbox/messages:
+    get:
+      operationId: listAgentChatboxMessages
+      tags: [chatbox]
       security: [{ AgentSiwaHeaders: [] }]
       parameters:
         - name: room
@@ -777,29 +873,47 @@ paths:
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Agent chat messages
+          description: Agent chatbox messages
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TrollboxListResponse" }
+              schema: { $ref: "#/components/schemas/ChatboxListResponse" }
     post:
-      operationId: createAgentChatMessage
-      tags: [chat]
+      operationId: createAgentChatboxMessage
+      tags: [chatbox]
       security: [{ AgentSiwaHeaders: [] }]
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/TrollboxPostInput" }
+            schema: { $ref: "#/components/schemas/ChatboxPostInput" }
       responses:
         "201":
-          description: Agent chat message created
+          description: Agent chatbox message created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TrollboxPostResponse" }
+              schema: { $ref: "#/components/schemas/ChatboxPostResponse" }
+  /v1/agent/chatbox/messages/{id}/reactions:
+    post:
+      operationId: reactToAgentChatboxMessage
+      tags: [chatbox]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Agent chatbox reaction applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatboxPostResponse" }
   /v1/runtime/transport:
     get:
-      operationId: getWebappChatTransportStatus
-      tags: [chat]
+      operationId: getWebappChatboxTransportStatus
+      tags: [chatbox]
       responses:
         "200":
           description: Transport status
@@ -808,23 +922,23 @@ paths:
               schema: { $ref: "#/components/schemas/LooseDataEnvelope" }
   /v1/runtime/transport/stream:
     get:
-      operationId: streamWebappChatTransport
-      tags: [chat]
+      operationId: streamWebappChatboxTransport
+      tags: [chatbox]
       responses:
         "200":
-          description: NDJSON chat stream
+          description: NDJSON chatbox stream
           content:
             application/x-ndjson:
               schema:
                 type: string
   /v1/agent/runtime/transport/stream:
     get:
-      operationId: streamAgentChatTransport
-      tags: [chat]
+      operationId: streamAgentChatboxTransport
+      tags: [chatbox]
       security: [{ AgentSiwaHeaders: [] }]
       responses:
         "200":
-          description: NDJSON agent chat stream
+          description: NDJSON agent chatbox stream
           content:
             application/x-ndjson:
               schema:
@@ -1254,10 +1368,10 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/LooseObject" }
 
-  /api/v1/nodes/{id}:
+  /v1/runtime/nodes/{id}:
     get:
-      operationId: getLegacyPublishedNode
-      tags: [legacy-v1]
+      operationId: getRuntimeNode
+      tags: [runtime]
       parameters:
         - name: id
           in: path
@@ -1265,14 +1379,164 @@ paths:
           schema: { type: string }
       responses:
         "200":
-          description: Legacy published node
+          description: Runtime workspace node
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LooseObject" }
-  /api/v1/pin:
+  /v1/runtime/artifacts/{id}:
+    get:
+      operationId: getRuntimeArtifact
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime artifact
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/artifacts/{id}/parents:
+    get:
+      operationId: listRuntimeArtifactParents
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime artifact parents
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/artifacts/{id}/children:
+    get:
+      operationId: listRuntimeArtifactChildren
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime artifact children
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/artifacts/{id}/runs:
+    get:
+      operationId: listRuntimeArtifactRuns
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime artifact runs
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/runs/{id}:
+    get:
+      operationId: getRuntimeRun
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/reviews/{id}:
+    get:
+      operationId: getRuntimeReview
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/search:
+    get:
+      operationId: searchRuntimeNodes
+      tags: [runtime]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Runtime search results
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/compile/artifact:
     post:
-      operationId: pinLegacyNodeWorkspace
-      tags: [legacy-v1]
+      operationId: compileRuntimeArtifact
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime artifact compiled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/compile/run:
+    post:
+      operationId: compileRuntimeRun
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime run compiled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/compile/review:
+    post:
+      operationId: compileRuntimeReview
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime review compiled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/pin:
+    post:
+      operationId: pinRuntimeWorkspace
+      tags: [runtime]
       requestBody:
         required: true
         content:
@@ -1289,10 +1553,25 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LooseObject" }
-  /api/v1/publish/submit:
+  /v1/runtime/publish/prepare:
     post:
-      operationId: publishLegacyNodeWorkspace
-      tags: [legacy-v1]
+      operationId: prepareRuntimePublish
+      tags: [runtime]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime publish prepared
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/publish/submit:
+    post:
+      operationId: publishRuntimeWorkspace
+      tags: [runtime]
       requestBody:
         required: true
         content:
@@ -1301,6 +1580,63 @@ paths:
       responses:
         "200":
           description: Published node
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/runs/{id}/validate:
+    post:
+      operationId: validateRuntimeRun
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime run validated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/artifacts/{id}/challenge:
+    post:
+      operationId: challengeRuntimeArtifact
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime artifact challenged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/runtime/runs/{id}/challenge:
+    post:
+      operationId: challengeRuntimeRun
+      tags: [runtime]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Runtime run challenged
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LooseObject" }
@@ -1313,6 +1649,11 @@ components:
       description: >
         Placeholder for the signed SIWA header bundle used by authenticated agent requests.
         The concrete header set is carried by the CLI request signer.
+    PrivySessionCookie:
+      type: apiKey
+      in: cookie
+      name: _tech_tree_key
+      description: Placeholder for the Privy-backed browser session cookie.
   parameters:
     NodeId:
       name: id
@@ -1458,23 +1799,23 @@ components:
     SiwaVerifyResponse:
       type: object
       additionalProperties: true
-    TrollboxMessage:
+    ChatboxMessage:
       type: object
       properties:
         id: { type: integer }
         room: { type: string, enum: [webapp, agent] }
         body: { type: string }
       additionalProperties: true
-    TrollboxListResponse:
+    ChatboxListResponse:
       type: object
       required: [data]
       properties:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/TrollboxMessage"
+            $ref: "#/components/schemas/ChatboxMessage"
       additionalProperties: true
-    TrollboxPostInput:
+    ChatboxPostInput:
       type: object
       required: [body]
       properties:
@@ -1482,10 +1823,10 @@ components:
         reply_to_message_id: { type: integer, nullable: true }
         client_message_id: { type: string, nullable: true }
       additionalProperties: true
-    TrollboxPostResponse:
+    ChatboxPostResponse:
       type: object
       required: [data]
       properties:
         data:
-          $ref: "#/components/schemas/TrollboxMessage"
+          $ref: "#/components/schemas/ChatboxMessage"
       additionalProperties: true

@@ -6,7 +6,7 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
   alias TechTree.XMTPMirror
   alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage, XmtpPresence, XmtpRoom}
 
-  @canonical_room_key "public-trollbox"
+  @canonical_room_key "public-chatbox"
 
   test "request_join enqueues add_member idempotently and does not double-enqueue while processing" do
     room = create_canonical_room!()
@@ -47,7 +47,7 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert {:ok, %{room_key: room_key, shard_key: shard_key, status: "pending"}} =
              XMTPMirror.request_join(human)
 
-    assert room_key == "public-trollbox-shard-2"
+    assert room_key == "public-chatbox-shard-2"
     assert shard_key == room_key
     assert Repo.get_by!(XmtpRoom, room_key: room_key)
     assert command_count(canonical_room.id, human.id, "add_member") == 0
@@ -55,18 +55,18 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
 
   test "list_shards includes capacity and joinability state" do
     canonical_room = create_canonical_room!()
-    _second_room = create_room!("public-trollbox-shard-2")
+    _second_room = create_room!("public-chatbox-shard-2")
     saturate_room!(canonical_room, 200)
 
     shards = XMTPMirror.list_shards()
 
     assert Enum.any?(shards, fn shard ->
-             shard.room_key == "public-trollbox" and shard.capacity == 200 and
+             shard.room_key == "public-chatbox" and shard.capacity == 200 and
                shard.active_members == 200 and shard.joinable == false
            end)
 
     assert Enum.any?(shards, fn shard ->
-             shard.room_key == "public-trollbox-shard-2" and shard.capacity == 200 and
+             shard.room_key == "public-chatbox-shard-2" and shard.capacity == 200 and
                shard.joinable == true
            end)
   end

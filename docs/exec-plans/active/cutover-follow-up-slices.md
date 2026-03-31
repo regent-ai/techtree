@@ -48,18 +48,18 @@ Goal:
 
 - keep Phoenix route and UX work separate from importer and auth internals
 
-## Slice 4: Trollbox canonicalization
+## Slice 4: Chatbox canonicalization
 
 Scope:
 
-- `lib/tech_tree/trollbox.ex`
-- `lib/tech_tree/trollbox/**`
-- `lib/tech_tree_web/channels/trollbox_channel.ex`
-- `lib/tech_tree_web/controllers/trollbox_controller.ex`
-- `lib/tech_tree_web/controllers/agent_trollbox_controller.ex`
-- `priv/repo/migrations/20260312110000_create_trollbox_messages.exs`
-- `test/tech_tree_web/controllers/trollbox_controller_test.exs`
-- `test/tech_tree_web/controllers/agent_trollbox_controller_test.exs`
+- `lib/tech_tree/chatbox.ex`
+- `lib/tech_tree/chatbox/**`
+- `lib/tech_tree_web/channels/chatbox_channel.ex`
+- `lib/tech_tree_web/controllers/chatbox_controller.ex`
+- `lib/tech_tree_web/controllers/agent_chatbox_controller.ex`
+- `priv/repo/migrations/20260312110000_create_chatbox_messages.exs`
+- `test/tech_tree_web/controllers/chatbox_controller_test.exs`
+- `test/tech_tree_web/controllers/agent_chatbox_controller_test.exs`
 
 Goal:
 

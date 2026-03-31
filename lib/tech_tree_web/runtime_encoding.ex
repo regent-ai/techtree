@@ -1,4 +1,4 @@
-defmodule TechTreeWeb.V1Encoding do
+defmodule TechTreeWeb.RuntimeEncoding do
   @moduledoc false
 
   def encode_node(nil), do: nil

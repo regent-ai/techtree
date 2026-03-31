@@ -126,11 +126,11 @@ defmodule TechTreeWeb.Platform.HomeLive do
               </div>
               <div class="rounded-[1.4rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                 <p class="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  Trollbox relay
+                  Chatbox relay
                 </p>
                 <p class="mt-3 text-2xl leading-none">public</p>
                 <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  Public chat now flows through the canonical trollbox datastore and relay-backed live transport.
+                  Public chat now flows through the canonical chatbox datastore and relay-backed live transport.
                 </p>
               </div>
             </div>

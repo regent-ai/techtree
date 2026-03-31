@@ -5,7 +5,7 @@ defmodule TechTreeWeb.PublicEncoding do
   alias TechTree.Activity.ActivityEvent
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox.Message
   alias TechTree.Watches.NodeWatcher
 
   @spec encode_nodes([Node.t()]) :: [map()]
@@ -161,12 +161,12 @@ defmodule TechTreeWeb.PublicEncoding do
     end)
   end
 
-  @spec encode_trollbox_messages([Message.t()]) :: [map()]
-  def encode_trollbox_messages(messages) when is_list(messages),
-    do: Enum.map(messages, &encode_trollbox_message/1)
+  @spec encode_chatbox_messages([Message.t()]) :: [map()]
+  def encode_chatbox_messages(messages) when is_list(messages),
+    do: Enum.map(messages, &encode_chatbox_message/1)
 
-  @spec encode_trollbox_message(Message.t()) :: map()
-  def encode_trollbox_message(%Message{} = message) do
+  @spec encode_chatbox_message(Message.t()) :: map()
+  def encode_chatbox_message(%Message{} = message) do
     %{
       id: message.id,
       room_id: message.room_id || "global",

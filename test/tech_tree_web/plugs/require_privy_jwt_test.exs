@@ -22,7 +22,7 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> put_req_header("authorization", "Bearer #{token}")
-             |> get("/v1/trollbox/membership")
+             |> get("/v1/chatbox/membership")
              |> json_response(401)
   end
 
@@ -33,7 +33,7 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> put_req_header("authorization", "Bearer #{token}")
-             |> get("/v1/trollbox/membership")
+             |> get("/v1/chatbox/membership")
              |> json_response(200)
   end
 
@@ -50,7 +50,7 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> put_req_header("authorization", "Bearer #{token}")
-             |> post("/v1/trollbox/messages", %{"body" => "hello from banned privy"})
+             |> post("/v1/chatbox/messages", %{"body" => "hello from banned privy"})
              |> json_response(403)
   end
 

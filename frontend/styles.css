@@ -343,11 +343,11 @@ button:focus-visible {
 }
 
 .comments-card,
-.trollbox-card {
+.chatbox-card {
   background: linear-gradient(165deg, rgba(14, 30, 43, 0.94), rgba(5, 12, 20, 0.92));
 }
 
-.trollbox-access {
+.chatbox-access {
   border: 1px solid rgba(160, 220, 255, 0.2);
   border-radius: var(--r-m);
   background: rgba(4, 14, 22, 0.72);
@@ -357,12 +357,12 @@ button:focus-visible {
   margin-bottom: 0.64rem;
 }
 
-.trollbox-state-text {
+.chatbox-state-text {
   font-size: 0.8rem;
   color: #d1eeff;
 }
 
-.trollbox-visibility {
+.chatbox-visibility {
   margin: 0;
   display: grid;
   gap: 0.24rem;
@@ -387,7 +387,7 @@ button:focus-visible {
   text-transform: lowercase;
 }
 
-.trollbox-join {
+.chatbox-join {
   border: 1px solid color-mix(in srgb, var(--accent-lime) 45%, transparent);
   border-radius: var(--r-m);
   background: linear-gradient(180deg, rgba(141, 244, 116, 0.24), rgba(29, 92, 57, 0.28));
@@ -397,18 +397,18 @@ button:focus-visible {
   transition: transform 180ms ease, filter 180ms ease;
 }
 
-.trollbox-join:hover {
+.chatbox-join:hover {
   transform: translateY(-1px);
   filter: brightness(1.06);
 }
 
-.trollbox-notice {
+.chatbox-notice {
   color: var(--muted);
   font-size: 0.74rem;
 }
 
 .comments-list,
-.trollbox-feed {
+.chatbox-feed {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -439,17 +439,17 @@ button:focus-visible {
   font-size: 0.82rem;
 }
 
-.trollbox-composer {
+.chatbox-composer {
   display: flex;
   gap: 0.48rem;
   margin-top: 0.72rem;
 }
 
-.trollbox-composer[hidden] {
+.chatbox-composer[hidden] {
   display: none;
 }
 
-.trollbox-composer input {
+.chatbox-composer input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--r-m);
@@ -459,7 +459,7 @@ button:focus-visible {
   min-height: 42px;
 }
 
-.trollbox-composer button {
+.chatbox-composer button {
   border: 1px solid color-mix(in srgb, var(--accent-hot) 45%, transparent);
   border-radius: var(--r-m);
   background: linear-gradient(180deg, rgba(255, 145, 95, 0.38), rgba(194, 66, 37, 0.24));
@@ -469,8 +469,8 @@ button:focus-visible {
   cursor: pointer;
 }
 
-.trollbox-composer button:disabled,
-.trollbox-composer input:disabled {
+.chatbox-composer button:disabled,
+.chatbox-composer input:disabled {
   cursor: not-allowed;
   opacity: 0.62;
 }
@@ -518,11 +518,11 @@ button:focus-visible {
     padding: 0.72rem;
   }
 
-  .trollbox-composer {
+  .chatbox-composer {
     flex-direction: column;
   }
 
-  .trollbox-composer button {
+  .chatbox-composer button {
     width: 100%;
   }
 }

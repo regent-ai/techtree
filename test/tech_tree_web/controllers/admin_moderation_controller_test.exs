@@ -9,7 +9,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
   alias TechTree.Moderation.ModerationAction
   alias TechTree.Nodes.Node
   alias TechTree.Repo
-  alias TechTree.Trollbox.Message, as: TrollboxMessage
+  alias TechTree.Chatbox.Message, as: ChatboxMessage
 
   setup do
     privy = setup_privy_config!()
@@ -61,7 +61,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
 
     node = create_node!(creator)
     comment = create_comment!(node.id, creator.id)
-    message = create_trollbox_message!(target_human, %{body: "moderation message"})
+    message = create_chatbox_message!(target_human, %{body: "moderation message"})
 
     authed_conn = fn ->
       Phoenix.ConnTest.build_conn()
@@ -80,14 +80,14 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
 
     assert %{"ok" => true} =
              authed_conn.()
-             |> post("/v1/admin/trollbox/messages/#{message.id}/hide", %{
+             |> post("/v1/admin/chatbox/messages/#{message.id}/hide", %{
                "reason" => "hide-message"
              })
              |> json_response(200)
 
     assert %{"ok" => true} =
              authed_conn.()
-             |> post("/v1/admin/trollbox/messages/#{message.id}/unhide", %{
+             |> post("/v1/admin/chatbox/messages/#{message.id}/unhide", %{
                "reason" => "unhide-message"
              })
              |> json_response(200)
@@ -114,7 +114,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
 
     assert Repo.get!(Node, node.id).status == :hidden
     assert Repo.get!(Comment, comment.id).status == :hidden
-    assert Repo.get!(TrollboxMessage, message.id).moderation_state == "visible"
+    assert Repo.get!(ChatboxMessage, message.id).moderation_state == "visible"
     assert Repo.get!(TechTree.Agents.AgentIdentity, target_agent.id).status == "active"
     assert Repo.get!(TechTree.Accounts.HumanUser, target_human.id).role == "user"
 

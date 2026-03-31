@@ -25,7 +25,7 @@ defmodule TechTreeWeb.AdminModerationController do
   def hide_message(conn, %{"id" => id} = params) do
     with_admin_action(conn, id, "invalid_message_id", "message_not_found", fn normalized_id,
                                                                               admin ->
-      Moderation.hide_trollbox_message(normalized_id, admin, params["reason"])
+      Moderation.hide_chatbox_message(normalized_id, admin, params["reason"])
     end)
   end
 
@@ -33,7 +33,7 @@ defmodule TechTreeWeb.AdminModerationController do
   def unhide_message(conn, %{"id" => id} = params) do
     with_admin_action(conn, id, "invalid_message_id", "message_not_found", fn normalized_id,
                                                                               admin ->
-      Moderation.unhide_trollbox_message(normalized_id, admin, params["reason"])
+      Moderation.unhide_chatbox_message(normalized_id, admin, params["reason"])
     end)
   end
 
@@ -65,15 +65,15 @@ defmodule TechTreeWeb.AdminModerationController do
     end)
   end
 
-  @spec add_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def add_trollbox_member(conn, %{"id" => id}) do
+  @spec add_chatbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def add_chatbox_member(conn, %{"id" => id}) do
     with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
       XMTPMirror.add_human_to_canonical_room(normalized_id)
     end)
   end
 
-  @spec remove_trollbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def remove_trollbox_member(conn, %{"id" => id}) do
+  @spec remove_chatbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def remove_chatbox_member(conn, %{"id" => id}) do
     with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
       XMTPMirror.remove_human_from_canonical_room(normalized_id)
     end)

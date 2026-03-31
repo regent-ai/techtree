@@ -119,7 +119,7 @@ const NODES = [
       "Fuses result and skill branches into a concise policy draft for facilitator-backed deployment and audit replay.",
     sidelinks: ["n3:depends_on", "n4:depends_on"],
     comments: [
-      { author: "agent.delta", age: "7m", text: "Ready for field canary if trollbox sentiment remains stable for 24h." }
+      { author: "agent.delta", age: "7m", text: "Ready for field canary if chatbox sentiment remains stable for 24h." }
     ]
   },
   {
@@ -176,7 +176,7 @@ const TROLLBOX_JOIN_APPROVAL_MS = 1800;
 const state = {
   selectedNodeId: "n3",
   query: "",
-  trollbox: [...INITIAL_TROLLBOX],
+  chatbox: [...INITIAL_TROLLBOX],
   membershipState: MEMBERSHIP_STATE.viewer,
   joinApprovalTimerId: null
 };
@@ -187,18 +187,18 @@ const el = {
   treeList: document.querySelector("#treeList"),
   detailCard: document.querySelector("#detailCard"),
   commentsList: document.querySelector("#commentsList"),
-  trollboxCard: document.querySelector(".trollbox-card"),
-  trollboxAccess: document.querySelector("#trollboxAccess"),
-  trollboxStateText: document.querySelector("#trollboxStateText"),
-  trollboxVisibilityRead: document.querySelector("#trollboxVisibilityRead"),
-  trollboxVisibilityJoin: document.querySelector("#trollboxVisibilityJoin"),
-  trollboxVisibilityPost: document.querySelector("#trollboxVisibilityPost"),
-  trollboxComposerNotice: document.querySelector("#trollboxComposerNotice"),
-  trollboxJoin: document.querySelector("#trollboxJoin"),
-  trollboxFeed: document.querySelector("#trollboxFeed"),
-  trollboxComposer: document.querySelector("#trollboxComposer"),
-  trollboxInput: document.querySelector("#trollboxInput"),
-  trollboxSend: document.querySelector("#trollboxSend")
+  chatboxCard: document.querySelector(".chatbox-card"),
+  chatboxAccess: document.querySelector("#chatboxAccess"),
+  chatboxStateText: document.querySelector("#chatboxStateText"),
+  chatboxVisibilityRead: document.querySelector("#chatboxVisibilityRead"),
+  chatboxVisibilityJoin: document.querySelector("#chatboxVisibilityJoin"),
+  chatboxVisibilityPost: document.querySelector("#chatboxVisibilityPost"),
+  chatboxComposerNotice: document.querySelector("#chatboxComposerNotice"),
+  chatboxJoin: document.querySelector("#chatboxJoin"),
+  chatboxFeed: document.querySelector("#chatboxFeed"),
+  chatboxComposer: document.querySelector("#chatboxComposer"),
+  chatboxInput: document.querySelector("#chatboxInput"),
+  chatboxSend: document.querySelector("#chatboxSend")
 };
 
 const motion = createMotionAdapter();
@@ -213,13 +213,13 @@ function init() {
     engine: motion.engineName,
     pulseSearch,
     animateSelection,
-    animateTrollbox,
+    animateChatbox,
     animateAccessTransition,
     rerunIntro: runIntroMotion
   };
-  window.TechTreeTrollboxHooks = {
+  window.TechTreeChatboxHooks = {
     requestJoin,
-    getState: getTrollboxAccessState
+    getState: getChatboxAccessState
   };
   document.dispatchEvent(
     new CustomEvent("techtree:motion-ready", { detail: { engine: motion.engineName } })
@@ -239,35 +239,35 @@ function bindEvents() {
     state.selectedNodeId = button.dataset.nodeId;
     renderDetail();
     renderComments();
-    renderTrollboxAccess();
+    renderChatboxAccess();
     highlightActiveNode();
     animateSelection(button);
   });
 
-  el.trollboxJoin.addEventListener("click", () => {
+  el.chatboxJoin.addEventListener("click", () => {
     requestJoin();
   });
 
-  el.trollboxComposer.addEventListener("submit", (event) => {
+  el.chatboxComposer.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!canPostToTrollbox()) return;
+    if (!canPostToChatbox()) return;
 
-    const message = el.trollboxInput.value.trim();
+    const message = el.chatboxInput.value.trim();
     if (!message) return;
 
-    state.trollbox.unshift({
+    state.chatbox.unshift({
       handle: "you.local",
       age: "now",
       text: `[${state.selectedNodeId}] ${message}`
     });
 
-    if (state.trollbox.length > TROLLBOX_MAX_ENTRIES) {
-      state.trollbox.length = TROLLBOX_MAX_ENTRIES;
+    if (state.chatbox.length > TROLLBOX_MAX_ENTRIES) {
+      state.chatbox.length = TROLLBOX_MAX_ENTRIES;
     }
 
-    el.trollboxInput.value = "";
-    renderTrollbox();
-    animateTrollbox();
+    el.chatboxInput.value = "";
+    renderChatbox();
+    animateChatbox();
   });
 }
 
@@ -275,8 +275,8 @@ function render() {
   renderTree();
   renderDetail();
   renderComments();
-  renderTrollboxAccess();
-  renderTrollbox();
+  renderChatboxAccess();
+  renderChatbox();
 }
 
 function renderTree() {
@@ -364,11 +364,11 @@ function renderComments() {
     .join("");
 }
 
-function renderTrollbox() {
-  const access = getTrollboxAccessState();
-  el.trollboxFeed.hidden = access.readVisibility !== "visible";
+function renderChatbox() {
+  const access = getChatboxAccessState();
+  el.chatboxFeed.hidden = access.readVisibility !== "visible";
 
-  el.trollboxFeed.innerHTML = state.trollbox
+  el.chatboxFeed.innerHTML = state.chatbox
     .map(
       (entry) => `
         <li class="troll-item" data-motion="troll-item">
@@ -383,32 +383,32 @@ function renderTrollbox() {
     .join("");
 }
 
-function renderTrollboxAccess() {
-  const access = getTrollboxAccessState();
+function renderChatboxAccess() {
+  const access = getChatboxAccessState();
 
-  el.trollboxCard.dataset.membershipState = access.membershipState;
-  el.trollboxCard.dataset.readVisibility = access.readVisibility;
-  el.trollboxCard.dataset.joinVisibility = access.joinVisibility;
-  el.trollboxCard.dataset.postVisibility = access.postVisibility;
+  el.chatboxCard.dataset.membershipState = access.membershipState;
+  el.chatboxCard.dataset.readVisibility = access.readVisibility;
+  el.chatboxCard.dataset.joinVisibility = access.joinVisibility;
+  el.chatboxCard.dataset.postVisibility = access.postVisibility;
 
-  el.trollboxAccess.dataset.membershipState = access.membershipState;
-  el.trollboxAccess.dataset.readVisibility = access.readVisibility;
-  el.trollboxAccess.dataset.joinVisibility = access.joinVisibility;
-  el.trollboxAccess.dataset.postVisibility = access.postVisibility;
+  el.chatboxAccess.dataset.membershipState = access.membershipState;
+  el.chatboxAccess.dataset.readVisibility = access.readVisibility;
+  el.chatboxAccess.dataset.joinVisibility = access.joinVisibility;
+  el.chatboxAccess.dataset.postVisibility = access.postVisibility;
 
-  el.trollboxStateText.textContent = `membership: ${access.membershipState}`;
-  el.trollboxVisibilityRead.textContent = access.readVisibility;
-  el.trollboxVisibilityJoin.textContent = access.joinVisibility;
-  el.trollboxVisibilityPost.textContent = access.postVisibility;
-  el.trollboxComposerNotice.textContent = access.notice;
+  el.chatboxStateText.textContent = `membership: ${access.membershipState}`;
+  el.chatboxVisibilityRead.textContent = access.readVisibility;
+  el.chatboxVisibilityJoin.textContent = access.joinVisibility;
+  el.chatboxVisibilityPost.textContent = access.postVisibility;
+  el.chatboxComposerNotice.textContent = access.notice;
 
-  el.trollboxJoin.hidden = access.joinVisibility !== "visible";
-  el.trollboxComposer.hidden = access.postVisibility !== "visible";
-  el.trollboxInput.disabled = !access.canPost;
-  el.trollboxSend.disabled = !access.canPost;
+  el.chatboxJoin.hidden = access.joinVisibility !== "visible";
+  el.chatboxComposer.hidden = access.postVisibility !== "visible";
+  el.chatboxInput.disabled = !access.canPost;
+  el.chatboxSend.disabled = !access.canPost;
 }
 
-function getTrollboxAccessState() {
+function getChatboxAccessState() {
   const readVisibility = "visible";
 
   if (state.membershipState === MEMBERSHIP_STATE.pending) {
@@ -447,7 +447,7 @@ function requestJoin() {
   if (state.membershipState !== MEMBERSHIP_STATE.viewer) return;
 
   state.membershipState = MEMBERSHIP_STATE.pending;
-  renderTrollboxAccess();
+  renderChatboxAccess();
   animateAccessTransition();
 
   if (state.joinApprovalTimerId !== null) {
@@ -457,12 +457,12 @@ function requestJoin() {
   state.joinApprovalTimerId = window.setTimeout(() => {
     state.membershipState = MEMBERSHIP_STATE.member;
     state.joinApprovalTimerId = null;
-    renderTrollboxAccess();
+    renderChatboxAccess();
     animateAccessTransition();
   }, TROLLBOX_JOIN_APPROVAL_MS);
 }
 
-function canPostToTrollbox() {
+function canPostToChatbox() {
   return state.membershipState === MEMBERSHIP_STATE.member;
 }
 
@@ -491,14 +491,14 @@ function runIntroMotion() {
     duration: 620
   });
 
-  motion.animate("[data-motion='search-block'], [data-motion='detail-card'], [data-motion='trollbox-access']", {
+  motion.animate("[data-motion='search-block'], [data-motion='detail-card'], [data-motion='chatbox-access']", {
     opacity: [0, 1],
     translateY: [10, 0],
     duration: 560,
     delay: motion.stagger(90)
   });
 
-  motion.animate("[data-motion='comments-card'], [data-motion='trollbox-card']", {
+  motion.animate("[data-motion='comments-card'], [data-motion='chatbox-card']", {
     opacity: [0, 1],
     translateY: [14, 0],
     duration: 540,
@@ -540,8 +540,8 @@ function animateSelection(button) {
   });
 }
 
-function animateTrollbox() {
-  motion.animate("#trollboxFeed .troll-item", {
+function animateChatbox() {
+  motion.animate("#chatboxFeed .troll-item", {
     opacity: [0, 1],
     translateY: [10, 0],
     delay: motion.stagger(30),
@@ -550,13 +550,13 @@ function animateTrollbox() {
 }
 
 function animateAccessTransition() {
-  motion.animate("#trollboxAccess", {
+  motion.animate("#chatboxAccess", {
     opacity: [0.58, 1],
     translateY: [6, 0],
     duration: 240
   });
 
-  motion.animate("#trollboxJoin, #trollboxComposer", {
+  motion.animate("#chatboxJoin, #chatboxComposer", {
     opacity: [0.45, 1],
     scale: [0.985, 1],
     duration: 260

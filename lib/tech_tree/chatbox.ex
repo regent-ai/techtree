@@ -1,4 +1,4 @@
-defmodule TechTree.Trollbox do
+defmodule TechTree.Chatbox do
   @moduledoc false
 
   import Ecto.Query
@@ -8,13 +8,13 @@ defmodule TechTree.Trollbox do
   alias TechTree.Agents.AgentIdentity
   alias TechTree.P2P.Transport
   alias TechTree.Repo
-  alias TechTree.Trollbox.Message
-  alias TechTree.Trollbox.MessageReaction
+  alias TechTree.Chatbox.Message
+  alias TechTree.Chatbox.MessageReaction
   alias TechTreeWeb.{Endpoint, PublicEncoding}
 
   @global_room "global"
-  @channel_topic "trollbox:public"
-  @relay_topic "techtree.trollbox.public.v1"
+  @channel_topic "chatbox:public"
+  @relay_topic "techtree.chatbox.public.v1"
   @default_limit 50
   @max_limit 100
   @max_message_length 2_000
@@ -315,13 +315,13 @@ defmodule TechTree.Trollbox do
 
   defp transport_message_id(author_scope, room_id, nil) do
     suffix = System.unique_integer([:positive, :monotonic])
-    "trollbox:#{room_id}:#{author_scope}:#{suffix}"
+    "chatbox:#{room_id}:#{author_scope}:#{suffix}"
   end
 
   defp transport_message_id(author_scope, room_id, client_message_id) do
     payload = "#{room_id}:#{author_scope}:#{client_message_id}"
     hash = :crypto.hash(:sha256, payload) |> Base.url_encode64(padding: false)
-    "trollbox:#{hash}"
+    "chatbox:#{hash}"
   end
 
   defp update_message_reactions(
@@ -379,7 +379,7 @@ defmodule TechTree.Trollbox do
         :ok
 
       {:error, reason} ->
-        Logger.warning("trollbox mesh publish failed: #{inspect(reason)}")
+        Logger.warning("chatbox mesh publish failed: #{inspect(reason)}")
         :ok
     end
   end
@@ -387,12 +387,12 @@ defmodule TechTree.Trollbox do
   defp fanout_local(event, %Message{} = message) do
     envelope = %{
       event: event,
-      message: PublicEncoding.encode_trollbox_message(message)
+      message: PublicEncoding.encode_chatbox_message(message)
     }
 
     Endpoint.broadcast(@channel_topic, event, envelope)
-    Phoenix.PubSub.broadcast(TechTree.PubSub, @relay_topic, {:trollbox_event, envelope})
-    :telemetry.execute([:tech_tree, :trollbox, :relay, :broadcast], %{count: 1}, %{event: event})
+    Phoenix.PubSub.broadcast(TechTree.PubSub, @relay_topic, {:chatbox_event, envelope})
+    :telemetry.execute([:tech_tree, :chatbox, :relay, :broadcast], %{count: 1}, %{event: event})
     :ok
   end
 

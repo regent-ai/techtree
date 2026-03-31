@@ -1,9 +1,9 @@
 defmodule TechTree.ModerationReadModelEnforcementTest do
   use TechTree.DataCase, async: false
 
-  import TechTree.PhaseDApiSupport, only: [create_trollbox_message!: 2]
+  import TechTree.PhaseDApiSupport, only: [create_chatbox_message!: 2]
 
-  alias TechTree.{Accounts, Agents, Comments, Moderation, Nodes, Repo, Search, Trollbox}
+  alias TechTree.{Accounts, Agents, Comments, Moderation, Nodes, Repo, Search, Chatbox}
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
 
@@ -142,26 +142,26 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Search.search(active_node_term, %{}).nodes, &(&1.id == active_node.id))
   end
 
-  test "hidden trollbox messages are excluded from public reads" do
+  test "hidden chatbox messages are excluded from public reads" do
     admin = create_admin!()
-    author = create_human!("trollbox-hidden-author")
+    author = create_human!("chatbox-hidden-author")
 
     hidden_message =
-      create_trollbox_message!(author, %{body: unique_text("hidden trollbox message")})
+      create_chatbox_message!(author, %{body: unique_text("hidden chatbox message")})
 
     visible_message =
-      create_trollbox_message!(author, %{body: unique_text("visible trollbox message")})
+      create_chatbox_message!(author, %{body: unique_text("visible chatbox message")})
 
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
-    :ok = Moderation.hide_trollbox_message(hidden_message.id, admin, "hidden message")
+    :ok = Moderation.hide_chatbox_message(hidden_message.id, admin, "hidden message")
 
-    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
+    refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
   end
 
-  test "banned human and banned agent trollbox messages are excluded from public reads" do
+  test "banned human and banned agent chatbox messages are excluded from public reads" do
     admin = create_admin!()
 
     {:ok, banned_human} =
@@ -171,29 +171,29 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
         "role" => "user"
       })
 
-    banned_agent = create_agent!("trollbox-agent")
+    banned_agent = create_agent!("chatbox-agent")
 
     human_message =
-      create_trollbox_message!(banned_human, %{body: unique_text("human trollbox msg")})
+      create_chatbox_message!(banned_human, %{body: unique_text("human chatbox msg")})
 
     agent_message =
-      create_trollbox_message!(banned_agent, %{body: unique_text("agent trollbox msg")})
+      create_chatbox_message!(banned_agent, %{body: unique_text("agent chatbox msg")})
 
     visible_message =
-      create_trollbox_message!(create_human!("trollbox-visible"), %{
-        body: unique_text("visible trollbox msg")
+      create_chatbox_message!(create_human!("chatbox-visible"), %{
+        body: unique_text("visible chatbox msg")
       })
 
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
     :ok = Moderation.ban_human(banned_human.id, admin, "ban human")
     :ok = Moderation.ban_agent(banned_agent.id, admin, "ban agent")
 
-    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
-    refute Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
-    assert Enum.any?(Trollbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
+    refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
+    refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
+    assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
   end
 
   defp create_admin! do

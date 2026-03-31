@@ -1,4 +1,4 @@
-defmodule TechTreeWeb.V1PublishControllerTest do
+defmodule TechTreeWeb.RuntimePublishControllerTest do
   use TechTreeWeb.ConnCase, async: false
 
   import TechTree.V1ChainSupport

@@ -15,7 +15,7 @@
         <p class="kicker">Regent TechTree</p>
         <h1>Signal Cartography</h1>
         <p class="subhead">
-          Prototype for tree discovery, node detail, read-only comments, and a live trollbox lane.
+          Prototype for tree discovery, node detail, read-only comments, and a live chatbox lane.
         </p>
       </header>
 
@@ -53,43 +53,43 @@
           <ul id="commentsList" class="comments-list" aria-live="polite"></ul>
         </section>
 
-        <section class="card trollbox-card" data-motion="trollbox-card">
+        <section class="card chatbox-card" data-motion="chatbox-card">
           <div class="section-title-row">
-            <h2>Trollbox</h2>
+            <h2>Chatbox</h2>
             <span class="pill hot">live mirror</span>
           </div>
           <section
-            id="trollboxAccess"
-            class="trollbox-access"
-            data-motion="trollbox-access"
+            id="chatboxAccess"
+            class="chatbox-access"
+            data-motion="chatbox-access"
             data-membership-state="viewer"
             data-read-visibility="visible"
             data-join-visibility="visible"
             data-post-visibility="hidden"
           >
-            <p id="trollboxStateText" class="trollbox-state-text">membership: viewer</p>
-            <dl id="trollboxVisibilityPanel" class="trollbox-visibility">
+            <p id="chatboxStateText" class="chatbox-state-text">membership: viewer</p>
+            <dl id="chatboxVisibilityPanel" class="chatbox-visibility">
               <div class="visibility-row">
                 <dt>read</dt>
-                <dd id="trollboxVisibilityRead">visible</dd>
+                <dd id="chatboxVisibilityRead">visible</dd>
               </div>
               <div class="visibility-row">
                 <dt>join</dt>
-                <dd id="trollboxVisibilityJoin">visible</dd>
+                <dd id="chatboxVisibilityJoin">visible</dd>
               </div>
               <div class="visibility-row">
                 <dt>post</dt>
-                <dd id="trollboxVisibilityPost">hidden</dd>
+                <dd id="chatboxVisibilityPost">hidden</dd>
               </div>
             </dl>
-            <button id="trollboxJoin" type="button" class="trollbox-join">Request Join</button>
-            <p id="trollboxComposerNotice" class="trollbox-notice" aria-live="polite"></p>
+            <button id="chatboxJoin" type="button" class="chatbox-join">Request Join</button>
+            <p id="chatboxComposerNotice" class="chatbox-notice" aria-live="polite"></p>
           </section>
-          <ul id="trollboxFeed" class="trollbox-feed" aria-live="polite"></ul>
-          <form id="trollboxComposer" class="trollbox-composer" aria-describedby="trollboxComposerNotice">
-            <label class="sr-only" for="trollboxInput">Post to trollbox</label>
-            <input id="trollboxInput" type="text" maxlength="180" placeholder="Drop a quick field note..." />
-            <button id="trollboxSend" type="submit">Send</button>
+          <ul id="chatboxFeed" class="chatbox-feed" aria-live="polite"></ul>
+          <form id="chatboxComposer" class="chatbox-composer" aria-describedby="chatboxComposerNotice">
+            <label class="sr-only" for="chatboxInput">Post to chatbox</label>
+            <input id="chatboxInput" type="text" maxlength="180" placeholder="Drop a quick field note..." />
+            <button id="chatboxSend" type="submit">Send</button>
           </form>
         </section>
       </section>

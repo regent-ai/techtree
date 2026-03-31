@@ -12,8 +12,8 @@ defmodule TechTree.RateLimit do
   @reaction_policy %{capacity: 20, refill_tokens: 10, refill_interval_ms: 10_000}
   @node_create_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 3_600_000}
   @comment_create_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 300_000}
-  @trollbox_post_cooldown_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 1_000}
-  @trollbox_post_burst_policy %{capacity: 10, refill_tokens: 10, refill_interval_ms: 60_000}
+  @chatbox_post_cooldown_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 1_000}
+  @chatbox_post_burst_policy %{capacity: 10, refill_tokens: 10, refill_interval_ms: 60_000}
   @duplicate_cooldown_ms 30_000
 
   @bucket_script """
@@ -67,8 +67,8 @@ defmodule TechTree.RateLimit do
       },
       agent_node_create: @node_create_policy,
       agent_comment_create: @comment_create_policy,
-      trollbox_message: Map.put(@message_policy, :duplicate_cooldown_ms, @duplicate_cooldown_ms),
-      trollbox_reaction: @reaction_policy
+      chatbox_message: Map.put(@message_policy, :duplicate_cooldown_ms, @duplicate_cooldown_ms),
+      chatbox_reaction: @reaction_policy
     }
   end
 
@@ -96,10 +96,10 @@ defmodule TechTree.RateLimit do
     }
   end
 
-  @spec allow_trollbox_message(keyword()) :: :ok | {:error, limit_error()}
-  def allow_trollbox_message(opts) do
+  @spec allow_chatbox_message(keyword()) :: :ok | {:error, limit_error()}
+  def allow_chatbox_message(opts) do
     result =
-      with :ok <- consume_policy_keys("trollbox:message", @message_policy, opts),
+      with :ok <- consume_policy_keys("chatbox:message", @message_policy, opts),
            :ok <- check_duplicate_message(opts) do
         :ok
       end
@@ -108,9 +108,9 @@ defmodule TechTree.RateLimit do
     result
   end
 
-  @spec allow_trollbox_reaction(keyword()) :: :ok | {:error, limit_error()}
-  def allow_trollbox_reaction(opts) do
-    result = consume_policy_keys("trollbox:reaction", @reaction_policy, opts)
+  @spec allow_chatbox_reaction(keyword()) :: :ok | {:error, limit_error()}
+  def allow_chatbox_reaction(opts) do
+    result = consume_policy_keys("chatbox:reaction", @reaction_policy, opts)
     emit_throttle_event(result, :reaction)
     result
   end
@@ -153,31 +153,31 @@ defmodule TechTree.RateLimit do
 
   def check_comment_create!(_wallet_address, _node_id), do: {:error, :rate_limited}
 
-  @spec check_trollbox_post!(String.t() | nil) :: :ok | {:error, :rate_limited}
-  def check_trollbox_post!(identity) when is_binary(identity) do
+  @spec check_chatbox_post!(String.t() | nil) :: :ok | {:error, :rate_limited}
+  def check_chatbox_post!(identity) when is_binary(identity) do
     normalized_identity = String.trim(identity)
 
     with :ok <-
            strict_consume_bucket(
-             "rl:trollbox:post:#{normalized_identity}",
-             @trollbox_post_cooldown_policy
+             "rl:chatbox:post:#{normalized_identity}",
+             @chatbox_post_cooldown_policy
            ),
          :ok <-
            strict_consume_bucket(
-             "rl:trollbox:burst:#{normalized_identity}",
-             @trollbox_post_burst_policy
+             "rl:chatbox:burst:#{normalized_identity}",
+             @chatbox_post_burst_policy
            ) do
       :ok
     end
   end
 
-  def check_trollbox_post!(_identity), do: {:error, :rate_limited}
+  def check_chatbox_post!(_identity), do: {:error, :rate_limited}
 
   defp emit_throttle_event(:ok, _subject), do: :ok
 
   defp emit_throttle_event({:error, %{code: code, retry_after_ms: retry_after_ms}}, :message) do
     emit_throttle_telemetry(
-      [:tech_tree, :trollbox, :write, :throttle],
+      [:tech_tree, :chatbox, :write, :throttle],
       :message,
       code,
       retry_after_ms
@@ -186,7 +186,7 @@ defmodule TechTree.RateLimit do
 
   defp emit_throttle_event({:error, %{code: code, retry_after_ms: retry_after_ms}}, :reaction) do
     emit_throttle_telemetry(
-      [:tech_tree, :trollbox, :write, :throttle],
+      [:tech_tree, :chatbox, :write, :throttle],
       :reaction,
       code,
       retry_after_ms
@@ -346,7 +346,7 @@ defmodule TechTree.RateLimit do
         :ok
 
       {_, actor_scope, body} when is_binary(actor_scope) and is_binary(body) ->
-        key = "trollbox:duplicate:#{actor_scope}:#{hash_body(body)}"
+        key = "chatbox:duplicate:#{actor_scope}:#{hash_body(body)}"
 
         case rate_limit_backend() do
           :dragonfly ->

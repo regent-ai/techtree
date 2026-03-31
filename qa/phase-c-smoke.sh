@@ -138,8 +138,8 @@ capture_state() {
       agentComposerDisabled: !!document.querySelector("#frontpage-agent-panel input[disabled]"),
       humanComposerDisabled: !!document.querySelector("#frontpage-human-panel input[disabled]"),
       hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyTrollboxAccess: !!document.querySelector("#trollboxAccess"),
-      hasLegacyJoinButton: !!document.querySelector("#trollboxJoin")
+      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess"),
+      hasLegacyJoinButton: !!document.querySelector("#chatboxJoin")
     };
   })()' > "${STATE_FILE}"
 }
@@ -195,8 +195,8 @@ fi
 [[ "$(jq -r '.hasGraph' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: #frontpage-home-graph missing" >&2; exit 1; }
 [[ "$(jq -r '.hasGrid' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: #frontpage-home-grid missing" >&2; exit 1; }
 [[ "$(jq -r '.hasLegacyDetailCard' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #detailCard should not exist" >&2; exit 1; }
-[[ "$(jq -r '.hasLegacyTrollboxAccess' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #trollboxAccess should not exist" >&2; exit 1; }
-[[ "$(jq -r '.hasLegacyJoinButton' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #trollboxJoin should not exist" >&2; exit 1; }
+[[ "$(jq -r '.hasLegacyChatboxAccess' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #chatboxAccess should not exist" >&2; exit 1; }
+[[ "$(jq -r '.hasLegacyJoinButton' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #chatboxJoin should not exist" >&2; exit 1; }
 [[ "$(jq -r '.introOpen' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: intro should start open" >&2; exit 1; }
 [[ "$(jq -r '.viewMode' "${FIXTURE_FILE}")" == "graph" ]] || { echo "ASSERT FAIL: initial view mode should be graph" >&2; exit 1; }
 [[ "$(jq -r '.dataMode' "${FIXTURE_FILE}")" == "live" ]] || { echo "ASSERT FAIL: initial data mode should be live" >&2; exit 1; }
@@ -207,10 +207,10 @@ ab screenshot "${OUT_DIR}/01-landing.png"
 ab get text body > "${OUT_DIR}/01-body.txt"
 assert_contains "${OUT_DIR}/01-body.txt" "TechTree Homepage" "homepage heading should render"
 assert_contains "${OUT_DIR}/01-body.txt" "All agents start here:" "intro command header should render"
-assert_contains "${OUT_DIR}/01-body.txt" "Agent trollbox" "agent trollbox panel should render"
-assert_contains "${OUT_DIR}/01-body.txt" "Human trollbox" "human trollbox panel should render"
+assert_contains "${OUT_DIR}/01-body.txt" "Agent chatbox" "agent chatbox panel should render"
+assert_contains "${OUT_DIR}/01-body.txt" "Human chatbox" "human chatbox panel should render"
 assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy" "frontpage should prompt anonymous humans to sign in before posting"
-assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy to post into the public webapp trollbox." "frontpage should explain the anonymous trollbox gate"
+assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy to post into the public webapp chatbox." "frontpage should explain the anonymous chatbox gate"
 assert_not_contains "${OUT_DIR}/01-body.txt" "membership:" "legacy membership state should not render on the frontpage"
 assert_not_contains "${OUT_DIR}/01-body.txt" "Join request pending" "legacy join flow should not render on the frontpage"
 
@@ -231,9 +231,9 @@ wait_for_state_value '.topOpen' "false" "briefing toggle should collapse the top
 ab screenshot "${OUT_DIR}/04-top-collapsed.png"
 
 ab click "#frontpage-agent-panel [data-panel-close]"
-wait_for_state_value '.agentPanelOpen' "false" "agent panel toggle should collapse the agent trollbox"
+wait_for_state_value '.agentPanelOpen' "false" "agent panel toggle should collapse the agent chatbox"
 ab click "#frontpage-human-panel [data-panel-close]"
-wait_for_state_value '.humanPanelOpen' "false" "human panel toggle should collapse the human trollbox"
+wait_for_state_value '.humanPanelOpen' "false" "human panel toggle should collapse the human chatbox"
 capture_state
 [[ "$(jq -r '.agentComposerDisabled' "${STATE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: agent composer should remain disabled on the frontpage" >&2; exit 1; }
 [[ "$(jq -r '.humanComposerDisabled' "${STATE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: human composer should stay gated before Privy sign-in" >&2; exit 1; }
@@ -241,11 +241,11 @@ ab screenshot "${OUT_DIR}/05-panels-collapsed.png"
 
 cat > "${OUT_DIR}/99-assertions.txt" <<'EOF'
 phase-c smoke assertions passed:
-- current HomeLive shell renders the intro modal, briefing drawer, graph shell, grid shell, and both corner trollbox panels
-- removed legacy selectors (#detailCard, #trollboxAccess, #trollboxJoin) stay absent on the root route
+- current HomeLive shell renders the intro modal, briefing drawer, graph shell, grid shell, and both corner chatbox panels
+- removed legacy selectors (#detailCard, #chatboxAccess, #chatboxJoin) stay absent on the root route
 - intro dismissal updates the live root page state without leaving /
 - graph -> grid toggle updates the active stage and briefing copy to the infinite-grid presentation
-- briefing and both trollbox panels collapse independently via the current frontpage controls
-- anonymous humans see a Privy sign-in prompt before posting into the human trollbox
-- the human trollbox composer stays gated until Privy sign-in is completed
+- briefing and both chatbox panels collapse independently via the current frontpage controls
+- anonymous humans see a Privy sign-in prompt before posting into the human chatbox
+- the human chatbox composer stays gated until Privy sign-in is completed
 EOF

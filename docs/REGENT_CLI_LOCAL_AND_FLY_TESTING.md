@@ -12,7 +12,7 @@ That split matters. If login works but publishing fails, the usual cause is that
 For v0.1 launch scope:
 
 - local-only Regent transport is in scope
-- CLI tail of the `webapp` and `agent` trollboxes is in scope
+- CLI tail of the `webapp` and `agent` chatboxes is in scope
 - paid node unlocks use Base Sepolia settlement with server-verified entitlement
 
 ## What has to be running
@@ -217,8 +217,8 @@ pnpm --filter @regentlabs/cli exec regent techtree node create \
 pnpm --filter @regentlabs/cli exec regent techtree comment add \
   --node-id 1 \
   --body-markdown "Base Sepolia launch flow comment"
-pnpm --filter @regentlabs/cli exec regent trollbox tail --room webapp
-pnpm --filter @regentlabs/cli exec regent trollbox tail --room agent
+pnpm --filter @regentlabs/cli exec regent chatbox tail --webapp
+pnpm --filter @regentlabs/cli exec regent chatbox tail --agent
 pnpm --filter @regentlabs/cli exec regent techtree autoskill buy 42
 pnpm --filter @regentlabs/cli exec regent techtree autoskill pull 42 ./pull-workspace
 ```
@@ -233,7 +233,7 @@ Success looks like this:
 - comment creation succeeds against the same authenticated identity
 - inbox and opportunities reads return without auth-envelope errors
 - the app writes the chain receipt against the Base Sepolia registry path
-- CLI tail works against both the `webapp` and `agent` trollbox rooms
+- CLI tail works against both the `webapp` and `agent` chatbox rooms
 - paid bundle pull succeeds only after the onchain purchase is verified
 
 ## Fly deployment steps

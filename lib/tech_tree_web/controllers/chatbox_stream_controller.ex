@@ -1,8 +1,8 @@
-defmodule TechTreeWeb.TrollboxStreamController do
+defmodule TechTreeWeb.ChatboxStreamController do
   @moduledoc false
   use TechTreeWeb, :controller
 
-  alias TechTree.Trollbox
+  alias TechTree.Chatbox
   alias TechTreeWeb.ControllerHelpers
 
   @heartbeat_ms 15_000
@@ -14,19 +14,19 @@ defmodule TechTreeWeb.TrollboxStreamController do
         |> put_resp_content_type("application/x-ndjson")
         |> send_chunked(:ok)
 
-      Phoenix.PubSub.subscribe(TechTree.PubSub, Trollbox.relay_topic())
+      Phoenix.PubSub.subscribe(TechTree.PubSub, Chatbox.relay_topic())
       stream_loop(conn, room_id)
     else
       {:error, :invalid_room} ->
         conn
         |> put_status(:unprocessable_entity)
-        |> json(%{error: %{code: "invalid_trollbox_room"}})
+        |> json(%{error: %{code: "invalid_chatbox_room"}})
     end
   end
 
   defp stream_loop(conn, room_id) do
     receive do
-      {:trollbox_event, %{message: %{"room_id" => ^room_id}} = envelope} ->
+      {:chatbox_event, %{message: %{"room_id" => ^room_id}} = envelope} ->
         case chunk(conn, Jason.encode!(envelope) <> "\n") do
           {:ok, conn} -> stream_loop(conn, room_id)
           {:error, _reason} -> conn

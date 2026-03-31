@@ -1,4 +1,4 @@
-defmodule TechTree.Trollbox.MessageReaction do
+defmodule TechTree.Chatbox.MessageReaction do
   @moduledoc false
 
   use TechTree.Schema
@@ -15,12 +15,12 @@ defmodule TechTree.Trollbox.MessageReaction do
           updated_at: DateTime.t() | nil
         }
 
-  schema "trollbox_message_reactions" do
+  schema "chatbox_message_reactions" do
     field :actor_kind, Ecto.Enum, values: @actor_kinds
     field :actor_ref, :integer
     field :reaction, :string
 
-    belongs_to :message, TechTree.Trollbox.Message
+    belongs_to :message, TechTree.Chatbox.Message
 
     timestamps()
   end
@@ -33,7 +33,7 @@ defmodule TechTree.Trollbox.MessageReaction do
     |> validate_length(:reaction, max: 32)
     |> foreign_key_constraint(:message_id)
     |> unique_constraint(:reaction,
-      name: :trollbox_message_reactions_message_actor_reaction_uidx
+      name: :chatbox_message_reactions_message_actor_reaction_uidx
     )
   end
 end

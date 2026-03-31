@@ -8,6 +8,8 @@
     "@deck.gl/core": "^9.2.11",
     "@deck.gl/extensions": "^9.2.11",
     "@deck.gl/layers": "^9.2.11"
+    ,
+    "heerich": "0.5.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

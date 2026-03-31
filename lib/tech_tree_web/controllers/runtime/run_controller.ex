@@ -1,26 +1,26 @@
-defmodule TechTreeWeb.V1.RunController do
+defmodule TechTreeWeb.Runtime.RunController do
   use TechTreeWeb, :controller
 
   alias TechTree.V1
-  alias TechTreeWeb.{ApiError, V1Encoding}
+  alias TechTreeWeb.{ApiError, RuntimeEncoding}
 
   def show(conn, %{"id" => id}) do
     case V1.get_run(id) do
       nil -> ApiError.render(conn, :not_found, %{code: "run_not_found"})
-      bundle -> json(conn, %{data: V1Encoding.encode_run_bundle(bundle)})
+      bundle -> json(conn, %{data: RuntimeEncoding.encode_run_bundle(bundle)})
     end
   end
 
   def validate(conn, %{"id" => id} = params) do
     case V1.validate_run(id, params) do
-      {:ok, node} -> conn |> put_status(:created) |> json(%{data: V1Encoding.encode_node(node)})
+      {:ok, node} -> conn |> put_status(:created) |> json(%{data: RuntimeEncoding.encode_node(node)})
       {:error, reason} -> render_error(conn, "run_validation_failed", reason)
     end
   end
 
   def challenge(conn, %{"id" => id} = params) do
     case V1.challenge_run(id, params) do
-      {:ok, node} -> conn |> put_status(:created) |> json(%{data: V1Encoding.encode_node(node)})
+      {:ok, node} -> conn |> put_status(:created) |> json(%{data: RuntimeEncoding.encode_node(node)})
       {:error, reason} -> render_error(conn, "run_challenge_failed", reason)
     end
   end

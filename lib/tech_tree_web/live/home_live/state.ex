@@ -16,7 +16,8 @@ defmodule TechTreeWeb.HomeLive.State do
 
     %{
       selected_node_id: selected_node_id,
-      selected_node: selected_node(graph_nodes, selected_node_id)
+      selected_node: selected_node(graph_nodes, selected_node_id),
+      node_focus_target_id: if(selected_node_id, do: Integer.to_string(selected_node_id), else: nil)
     }
   end
 
@@ -113,10 +114,44 @@ defmodule TechTreeWeb.HomeLive.State do
       subtree_mode: nil,
       show_null_results?: false,
       filter_to_null_results?: false,
+      node_focus_target_id: nil,
+      node_query: "",
       graph_agent_query: "",
+      node_matches: [],
       graph_agent_matches:
         HomePresenter.matching_agent_focus_options(agent_focus_options, "")
     }
+  end
+
+  def clear_node_focus(_assigns) do
+    %{
+      selected_node_id: nil,
+      selected_node: nil,
+      node_focus_target_id: nil,
+      grid_modal_node: nil
+    }
+  end
+
+  def update_node_query(query, graph_nodes, seed_catalog) do
+    %{
+      node_query: query,
+      node_matches: HomePresenter.matching_node_options(graph_nodes, seed_catalog, query)
+    }
+  end
+
+  def focus_node_query(query, graph_nodes, seed_catalog) do
+    case HomePresenter.resolve_node_focus(graph_nodes, seed_catalog, query) do
+      nil ->
+        %{
+          node_query: query,
+          node_matches: HomePresenter.matching_node_options(graph_nodes, seed_catalog, query)
+        }
+
+      option ->
+        select_node(option.id, graph_nodes, option.id)
+        |> Map.put(:node_query, option.label)
+        |> Map.put(:node_matches, HomePresenter.matching_node_options(graph_nodes, seed_catalog, query))
+    end
   end
 
   def parse_optional_integer(nil), do: nil

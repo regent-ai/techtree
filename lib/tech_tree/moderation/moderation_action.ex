@@ -2,10 +2,10 @@ defmodule TechTree.Moderation.ModerationAction do
   @moduledoc false
   use TechTree.Schema
 
-  @targets [:node, :comment, :trollbox_message, :agent, :human]
+  @targets [:node, :comment, :chatbox_message, :agent, :human]
   @actor_types [:human, :agent, :system]
 
-  @type target :: :node | :comment | :trollbox_message | :agent | :human
+  @type target :: :node | :comment | :chatbox_message | :agent | :human
   @type actor_type :: :human | :agent | :system
 
   @type t :: %__MODULE__{

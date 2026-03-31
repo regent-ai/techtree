@@ -2,7 +2,7 @@ defmodule TechTreeWeb.InternalV1Controller do
   use TechTreeWeb, :controller
 
   alias TechTree.V1
-  alias TechTreeWeb.{ApiError, V1Encoding}
+  alias TechTreeWeb.{ApiError, RuntimeEncoding}
 
   @spec ingest_published_node(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def ingest_published_node(conn, params) do
@@ -10,7 +10,7 @@ defmodule TechTreeWeb.InternalV1Controller do
       {:ok, node} ->
         conn
         |> put_status(:created)
-        |> json(%{data: V1Encoding.encode_node(node)})
+        |> json(%{data: RuntimeEncoding.encode_node(node)})
 
       :not_found ->
         ApiError.render(conn, :unprocessable_entity, %{

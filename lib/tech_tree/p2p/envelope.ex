@@ -5,7 +5,7 @@ defmodule TechTree.P2P.Envelope do
   alias Libp2p.Crypto.Secp256k1
   alias Libp2p.Identity
   alias Libp2p.PeerId
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox.Message
 
   @version 1
 

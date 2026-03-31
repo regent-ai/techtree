@@ -12,7 +12,7 @@ export const platformHooks: HooksOptions = {
   BbhCapsuleWall,
   HomeIntroModal: createLazyHook("HomeIntroModal", "/assets/js/home.js"),
   FrontpageWindows: createLazyHook("FrontpageWindows", "/assets/js/home.js"),
-  HomeTrollbox: createLazyHook("HomeTrollbox", "/assets/js/home.js"),
+  HomeChatbox: createLazyHook("HomeChatbox", "/assets/js/home.js"),
   HumanMotion,
   PlatformAuth: createLazyHook("PlatformAuth", "/assets/js/platform-auth-entry.js"),
   PlatformExplorer,

@@ -20,9 +20,9 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
       conn
       |> put_req_header("accept", "application/json")
       |> post("/api/internal/xmtp/rooms/ensure", %{
-        "room_key" => "public-trollbox",
-        "xmtp_group_id" => "xmtp-public-trollbox",
-        "name" => "Public Trollbox",
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox",
+        "name" => "Public Chatbox",
         "status" => "active"
       })
 
@@ -40,9 +40,9 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
       conn
       |> put_req_header("accept", "application/json")
       |> post("/api/internal/xmtp/rooms/ensure", %{
-        "room_key" => "public-trollbox",
-        "xmtp_group_id" => "xmtp-public-trollbox",
-        "name" => "Public Trollbox",
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox",
+        "name" => "Public Chatbox",
         "status" => "active"
       })
 
@@ -54,24 +54,24 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     room_conn =
       post(authed_conn, "/api/internal/xmtp/rooms/ensure", %{
-        "room_key" => "public-trollbox",
-        "xmtp_group_id" => "xmtp-public-trollbox",
-        "name" => "Public Trollbox",
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox",
+        "name" => "Public Chatbox",
         "status" => "active"
       })
 
     assert %{
              "data" => %{
-               "room_key" => "public-trollbox",
-               "xmtp_group_id" => "xmtp-public-trollbox",
-               "name" => "Public Trollbox",
+               "room_key" => "public-chatbox",
+               "xmtp_group_id" => "xmtp-public-chatbox",
+               "name" => "Public Chatbox",
                "status" => "active"
              }
            } = json_response(room_conn, 200)
 
     message_conn =
       post(authed_conn, "/api/internal/xmtp/messages/ingest", %{
-        "room_key" => "public-trollbox",
+        "room_key" => "public-chatbox",
         "xmtp_message_id" => "msg-1",
         "sender_inbox_id" => "inbox-1",
         "sender_wallet_address" => "0xsender",
@@ -99,7 +99,7 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     lease_conn =
       post(authed_conn, "/api/internal/xmtp/commands/lease", %{
-        "room_key" => "public-trollbox"
+        "room_key" => "public-chatbox"
       })
 
     assert %{
@@ -129,7 +129,7 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     lease_conn2 =
       post(authed_conn, "/api/internal/xmtp/commands/lease", %{
-        "room_key" => "public-trollbox"
+        "room_key" => "public-chatbox"
       })
 
     assert %{"data" => %{"id" => leased_id2}} = json_response(lease_conn2, 200)
@@ -189,7 +189,7 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     lease_conn =
       post(authed_conn, "/api/internal/xmtp/commands/lease", %{
-        "room_key" => "public-trollbox"
+        "room_key" => "public-chatbox"
       })
 
     assert %{"data" => %{"id" => leased_id}} = json_response(lease_conn, 200)
@@ -217,7 +217,7 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     lease_conn =
       post(authed_conn, "/api/internal/xmtp/commands/lease", %{
-        "room_key" => "public-trollbox"
+        "room_key" => "public-chatbox"
       })
 
     assert %{"data" => %{"id" => leased_id}} = json_response(lease_conn, 200)
@@ -240,9 +240,9 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
   defp ensure_room_and_seed_command(conn, command_attrs) do
     room_conn =
       post(conn, "/api/internal/xmtp/rooms/ensure", %{
-        "room_key" => "public-trollbox",
-        "xmtp_group_id" => "xmtp-public-trollbox",
-        "name" => "Public Trollbox",
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox",
+        "name" => "Public Chatbox",
         "status" => "active"
       })
 

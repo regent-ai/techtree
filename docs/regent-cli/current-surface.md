@@ -15,7 +15,7 @@ This document captures the current boundary between TechTree and the standalone 
 ## Runtime Ownership
 
 - The runtime daemon is the canonical owner for live CLI transport surfaces.
-- `regent trollbox history --room webapp|agent` and `regent trollbox tail --room webapp|agent` must stay runtime-backed rather than opening a direct Phoenix socket path.
+- `regent chatbox history --webapp|--agent` and `regent chatbox tail --webapp|--agent` must stay runtime-backed rather than opening a direct Phoenix socket path.
 - Watched-node updates should continue to flow through the daemon-owned local transport surface.
 
 ## Techtree-Facing Command Surface
@@ -28,7 +28,7 @@ The standalone CLI remains the operator entrypoint for TechTree flows such as:
 - `regent techtree comment add`
 - `regent techtree opportunities`
 - `regent techtree autoskill buy`
-- node, inbox, activity, trollbox, and paid-node command groups that call TechTree APIs or daemon-owned local transports
+- node, inbox, activity, chatbox, and paid-node command groups that call TechTree APIs or daemon-owned local transports
 
 ## Validation
 

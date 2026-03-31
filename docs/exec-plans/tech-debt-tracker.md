@@ -14,7 +14,7 @@ Use this file to record recurring cleanup targets that should become recurring m
 
 ### Release-critical operator checks
 
-- Apply `priv/repo/migrations/20260312180000_create_trollbox_message_reactions.exs` in the target environment before opening public reactions.
+- Apply `priv/repo/migrations/20260312180000_create_chatbox_message_reactions.exs` in the target environment before opening public reactions.
 - Do one real operator pass on `/platform/moderation` with a real admin account:
   verify admin session flow, hide/unhide, ban/unban, and actor-history behavior.
 - Keep browser release evidence current:
@@ -23,7 +23,7 @@ Use this file to record recurring cleanup targets that should become recurring m
 ### Observability and hardening follow-ups
 
 - Add production alerting around relay and write-throttle paths.
-  Minimum signals: rate-limit hits, trollbox relay disconnects, and moderation actions.
+  Minimum signals: rate-limit hits, chatbox relay disconnects, and moderation actions.
 - Audit and tune the shared rate-limit policy for agent node and agent comment create paths.
   Current state: these writes are now enforced through `TechTree.RateLimit`; follow-up work is policy tuning, observability, and production threshold review.
 - Keep the runtime NDJSON stream contract stable now that Regent live tail is part of the launch surface.

@@ -1,20 +1,20 @@
-defmodule TechTreeWeb.V1.ArtifactController do
+defmodule TechTreeWeb.Runtime.ArtifactController do
   use TechTreeWeb, :controller
 
   alias TechTree.V1
-  alias TechTreeWeb.{ApiError, V1Encoding}
+  alias TechTreeWeb.{ApiError, RuntimeEncoding}
 
   def show(conn, %{"id" => id}) do
     case V1.get_artifact(id) do
       nil -> ApiError.render(conn, :not_found, %{code: "artifact_not_found"})
-      bundle -> json(conn, %{data: V1Encoding.encode_artifact_bundle(bundle)})
+      bundle -> json(conn, %{data: RuntimeEncoding.encode_artifact_bundle(bundle)})
     end
   end
 
   def parents(conn, %{"id" => id}) do
     if V1.get_artifact(id) do
       json(conn, %{
-        data: Enum.map(V1.list_artifact_parents(id), &V1Encoding.encode_node(&1.parent))
+        data: Enum.map(V1.list_artifact_parents(id), &RuntimeEncoding.encode_node(&1.parent))
       })
     else
       ApiError.render(conn, :not_found, %{code: "artifact_not_found"})
@@ -24,7 +24,7 @@ defmodule TechTreeWeb.V1.ArtifactController do
   def children(conn, %{"id" => id}) do
     if V1.get_artifact(id) do
       json(conn, %{
-        data: Enum.map(V1.list_artifact_children(id), &V1Encoding.encode_node(&1.child))
+        data: Enum.map(V1.list_artifact_children(id), &RuntimeEncoding.encode_node(&1.child))
       })
     else
       ApiError.render(conn, :not_found, %{code: "artifact_not_found"})
@@ -34,7 +34,7 @@ defmodule TechTreeWeb.V1.ArtifactController do
   def runs(conn, %{"id" => id}) do
     if V1.get_artifact(id) do
       json(conn, %{
-        data: Enum.map(V1.list_artifact_runs(id), &V1Encoding.encode_run_summary/1)
+        data: Enum.map(V1.list_artifact_runs(id), &RuntimeEncoding.encode_run_summary/1)
       })
     else
       ApiError.render(conn, :not_found, %{code: "artifact_not_found"})
@@ -43,7 +43,7 @@ defmodule TechTreeWeb.V1.ArtifactController do
 
   def challenge(conn, %{"id" => id} = params) do
     case V1.challenge_artifact(id, params) do
-      {:ok, node} -> conn |> put_status(:created) |> json(%{data: V1Encoding.encode_node(node)})
+      {:ok, node} -> conn |> put_status(:created) |> json(%{data: RuntimeEncoding.encode_node(node)})
       {:error, reason} -> render_error(conn, reason)
     end
   end

@@ -1,4 +1,4 @@
-defmodule TechTreeWeb.TrollboxMembershipController do
+defmodule TechTreeWeb.ChatboxMembershipController do
   use TechTreeWeb, :controller
 
   alias TechTree.XMTPMirror
@@ -21,13 +21,13 @@ defmodule TechTreeWeb.TrollboxMembershipController do
       {:error, :human_banned} ->
         ApiError.render(conn, :forbidden, %{
           code: "human_banned",
-          message: "banned humans cannot join trollbox"
+          message: "banned humans cannot join chatbox"
         })
 
       {:error, :room_not_found} ->
         ApiError.render(conn, :unprocessable_entity, %{
           code: "room_not_found",
-          message: "requested trollbox room not found"
+          message: "requested chatbox room not found"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->

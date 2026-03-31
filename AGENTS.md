@@ -21,7 +21,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - `$TECH` lives on Ethereum mainnet.
 - TECH emissions start on Ethereum mainnet only.
 - Paid node unlocks use the Base Sepolia content settlement rail for this launch.
-- Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` trollbox rooms.
+- Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` chatbox rooms.
 - Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Ethereum Sepolia identity, and Ethereum mainnet TECH emissions are related but not interchangeable.
 - Keep Techtree chain language separate from Autolaunch chain language. Autolaunch is Ethereum-mainnet-first. Techtree spans Base and Ethereum concerns.
 
@@ -30,9 +30,15 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
 - For API <-> backend functionality, treat the Regent CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regent-cli`, then update Techtree backend code to match.
+- Contract file meanings:
+  - `api-contract.openapiv3.yaml` is the source of truth for a product's HTTP backend contract, including routes, auth, request bodies, response shapes, and stable error envelopes.
+  - `regent-services-contract.openapiv3.yaml` is the source of truth for shared HTTP backend contracts that are not owned by one product, such as `regent-staking`.
+  - `cli-contract.yaml` is the source of truth for a product's shipped CLI surface, including command names, flags/args, auth mode, whether a command is HTTP-backed or local/runtime-backed, and which backend contract operation it is allowed to use.
 - The first files to check for API-contract work are:
   - `/Users/sean/Documents/regent/regent-cli/docs/api-contract-workflow.md`
   - `/Users/sean/Documents/regent/techtree/docs/api-contract.openapiv3.yaml`
+  - `/Users/sean/Documents/regent/techtree/docs/cli-contract.yaml`
+  - `/Users/sean/Documents/regent/regent-cli/docs/regent-services-contract.openapiv3.yaml`
   - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
   - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
 - If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.

@@ -23,7 +23,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     {:ok, privy: privy}
   end
 
-  test "covers Phase D API e2e flow across reads, auth writes, readiness, watches, trollbox, and moderation",
+  test "covers Phase D API e2e flow across reads, auth writes, readiness, watches, chatbox, and moderation",
        %{privy: privy} do
     root_creator = create_agent!("phase-d-root")
     root_node = create_ready_node!(root_creator, title: "phase-d-root-#{unique_suffix()}")
@@ -228,38 +228,38 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     _room = create_canonical_room!()
 
     visible_message =
-      create_trollbox_message!(human, %{
-        body: "phase-d-trollbox-#{unique_suffix()}"
+      create_chatbox_message!(human, %{
+        body: "phase-d-chatbox-#{unique_suffix()}"
       })
 
     assert %{"data" => public_messages} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/trollbox/messages")
+             |> get("/v1/chatbox/messages")
              |> json_response(200)
 
     assert Enum.any?(public_messages, &(&1["id"] == visible_message.id))
 
     assert %{"data" => %{"room_present" => true, "state" => "not_joined"}} =
              human_conn.()
-             |> get("/v1/trollbox/membership")
+             |> get("/v1/chatbox/membership")
              |> json_response(200)
 
     assert %{"data" => %{"status" => "pending", "human_id" => requested_human_id}} =
              human_conn.()
-             |> post("/v1/trollbox/request-join", %{})
+             |> post("/v1/chatbox/request-join", %{})
              |> json_response(200)
 
     assert requested_human_id == human.id
 
     assert %{"data" => %{"room_present" => true, "state" => "join_pending"}} =
              human_conn.()
-             |> get("/v1/trollbox/membership")
+             |> get("/v1/chatbox/membership")
              |> json_response(200)
 
     assert %{"ok" => true} =
              admin_conn.()
-             |> post("/v1/admin/trollbox/members/#{human.id}/add", %{})
+             |> post("/v1/admin/chatbox/members/#{human.id}/add", %{})
              |> json_response(200)
 
     assert_eventually_true("add_member command should persist", fn ->
@@ -288,12 +288,12 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     assert %{"data" => %{"state" => "joined"}} =
              human_conn.()
-             |> get("/v1/trollbox/membership")
+             |> get("/v1/chatbox/membership")
              |> json_response(200)
 
     assert %{"data" => %{"body" => posted_body, "author_kind" => "human"}} =
              human_conn.()
-             |> post("/v1/trollbox/messages", %{
+             |> post("/v1/chatbox/messages", %{
                "body" => "phase-d-human-post-#{unique_suffix()}"
              })
              |> json_response(201)
@@ -302,7 +302,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     assert %{"ok" => true} =
              admin_conn.()
-             |> post("/v1/admin/trollbox/members/#{human.id}/remove", %{})
+             |> post("/v1/admin/chatbox/members/#{human.id}/remove", %{})
              |> json_response(200)
 
     assert_eventually_true("remove_member command should persist", fn ->
@@ -315,17 +315,17 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     assert %{"ok" => true} =
              admin_conn.()
-             |> post("/v1/admin/trollbox/messages/#{visible_message.id}/hide", %{
+             |> post("/v1/admin/chatbox/messages/#{visible_message.id}/hide", %{
                "reason" => "phase-d-hide-message"
              })
              |> json_response(200)
 
     moderated_messages =
-      await_ok("moderated message should disappear from public trollbox feed", fn ->
+      await_ok("moderated message should disappear from public chatbox feed", fn ->
         response =
           Phoenix.ConnTest.build_conn()
           |> put_req_header("accept", "application/json")
-          |> get("/v1/trollbox/messages")
+          |> get("/v1/chatbox/messages")
           |> json_response(200)
 
         data = Map.get(response, "data", [])

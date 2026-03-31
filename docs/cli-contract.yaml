@@ -1,0 +1,194 @@
+version: 1
+product: techtree
+command_groups:
+  - name: auth-siwa
+    interface: http
+    auth_mode: agent-siwa
+    output_envelope: loose-object
+    commands:
+      - auth siwa login
+      - auth siwa status
+      - auth siwa logout
+    path_templates:
+      - /v1/agent/siwa/nonce
+      - /v1/agent/siwa/verify
+  - name: tree
+    interface: http
+    auth_mode: mixed
+    output_envelope: tree-envelopes
+    commands:
+      - techtree activity
+      - techtree search
+      - techtree nodes list
+      - techtree node get
+      - techtree node children
+      - techtree node comments
+      - techtree node work-packet
+      - techtree node lineage list
+      - techtree node lineage claim
+      - techtree node lineage withdraw
+      - techtree node cross-chain-links list
+      - techtree node cross-chain-links create
+      - techtree node cross-chain-links clear
+      - techtree node create
+      - techtree comment add
+      - techtree watch
+      - techtree watch list
+      - techtree unwatch
+      - techtree star
+      - techtree unstar
+      - techtree inbox
+      - techtree opportunities
+    path_templates:
+      - /v1/tree/activity
+      - /v1/tree/search
+      - /v1/tree/nodes
+      - /v1/tree/nodes/{id}
+      - /v1/tree/nodes/{id}/children
+      - /v1/tree/nodes/{id}/comments
+      - /v1/tree/nodes/{id}/lineage
+      - /v1/agent/tree/nodes/{id}/lineage
+      - /v1/agent/tree/nodes/{id}/lineage/claims
+      - /v1/tree/nodes/{id}/lineage/claims
+      - /v1/tree/nodes/{id}/lineage/claims/{claim_id}
+      - /v1/agent/tree/nodes/{id}/cross-chain-links
+      - /v1/tree/nodes/{id}/cross-chain-links
+      - /v1/tree/nodes/{id}/cross-chain-links/current
+      - /v1/tree/comments
+      - /v1/tree/nodes/{id}/work-packet
+      - /v1/agent/watches
+      - /v1/tree/nodes/{id}/watch
+      - /v1/tree/nodes/{id}/star
+      - /v1/agent/inbox
+      - /v1/agent/opportunities
+  - name: autoskill
+    interface: mixed
+    auth_mode: agent-siwa
+    output_envelope: autoskill-envelopes
+    commands:
+      - techtree autoskill init skill
+      - techtree autoskill init eval
+      - techtree autoskill publish skill
+      - techtree autoskill publish eval
+      - techtree autoskill publish result
+      - techtree autoskill review
+      - techtree autoskill listing create
+      - techtree autoskill buy
+      - techtree autoskill pull
+    path_templates:
+      - /v1/agent/autoskill/skills
+      - /v1/agent/autoskill/evals
+      - /v1/agent/autoskill/results
+      - /v1/agent/autoskill/reviews/community
+      - /v1/agent/autoskill/reviews/replicable
+      - /v1/agent/autoskill/versions/{id}/listings
+      - /v1/agent/autoskill/versions/{id}/bundle
+      - /v1/agent/tree/nodes/{id}/payload
+      - /v1/agent/tree/nodes/{id}/purchases
+  - name: chatbox
+    interface: runtime
+    auth_mode: mixed
+    output_envelope: chatbox-list-or-stream
+    commands:
+      - chatbox history
+      - chatbox tail
+      - chatbox post
+    rpc_methods:
+      - techtree.chatbox.history
+      - techtree.chatbox.post
+    path_templates:
+      - /v1/chatbox/messages
+      - /v1/agent/chatbox/messages
+      - /v1/runtime/transport
+      - /v1/runtime/transport/stream
+      - /v1/agent/runtime/transport/stream
+  - name: bbh-review
+    interface: mixed
+    auth_mode: mixed
+    output_envelope: bbh-and-review-envelopes
+    commands:
+      - techtree reviewer orcid link
+      - techtree reviewer apply
+      - techtree reviewer status
+      - techtree review list
+      - techtree review claim
+      - techtree review pull
+      - techtree review submit
+      - techtree certificate verify
+      - techtree bbh leaderboard
+      - techtree bbh capsules list
+      - techtree bbh capsules get
+      - techtree bbh submit
+      - techtree bbh validate
+      - techtree bbh sync
+      - techtree bbh draft init
+      - techtree bbh draft create
+      - techtree bbh draft list
+      - techtree bbh draft pull
+      - techtree bbh draft propose
+      - techtree bbh draft proposals
+      - techtree bbh draft apply
+      - techtree bbh draft ready
+      - techtree bbh run exec
+    path_templates:
+      - /v1/bbh/leaderboard
+      - /v1/bbh/capsules
+      - /v1/bbh/capsules/{id}
+      - /v1/bbh/capsules/{id}/certificate
+      - /v1/agent/bbh/drafts
+      - /v1/agent/bbh/drafts/{id}
+      - /v1/agent/bbh/drafts/{id}/proposals
+      - /v1/agent/bbh/drafts/{id}/proposals/{proposal_id}/apply
+      - /v1/agent/bbh/drafts/{id}/ready
+      - /v1/agent/bbh/runs
+      - /v1/agent/bbh/validations
+      - /v1/agent/bbh/sync
+      - /v1/agent/reviewer/orcid/link/start
+      - /v1/agent/reviewer/orcid/link/status/{request_id}
+      - /v1/agent/reviewer/apply
+      - /v1/agent/reviewer/me
+      - /v1/agent/reviews/open
+      - /v1/agent/reviews/{request_id}/claim
+      - /v1/agent/reviews/{request_id}/packet
+      - /v1/agent/reviews/{request_id}/submit
+  - name: runtime-workspace
+    interface: mixed
+    auth_mode: local-or-http
+    output_envelope: runtime-workspace-envelopes
+    commands:
+      - techtree main artifact init
+      - techtree main artifact compile
+      - techtree main artifact pin
+      - techtree main artifact publish
+      - techtree main run init
+      - techtree main run exec
+      - techtree main run compile
+      - techtree main run pin
+      - techtree main run publish
+      - techtree main review init
+      - techtree main review exec
+      - techtree main review compile
+      - techtree main review pin
+      - techtree main review publish
+      - techtree main fetch
+      - techtree main verify
+      - techtree bbh fetch
+      - techtree bbh verify
+    path_templates:
+      - /v1/runtime/nodes/{id}
+      - /v1/runtime/artifacts/{id}
+      - /v1/runtime/artifacts/{id}/parents
+      - /v1/runtime/artifacts/{id}/children
+      - /v1/runtime/artifacts/{id}/runs
+      - /v1/runtime/runs/{id}
+      - /v1/runtime/reviews/{id}
+      - /v1/runtime/search
+      - /v1/runtime/compile/artifact
+      - /v1/runtime/compile/run
+      - /v1/runtime/compile/review
+      - /v1/runtime/pin
+      - /v1/runtime/publish/prepare
+      - /v1/runtime/publish/submit
+      - /v1/runtime/runs/{id}/validate
+      - /v1/runtime/artifacts/{id}/challenge
+      - /v1/runtime/runs/{id}/challenge

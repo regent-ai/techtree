@@ -5,7 +5,7 @@ defmodule TechTreeWeb.HomeLive do
   import Ecto.Query, only: [where: 3, select: 3]
 
   alias TechTree.Agents.AgentIdentity
-  alias TechTree.Trollbox
+  alias TechTree.Chatbox
   alias TechTree.{HumanUX, Nodes, Repo}
   alias TechTreeWeb.HomeLive.State, as: HomeState
   alias TechTreeWeb.{HomeComponents, HomePresenter, HomeRegentScene}
@@ -112,7 +112,7 @@ defmodule TechTreeWeb.HomeLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      :ok = Trollbox.subscribe()
+      :ok = Chatbox.subscribe()
     end
 
     {:ok,
@@ -125,18 +125,17 @@ defmodule TechTreeWeb.HomeLive do
        Keyword.get(Application.get_env(:tech_tree, :privy, []), :app_id, "")
      )
      |> assign(:view_mode, @default_view_mode)
-     |> assign(:top_section_open?, true)
      |> assign(:agent_panel_open?, true)
      |> assign(:human_panel_open?, true)
      |> assign(:intro_open?, true)
      |> assign_dataset(@default_data_mode)
-     |> assign_public_trollbox_panels()
+     |> assign_public_chatbox_panels()
      |> assign(:page_title, "TechTree")}
   end
 
   @impl true
-  def handle_info({:trollbox_event, _envelope}, socket) do
-    {:noreply, assign_public_trollbox_panels(socket)}
+  def handle_info({:chatbox_event, _envelope}, socket) do
+    {:noreply, assign_public_chatbox_panels(socket)}
   end
 
   @impl true
@@ -176,6 +175,11 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   @impl true
+  def handle_event("focus-node", %{"node_id" => node_id}, socket) do
+    handle_event("select-node", %{"node_id" => node_id}, socket)
+  end
+
+  @impl true
   def handle_event("focus-agent", params, socket) do
     {:noreply,
      socket
@@ -195,10 +199,29 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   @impl true
+  def handle_event("update-node-query", %{"node_query" => query}, socket) do
+    {:noreply,
+     assign(
+       socket,
+       HomeState.update_node_query(query, socket.assigns.graph_nodes, socket.assigns.seed_catalog)
+     )}
+  end
+
+  @impl true
   def handle_event("focus-agent-query", %{"agent_query" => query}, socket) do
     {:noreply,
      socket
      |> assign(HomeState.focus_agent_query(query, socket.assigns.agent_focus_options))
+     |> sync_regent_scene()}
+  end
+
+  @impl true
+  def handle_event("focus-node-query", %{"node_query" => query}, socket) do
+    {:noreply,
+     socket
+     |> assign(
+       HomeState.focus_node_query(query, socket.assigns.graph_nodes, socket.assigns.seed_catalog)
+     )
      |> sync_regent_scene()}
   end
 
@@ -236,6 +259,23 @@ defmodule TechTreeWeb.HomeLive do
      socket
      |> assign(HomeState.clear_graph_focus(socket.assigns.agent_focus_options))
      |> sync_regent_scene()}
+  end
+
+  @impl true
+  def handle_event("scene-back", _params, socket) do
+    cond do
+      socket.assigns.grid_modal_node ->
+        {:noreply, socket |> assign_grid_modal(nil) |> sync_regent_scene()}
+
+      socket.assigns.grid_view_stack != [] ->
+        handle_event("return-grid-level", %{}, socket)
+
+      socket.assigns.node_focus_target_id ->
+        {:noreply, socket |> assign(HomeState.clear_node_focus(socket.assigns)) |> sync_regent_scene()}
+
+      true ->
+        {:noreply, socket}
+    end
   end
 
   @impl true
@@ -419,8 +459,11 @@ defmodule TechTreeWeb.HomeLive do
       :graph_agent_matches,
       HomePresenter.matching_agent_focus_options(agent_focus_options, "")
     )
+    |> assign(:node_query, "")
+    |> assign(:node_matches, [])
     |> assign(:selected_node_id, selected_node && selected_node.id)
     |> assign(:selected_node, selected_node)
+    |> assign(:node_focus_target_id, nil)
     |> assign(:selected_agent_id, nil)
     |> assign(:subtree_root_id, nil)
     |> assign(:subtree_mode, nil)
@@ -433,8 +476,8 @@ defmodule TechTreeWeb.HomeLive do
     |> sync_regent_scene()
   end
 
-  defp assign_public_trollbox_panels(socket) do
-    %{messages: messages} = Trollbox.list_public_messages(%{"limit" => "24"})
+  defp assign_public_chatbox_panels(socket) do
+    %{messages: messages} = Chatbox.list_public_messages(%{"limit" => "24"})
 
     socket
     |> assign(:agent_messages, HomePresenter.build_public_panel_messages(messages, :agent))
@@ -941,8 +984,8 @@ defmodule TechTreeWeb.HomeLive do
         socket.assigns.grid_modal_node ->
           Integer.to_string(socket.assigns.grid_modal_node.id)
 
-        is_integer(socket.assigns.selected_node_id) ->
-          Integer.to_string(socket.assigns.selected_node_id)
+        is_binary(socket.assigns.node_focus_target_id) ->
+          socket.assigns.node_focus_target_id
 
         true ->
           nil
@@ -951,7 +994,7 @@ defmodule TechTreeWeb.HomeLive do
     socket
     |> assign(:regent_scene_version, next_version)
     |> assign(:regent_scene, scene)
-    |> assign(:regent_selected_node_id, selected_node_id)
+    |> assign(:regent_selected_target_id, selected_node_id)
   end
 
   defp clampf(value, min, _max) when value < min, do: min

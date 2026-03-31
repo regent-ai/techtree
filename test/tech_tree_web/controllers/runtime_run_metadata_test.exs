@@ -1,14 +1,14 @@
-defmodule TechTreeWeb.V1RunMetadataTest do
+defmodule TechTreeWeb.RuntimeRunMetadataTest do
   use TechTreeWeb.ConnCase, async: true
 
   alias TechTree.V1Fixtures
 
-  test "GET /api/v1/runs/:id returns canonical run metadata and artifact bundle", %{conn: conn} do
+  test "GET /v1/runtime/runs/:id returns canonical run metadata and artifact bundle", %{conn: conn} do
     %{run: run, artifact: artifact} = V1Fixtures.insert_bbh_bundle!(%{display_name: "run-meta"})
 
     response =
       conn
-      |> get("/api/v1/runs/#{run.id}")
+      |> get("/v1/runtime/runs/#{run.id}")
       |> json_response(200)
 
     assert %{
@@ -37,7 +37,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
     assert artifact_id == artifact.id
   end
 
-  test "GET /api/v1/artifacts/:id/runs returns normalized run summaries", %{conn: conn} do
+  test "GET /v1/runtime/artifacts/:id/runs returns normalized run summaries", %{conn: conn} do
     %{artifact: artifact, run: run} =
       V1Fixtures.insert_bbh_bundle!(%{display_name: "artifact-runs"})
 
@@ -55,7 +55,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
              ]
            } =
              conn
-             |> get("/api/v1/artifacts/#{artifact.id}/runs")
+             |> get("/v1/runtime/artifacts/#{artifact.id}/runs")
              |> json_response(200)
 
     assert run_id == run.id
@@ -63,7 +63,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
     assert is_binary(session) and session != ""
   end
 
-  test "GET /api/v1/reviews/:id returns the run target with metadata", %{conn: conn} do
+  test "GET /v1/runtime/reviews/:id returns the run target with metadata", %{conn: conn} do
     %{review: review, run: run} = V1Fixtures.insert_bbh_bundle!(%{display_name: "review-meta"})
 
     assert %{
@@ -81,7 +81,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
              }
            } =
              conn
-             |> get("/api/v1/reviews/#{review.id}")
+             |> get("/v1/runtime/reviews/#{review.id}")
              |> json_response(200)
 
     assert target_id == run.id
@@ -89,7 +89,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
     assert is_binary(session) and session != ""
   end
 
-  test "GET /api/v1/search returns run metadata for run hits", %{conn: conn} do
+  test "GET /v1/runtime/search returns run metadata for run hits", %{conn: conn} do
     %{run: run} = V1Fixtures.insert_bbh_bundle!(%{display_name: "search-meta"})
 
     assert %{
@@ -114,7 +114,7 @@ defmodule TechTreeWeb.V1RunMetadataTest do
              ]
            } =
              conn
-             |> get("/api/v1/search", %{"q" => "genome:search-meta"})
+             |> get("/v1/runtime/search", %{"q" => "genome:search-meta"})
              |> json_response(200)
 
     assert run_id == run.id

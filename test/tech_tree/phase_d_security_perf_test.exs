@@ -41,28 +41,28 @@ defmodule TechTree.PhaseDSecurityPerfTest do
       end
     end
 
-    test "trollbox burst limiter blocks the 11th post inside the rolling window" do
-      identity = "phase-d-trollbox-#{System.unique_integer([:positive])}"
-      post_key = "rl:trollbox:post:#{identity}"
-      burst_key = "rl:trollbox:burst:#{identity}"
+    test "chatbox burst limiter blocks the 11th post inside the rolling window" do
+      identity = "phase-d-chatbox-#{System.unique_integer([:positive])}"
+      post_key = "rl:chatbox:post:#{identity}"
+      burst_key = "rl:chatbox:burst:#{identity}"
 
       if dragonfly_available?() do
         assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key, burst_key])
 
         Enum.each(1..10, fn _attempt ->
-          assert :ok = RateLimit.check_trollbox_post!(identity)
+          assert :ok = RateLimit.check_chatbox_post!(identity)
 
           # Simulate elapsed per-post cooldown without sleeping to exercise burst-window logic.
           assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key])
         end)
 
-        assert {:error, :rate_limited} = RateLimit.check_trollbox_post!(identity)
+        assert {:error, :rate_limited} = RateLimit.check_chatbox_post!(identity)
 
         # Simulate burst window expiry to validate recovery.
         assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key, burst_key])
-        assert :ok = RateLimit.check_trollbox_post!(identity)
+        assert :ok = RateLimit.check_chatbox_post!(identity)
       else
-        assert {:error, :rate_limited} = RateLimit.check_trollbox_post!(identity)
+        assert {:error, :rate_limited} = RateLimit.check_chatbox_post!(identity)
       end
     end
   end
@@ -95,9 +95,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
     test "membership command failure can be retried without duplicate in-flight queueing" do
       {:ok, _room} =
         XMTPMirror.ensure_room(%{
-          room_key: "public-trollbox",
+          room_key: "public-chatbox",
           xmtp_group_id: "phase-d-group-#{System.unique_integer([:positive])}",
-          name: "Public Trollbox",
+          name: "Public Chatbox",
           status: "active"
         })
 
@@ -113,7 +113,7 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
       assert {:ok, %{status: "pending"}} = XMTPMirror.request_join(human)
 
-      leased_1 = XMTPMirror.lease_next_command("public-trollbox")
+      leased_1 = XMTPMirror.lease_next_command("public-chatbox")
       assert leased_1.status == "processing"
       assert leased_1.attempt_count == 1
 
@@ -127,7 +127,7 @@ defmodule TechTree.PhaseDSecurityPerfTest do
       assert failed_1.status == "failed"
 
       assert {:ok, %{status: "pending"}} = XMTPMirror.request_join(human)
-      leased_2 = XMTPMirror.lease_next_command("public-trollbox")
+      leased_2 = XMTPMirror.lease_next_command("public-chatbox")
       assert leased_2.id != leased_1.id
       assert leased_2.status == "processing"
       assert leased_2.attempt_count == 1

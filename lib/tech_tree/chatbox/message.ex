@@ -1,4 +1,4 @@
-defmodule TechTree.Trollbox.Message do
+defmodule TechTree.Chatbox.Message do
   @moduledoc false
 
   use TechTree.Schema
@@ -31,7 +31,7 @@ defmodule TechTree.Trollbox.Message do
           updated_at: DateTime.t() | nil
         }
 
-  schema "trollbox_messages" do
+  schema "chatbox_messages" do
     field :room_id, :string, default: "global"
     field :author_kind, Ecto.Enum, values: @author_kinds
     field :author_scope, :string
@@ -108,11 +108,11 @@ defmodule TechTree.Trollbox.Message do
     |> foreign_key_constraint(:author_human_id)
     |> foreign_key_constraint(:author_agent_id)
     |> foreign_key_constraint(:reply_to_message_id)
-    |> check_constraint(:author_kind, name: :trollbox_messages_author_kind_check)
-    |> check_constraint(:author_human_id, name: :trollbox_messages_author_ref_check)
-    |> unique_constraint(:transport_msg_id, name: :trollbox_messages_transport_msg_id_uidx)
+    |> check_constraint(:author_kind, name: :chatbox_messages_author_kind_check)
+    |> check_constraint(:author_human_id, name: :chatbox_messages_author_ref_check)
+    |> unique_constraint(:transport_msg_id, name: :chatbox_messages_transport_msg_id_uidx)
     |> unique_constraint(:client_message_id,
-      name: :trollbox_messages_author_scope_client_message_id_uidx
+      name: :chatbox_messages_author_scope_client_message_id_uidx
     )
   end
 end

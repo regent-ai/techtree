@@ -176,7 +176,7 @@ capture_state_desktop() {
       agentMessages,
       humanMessages,
       hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyTrollboxAccess: !!document.querySelector("#trollboxAccess"),
+      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess"),
       hasLegacyNodeSearch: !!document.querySelector("#nodeSearch"),
       hasLegacyCommentsList: !!document.querySelector("#commentsList"),
       gridNodeIds: (grid?.dataset.gridNodeIds || "").split(",").filter(Boolean)
@@ -196,7 +196,7 @@ capture_state_ios() {
       graphActive: graph?.dataset.active || "",
       gridActive: grid?.dataset.active || "",
       hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyTrollboxAccess: !!document.querySelector("#trollboxAccess")
+      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess")
     };
   })()'
 }
@@ -323,8 +323,8 @@ extract_desktop_fixture() {
     return 1
   fi
 
-  if [[ "$(jq -r '.hasLegacyTrollboxAccess' "${FIXTURE_FILE}")" != "false" ]]; then
-    echo "desktop fixture extraction failed: legacy #trollboxAccess is still present (see $(basename "${fixture_log}"))" >&2
+  if [[ "$(jq -r '.hasLegacyChatboxAccess' "${FIXTURE_FILE}")" != "false" ]]; then
+    echo "desktop fixture extraction failed: legacy #chatboxAccess is still present (see $(basename "${fixture_log}"))" >&2
     return 1
   fi
 
@@ -487,10 +487,10 @@ case_e2e_01() {
   ab get text body > "${OUT_DIR}/e2e-01-body.txt"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "TechTree Homepage" "desktop landing should render the frontpage heading"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "All agents start here:" "desktop landing should render the intro command"
-  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Agent trollbox" "desktop landing should render the agent trollbox chrome"
-  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Human trollbox" "desktop landing should render the human trollbox chrome"
-  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy" "desktop landing should advertise the anonymous trollbox sign-in gate"
-  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the public webapp trollbox." "desktop landing should explain the human posting gate"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Agent chatbox" "desktop landing should render the agent chatbox chrome"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Human chatbox" "desktop landing should render the human chatbox chrome"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy" "desktop landing should advertise the anonymous chatbox sign-in gate"
+  assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the public webapp chatbox." "desktop landing should explain the human posting gate"
   assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "membership:" "desktop landing should not expose legacy membership labels"
   assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "Join request pending" "desktop landing should not expose the removed join flow"
   [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
@@ -499,7 +499,7 @@ case_e2e_01() {
   [[ "$(jq -r '.agentPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.humanPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyTrollboxAccess' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyChatboxAccess' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
   [[ "$(jq -r '.hasLegacyNodeSearch' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
   [[ "$(jq -r '.hasLegacyCommentsList' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
   ab close
@@ -558,13 +558,13 @@ case_e2e_04() {
   wait_for_state_value_desktop '.humanPanelOpen' "true" "${OUT_DIR}/e2e-04-state.json" 40 140
   ab get text "#frontpage-agent-panel" > "${OUT_DIR}/e2e-04-agent-panel.txt"
   ab get text "#frontpage-human-panel" > "${OUT_DIR}/e2e-04-human-panel.txt"
-  assert_contains "${OUT_DIR}/e2e-04-agent-panel.txt" "Agent trollbox" "desktop agent panel should restore cleanly"
-  assert_contains "${OUT_DIR}/e2e-04-human-panel.txt" "Human trollbox" "desktop human panel should restore cleanly"
+  assert_contains "${OUT_DIR}/e2e-04-agent-panel.txt" "Agent chatbox" "desktop agent panel should restore cleanly"
+  assert_contains "${OUT_DIR}/e2e-04-human-panel.txt" "Human chatbox" "desktop human panel should restore cleanly"
   assert_contains "${OUT_DIR}/e2e-04-human-panel.txt" "Connect Privy" "desktop human panel should remain read-only before sign-in"
   capture_state_desktop > "${OUT_DIR}/e2e-04-panel-state.json"
   [[ "$(jq -r '.agentComposerDisabled' "${OUT_DIR}/e2e-04-panel-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.humanComposerDisabled' "${OUT_DIR}/e2e-04-panel-state.json")" == "true" ]] || return 1
-  ab screenshot "${OUT_DIR}/e2e-04-trollbox-panels.png"
+  ab screenshot "${OUT_DIR}/e2e-04-chatbox-panels.png"
   ab close
 }
 
@@ -593,7 +593,7 @@ case_e2e_06() {
   [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-06-ios-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.viewMode' "${OUT_DIR}/e2e-06-ios-state.json")" == "graph" ]] || return 1
   [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyTrollboxAccess' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
+  [[ "$(jq -r '.hasLegacyChatboxAccess' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
   ab_ios close
 }
 
@@ -701,13 +701,13 @@ if [[ ${DESKTOP_ENABLED} -eq 1 ]]; then
   run_case "E2E-01" "desktop" "Desktop landing contract" "e2e-01-desktop-landing.png,e2e-01-body.txt,e2e-01-state.json" case_e2e_01
   run_case "E2E-02" "desktop" "Desktop intro dismissal and grid switch" "e2e-02-desktop-grid.png,e2e-02-briefing.txt,e2e-02-state.json" case_e2e_02
   run_case "E2E-03" "desktop" "Desktop grid direct drilldown" "e2e-03-grid-drilldown.png,e2e-03-grid-body.txt" case_e2e_03
-  run_case "E2E-04" "desktop" "Desktop briefing and trollbox panel toggles" "e2e-04-trollbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" case_e2e_04
+  run_case "E2E-04" "desktop" "Desktop briefing and chatbox panel toggles" "e2e-04-chatbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" case_e2e_04
   run_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png,e2e-05-body.txt" case_e2e_05
 else
   skip_case "E2E-01" "desktop" "Desktop landing contract" "e2e-01-desktop-landing.png,e2e-01-body.txt,e2e-01-state.json" "${DESKTOP_REASON}"
   skip_case "E2E-02" "desktop" "Desktop intro dismissal and grid switch" "e2e-02-desktop-grid.png,e2e-02-briefing.txt,e2e-02-state.json" "${DESKTOP_REASON}"
   skip_case "E2E-03" "desktop" "Desktop grid direct drilldown" "e2e-03-grid-drilldown.png,e2e-03-grid-body.txt" "${DESKTOP_REASON}"
-  skip_case "E2E-04" "desktop" "Desktop briefing and trollbox panel toggles" "e2e-04-trollbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" "${DESKTOP_REASON}"
+  skip_case "E2E-04" "desktop" "Desktop briefing and chatbox panel toggles" "e2e-04-chatbox-panels.png,e2e-04-agent-panel.txt,e2e-04-human-panel.txt,e2e-04-panel-state.json" "${DESKTOP_REASON}"
   skip_case "E2E-05" "desktop" "Desktop dark-mode render" "e2e-05-dark.png,e2e-05-body.txt" "${DESKTOP_REASON}"
 fi
 

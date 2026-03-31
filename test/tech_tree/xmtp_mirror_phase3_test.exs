@@ -9,9 +9,9 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "ingest_message is idempotent for repeated xmtp_message_id" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-trollbox",
-        xmtp_group_id: "xmtp-public-trollbox",
-        name: "Public Trollbox",
+        room_key: "public-chatbox",
+        xmtp_group_id: "xmtp-public-chatbox",
+        name: "Public Chatbox",
         status: "active"
       })
 
@@ -106,17 +106,17 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "request_join and create_human_message are shard-aware" do
     {:ok, _canonical} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-trollbox",
-        xmtp_group_id: "xmtp-public-trollbox-shard-aware",
-        name: "Public Trollbox",
+        room_key: "public-chatbox",
+        xmtp_group_id: "xmtp-public-chatbox-shard-aware",
+        name: "Public Chatbox",
         status: "active"
       })
 
     {:ok, shard_room} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-trollbox-shard-2",
-        xmtp_group_id: "xmtp-public-trollbox-shard-2",
-        name: "Public Trollbox #2",
+        room_key: "public-chatbox-shard-2",
+        xmtp_group_id: "xmtp-public-chatbox-shard-2",
+        name: "Public Chatbox #2",
         status: "active"
       })
 

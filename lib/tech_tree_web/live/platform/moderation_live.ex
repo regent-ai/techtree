@@ -7,7 +7,7 @@ defmodule TechTreeWeb.Platform.ModerationLive do
   alias TechTree.Accounts
   alias TechTree.Accounts.HumanUser
   alias TechTree.Moderation
-  alias TechTree.Trollbox.Message
+  alias TechTree.Chatbox.Message
 
   @impl true
   def mount(_params, session, socket) do
@@ -61,7 +61,7 @@ defmodule TechTreeWeb.Platform.ModerationLive do
   def handle_event("hide-message", %{"id" => id}, socket) do
     with {:ok, message_id} <- parse_required_id(id) do
       :ok =
-        Moderation.hide_trollbox_message(
+        Moderation.hide_chatbox_message(
           message_id,
           socket.assigns.current_admin,
           socket.assigns.reason
@@ -81,7 +81,7 @@ defmodule TechTreeWeb.Platform.ModerationLive do
   def handle_event("unhide-message", %{"id" => id}, socket) do
     with {:ok, message_id} <- parse_required_id(id) do
       :ok =
-        Moderation.unhide_trollbox_message(
+        Moderation.unhide_chatbox_message(
           message_id,
           socket.assigns.current_admin,
           socket.assigns.reason
@@ -155,13 +155,13 @@ defmodule TechTreeWeb.Platform.ModerationLive do
         route_key={@route_key}
         title="Moderation"
         kicker="Trust And Safety"
-        subtitle="One operator surface for live trollbox review, actor history, and the recent moderation audit trail."
+        subtitle="One operator surface for live chatbox review, actor history, and the recent moderation audit trail."
         client_config={@client_config}
       >
         <section id="platform-moderation-scene" class="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <.surface_card
             eyebrow="Live queue"
-            title="Recent trollbox messages"
+            title="Recent chatbox messages"
             copy="Search body text, display name, wallet, or agent label. Actions apply immediately to the canonical public room."
           >
             <div class="grid gap-4">
@@ -195,7 +195,7 @@ defmodule TechTreeWeb.Platform.ModerationLive do
               </div>
 
               <%= if @messages == [] do %>
-                <.empty_state message="No trollbox messages match the current filters." />
+                <.empty_state message="No chatbox messages match the current filters." />
               <% else %>
                 <div class="grid gap-3">
                   <%= for message <- @messages do %>
@@ -328,7 +328,7 @@ defmodule TechTreeWeb.Platform.ModerationLive do
                   <% end %>
                 </div>
               <% else %>
-                <.empty_state message="Select a queue item to inspect the author's recent trollbox history." />
+                <.empty_state message="Select a queue item to inspect the author's recent chatbox history." />
               <% end %>
             </.surface_card>
 
@@ -367,13 +367,13 @@ defmodule TechTreeWeb.Platform.ModerationLive do
   end
 
   defp refresh_dashboard(socket) do
-    messages = Moderation.list_trollbox_dashboard_messages(socket.assigns.filters)
+    messages = Moderation.list_chatbox_dashboard_messages(socket.assigns.filters)
     selected_message = select_message(messages, socket.assigns.selected_message_id)
 
     actor_history =
       case selected_message do
         %Message{} = message ->
-          Moderation.list_trollbox_author_history(message.author_kind, author_ref(message),
+          Moderation.list_chatbox_author_history(message.author_kind, author_ref(message),
             limit: 12
           )
 

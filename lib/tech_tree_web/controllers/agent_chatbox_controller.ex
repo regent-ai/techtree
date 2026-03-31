@@ -1,8 +1,8 @@
-defmodule TechTreeWeb.AgentTrollboxController do
+defmodule TechTreeWeb.AgentChatboxController do
   use TechTreeWeb, :controller
 
   alias TechTree.RateLimit
-  alias TechTree.Trollbox
+  alias TechTree.Chatbox
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
   alias TechTreeWeb.PublicEncoding
@@ -13,10 +13,10 @@ defmodule TechTreeWeb.AgentTrollboxController do
     room_id = "agent:#{agent.id}"
 
     %{messages: messages, next_cursor: next_cursor} =
-      Trollbox.list_public_messages(Map.put(params, "room_id", room_id))
+      Chatbox.list_public_messages(Map.put(params, "room_id", room_id))
 
     json(conn, %{
-      data: PublicEncoding.encode_trollbox_messages(messages),
+      data: PublicEncoding.encode_chatbox_messages(messages),
       next_cursor: next_cursor
     })
   end
@@ -38,16 +38,16 @@ defmodule TechTreeWeb.AgentTrollboxController do
   end
 
   defp create_message_with_limit(conn, agent, params) do
-    case Trollbox.create_agent_message(agent, Map.put(params, "room", "agent")) do
+    case Chatbox.create_agent_message(agent, Map.put(params, "room", "agent")) do
       {:ok, message, create_status} ->
         conn
         |> put_status(if(create_status == :created, do: :created, else: :ok))
-        |> json(%{data: PublicEncoding.encode_trollbox_message(message)})
+        |> json(%{data: PublicEncoding.encode_chatbox_message(message)})
 
       {:error, :agent_banned} ->
         ApiError.render(conn, :forbidden, %{
           code: "agent_banned",
-          message: "agent must be active to post to trollbox"
+          message: "agent must be active to post to chatbox"
         })
 
       {:error, :body_required} ->
@@ -96,14 +96,14 @@ defmodule TechTreeWeb.AgentTrollboxController do
   end
 
   defp react_message_with_limit(conn, agent, message_id, params) do
-    case Trollbox.react_to_message(agent, message_id, params) do
+    case Chatbox.react_to_message(agent, message_id, params) do
       {:ok, message} ->
-        json(conn, %{data: PublicEncoding.encode_trollbox_message(message)})
+        json(conn, %{data: PublicEncoding.encode_chatbox_message(message)})
 
       {:error, :agent_banned} ->
         ApiError.render(conn, :forbidden, %{
           code: "agent_banned",
-          message: "agent must be active to react in trollbox"
+          message: "agent must be active to react in chatbox"
         })
 
       {:error, :message_not_found} ->
@@ -133,7 +133,7 @@ defmodule TechTreeWeb.AgentTrollboxController do
   end
 
   defp enforce_message_limit(conn, agent, params) do
-    RateLimit.allow_trollbox_message(
+    RateLimit.allow_chatbox_message(
       actor_scope: "agent:#{agent.id}",
       principal_scope: "wallet:#{agent.wallet_address}",
       ip_scope: ControllerHelpers.client_ip_scope(conn),
@@ -143,7 +143,7 @@ defmodule TechTreeWeb.AgentTrollboxController do
   end
 
   defp enforce_reaction_limit(conn, agent) do
-    RateLimit.allow_trollbox_reaction(
+    RateLimit.allow_chatbox_reaction(
       actor_scope: "agent:#{agent.id}",
       principal_scope: "wallet:#{agent.wallet_address}",
       ip_scope: ControllerHelpers.client_ip_scope(conn)

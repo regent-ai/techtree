@@ -80,7 +80,7 @@ defmodule TechTree.P2P.Transport do
     end
   end
 
-  @spec build_and_publish(binary(), TechTree.Trollbox.Message.t()) :: :ok | {:error, term()}
+  @spec build_and_publish(binary(), TechTree.Chatbox.Message.t()) :: :ok | {:error, term()}
   def build_and_publish(event, message) do
     case safe_identity() do
       {:ok, %Identity{} = identity} ->
@@ -351,7 +351,7 @@ defmodule TechTree.P2P.Transport do
     case payload do
       %{"origin_peer_id" => ^peer_id} ->
         case Envelope.verify(payload) do
-          :ok -> TechTree.Trollbox.ingest_transport_event(topic, payload)
+          :ok -> TechTree.Chatbox.ingest_transport_event(topic, payload)
           {:error, reason} -> {:error, reason}
         end
 

@@ -1483,7 +1483,7 @@ h6 {
   gap: 0.42rem;
 }
 
-.tt-trollbox-panel {
+.tt-chatbox-panel {
   min-height: 0;
   display: grid;
   grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
@@ -1492,14 +1492,14 @@ h6 {
   border-radius: 0.78rem;
 }
 
-.tt-trollbox-head {
+.tt-chatbox-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
 }
 
-.tt-trollbox-access {
+.tt-chatbox-access {
   margin: 0;
   font-size: 0.57rem;
   letter-spacing: 0.08em;
@@ -1507,31 +1507,31 @@ h6 {
   opacity: 0.72;
 }
 
-.tt-trollbox-visibility {
+.tt-chatbox-visibility {
   margin: 0;
   display: grid;
   gap: 0.14rem;
 }
 
-.tt-trollbox-visibility div {
+.tt-chatbox-visibility div {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.3rem;
 }
 
-.tt-trollbox-visibility dt,
-.tt-trollbox-visibility dd {
+.tt-chatbox-visibility dt,
+.tt-chatbox-visibility dd {
   margin: 0;
   font-size: 0.56rem;
 }
 
-.tt-trollbox-visibility dt {
+.tt-chatbox-visibility dt {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   opacity: 0.64;
 }
 
-.tt-trollbox-notice {
+.tt-chatbox-notice {
   margin: 0;
   font-size: 0.62rem;
   line-height: 1.35;
@@ -1645,7 +1645,7 @@ h6 {
   gap: 0.32rem;
 }
 
-.tt-trollbox-item {
+.tt-chatbox-item {
   border: 1px solid var(--tt-border);
   border-radius: 0.62rem;
   padding: 0.35rem 0.42rem;
@@ -1661,7 +1661,7 @@ h6 {
   margin-bottom: 0.18rem;
 }
 
-.tt-trollbox-item p {
+.tt-chatbox-item p {
   margin: 0;
   font-size: 0.62rem;
   line-height: 1.36;
@@ -1706,11 +1706,11 @@ h6 {
 .tt-sky-node:focus-visible,
 .tt-seed-orb:focus-visible,
 .tt-chat-peek:focus-visible,
-.tt-trollbox-send:focus-visible,
+.tt-chatbox-send:focus-visible,
 .tt-join-xmtp:focus-visible,
 .tt-privy-btn:focus-visible,
 .tt-open-chat:focus-visible,
-.tt-trollbox-input:focus-visible,
+.tt-chatbox-input:focus-visible,
 #nodeSearch:focus-visible,
 #copyCurl:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--tt-sky-glow) 70%, white 10%);

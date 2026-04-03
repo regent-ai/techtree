@@ -103,7 +103,7 @@ defmodule TechTreeWeb.RequireAgentSiwaEndToEndIntegrationTest do
           token_id: token_id
         })
 
-      request_signature = SiwaSupport.cast_wallet_sign!(private_key, signing_message)
+      request_signature = SiwaSupport.sig1_signature_header!(private_key, signing_message)
 
       authed_conn =
         conn

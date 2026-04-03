@@ -10,7 +10,6 @@ import {
 } from "./lib/evm-signature.js";
 import {
   issueReceiptToken,
-  parseAuthorizationReceipt,
   verifyReceiptToken,
 } from "./lib/receipt.js";
 import { InMemoryReplayStore } from "./lib/replay-store.js";
@@ -32,6 +31,10 @@ const expectOk = <T, E>(result: Result<T, E>, message: string): T => {
 const privateKey =
   "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d" as HexString;
 const receiptSecret = "vector-receipt-secret";
+
+const toSig1Signature = (signatureHex: HexString): string => {
+  return `sig1=:${Buffer.from(signatureHex.slice(2), "hex").toString("base64")}:`;
+};
 
 const main = async (): Promise<void> => {
   const walletAddress = expectOk(
@@ -66,7 +69,7 @@ const main = async (): Promise<void> => {
   const path = "/v1/agent/nodes";
 
   const signatureInput =
-    `("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" ` +
+    `sig1=("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" ` +
     `"x-agent-wallet-address" "x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
     `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`;
 
@@ -97,7 +100,7 @@ const main = async (): Promise<void> => {
     "signing http envelope failed",
   );
 
-  const validHeaders = { ...baseHeaders, signature: signatureHex };
+  const validHeaders = { ...baseHeaders, signature: toSig1Signature(signatureHex) };
 
   // Vector 1: valid envelope
   const vector1 = validateHttpSignatureEnvelope(validHeaders);
@@ -118,26 +121,18 @@ const main = async (): Promise<void> => {
   const vector4 = validateHttpSignatureEnvelope({
     ...validHeaders,
     "signature-input":
-      `("@method" "@path" "x-siwa-receipt" "x-key-id" "x-agent-wallet-address" ` +
+      `sig1=("@method" "@path" "x-siwa-receipt" "x-key-id" "x-agent-wallet-address" ` +
       `"x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
       `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`,
   });
   assert(!vector4.ok && vector4.code === "http_required_components_missing", "Vector 4 failed");
 
   // Vector 5: invalid receipt token verification
-  const parsedInvalidAuthorization = expectOk(
-    parseAuthorizationReceipt("SIWA malformed.token"),
-    "invalid receipt authorization should still parse header wrapper",
-  );
-  const invalidReceipt = verifyReceiptToken(parsedInvalidAuthorization, receiptSecret, nowUnixSeconds);
+  const invalidReceipt = verifyReceiptToken("malformed.token", receiptSecret, nowUnixSeconds);
   assert(!invalidReceipt.ok && invalidReceipt.error.kind === "invalid", "Vector 5 failed");
 
   // Vector 6: expired receipt token
-  const parsedReceipt = expectOk(
-    parseAuthorizationReceipt(`SIWA ${receipt.token}`),
-    "valid receipt authorization should parse",
-  );
-  const expiredReceipt = verifyReceiptToken(parsedReceipt, receiptSecret, nowUnixSeconds + 500);
+  const expiredReceipt = verifyReceiptToken(receipt.token, receiptSecret, nowUnixSeconds + 500);
   assert(!expiredReceipt.ok && expiredReceipt.error.kind === "expired", "Vector 6 failed");
 
   // Vector 7: replay detection key

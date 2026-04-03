@@ -10,7 +10,6 @@ import {
 } from "./lib/evm-signature.js";
 import {
   issueReceiptToken,
-  parseAuthorizationReceipt,
   verifyReceiptToken,
 } from "./lib/receipt.js";
 import { parseSiweMessage } from "./lib/siwe.js";
@@ -29,6 +28,10 @@ const mustOk = <T, E>(result: Result<T, E>, message: string): T => {
   }
 
   return result.value;
+};
+
+const toSig1Signature = (signatureHex: HexString): string => {
+  return `sig1=:${Buffer.from(signatureHex.slice(2), "hex").toString("base64")}:`;
 };
 
 const privateKey =
@@ -98,12 +101,7 @@ const main = async (): Promise<void> => {
     "test-receipt-secret",
   );
 
-  const parsedAuth = mustOk(
-    parseAuthorizationReceipt(`SIWA ${receipt.token}`),
-    "authorization header parser rejected valid SIWA receipt",
-  );
-
-  const verifiedReceipt = verifyReceiptToken(parsedAuth, "test-receipt-secret", nowUnixSeconds);
+  const verifiedReceipt = verifyReceiptToken(receipt.token, "test-receipt-secret", nowUnixSeconds);
   assert(verifiedReceipt.ok, "receipt verification failed");
   if (verifiedReceipt.ok) {
     assert(verifiedReceipt.value.sub === walletAddress.toLowerCase(), "receipt subject wallet mismatch");
@@ -111,7 +109,7 @@ const main = async (): Promise<void> => {
     assert(verifiedReceipt.value.tokenId === tokenId, "receipt token binding mismatch");
   }
 
-  const expiredReceipt = verifyReceiptToken(parsedAuth, "test-receipt-secret", nowUnixSeconds + 301);
+  const expiredReceipt = verifyReceiptToken(receipt.token, "test-receipt-secret", nowUnixSeconds + 301);
   assert(!expiredReceipt.ok && expiredReceipt.error.kind === "expired", "receipt should expire deterministically");
 
   const method = "POST";
@@ -126,7 +124,7 @@ const main = async (): Promise<void> => {
   const placeholderHeaders = {
     "x-siwa-receipt": receipt.token,
     signature: "sig1=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:",
-    "signature-input": signatureInputCanonical,
+    "signature-input": `sig1=${signatureInputCanonical}`,
     "x-key-id": keyId,
     "x-timestamp": String(nowUnixSeconds),
     "x-agent-wallet-address": walletAddress,
@@ -152,45 +150,11 @@ const main = async (): Promise<void> => {
 
   const finalHeadersHex = {
     ...placeholderHeaders,
-    signature: httpSignatureHex,
+    signature: toSig1Signature(httpSignatureHex),
   };
 
   const envelopeHex = validateHttpSignatureEnvelope(finalHeadersHex);
-  assert(envelopeHex.ok, "http envelope rejected hex signature format");
-
-  const signatureBase64 = Buffer.from(httpSignatureHex.slice(2), "hex").toString("base64");
-  const finalHeadersSig1 = {
-    ...placeholderHeaders,
-    signature: `sig1=:${signatureBase64}:`,
-  };
-  const envelopeSig1 = validateHttpSignatureEnvelope(finalHeadersSig1);
-  assert(envelopeSig1.ok, "http envelope rejected sig1 base64 signature format");
-
-  const finalHeadersBareBase64 = {
-    ...placeholderHeaders,
-    signature: signatureBase64,
-  };
-  const envelopeBareBase64 = validateHttpSignatureEnvelope(finalHeadersBareBase64);
-  assert(envelopeBareBase64.ok, "http envelope rejected bare base64 signature format");
-
-  const labeledSignatureInputHeaders = {
-    ...placeholderHeaders,
-    "signature-input": `sig1=${signatureInputCanonical}`,
-  };
-  const envelopeLabeled = validateHttpSignatureEnvelope(labeledSignatureInputHeaders);
-  assert(envelopeLabeled.ok, "http envelope rejected labeled signature-input format");
-
-  const authFallbackHeaders = {
-    ...placeholderHeaders,
-    authorization: `SIWA ${receipt.token}`,
-  };
-  delete (authFallbackHeaders as Record<string, string>)["x-siwa-receipt"];
-  authFallbackHeaders["signature-input"] =
-    `("@method" "@path" "authorization" "x-key-id" "x-timestamp" ` +
-    `"x-agent-wallet-address" "x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
-    `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`;
-  const envelopeAuthFallback = validateHttpSignatureEnvelope(authFallbackHeaders);
-  assert(envelopeAuthFallback.ok, "http envelope rejected authorization receipt fallback");
+  assert(envelopeHex.ok, "http envelope rejected canonical sig1 signature format");
 
   const replayStore = new InMemoryReplayStore();
   const replayKey = `${keyId}|${signatureNonce}|${method}|${path}`;
@@ -200,7 +164,7 @@ const main = async (): Promise<void> => {
   const missingProtectedComponentHeaders = {
     ...placeholderHeaders,
     "signature-input":
-      `("@method" "@path" "x-siwa-receipt" "x-key-id" "x-agent-wallet-address" ` +
+      `sig1=("@method" "@path" "x-siwa-receipt" "x-key-id" "x-agent-wallet-address" ` +
       `"x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
       `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`,
   };

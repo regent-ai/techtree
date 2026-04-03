@@ -3,7 +3,9 @@ defmodule TechTreeWeb.RuntimeRunMetadataTest do
 
   alias TechTree.V1Fixtures
 
-  test "GET /v1/runtime/runs/:id returns canonical run metadata and artifact bundle", %{conn: conn} do
+  test "GET /v1/runtime/runs/:id returns canonical run metadata and artifact bundle", %{
+    conn: conn
+  } do
     %{run: run, artifact: artifact} = V1Fixtures.insert_bbh_bundle!(%{display_name: "run-meta"})
 
     response =

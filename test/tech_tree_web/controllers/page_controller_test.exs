@@ -6,9 +6,9 @@ defmodule TechTreeWeb.PageControllerTest do
     body = html_response(conn, 200)
 
     assert body =~ ~s(id="frontpage-home-page")
-    assert body =~ ~s(id="frontpage-home-graph")
-    assert body =~ ~s(id="frontpage-home-grid")
-    assert body =~ ~s(id="frontpage-home-briefing")
+    assert body =~ ~s(id="frontpage-regent-shell")
+    assert body =~ ~s(id="techtree-home-surface")
+    assert body =~ ~s(id="techtree-home-chamber")
     assert body =~ ~s(id="frontpage-agent-panel")
     assert body =~ ~s(id="frontpage-human-panel")
     assert body =~ ~s(id="frontpage-intro-modal")

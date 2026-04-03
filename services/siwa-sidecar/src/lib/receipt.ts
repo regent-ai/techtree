@@ -248,17 +248,3 @@ export const verifyReceiptToken = (
 
   return { ok: true, value: claims.value };
 };
-
-export const parseAuthorizationReceipt = (authorizationValue: string): Result<string, "invalid"> => {
-  const trimmed = authorizationValue.trim();
-  const match = /^SIWA\s+(.+)$/.exec(trimmed);
-
-  if (!match || !match[1]) {
-    return { ok: false, error: "invalid" };
-  }
-
-  return {
-    ok: true,
-    value: match[1].trim(),
-  };
-};

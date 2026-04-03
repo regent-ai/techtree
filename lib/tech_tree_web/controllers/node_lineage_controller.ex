@@ -7,53 +7,32 @@ defmodule TechTreeWeb.NodeLineageController do
 
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
-    with {:ok, node_id} <- parse_node_id(id),
-         {:ok, node} <- fetch_public_node(node_id) do
+    with_public_node(conn, id, fn conn, node ->
       json(conn, %{data: Nodes.cross_chain_lineage(node)})
-    else
-      {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
-
-      :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
-    end
+    end)
   end
 
   @spec show_private(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show_private(conn, %{"id" => id}) do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
-    with {:ok, node_id} <- parse_node_id(id),
-         {:ok, node} <- fetch_readable_node(agent.id, node_id) do
+    with_readable_node(conn, agent.id, id, fn conn, node ->
       json(conn, %{data: Nodes.cross_chain_lineage(node)})
-    else
-      {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
-
-      :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
-    end
+    end)
   end
 
   @spec list_claims(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def list_claims(conn, %{"id" => id}) do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
-    with {:ok, node_id} <- parse_node_id(id),
-         {:ok, node} <- fetch_readable_node(agent.id, node_id) do
+    with_readable_node(conn, agent.id, id, fn conn, node ->
       data =
         node
         |> Nodes.list_node_lineage_claims()
         |> Enum.map(&Lineage.encode_claim_history/1)
 
       json(conn, %{data: data})
-    else
-      {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
-
-      :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
-    end
+    end)
   end
 
   @spec create_claim(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -130,21 +109,14 @@ defmodule TechTreeWeb.NodeLineageController do
   def list_links(conn, %{"id" => id}) do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
-    with {:ok, node_id} <- parse_node_id(id),
-         {:ok, node} <- fetch_readable_node(agent.id, node_id) do
+    with_readable_node(conn, agent.id, id, fn conn, node ->
       data =
         node
         |> Nodes.list_node_cross_chain_links()
         |> Enum.map(&Lineage.encode_link/1)
 
       json(conn, %{data: data})
-    else
-      {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
-
-      :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
-    end
+    end)
   end
 
   @spec create_link(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -226,14 +198,36 @@ defmodule TechTreeWeb.NodeLineageController do
     Ecto.NoResultsError -> :error
   end
 
-  defp parse_node_id(value) when is_integer(value) and value > 0, do: {:ok, value}
-
-  defp parse_node_id(value) when is_binary(value) do
-    case Integer.parse(String.trim(value)) do
-      {parsed, ""} when parsed > 0 -> {:ok, parsed}
-      _ -> {:error, :invalid_node_id}
+  defp with_public_node(conn, id, callback) do
+    with {:ok, node_id} <- parse_node_id(id),
+         {:ok, node} <- fetch_public_node(node_id) do
+      callback.(conn, node)
+    else
+      {:error, :invalid_node_id} -> render_invalid_node_id(conn)
+      :error -> render_node_not_found(conn)
     end
   end
 
-  defp parse_node_id(_value), do: {:error, :invalid_node_id}
+  defp with_readable_node(conn, agent_id, id, callback) do
+    with {:ok, node_id} <- parse_node_id(id),
+         {:ok, node} <- fetch_readable_node(agent_id, node_id) do
+      callback.(conn, node)
+    else
+      {:error, :invalid_node_id} -> render_invalid_node_id(conn)
+      :error -> render_node_not_found(conn)
+    end
+  end
+
+  defp render_invalid_node_id(conn),
+    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+
+  defp render_node_not_found(conn),
+    do: ApiError.render(conn, :not_found, %{code: "node_not_found"})
+
+  defp parse_node_id(value) do
+    case ControllerHelpers.parse_positive_int(value) do
+      {:ok, node_id} -> {:ok, node_id}
+      {:error, _reason} -> {:error, :invalid_node_id}
+    end
+  end
 end

@@ -62,8 +62,7 @@ defmodule TechTree.RateLimit do
     %{
       backend: %{
         primary: :dragonfly,
-        fallback: :local_ets,
-        failure_mode: :conservative_local
+        failure_mode: :fail_closed
       },
       agent_node_create: @node_create_policy,
       agent_comment_create: @comment_create_policy,
@@ -77,19 +76,14 @@ defmodule TechTree.RateLimit do
     configured_backend = configured_backend()
     dragonfly_enabled = Dragonfly.enabled?()
     {dragonfly_reachable, live_error} = dragonfly_health(configured_backend, dragonfly_enabled)
-
-    effective_backend =
-      effective_backend(configured_backend, dragonfly_enabled, dragonfly_reachable)
-
-    meta = reconcile_backend_status(effective_backend, live_error)
+    meta = reconcile_backend_status(configured_backend, live_error)
 
     %{
       configured_backend: configured_backend,
-      effective_backend: effective_backend,
+      effective_backend: configured_backend,
       dragonfly_enabled: dragonfly_enabled,
       dragonfly_reachable: dragonfly_reachable,
-      degraded: configured_backend == :dragonfly and effective_backend == :local,
-      fallback_mode: :conservative_local,
+      degraded: configured_backend == :dragonfly and dragonfly_reachable == false,
       last_error: live_error || meta.last_error,
       last_degraded_at_ms: meta.last_degraded_at_ms,
       last_recovered_at_ms: meta.last_recovered_at_ms
@@ -290,19 +284,13 @@ defmodule TechTree.RateLimit do
             {:error, %{code: :rate_limited, retry_after_ms: max(retry_after_ms, 1)}}
 
           {:ok, unexpected_reply} ->
-            fallback_to_local(:consume_bucket, {:unexpected_reply, unexpected_reply}, fn ->
-              consume_bucket_locally(key, policy, now_ms)
-            end)
+            fail_closed_limit(:consume_bucket, {:unexpected_reply, unexpected_reply})
 
           {:error, reason} ->
-            fallback_to_local(:consume_bucket, reason, fn ->
-              consume_bucket_locally(key, policy, now_ms)
-            end)
+            fail_closed_limit(:consume_bucket, reason)
 
           other ->
-            fallback_to_local(:consume_bucket, {:unexpected_result, other}, fn ->
-              consume_bucket_locally(key, policy, now_ms)
-            end)
+            fail_closed_limit(:consume_bucket, {:unexpected_result, other})
         end
 
       :local ->
@@ -369,19 +357,13 @@ defmodule TechTree.RateLimit do
                  %{code: :duplicate_message, retry_after_ms: duplicate_retry_after_ms(key)}}
 
               {:ok, unexpected_reply} ->
-                fallback_to_local(:duplicate_guard, {:unexpected_reply, unexpected_reply}, fn ->
-                  check_duplicate_message_locally(key)
-                end)
+                fail_closed_limit(:duplicate_guard, {:unexpected_reply, unexpected_reply})
 
               {:error, reason} ->
-                fallback_to_local(:duplicate_guard, reason, fn ->
-                  check_duplicate_message_locally(key)
-                end)
+                fail_closed_limit(:duplicate_guard, reason)
 
               other ->
-                fallback_to_local(:duplicate_guard, {:unexpected_result, other}, fn ->
-                  check_duplicate_message_locally(key)
-                end)
+                fail_closed_limit(:duplicate_guard, {:unexpected_result, other})
             end
 
           :local ->
@@ -469,15 +451,9 @@ defmodule TechTree.RateLimit do
     end
   end
 
-  defp effective_backend(:local, _dragonfly_enabled, _dragonfly_reachable), do: :local
-
-  defp effective_backend(:dragonfly, true, true), do: :dragonfly
-
-  defp effective_backend(:dragonfly, _dragonfly_enabled, _dragonfly_reachable), do: :local
-
-  defp fallback_to_local(operation, reason, fallback_fun) when is_function(fallback_fun, 0) do
+  defp fail_closed_limit(operation, reason, retry_after_ms \\ 1_000) do
     record_backend_degraded(operation, reason)
-    fallback_fun.()
+    {:error, %{code: :rate_limited, retry_after_ms: retry_after_ms}}
   end
 
   defp record_backend_healthy(operation) do
@@ -534,13 +510,13 @@ defmodule TechTree.RateLimit do
 
   defp maybe_emit_backend_degraded(_current, operation, error_message) do
     Logger.warning(
-      "dragonfly rate-limit backend degraded; falling back to local ETS operation=#{operation} reason=#{error_message}"
+      "dragonfly rate-limit backend degraded; failing closed operation=#{operation} reason=#{error_message}"
     )
 
     :telemetry.execute(
       [:tech_tree, :rate_limit, :backend, :degraded],
       %{count: 1},
-      %{operation: Atom.to_string(operation), fallback: "local_ets", reason: error_message}
+      %{operation: Atom.to_string(operation), failure_mode: "fail_closed", reason: error_message}
     )
 
     :ok
@@ -562,6 +538,11 @@ defmodule TechTree.RateLimit do
 
   defp reconcile_backend_status(:dragonfly, nil) do
     _ = record_backend_healthy(:health_check)
+    backend_status_meta()
+  end
+
+  defp reconcile_backend_status(:dragonfly, live_error) do
+    _ = record_backend_degraded(:health_check, live_error)
     backend_status_meta()
   end
 

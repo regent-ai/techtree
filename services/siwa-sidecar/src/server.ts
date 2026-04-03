@@ -10,7 +10,6 @@ import {
 import { verifyTrustedHmac } from "./lib/hmac.js";
 import { InMemoryNonceStore } from "./lib/nonce-store.js";
 import {
-  parseAuthorizationReceipt,
   issueReceiptToken,
   verifyReceiptToken,
 } from "./lib/receipt.js";
@@ -40,7 +39,7 @@ const replayStore = new InMemoryReplayStore();
 const TRUSTED_ENDPOINTS: ReadonlySet<Endpoint> = new Set(["/v1/http-verify"]);
 const MAX_BODY_BYTES = 1_000_000;
 const HTTP_VERIFY_REQUIRED_HEADERS = [
-  "x-siwa-receipt|authorization",
+  "x-siwa-receipt",
   "signature",
   "signature-input",
   "x-key-id",
@@ -243,31 +242,14 @@ const parseReceiptFromHeaders = (
   headers: Record<string, string>,
 ): Result<{ token: string }, "invalid"> => {
   const siwaReceipt = headers["x-siwa-receipt"];
-  if (typeof siwaReceipt === "string" && siwaReceipt.trim() !== "") {
-    const trimmed = siwaReceipt.trim();
-    const parsedFromReceiptHeader = parseAuthorizationReceipt(trimmed);
-    return {
-      ok: true,
-      value: {
-        token: parsedFromReceiptHeader.ok ? parsedFromReceiptHeader.value : trimmed,
-      },
-    };
-  }
-
-  const authorizationHeader = headers.authorization;
-  if (typeof authorizationHeader !== "string" || authorizationHeader.trim() === "") {
-    return { ok: false, error: "invalid" };
-  }
-
-  const parsed = parseAuthorizationReceipt(authorizationHeader);
-  if (!parsed.ok) {
+  if (typeof siwaReceipt !== "string" || siwaReceipt.trim() === "") {
     return { ok: false, error: "invalid" };
   }
 
   return {
     ok: true,
     value: {
-      token: parsed.value,
+      token: siwaReceipt.trim(),
     },
   };
 };
@@ -382,7 +364,7 @@ const handlers: {
     const parsedReceipt = parseReceiptFromHeaders(envelope.normalizedHeaders);
     if (!parsedReceipt.ok) {
       return buildError("/v1/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
-        expectedFormat: "x-siwa-receipt: <token> or Authorization: SIWA <receipt-token>",
+        expectedFormat: "x-siwa-receipt: <receipt-token>",
       });
     }
 
@@ -401,7 +383,7 @@ const handlers: {
       }
 
       return buildError("/v1/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
-        expectedFormat: "x-siwa-receipt: <token> or Authorization: SIWA <receipt-token>",
+        expectedFormat: "x-siwa-receipt: <receipt-token>",
       });
     }
 

@@ -138,6 +138,14 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
     String.trim(output)
   end
 
+  @spec sig1_signature_header!(String.t(), String.t()) :: String.t()
+  def sig1_signature_header!(private_key, message) do
+    signature_hex = cast_wallet_sign!(private_key, message)
+
+    "sig1=:" <>
+      Base.encode64(Base.decode16!(String.trim_leading(signature_hex, "0x"), case: :mixed)) <> ":"
+  end
+
   @spec siwe_message(String.t(), String.t(), integer()) :: String.t()
   def siwe_message(wallet, nonce, chain_id) do
     issued_at = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()

@@ -63,7 +63,7 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
     end
   end
 
-  describe "dragonfly degraded-mode policy" do
+  describe "dragonfly rate-limit policy" do
     setup do
       original_backend = Application.get_env(:tech_tree, TechTree.RateLimit, [])
       original_enabled = Application.get_env(:tech_tree, :dragonfly_enabled)
@@ -89,7 +89,6 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
                dragonfly_enabled: true,
                dragonfly_reachable: nil,
                degraded: false,
-               fallback_mode: :conservative_local,
                last_error: nil
              } = TechTree.RateLimit.status()
     end
@@ -116,28 +115,29 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
       assert retry_after_ms > 0
     end
 
-    test "records degraded state when falling back locally because dragonfly is unavailable" do
+    test "fails closed and records degraded state when dragonfly is unavailable" do
       unavailable_name = :"dragonfly_unavailable_#{System.unique_integer([:positive])}"
 
       Application.put_env(:tech_tree, :dragonfly_enabled, true)
       Application.put_env(:tech_tree, :dragonfly_name, unavailable_name)
       Application.put_env(:tech_tree, TechTree.RateLimit, backend: :dragonfly)
 
-      assert :ok =
+      assert {:error, %{code: :rate_limited, retry_after_ms: retry_after_ms}} =
                TechTree.RateLimit.allow_chatbox_message(
                  actor_scope: "actor:#{System.unique_integer([:positive])}",
                  principal_scope: "principal:#{System.unique_integer([:positive])}",
                  ip_scope: "127.0.0.1",
-                 message_body: "dragonfly degraded fallback"
+                 message_body: "dragonfly degraded fail closed"
                )
+
+      assert retry_after_ms > 0
 
       assert %{
                configured_backend: :dragonfly,
-               effective_backend: :local,
+               effective_backend: :dragonfly,
                dragonfly_enabled: true,
                dragonfly_reachable: false,
                degraded: true,
-               fallback_mode: :conservative_local,
                last_error: last_error,
                last_degraded_at_ms: last_degraded_at_ms
              } = TechTree.RateLimit.status()

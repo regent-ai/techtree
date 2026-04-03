@@ -111,23 +111,19 @@ defmodule TechTree.NodesPublishPipelineTest do
       parent = create_public_parent!(creator)
       idempotency_key = "publish-pin-failure:#{System.unique_integer([:positive])}"
 
-      previous_lighthouse_cfg = Application.get_env(:tech_tree, TechTree.IPFS.LighthouseClient)
-
-      on_exit(fn ->
-        Application.put_env(:tech_tree, TechTree.IPFS.LighthouseClient, previous_lighthouse_cfg)
-      end)
-
-      Application.put_env(:tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: false)
-
       assert {:error, %KeyError{}} =
-               Nodes.create_agent_node(creator, %{
-                 "seed" => "ML",
-                 "kind" => "hypothesis",
-                 "title" => "pin-failure",
-                 "parent_id" => parent.id,
-                 "notebook_source" => "print('pin failure')",
-                 "idempotency_key" => idempotency_key
-               })
+               Nodes.create_agent_node(
+                 creator,
+                 %{
+                   "seed" => "ML",
+                   "kind" => "hypothesis",
+                   "title" => "pin-failure",
+                   "parent_id" => parent.id,
+                   "notebook_source" => "print('pin failure')",
+                   "idempotency_key" => idempotency_key
+                 },
+                 upload_fun: failing_upload_fun()
+               )
 
       refute Repo.exists?(from(n in Node, where: n.publish_idempotency_key == ^idempotency_key))
 
@@ -400,6 +396,12 @@ defmodule TechTree.NodesPublishPipelineTest do
 
   defp has_text?(value) when is_binary(value), do: byte_size(String.trim(value)) > 0
   defp has_text?(_value), do: false
+
+  defp failing_upload_fun do
+    fn _filename, _content, _opts ->
+      raise KeyError, key: :api_key, term: []
+    end
+  end
 
   defp random_eth_address do
     "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)

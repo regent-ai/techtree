@@ -33,7 +33,8 @@ defmodule TechTree.Nodes.Publishing do
           agent,
           normalized_attrs,
           requested_publish_idempotency_key ||
-            Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs)
+            Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs),
+          opts
         )
       else
         case Idempotency.find_existing_node_by_idempotency(
@@ -48,7 +49,8 @@ defmodule TechTree.Nodes.Publishing do
               agent,
               normalized_attrs,
               requested_publish_idempotency_key ||
-                Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs)
+                Idempotency.build_requested_publish_idempotency_key(agent.id, normalized_attrs),
+              opts
             )
         end
       end
@@ -183,7 +185,7 @@ defmodule TechTree.Nodes.Publishing do
     :ok
   end
 
-  defp create_fresh_agent_node(agent, normalized_attrs, requested_publish_idempotency_key) do
+  defp create_fresh_agent_node(agent, normalized_attrs, requested_publish_idempotency_key, opts) do
     with {:ok, parent} <- fetch_parent(normalized_attrs),
          {:ok, staged_node} <-
            build_staged_node(
@@ -195,7 +197,8 @@ defmodule TechTree.Nodes.Publishing do
          {:ok, bundle} <-
            build_bundle_for_node(
              staged_node,
-             Map.put(normalized_attrs, "parent_cid", parent.manifest_cid)
+             Map.put(normalized_attrs, "parent_cid", parent.manifest_cid),
+             opts
            ),
          {:ok, node} <-
            persist_published_node(
@@ -369,10 +372,11 @@ defmodule TechTree.Nodes.Publishing do
   defp build_path(nil, id), do: {"n#{id}", 0}
   defp build_path(parent, id), do: {"#{parent.path}.n#{id}", parent.depth + 1}
 
-  defp build_and_pin_bundle(node, payload), do: NodeBundleBuilder.build_and_pin!(node, payload)
+  defp build_and_pin_bundle(node, payload, opts),
+    do: NodeBundleBuilder.build_and_pin!(node, payload, Keyword.take(opts, [:upload_fun]))
 
-  defp build_bundle_for_node(node, normalized_attrs) do
-    {:ok, build_and_pin_bundle(node, Attrs.build_bundle_payload(normalized_attrs))}
+  defp build_bundle_for_node(node, normalized_attrs, opts) do
+    {:ok, build_and_pin_bundle(node, Attrs.build_bundle_payload(normalized_attrs), opts)}
   rescue
     error -> {:error, error}
   end

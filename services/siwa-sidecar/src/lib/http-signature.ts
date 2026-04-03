@@ -38,15 +38,24 @@ export type HttpEnvelopeCheck =
       [C in HttpEnvelopeErrorCode]: HttpEnvelopeFailure<C>;
     }[HttpEnvelopeErrorCode];
 
-const REQUIRED_HEADERS = ["signature", "signature-input", "x-key-id", "x-timestamp"] as const;
-const REQUIRED_BASE_COMPONENTS = ["@method", "@path", "x-key-id", "x-timestamp"] as const;
-const RECEIPT_HEADERS = ["x-siwa-receipt", "authorization"] as const;
+const REQUIRED_HEADERS = [
+  "x-siwa-receipt",
+  "signature",
+  "signature-input",
+  "x-key-id",
+  "x-timestamp",
+] as const;
+const REQUIRED_BASE_COMPONENTS = [
+  "@method",
+  "@path",
+  "x-siwa-receipt",
+  "x-key-id",
+  "x-timestamp",
+] as const;
 
 const COMPONENT_VALUE = /^"([^\s"]+)"$/;
 const HEADER_COMPONENT = /^[a-z0-9-]+$/;
-const HEX_SIGNATURE = /^0x[0-9a-fA-F]+$/;
 const SIG1_SIGNATURE = /^sig1=:([A-Za-z0-9+/=]+):$/;
-const BASE64_SIGNATURE = /^[A-Za-z0-9+/]+={0,2}$/;
 
 const toLowerHeaderMap = (headers: Record<string, string>): Record<string, string> => {
   const normalized: Record<string, string> = {};
@@ -69,20 +78,9 @@ const bytesToHexSignature = (bytes: Buffer): Result<HexString, "invalid"> => {
 
 const toHexSignature = (signatureValue: string): Result<HexString, "invalid"> => {
   const trimmed = signatureValue.trim();
-  if (HEX_SIGNATURE.test(trimmed)) {
-    const rawHex = trimmed.slice(2);
-    const bytes = Buffer.from(rawHex, "hex");
-    return bytesToHexSignature(bytes);
-  }
-
   const sig1Match = SIG1_SIGNATURE.exec(trimmed);
   if (sig1Match?.[1]) {
     const signatureBytes = Buffer.from(sig1Match[1], "base64");
-    return bytesToHexSignature(signatureBytes);
-  }
-
-  if (BASE64_SIGNATURE.test(trimmed)) {
-    const signatureBytes = Buffer.from(trimmed, "base64");
     return bytesToHexSignature(signatureBytes);
   }
 
@@ -96,34 +94,23 @@ interface ParsedSignatureInputRaw {
 
 const parseSignatureInputRaw = (signatureInput: string): Result<ParsedSignatureInputRaw, "invalid"> => {
   const trimmed = signatureInput.trim();
-
-  const equalsIndex = trimmed.indexOf("=(");
-  if (equalsIndex > 0) {
-    const afterEquals = trimmed.slice(equalsIndex + 1);
-    if (!afterEquals.startsWith("(")) {
-      return { ok: false, error: "invalid" };
-    }
-    const closeIndex = afterEquals.indexOf(")");
-    if (closeIndex < 0) {
-      return { ok: false, error: "invalid" };
-    }
-
-    const componentsRaw = afterEquals.slice(1, closeIndex).trim();
-    const paramsRaw = afterEquals.slice(closeIndex + 1).trim();
-    return { ok: true, value: { componentsRaw, paramsRaw } };
-  }
-
-  if (!trimmed.startsWith("(")) {
+  if (!trimmed.startsWith("sig1=")) {
     return { ok: false, error: "invalid" };
   }
 
-  const closeIndex = trimmed.indexOf(")");
+  const afterLabel = trimmed.slice(5).trim();
+
+  if (!afterLabel.startsWith("(")) {
+    return { ok: false, error: "invalid" };
+  }
+
+  const closeIndex = afterLabel.indexOf(")");
   if (closeIndex < 0) {
     return { ok: false, error: "invalid" };
   }
 
-  const componentsRaw = trimmed.slice(1, closeIndex).trim();
-  const paramsRaw = trimmed.slice(closeIndex + 1).trim();
+  const componentsRaw = afterLabel.slice(1, closeIndex).trim();
+  const paramsRaw = afterLabel.slice(closeIndex + 1).trim();
   return { ok: true, value: { componentsRaw, paramsRaw } };
 };
 
@@ -245,12 +232,6 @@ export const requiredCoveredComponentsForHeaders = (
 ): readonly string[] => {
   const required: string[] = [...REQUIRED_BASE_COMPONENTS];
 
-  if (typeof normalizedHeaders["x-siwa-receipt"] === "string") {
-    required.push("x-siwa-receipt");
-  } else if (typeof normalizedHeaders.authorization === "string") {
-    required.push("authorization");
-  }
-
   if (typeof normalizedHeaders["x-agent-wallet-address"] === "string") {
     required.push("x-agent-wallet-address");
   }
@@ -270,19 +251,11 @@ export const requiredCoveredComponentsForHeaders = (
   return required;
 };
 
-const hasReceiptHeader = (normalized: Record<string, string>): boolean => {
-  return RECEIPT_HEADERS.some((header) => typeof normalized[header] === "string");
-};
-
 export const validateHttpSignatureEnvelope = (
   headers: Record<string, string>,
 ): HttpEnvelopeCheck => {
   const normalized = toLowerHeaderMap(headers);
   const missing: string[] = REQUIRED_HEADERS.filter((name) => !normalized[name]);
-
-  if (!hasReceiptHeader(normalized)) {
-    missing.push("x-siwa-receipt|authorization");
-  }
 
   if (missing.length > 0) {
     return {
@@ -290,7 +263,7 @@ export const validateHttpSignatureEnvelope = (
       code: "http_headers_missing",
       message: "missing required HTTP signature headers",
       details: {
-        requiredHeaders: [...REQUIRED_HEADERS, "x-siwa-receipt|authorization"],
+        requiredHeaders: REQUIRED_HEADERS,
         missing,
       },
     };
@@ -304,7 +277,7 @@ export const validateHttpSignatureEnvelope = (
       ok: false,
       code: "http_signature_invalid",
       message: "invalid signature header format",
-      details: { expectedFormat: "0x<hex-signature> | sig1=:base64(signature): | <base64(signature)>" },
+      details: { expectedFormat: "sig1=:base64(signature):" },
     };
   }
 
@@ -314,7 +287,7 @@ export const validateHttpSignatureEnvelope = (
       ok: false,
       code: "http_signature_invalid",
       message: "invalid signature header format",
-      details: { expectedFormat: "0x<hex-signature> | sig1=:base64(signature): | <base64(signature)>" },
+      details: { expectedFormat: "sig1=:base64(signature):" },
     };
   }
 

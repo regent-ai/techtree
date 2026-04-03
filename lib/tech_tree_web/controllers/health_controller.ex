@@ -21,7 +21,6 @@ defmodule TechTreeWeb.HealthController do
         reachable: rate_limit_status.dragonfly_reachable,
         degraded: rate_limit_status.degraded,
         rate_limit_backend: rate_limit_status.effective_backend,
-        fallback_mode: rate_limit_status.fallback_mode,
         last_error: rate_limit_status.last_error,
         last_degraded_at_ms: rate_limit_status.last_degraded_at_ms,
         last_recovered_at_ms: rate_limit_status.last_recovered_at_ms

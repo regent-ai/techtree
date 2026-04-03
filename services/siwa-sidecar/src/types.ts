@@ -102,7 +102,7 @@ export interface ErrorDetailsByCode {
     missing: readonly string[];
   };
   http_signature_invalid: {
-    expectedFormat: "0x<hex-signature> | sig1=:base64(signature): | <base64(signature)>";
+    expectedFormat: "sig1=:base64(signature):";
   };
   http_signature_input_invalid: {
     expectedFormat:

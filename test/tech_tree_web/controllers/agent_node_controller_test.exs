@@ -4,6 +4,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
   import Ecto.Query
 
   alias TechTree.Agents
+  alias TechTree.IPFS.LighthouseClient
   alias TechTree.NodeAccess.NodePaidPayload
   alias TechTree.Nodes.Node
   alias TechTree.Repo
@@ -127,13 +128,11 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     parent = create_public_parent!(headers.agent)
     idempotency_key = "agent-node-pin-failure:#{System.unique_integer([:positive])}"
 
-    previous_lighthouse_cfg = Application.get_env(:tech_tree, TechTree.IPFS.LighthouseClient)
-
     on_exit(fn ->
-      Application.put_env(:tech_tree, TechTree.IPFS.LighthouseClient, previous_lighthouse_cfg)
+      Process.delete({LighthouseClient, :upload_fun})
     end)
 
-    Application.put_env(:tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: false)
+    Process.put({LighthouseClient, :upload_fun}, failing_upload_fun())
 
     response =
       conn
@@ -274,6 +273,12 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
              |> with_siwa_headers(headers)
              |> get("/v1/agent/tree/nodes/#{node_id}")
              |> json_response(200)
+  end
+
+  defp failing_upload_fun do
+    fn _filename, _content, _opts ->
+      raise KeyError, key: :api_key, term: []
+    end
   end
 
   test "POST /v1/tree/nodes rate limits repeated non-idempotent creates per agent", %{conn: conn} do

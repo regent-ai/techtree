@@ -95,9 +95,9 @@ Request body contract:
   "method": "POST",
   "path": "/v1/agent/nodes",
   "headers": {
-    "authorization": "SIWA <signed-receipt-token>",
+    "x-siwa-receipt": "<signed-receipt-token>",
     "signature": "sig1=:BASE64_SIGNATURE:",
-    "signature-input": "sig1=(\"@method\" \"@path\" \"authorization\" \"x-key-id\" \"x-timestamp\");created=1700000000;expires=1700000300;nonce=\"7f5e7f0f3a1f4d1f\";keyid=\"0x1111111111111111111111111111111111111111\"",
+    "signature-input": "sig1=(\"@method\" \"@path\" \"x-siwa-receipt\" \"x-key-id\" \"x-timestamp\");created=1700000000;expires=1700000300;nonce=\"7f5e7f0f3a1f4d1f\";keyid=\"0x1111111111111111111111111111111111111111\"",
     "x-key-id": "0x1111111111111111111111111111111111111111",
     "x-timestamp": "1700000000"
   },
@@ -125,14 +125,14 @@ Success response contract:
     "keyId": "0x1111111111111111111111111111111111111111",
     "receiptExpiresAt": "2026-03-04T12:15:00.000Z",
     "requiredHeaders": [
-      "authorization",
+      "x-siwa-receipt",
       "signature",
       "signature-input",
       "x-key-id",
       "x-timestamp"
     ],
-    "requiredCoveredComponents": ["@method", "@path", "authorization", "x-key-id"],
-    "coveredComponents": ["@method", "@path", "authorization", "x-key-id"]
+    "requiredCoveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id"],
+    "coveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id"]
   },
   "meta": {
     "version": "v1",
@@ -152,7 +152,7 @@ Deterministic failure contract:
 | `401` | `auth_timestamp_invalid` | Non-integer `x-sidecar-timestamp` | `{ receivedTimestamp }` |
 | `401` | `auth_timestamp_out_of_window` | Timestamp outside `SIWA_HMAC_MAX_SKEW_SECONDS` | `{ nowUnixSeconds, receivedUnixSeconds, maxSkewSeconds }` |
 | `401` | `auth_signature_mismatch` | HMAC mismatch for canonical payload | `{ algorithm: "sha256" }` |
-| `401` | `receipt_invalid` | Missing/malformed/invalid `Authorization: SIWA <receipt>` token | `{ expectedFormat }` |
+| `401` | `receipt_invalid` | Missing/malformed/invalid `x-siwa-receipt` token | `{ expectedFormat }` |
 | `401` | `receipt_expired` | SIWA receipt token is expired | `{ expiresAt }` |
 | `401` | `receipt_binding_mismatch` | `x-key-id` or optional agent headers do not match receipt claims | `{ binding, expected, received }` |
 | `401` | `http_signature_mismatch` | Cryptographic HTTP signature verification failed against receipt wallet | `{ expectedWalletAddress }` |

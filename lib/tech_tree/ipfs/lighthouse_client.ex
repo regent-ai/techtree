@@ -22,17 +22,25 @@ defmodule TechTree.IPFS.LighthouseClient do
   @spec upload_content!(String.t(), binary(), keyword()) :: UploadResult.t()
   def upload_content!(filename, content, opts \\ [])
       when is_binary(filename) and is_binary(content) do
-    content_type = opts[:content_type] || MIME.from_path(filename) || "application/octet-stream"
-    mock_uploads = opts[:mock_uploads] || config!(:mock_uploads)
+    case opts[:upload_fun] || Process.get({__MODULE__, :upload_fun}) do
+      upload_fun when is_function(upload_fun, 3) ->
+        upload_fun.(filename, content, opts)
 
-    if mock_uploads do
-      mock_upload_result(filename, content)
-    else
-      perform_upload!(
-        filename,
-        {content, filename: filename, content_type: content_type},
-        opts
-      )
+      _ ->
+        content_type =
+          opts[:content_type] || MIME.from_path(filename) || "application/octet-stream"
+
+        mock_uploads = opts[:mock_uploads] || config!(:mock_uploads)
+
+        if mock_uploads do
+          mock_upload_result(filename, content)
+        else
+          perform_upload!(
+            filename,
+            {content, filename: filename, content_type: content_type},
+            opts
+          )
+        end
     end
   end
 
@@ -40,20 +48,28 @@ defmodule TechTree.IPFS.LighthouseClient do
   def upload_path!(path, opts \\ []) when is_binary(path) do
     filename = opts[:filename] || Path.basename(path)
     content_type = opts[:content_type] || MIME.from_path(path) || "application/octet-stream"
-    mock_uploads = opts[:mock_uploads] || config!(:mock_uploads)
 
-    if mock_uploads do
-      content = File.read!(path)
-      upload_content!(filename, content, Keyword.put(opts, :content_type, content_type))
-    else
-      size = File.stat!(path).size
+    case opts[:upload_fun] || Process.get({__MODULE__, :upload_fun}) do
+      upload_fun when is_function(upload_fun, 3) ->
+        content = File.read!(path)
+        upload_fun.(filename, content, Keyword.put(opts, :content_type, content_type))
 
-      perform_upload!(
-        filename,
-        {File.stream!(path, [], 64_000),
-         filename: filename, content_type: content_type, size: size},
-        opts
-      )
+      _ ->
+        mock_uploads = opts[:mock_uploads] || config!(:mock_uploads)
+
+        if mock_uploads do
+          content = File.read!(path)
+          upload_content!(filename, content, Keyword.put(opts, :content_type, content_type))
+        else
+          size = File.stat!(path).size
+
+          perform_upload!(
+            filename,
+            {File.stream!(path, [], 64_000),
+             filename: filename, content_type: content_type, size: size},
+            opts
+          )
+        end
     end
   end
 

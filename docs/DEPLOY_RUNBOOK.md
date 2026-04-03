@@ -20,7 +20,7 @@ This runbook is for the first production cut:
 - Dragonfly: `fly.dragonfly.toml`
 - Managed Postgres: attached by `scripts/fly_deploy_stack.sh`
 
-Use `scripts/fly_deploy_stack.sh` as the canonical entrypoint. `scripts/fly_deploy.sh` is only a deprecation shim.
+Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
 
 ## Prerequisites
 

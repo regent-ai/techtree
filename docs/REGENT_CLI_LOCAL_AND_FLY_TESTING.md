@@ -87,7 +87,8 @@ Start from the checked-in example:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree
-cp .env.example .env
+cp .env.example .env.local
+direnv allow
 ```
 
 Fill the required app values:
@@ -165,7 +166,7 @@ pnpm --filter @regentlabs/cli exec regent create init
 
 The important Techtree config values are:
 
-- `techtree.baseUrl = http://127.0.0.1:4000`
+- `techtree.baseUrl = http://127.0.0.1:4001`
 - `techtree.defaultChainId = 11155111`
 
 That default chain ID is for SIWA identity login, not the Base Sepolia publishing path.

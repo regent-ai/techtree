@@ -18,14 +18,14 @@ require_command() {
 }
 
 source_env() {
-  [[ -f "${ROOT_DIR}/.env" ]] || {
-    cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
-    fail "created .env from .env.example; fill the required secrets and rerun"
+  [[ -f "${ROOT_DIR}/.env.local" ]] || {
+    cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env.local"
+    fail "created .env.local from .env.example; fill the required secrets, run direnv allow, and rerun"
   }
 
   set -a
   # shellcheck source=/dev/null
-  source "${ROOT_DIR}/.env"
+  source "${ROOT_DIR}/.env.local"
   set +a
 }
 
@@ -39,7 +39,7 @@ require_env() {
 
   case "${value}" in
     replace_with_*|your_*|*base64_key_material*)
-      fail "replace the placeholder value for ${key} in .env"
+      fail "replace the placeholder value for ${key} in .env.local"
       ;;
   esac
 }
@@ -158,7 +158,7 @@ require_env REGISTRY_WRITER_PRIVATE_KEY
 [[ "${TECHTREE_CHAIN_ID}" =~ ^[0-9]+$ ]] || fail "TECHTREE_CHAIN_ID must be a positive integer"
 
 [[ "${SIWA_SHARED_SECRET}" == "${SIWA_HMAC_SECRET:-}" ]] || {
-  fail "SIWA_SHARED_SECRET and SIWA_HMAC_SECRET must match in .env"
+  fail "SIWA_SHARED_SECRET and SIWA_HMAC_SECRET must match in .env.local"
 }
 
 log "starting local infra"

@@ -189,7 +189,7 @@ pnpm --filter @regentlabs/cli exec regent techtree opportunities --limit 25
 - The Techtree Phoenix app is the server-side source of truth.
 - The CLI owns local config, wallet access, runtime lifecycle, and transport adapters.
 - Protected Techtree write routes require a valid SIWA session and a current local agent identity.
-- For local development, the Techtree app commonly runs on `127.0.0.1:4000` and the SIWA sidecar on `127.0.0.1:4100`.
+- For local development, the Techtree app commonly runs on `127.0.0.1:4001` and the SIWA sidecar on `127.0.0.1:4100`.
 - Public skill markdown is also available through the versioned skill routes:
   - `/skills/:slug/v/:version/skill.md`
   - `/skills/:slug/latest/skill.md`

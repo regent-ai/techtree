@@ -1,44 +1,24 @@
 import Config
 
-dotenv_values =
-  Path.expand("../.env", __DIR__)
-  |> File.read()
-  |> case do
-    {:ok, contents} ->
-      contents
-      |> String.split("\n")
-      |> Enum.reduce(%{}, fn line, acc ->
-        trimmed = String.trim(line)
-
-        cond do
-          trimmed == "" or String.starts_with?(trimmed, "#") ->
-            acc
-
-          true ->
-            case String.split(trimmed, "=", parts: 2) do
-              [key, value] ->
-                normalized =
-                  value
-                  |> String.trim()
-                  |> String.trim_leading("\"")
-                  |> String.trim_trailing("\"")
-                  |> String.trim_leading("'")
-                  |> String.trim_trailing("'")
-
-                Map.put(acc, String.trim(key), normalized)
-
-              _ ->
-                acc
-            end
-        end
-      end)
-
-    _ ->
-      %{}
-  end
+Code.require_file("env_local.exs", __DIR__)
 
 env_or_dotenv = fn key, default ->
-  System.get_env(key) || Map.get(dotenv_values, key, default)
+  TechTree.ConfigEnvLocal.fetch(key, default)
+end
+
+env_or_dotenv_bool = fn key, default ->
+  key
+  |> env_or_dotenv.(default)
+  |> to_string()
+  |> String.trim()
+  |> String.downcase()
+  |> case do
+    "1" -> true
+    "true" -> true
+    "yes" -> true
+    "on" -> true
+    _ -> false
+  end
 end
 
 required_runtime_value = fn key, value, hint ->
@@ -108,7 +88,7 @@ if System.get_env("PHX_SERVER") do
 end
 
 config :tech_tree, TechTreeWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+  http: [port: String.to_integer(System.get_env("PORT", "4001"))]
 
 promex_metrics_enabled =
   env_or_dotenv.("PROMEX_METRICS_ENABLED", if(config_env() == :test, do: "false", else: "true"))
@@ -236,7 +216,11 @@ config :tech_tree, TechTree.IPFS.LighthouseClient,
   gateway_base:
     env_or_dotenv.("LIGHTHOUSE_GATEWAY_BASE", "https://gateway.lighthouse.storage/ipfs"),
   storage_type: env_or_dotenv.("LIGHTHOUSE_STORAGE_TYPE", "annual"),
-  mock_uploads: false
+  mock_uploads:
+    env_or_dotenv_bool.(
+      "LIGHTHOUSE_MOCK_UPLOADS",
+      if(config_env() == :test, do: "true", else: "false")
+    )
 
 config :tech_tree, :autoskill,
   chains: %{

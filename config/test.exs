@@ -1,44 +1,9 @@
 import Config
 
-dotenv_values =
-  Path.expand("../.env", __DIR__)
-  |> File.read()
-  |> case do
-    {:ok, contents} ->
-      contents
-      |> String.split("\n")
-      |> Enum.reduce(%{}, fn line, acc ->
-        trimmed = String.trim(line)
-
-        cond do
-          trimmed == "" or String.starts_with?(trimmed, "#") ->
-            acc
-
-          true ->
-            case String.split(trimmed, "=", parts: 2) do
-              [key, value] ->
-                normalized =
-                  value
-                  |> String.trim()
-                  |> String.trim_leading("\"")
-                  |> String.trim_trailing("\"")
-                  |> String.trim_leading("'")
-                  |> String.trim_trailing("'")
-
-                Map.put(acc, String.trim(key), normalized)
-
-              _ ->
-                acc
-            end
-        end
-      end)
-
-    _ ->
-      %{}
-  end
+Code.require_file("env_local.exs", __DIR__)
 
 env_or_dotenv = fn key, default ->
-  System.get_env(key) || Map.get(dotenv_values, key, default)
+  TechTree.ConfigEnvLocal.fetch(key, default)
 end
 
 # Configure your database

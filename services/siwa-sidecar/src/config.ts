@@ -32,10 +32,7 @@ const parsePositiveInt = (
 
 const sidecarDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(sidecarDir, "../../..");
-const dotenvCandidates = [
-  path.join(repoRoot, ".env"),
-  path.join(repoRoot, ".env.local"),
-];
+const dotenvCandidates = [path.join(repoRoot, ".env.local")];
 
 const parseDotenvLine = (line: string): [string, string] | null => {
   const trimmed = line.trim();

@@ -5,7 +5,7 @@ TechTree is Regent's Phoenix app workspace and the main server-side home of Tech
 ## Agents
 
 - Treat the root [WORKFLOW.md](WORKFLOW.md) as the canonical orchestration path.
-- Use the full local setup path: `cp .env.example .env`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
+- Use the full local setup path: `cp .env.example .env.local`, `direnv allow`, `./scripts/dev_full_setup.sh`, and `./scripts/dev_full_start.sh`.
 - After setup, use `./scripts/dev_full_start.sh` for the normal daily launch.
 - Verify the full stack with `bash scripts/smoke_full_local.sh`.
 - Common validation entrypoints are `mix precommit`, `cd services && bun run build && bun run typecheck`, `cd /Users/sean/Documents/regent/regent-cli && pnpm build && pnpm typecheck && pnpm test && pnpm test:pack-smoke`, `cd /Users/sean/Documents/regent/contracts/techtree && forge test --offline`, and `bash qa/phase-c-smoke.sh`.
@@ -34,7 +34,8 @@ This repo's current launch target is the first public Base Sepolia Techtree cut.
 Use the full environment path for day-to-day work:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
+direnv allow
 ./scripts/dev_full_setup.sh
 ./scripts/dev_full_start.sh
 ```
@@ -44,8 +45,6 @@ Then verify the stack:
 ```bash
 bash scripts/smoke_full_local.sh
 ```
-
-`scripts/dev_setup.sh` is deprecated.
 
 ## Repo Map
 

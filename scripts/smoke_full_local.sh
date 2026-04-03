@@ -14,11 +14,11 @@ fail() {
 }
 
 source_env() {
-  [[ -f "${ROOT_DIR}/.env" ]] || fail "missing .env; copy .env.example to .env first"
+  [[ -f "${ROOT_DIR}/.env.local" ]] || fail "missing .env.local; copy .env.example to .env.local first"
 
   set -a
   # shellcheck source=/dev/null
-  source "${ROOT_DIR}/.env"
+  source "${ROOT_DIR}/.env.local"
   set +a
 }
 
@@ -72,7 +72,7 @@ check_compose_service() {
 
 check_siwa_nonce() {
   local response
-  local port="${PORT:-4000}"
+  local port="${PORT:-4001}"
 
   response="$(
     curl -fsS \
@@ -170,7 +170,7 @@ log "checking dragonfly"
 dragonfly_ping || fail "dragonfly did not answer PING on localhost:6379"
 
 log "checking phoenix health"
-assert_http_ok "phoenix /health" "http://127.0.0.1:${PORT:-4000}/health"
+assert_http_ok "phoenix /health" "http://127.0.0.1:${PORT:-4001}/health"
 
 log "checking SIWA health"
 assert_http_ok "siwa /health" "http://127.0.0.1:${SIWA_PORT:-4100}/health"
@@ -186,7 +186,7 @@ check_lighthouse_upload
 
 log "checking Privy config presence"
 [[ -n "${PRIVY_APP_ID:-}" && -n "${PRIVY_VERIFICATION_KEY:-}" ]] || {
-  fail "Privy config is missing from .env"
+  fail "Privy config is missing from .env.local"
 }
 
 printf 'Full local parity smoke passed.\n'

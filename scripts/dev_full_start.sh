@@ -15,11 +15,11 @@ fail() {
 }
 
 source_env() {
-  [[ -f "${ROOT_DIR}/.env" ]] || fail "missing .env; copy .env.example to .env first"
+  [[ -f "${ROOT_DIR}/.env.local" ]] || fail "missing .env.local; copy .env.example to .env.local first"
 
   set -a
   # shellcheck source=/dev/null
-  source "${ROOT_DIR}/.env"
+  source "${ROOT_DIR}/.env.local"
   set +a
 }
 
@@ -89,7 +89,7 @@ start_processes() {
     cd "${ROOT_DIR}"
     set -a
     # shellcheck source=/dev/null
-    source "${ROOT_DIR}/.env"
+    source "${ROOT_DIR}/.env.local"
     set +a
     exec mix phx.server
   ) &
@@ -100,7 +100,7 @@ start_processes() {
     cd "${ROOT_DIR}/services"
     set -a
     # shellcheck source=/dev/null
-    source "${ROOT_DIR}/.env"
+    source "${ROOT_DIR}/.env.local"
     set +a
     exec bun run dev:siwa
   ) &

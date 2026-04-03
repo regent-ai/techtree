@@ -418,7 +418,7 @@ function getChatboxAccessState() {
       joinVisibility: "hidden",
       postVisibility: "hidden",
       canPost: false,
-      notice: "Join request pending. Read remains open while post access is queued."
+      notice: "Posting is temporarily unavailable while access is being confirmed."
     };
   }
 

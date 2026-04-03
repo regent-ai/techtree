@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="/Users/sean/Documents/regent/techtree"
-PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4000}"
+PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4001}"
 OUT_DIR="${ROOT}/qa/artifacts/frontpage-platform"
 AB_HOME="${ROOT}/qa/.agent-browser-home"
 SESSION="${AGENT_BROWSER_SESSION:-fp-plat-smoke}"

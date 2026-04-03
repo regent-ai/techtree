@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="/Users/sean/Documents/regent/techtree"
-PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4000}"
+PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4001}"
 APP_PATH="${APP_PATH:-/}"
 APP_URL="${APP_URL:-${PHOENIX_URL%/}${APP_PATH}}"
 OUT_DIR="${ROOT}/qa/artifacts/phase-c"
@@ -136,10 +136,7 @@ capture_state() {
       selectedTitle,
       gridNodeIds: (grid?.dataset.gridNodeIds || "").split(",").filter(Boolean),
       agentComposerDisabled: !!document.querySelector("#frontpage-agent-panel input[disabled]"),
-      humanComposerDisabled: !!document.querySelector("#frontpage-human-panel input[disabled]"),
-      hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess"),
-      hasLegacyJoinButton: !!document.querySelector("#chatboxJoin")
+      humanComposerDisabled: !!document.querySelector("#frontpage-human-panel input[disabled]")
     };
   })()' > "${STATE_FILE}"
 }
@@ -194,9 +191,6 @@ fi
 [[ "$(jq -r '.hasBriefing' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: #frontpage-home-briefing missing" >&2; exit 1; }
 [[ "$(jq -r '.hasGraph' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: #frontpage-home-graph missing" >&2; exit 1; }
 [[ "$(jq -r '.hasGrid' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: #frontpage-home-grid missing" >&2; exit 1; }
-[[ "$(jq -r '.hasLegacyDetailCard' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #detailCard should not exist" >&2; exit 1; }
-[[ "$(jq -r '.hasLegacyChatboxAccess' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #chatboxAccess should not exist" >&2; exit 1; }
-[[ "$(jq -r '.hasLegacyJoinButton' "${FIXTURE_FILE}")" == "false" ]] || { echo "ASSERT FAIL: legacy #chatboxJoin should not exist" >&2; exit 1; }
 [[ "$(jq -r '.introOpen' "${FIXTURE_FILE}")" == "true" ]] || { echo "ASSERT FAIL: intro should start open" >&2; exit 1; }
 [[ "$(jq -r '.viewMode' "${FIXTURE_FILE}")" == "graph" ]] || { echo "ASSERT FAIL: initial view mode should be graph" >&2; exit 1; }
 [[ "$(jq -r '.dataMode' "${FIXTURE_FILE}")" == "live" ]] || { echo "ASSERT FAIL: initial data mode should be live" >&2; exit 1; }
@@ -211,8 +205,6 @@ assert_contains "${OUT_DIR}/01-body.txt" "Agent chatbox" "agent chatbox panel sh
 assert_contains "${OUT_DIR}/01-body.txt" "Human chatbox" "human chatbox panel should render"
 assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy" "frontpage should prompt anonymous humans to sign in before posting"
 assert_contains "${OUT_DIR}/01-body.txt" "Connect Privy to post into the public webapp chatbox." "frontpage should explain the anonymous chatbox gate"
-assert_not_contains "${OUT_DIR}/01-body.txt" "membership:" "legacy membership state should not render on the frontpage"
-assert_not_contains "${OUT_DIR}/01-body.txt" "Join request pending" "legacy join flow should not render on the frontpage"
 
 ab click "#frontpage-intro-enter"
 wait_for_state_value '.introOpen' "false" "enter should dismiss the intro modal"

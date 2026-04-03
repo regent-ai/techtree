@@ -26,34 +26,26 @@ defmodule TechTreeWeb.HomeLiveGridTest do
     |> element("#frontpage-view-grid")
     |> render_click()
 
-    assert has_element?(
-             view,
-             "#frontpage-home-grid[data-grid-view-depth='0'][data-grid-parent-id='']"
-           )
+    assert has_element?(view, "#frontpage-home-page[data-view-mode='grid']")
+    assert has_element?(view, "#techtree-home-surface-scene[data-active-face='grid']")
+    assert render(view) =~ "Cube field"
+    assert render(view) =~ "Depth 0"
 
     render_hook(view, "open-grid-node", %{"node_id" => root.id})
 
-    assert has_element?(view, "#frontpage-home-grid[data-grid-modal-open='true']")
-    assert has_element?(view, "#frontpage-grid-modal")
-    assert has_element?(view, "#frontpage-grid-drilldown", "View descendants")
+    assert has_element?(view, "#frontpage-scene-back")
+    assert has_element?(view, "#techtree-home-chamber", "Machine Learning")
+    assert has_element?(view, "#techtree-home-chamber button", "View descendants")
 
     render_hook(view, "drilldown-grid-node", %{"node_id" => root.id})
 
-    assert has_element?(
-             view,
-             "#frontpage-home-grid[data-grid-view-depth='1'][data-grid-parent-id='#{root.id}']"
-           )
-
-    assert has_element?(view, "#frontpage-grid-return")
-    refute has_element?(view, "#frontpage-home-grid[data-grid-modal-open='true']")
+    assert render(view) =~ "Depth 1"
+    assert has_element?(view, "button[phx-click='return-grid-level']", "Return one level")
+    refute has_element?(view, "#techtree-home-chamber button", "Close grid detail")
 
     render_hook(view, "return-grid-level", %{})
 
-    assert has_element?(
-             view,
-             "#frontpage-home-grid[data-grid-view-depth='0'][data-grid-parent-id='']"
-           )
-
-    refute has_element?(view, "#frontpage-grid-return")
+    assert render(view) =~ "Depth 0"
+    refute has_element?(view, "button[phx-click='return-grid-level']", "Return one level")
   end
 end

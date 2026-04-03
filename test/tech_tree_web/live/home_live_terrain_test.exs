@@ -15,21 +15,32 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
       "meta" => %{"node_id" => node_id, "face_action" => "select-node"}
     })
 
-    assert has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
 
     view
     |> element("#frontpage-view-grid")
     |> render_click()
 
     assert has_element?(view, "#techtree-home-surface-scene[data-active-face='grid']")
-    assert has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
 
     view
     |> element("#frontpage-agent-panel button[phx-value-panel='agent']")
     |> render_click()
 
     assert has_element?(view, "#frontpage-agent-panel[data-panel-open='false']")
-    assert has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
   end
 
   test "node search drives focus into the terrain", %{conn: conn} do
@@ -40,7 +51,11 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
     |> form("#frontpage-node-search", node_query: label)
     |> render_submit()
 
-    assert has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
+
     assert render(view) =~ label
   end
 
@@ -52,14 +67,23 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
 
     assert has_element?(view, "#frontpage-scene-back")
     assert render(view) =~ "Back to overview"
-    assert has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
 
     view
     |> element("#frontpage-scene-back")
     |> render_click()
 
     refute has_element?(view, "#frontpage-scene-back")
-    refute has_element?(view, "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']")
+
+    refute has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+           )
+
     assert has_element?(view, "#techtree-home-surface-scene")
   end
 

@@ -18,10 +18,34 @@ defmodule TechTreeWeb.HomeRegentScene do
         "distance" => 28
       },
       "cameraPresets" => %{
-        "overview" => %{"type" => "oblique", "angle" => 315, "distance" => 28, "padding" => 42, "zoom" => 1.0},
-        "focus_travel" => %{"type" => "oblique", "angle" => 300, "distance" => 20, "padding" => 24, "zoom" => 2.7},
-        "node_focus" => %{"type" => "oblique", "angle" => 300, "distance" => 18, "padding" => 20, "zoom" => 3.1},
-        "grid_focus" => %{"type" => "oblique", "angle" => 315, "distance" => 22, "padding" => 28, "zoom" => 2.0}
+        "overview" => %{
+          "type" => "oblique",
+          "angle" => 315,
+          "distance" => 28,
+          "padding" => 42,
+          "zoom" => 1.0
+        },
+        "focus_travel" => %{
+          "type" => "oblique",
+          "angle" => 304,
+          "distance" => 21,
+          "padding" => 24,
+          "zoom" => 2.35
+        },
+        "node_focus" => %{
+          "type" => "oblique",
+          "angle" => 300,
+          "distance" => 18,
+          "padding" => 20,
+          "zoom" => 3.1
+        },
+        "grid_focus" => %{
+          "type" => "oblique",
+          "angle" => 315,
+          "distance" => 22,
+          "padding" => 28,
+          "zoom" => 2.0
+        }
       },
       "activeCameraPreset" => active_camera_preset(assigns, focus_target_id),
       "cameraTargetId" => focus_target_id,
@@ -79,8 +103,8 @@ defmodule TechTreeWeb.HomeRegentScene do
           "status" => node_status(node, assigns, subtree_ids),
           "parentId" => node.parent_id,
           "position" => graph_position(node, index),
-          "size" => graph_size(node, selected_id),
-          "scale" => graph_scale(node, selected_id),
+          "size" => graph_size(node, selected_id, overview_graph?(assigns)),
+          "scale" => graph_scale(node, selected_id, overview_graph?(assigns)),
           "scaleOrigin" => [0.5, 1, 0.5],
           "opaque" => true,
           "meta" => %{
@@ -278,18 +302,23 @@ defmodule TechTreeWeb.HomeRegentScene do
     [x, y, z]
   end
 
-  defp graph_size(node, selected_id) do
+  defp graph_size(node, selected_id, overview?) do
     cond do
       node.id == selected_id -> [3, 3, 2]
       (node.depth || 0) == 0 -> [3, 3, 2]
+      overview? and (node.depth || 0) == 1 -> [2, 2, 1]
+      overview? -> [2, 1, 1]
       true -> [2, 2, 2]
     end
   end
 
-  defp graph_scale(node, selected_id) do
+  defp graph_scale(node, selected_id, overview?) do
     cond do
       node.id == selected_id -> [1.0, 1.0, 1.0]
+      (node.depth || 0) == 0 and overview? -> [0.92, 0.84, 0.92]
       (node.depth || 0) == 0 -> [1.0, 1.0, 1.0]
+      overview? and (node.depth || 0) == 1 -> [0.74, 0.64, 0.74]
+      overview? -> [0.58, 0.48, 0.58]
       (node.depth || 0) == 1 -> [0.9, 0.84, 0.9]
       true -> [0.78, 0.72, 0.78]
     end
@@ -392,7 +421,7 @@ defmodule TechTreeWeb.HomeRegentScene do
 
   defp graph_backbone_commands(nodes) do
     nodes
-    |> Enum.filter(&(is_nil(Map.get(&1, "parentId"))))
+    |> Enum.filter(&is_nil(Map.get(&1, "parentId")))
     |> Enum.with_index()
     |> Enum.map(fn {node, index} ->
       from = SceneSpec.anchor(Map.fetch!(node, "position"), Map.fetch!(node, "size"))
@@ -406,13 +435,22 @@ defmodule TechTreeWeb.HomeRegentScene do
         shape: "rounded",
         style: %{
           "default" => %{
-            "fill" => "rgba(17, 76, 167, 0.18)",
-            "stroke" => "rgba(90, 67, 20, 0.32)",
-            "opacity" => 0.8
+            "fill" => "rgba(17, 76, 167, 0.11)",
+            "stroke" => "rgba(90, 67, 20, 0.18)",
+            "opacity" => 0.56
           }
         }
       )
     end)
+  end
+
+  defp overview_graph?(assigns) do
+    active_face(assigns) == "graph" and
+      is_nil(assigns.node_focus_target_id) and
+      is_nil(assigns.selected_agent_id) and
+      is_nil(assigns.subtree_root_id) and
+      not assigns.show_null_results? and
+      not assigns.filter_to_null_results?
   end
 
   defp elem_or(tuple, index), do: Enum.at(tuple, index)
@@ -437,6 +475,8 @@ defmodule TechTreeWeb.HomeRegentScene do
     geometry = node["geometry"] || "cube"
     target_id = node_id
     meta = Map.get(node, "meta", %{})
+    command_id = node["commandId"] || "#{node_id}:body"
+    custom_commands = Map.get(node, "commands")
 
     marker =
       SceneSpec.marker(target_id,
@@ -451,129 +491,141 @@ defmodule TechTreeWeb.HomeRegentScene do
         group_role: node["groupRole"],
         click_tone: node["clickTone"],
         meta: meta,
-        command_id: "#{node_id}:body"
+        command_id: command_id
       )
 
     intent_style = SceneSpec.intent_style(SceneSpec.node_style(status), node["intent"])
 
     commands =
-      case geometry do
-        "socket" ->
-          [
-            SceneSpec.add_sphere(
-              "#{node_id}:body",
-              SceneSpec.sphere_center(position, size),
-              SceneSpec.sphere_radius(size),
-              style: intent_style,
-              target_id: target_id,
-              scale: SceneSpec.socket_scale(size, status),
-              scale_origin: [0.5, 1, 0.5]
-            )
-          ]
+      if is_list(custom_commands) do
+        custom_commands
+      else
+        case geometry do
+          "socket" ->
+            [
+              SceneSpec.add_sphere(
+                command_id,
+                SceneSpec.sphere_center(position, size),
+                SceneSpec.sphere_radius(size),
+                style: intent_style,
+                target_id: target_id,
+                scale: node["scale"] || SceneSpec.socket_scale(size, status),
+                scale_origin: node["scaleOrigin"] || [0.5, 1, 0.5]
+              )
+            ]
 
-        "carved_cube" ->
-          [
-            SceneSpec.add_box(
-              "#{node_id}:body",
-              position,
-              size,
-              style: intent_style,
-              target_id: target_id
-            ),
-            SceneSpec.remove_box(
-              "#{node_id}:carve",
-              SceneSpec.inset_position(position),
-              SceneSpec.inset_size(size),
-              style: SceneSpec.carved_wall_style(status),
-              target_id: target_id
-            )
-          ]
+          "carved_cube" ->
+            [
+              SceneSpec.add_box(
+                command_id,
+                position,
+                size,
+                style: intent_style,
+                target_id: target_id
+              ),
+              SceneSpec.remove_box(
+                "#{node_id}:carve",
+                SceneSpec.inset_position(position),
+                SceneSpec.inset_size(size),
+                style: SceneSpec.carved_wall_style(status),
+                target_id: target_id
+              )
+            ]
 
-        "ghost" ->
-          [
-            SceneSpec.add_box(
-              "#{node_id}:body",
-              position,
-              size,
-              style: SceneSpec.ghost_style(),
-              opaque: false,
-              target_id: target_id
-            )
-          ]
+          "ghost" ->
+            [
+              SceneSpec.add_box(
+                command_id,
+                position,
+                size,
+                style: SceneSpec.ghost_style(),
+                opaque: false,
+                target_id: target_id
+              )
+            ]
 
-        "reliquary" ->
-          [
-            SceneSpec.add_box(
-              "#{node_id}:body",
-              position,
-              size,
-              style: intent_style,
-              target_id: target_id,
-              scale: [0.88, 0.92, 0.88],
-              scale_origin: [0.5, 1, 0.5]
-            )
-          ]
+          "reliquary" ->
+            [
+              SceneSpec.add_box(
+                command_id,
+                position,
+                size,
+                style: intent_style,
+                target_id: target_id,
+                scale: node["scale"] || [0.88, 0.92, 0.88],
+                scale_origin: node["scaleOrigin"] || [0.5, 1, 0.5]
+              )
+            ]
 
-        "monolith" ->
-          [
-            SceneSpec.add_box(
-              "#{node_id}:body",
-              position,
-              size,
-              style: intent_style,
-              target_id: target_id,
-              scale: [0.9, 1, 0.9],
-              scale_origin: [0.5, 1, 0.5]
-            )
-          ]
+          "monolith" ->
+            [
+              SceneSpec.add_box(
+                command_id,
+                position,
+                size,
+                style: intent_style,
+                target_id: target_id,
+                scale: node["scale"] || [0.9, 1, 0.9],
+                scale_origin: node["scaleOrigin"] || [0.5, 1, 0.5]
+              )
+            ]
 
-        _ ->
-          [
-            SceneSpec.add_box(
-              "#{node_id}:body",
-              position,
-              size,
-              style: intent_style,
-              opaque: Map.get(node, "opaque"),
-              target_id: target_id,
-              scale: SceneSpec.default_scale(node, status),
-              scale_origin: SceneSpec.default_scale_origin(node, status)
-            )
-          ]
+          _ ->
+            [
+              SceneSpec.add_box(
+                command_id,
+                position,
+                size,
+                style: intent_style,
+                opaque: Map.get(node, "opaque"),
+                target_id: target_id,
+                scale: SceneSpec.default_scale(node, status),
+                scale_origin: SceneSpec.default_scale_origin(node, status)
+              )
+            ]
+        end
       end
 
     %{commands: commands, marker: marker}
   end
 
   defp conduit_commands(conduit, nodes_by_id) do
-    with from_node when is_map(from_node) <- Map.get(nodes_by_id, conduit["from"]),
-         to_node when is_map(to_node) <- Map.get(nodes_by_id, conduit["to"]) do
-      base =
-        SceneSpec.add_line(
-          "#{conduit["id"]}:line",
-          SceneSpec.anchor(Map.fetch!(from_node, "position"), Map.fetch!(from_node, "size")),
-          SceneSpec.anchor(Map.fetch!(to_node, "position"), Map.fetch!(to_node, "size")),
-          radius: conduit["radius"] || 0.75,
-          shape: conduit["shape"] || "rounded",
-          style: SceneSpec.conduit_style(conduit["state"] || "visible")
-        )
+    custom_commands = Map.get(conduit, "commands")
 
-      waypoints =
-        conduit
-        |> Map.get("waypoints", [])
-        |> Enum.with_index()
-        |> Enum.map(fn {point, index} ->
-          SceneSpec.add_sphere(
-            "#{conduit["id"]}:waypoint:#{index}",
-            point,
-            0.6,
-            style: SceneSpec.conduit_style(conduit["state"] || "visible")
-          )
-        end)
+    cond do
+      is_list(custom_commands) ->
+        custom_commands
 
-      [base | waypoints]
-    else
-      _ -> []
+      true ->
+        with from_node when is_map(from_node) <- Map.get(nodes_by_id, conduit["from"]),
+             to_node when is_map(to_node) <- Map.get(nodes_by_id, conduit["to"]) do
+          base =
+            SceneSpec.add_line(
+              "#{conduit["id"]}:line",
+              SceneSpec.anchor(Map.fetch!(from_node, "position"), Map.fetch!(from_node, "size")),
+              SceneSpec.anchor(Map.fetch!(to_node, "position"), Map.fetch!(to_node, "size")),
+              radius: conduit["radius"] || 0.75,
+              shape: conduit["shape"] || "rounded",
+              style: SceneSpec.conduit_style(conduit["state"] || "visible")
+            )
+
+          waypoints =
+            conduit
+            |> Map.get("waypoints", [])
+            |> Enum.with_index()
+            |> Enum.map(fn {point, index} ->
+              SceneSpec.add_sphere(
+                "#{conduit["id"]}:waypoint:#{index}",
+                point,
+                0.6,
+                style: SceneSpec.conduit_style(conduit["state"] || "visible")
+              )
+            end)
+
+          [base | waypoints]
+        else
+          _ -> []
+        end
     end
   end
 end

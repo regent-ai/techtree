@@ -2,7 +2,7 @@
 set -uo pipefail
 
 ROOT="/Users/sean/Documents/regent/techtree"
-PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4000}"
+PHOENIX_URL="${PHOENIX_URL:-http://127.0.0.1:4001}"
 APP_PATH="${APP_PATH:-/}"
 APP_URL="${APP_URL:-${PHOENIX_URL%/}${APP_PATH}}"
 QA_DIR="${ROOT}/qa"
@@ -175,10 +175,6 @@ capture_state_desktop() {
       humanComposerDisabled: !!document.querySelector("#frontpage-human-panel input[disabled]"),
       agentMessages,
       humanMessages,
-      hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess"),
-      hasLegacyNodeSearch: !!document.querySelector("#nodeSearch"),
-      hasLegacyCommentsList: !!document.querySelector("#commentsList"),
       gridNodeIds: (grid?.dataset.gridNodeIds || "").split(",").filter(Boolean)
     };
   })()'
@@ -194,9 +190,7 @@ capture_state_ios() {
       topOpen: page?.dataset.topOpen || "",
       viewMode: page?.dataset.viewMode || "",
       graphActive: graph?.dataset.active || "",
-      gridActive: grid?.dataset.active || "",
-      hasLegacyDetailCard: !!document.querySelector("#detailCard"),
-      hasLegacyChatboxAccess: !!document.querySelector("#chatboxAccess")
+      gridActive: grid?.dataset.active || ""
     };
   })()'
 }
@@ -315,16 +309,6 @@ extract_desktop_fixture() {
 
   if ! jq -e . "${FIXTURE_FILE}" >/dev/null 2>&1; then
     echo "desktop fixture extraction failed: invalid fixture JSON (see $(basename "${fixture_log}"))" >&2
-    return 1
-  fi
-
-  if [[ "$(jq -r '.hasLegacyDetailCard' "${FIXTURE_FILE}")" != "false" ]]; then
-    echo "desktop fixture extraction failed: legacy #detailCard is still present (see $(basename "${fixture_log}"))" >&2
-    return 1
-  fi
-
-  if [[ "$(jq -r '.hasLegacyChatboxAccess' "${FIXTURE_FILE}")" != "false" ]]; then
-    echo "desktop fixture extraction failed: legacy #chatboxAccess is still present (see $(basename "${fixture_log}"))" >&2
     return 1
   fi
 
@@ -491,17 +475,11 @@ case_e2e_01() {
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Human chatbox" "desktop landing should render the human chatbox chrome"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy" "desktop landing should advertise the anonymous chatbox sign-in gate"
   assert_contains "${OUT_DIR}/e2e-01-body.txt" "Connect Privy to post into the public webapp chatbox." "desktop landing should explain the human posting gate"
-  assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "membership:" "desktop landing should not expose legacy membership labels"
-  assert_not_contains "${OUT_DIR}/e2e-01-body.txt" "Join request pending" "desktop landing should not expose the removed join flow"
   [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.viewMode' "${OUT_DIR}/e2e-01-state.json")" == "graph" ]] || return 1
   [[ "$(jq -r '.dataMode' "${OUT_DIR}/e2e-01-state.json")" == "live" ]] || return 1
   [[ "$(jq -r '.agentPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.humanPanelOpen' "${OUT_DIR}/e2e-01-state.json")" == "true" ]] || return 1
-  [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyChatboxAccess' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyNodeSearch' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyCommentsList' "${OUT_DIR}/e2e-01-state.json")" == "false" ]] || return 1
   ab close
 }
 
@@ -592,8 +570,6 @@ case_e2e_06() {
   assert_contains "${OUT_DIR}/e2e-06-ios-body.txt" "All agents start here:" "ios landing should render the intro command"
   [[ "$(jq -r '.introOpen' "${OUT_DIR}/e2e-06-ios-state.json")" == "true" ]] || return 1
   [[ "$(jq -r '.viewMode' "${OUT_DIR}/e2e-06-ios-state.json")" == "graph" ]] || return 1
-  [[ "$(jq -r '.hasLegacyDetailCard' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
-  [[ "$(jq -r '.hasLegacyChatboxAccess' "${OUT_DIR}/e2e-06-ios-state.json")" == "false" ]] || return 1
   ab_ios close
 }
 

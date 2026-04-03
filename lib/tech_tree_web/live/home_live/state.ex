@@ -3,9 +3,15 @@ defmodule TechTreeWeb.HomeLive.State do
 
   alias TechTreeWeb.HomePresenter
 
-  def toggle_panel("top", assigns), do: %{top_section_open?: !Map.get(assigns, :top_section_open?, true)}
-  def toggle_panel("agent", assigns), do: %{agent_panel_open?: !Map.get(assigns, :agent_panel_open?, true)}
-  def toggle_panel("human", assigns), do: %{human_panel_open?: !Map.get(assigns, :human_panel_open?, true)}
+  def toggle_panel("top", assigns),
+    do: %{top_section_open?: !Map.get(assigns, :top_section_open?, true)}
+
+  def toggle_panel("agent", assigns),
+    do: %{agent_panel_open?: !Map.get(assigns, :agent_panel_open?, true)}
+
+  def toggle_panel("human", assigns),
+    do: %{human_panel_open?: !Map.get(assigns, :human_panel_open?, true)}
+
   def toggle_panel(_panel, _assigns), do: %{}
 
   def next_view_mode(mode, _current_mode) when mode in ["graph", "grid"], do: mode
@@ -17,7 +23,8 @@ defmodule TechTreeWeb.HomeLive.State do
     %{
       selected_node_id: selected_node_id,
       selected_node: selected_node(graph_nodes, selected_node_id),
-      node_focus_target_id: if(selected_node_id, do: Integer.to_string(selected_node_id), else: nil)
+      node_focus_target_id:
+        if(selected_node_id, do: Integer.to_string(selected_node_id), else: nil)
     }
   end
 
@@ -40,8 +47,7 @@ defmodule TechTreeWeb.HomeLive.State do
   def update_agent_query(query, agent_focus_options) do
     %{
       graph_agent_query: query,
-      graph_agent_matches:
-        HomePresenter.matching_agent_focus_options(agent_focus_options, query)
+      graph_agent_matches: HomePresenter.matching_agent_focus_options(agent_focus_options, query)
     }
   end
 
@@ -56,8 +62,7 @@ defmodule TechTreeWeb.HomeLive.State do
 
     %{
       graph_agent_query: query,
-      graph_agent_matches:
-        HomePresenter.matching_agent_focus_options(agent_focus_options, query),
+      graph_agent_matches: HomePresenter.matching_agent_focus_options(agent_focus_options, query),
       selected_agent_id: next_agent_id
     }
   end
@@ -103,7 +108,8 @@ defmodule TechTreeWeb.HomeLive.State do
 
     %{
       filter_to_null_results?: next_value,
-      show_null_results?: if(next_value, do: true, else: Map.get(assigns, :show_null_results?, false))
+      show_null_results?:
+        if(next_value, do: true, else: Map.get(assigns, :show_null_results?, false))
     }
   end
 
@@ -118,8 +124,7 @@ defmodule TechTreeWeb.HomeLive.State do
       node_query: "",
       graph_agent_query: "",
       node_matches: [],
-      graph_agent_matches:
-        HomePresenter.matching_agent_focus_options(agent_focus_options, "")
+      graph_agent_matches: HomePresenter.matching_agent_focus_options(agent_focus_options, "")
     }
   end
 
@@ -150,7 +155,10 @@ defmodule TechTreeWeb.HomeLive.State do
       option ->
         select_node(option.id, graph_nodes, option.id)
         |> Map.put(:node_query, option.label)
-        |> Map.put(:node_matches, HomePresenter.matching_node_options(graph_nodes, seed_catalog, query))
+        |> Map.put(
+          :node_matches,
+          HomePresenter.matching_node_options(graph_nodes, seed_catalog, query)
+        )
     end
   end
 

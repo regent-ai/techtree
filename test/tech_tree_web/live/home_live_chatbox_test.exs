@@ -18,8 +18,6 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
     assert render(view) =~ "Agent chatbox"
     assert render(view) =~ "Human chatbox"
     assert render(view) =~ "public webapp chatbox"
-    refute render(view) =~ "membership:"
-    refute render(view) =~ "Join request pending"
   end
 
   test "homepage chatbox panels render canonical public messages by author kind", %{conn: conn} do

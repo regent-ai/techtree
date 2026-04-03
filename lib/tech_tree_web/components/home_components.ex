@@ -191,7 +191,10 @@ defmodule TechTreeWeb.HomeComponents do
 
   defp regent_home_surface(assigns) do
     detail_node = assigns.grid_modal_node || assigns.selected_node
-    detail_title = if detail_node, do: HomePresenter.display_node_title(detail_node, assigns.seed_catalog)
+
+    detail_title =
+      if detail_node, do: HomePresenter.display_node_title(detail_node, assigns.seed_catalog)
+
     detail_summary = if detail_node, do: HomePresenter.present_summary(detail_node.summary)
     back_label = terrain_back_label(assigns)
 
@@ -243,13 +246,7 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="set-view-mode"
                   phx-value-mode="graph"
                   aria-pressed={to_string(@view_mode == "graph")}
-                  class={[
-                    "btn join-item btn-sm border-0",
-                    if(@view_mode == "graph",
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@view_mode == "graph")}
                 >
                   Graph
                 </button>
@@ -259,13 +256,7 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="set-view-mode"
                   phx-value-mode="grid"
                   aria-pressed={to_string(@view_mode == "grid")}
-                  class={[
-                    "btn join-item btn-sm border-0",
-                    if(@view_mode == "grid",
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@view_mode == "grid")}
                 >
                   Grid
                 </button>
@@ -278,13 +269,7 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="set-data-mode"
                   phx-value-mode="live"
                   aria-pressed={to_string(@data_mode == "live")}
-                  class={[
-                    "btn join-item btn-sm border-0",
-                    if(@data_mode == "live",
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@data_mode == "live")}
                 >
                   Live
                 </button>
@@ -294,13 +279,7 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="set-data-mode"
                   phx-value-mode="fixture"
                   aria-pressed={to_string(@data_mode == "fixture")}
-                  class={[
-                    "btn join-item btn-sm border-0",
-                    if(@data_mode == "fixture",
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else: "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@data_mode == "fixture")}
                 >
                   Fixture
                 </button>
@@ -357,7 +336,9 @@ defmodule TechTreeWeb.HomeComponents do
 
           <div class="fp-terrain-strip-meta">
             <div class="fp-terrain-chip-row">
-              <span class="badge badge-outline font-body">{HomePresenter.view_mode_badge(@view_mode)}</span>
+              <span class="badge badge-outline font-body">
+                {HomePresenter.view_mode_badge(@view_mode)}
+              </span>
               <span class="badge badge-outline font-body">{@design.mood}</span>
               <span class="badge badge-outline font-body">Seeds {@graph_meta.seed_count}</span>
               <span class="badge badge-outline font-body">Nodes {@graph_meta.node_count}</span>
@@ -365,10 +346,16 @@ defmodule TechTreeWeb.HomeComponents do
               <span :if={@selected_agent_id} class="badge border-0 bg-[var(--fp-accent)] text-black">
                 Agent {HomePresenter.focus_agent_label(@agent_labels_by_id, @selected_agent_id)}
               </span>
-              <span :if={@subtree_root_id && @subtree_mode} class="badge border-0 bg-[var(--fp-highlight)] text-[var(--fp-stage)]">
+              <span
+                :if={@subtree_root_id && @subtree_mode}
+                class="badge border-0 bg-[var(--fp-highlight)] text-[var(--fp-stage)]"
+              >
                 {String.capitalize(@subtree_mode)} of #{@subtree_root_id}
               </span>
-              <span :if={@show_null_results?} class="badge border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]">
+              <span
+                :if={@show_null_results?}
+                class="badge border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]"
+              >
                 Null focus
               </span>
             </div>
@@ -379,7 +366,7 @@ defmodule TechTreeWeb.HomeComponents do
                   type="button"
                   phx-click="focus-node"
                   phx-value-node_id={option.id}
-                  class="btn btn-xs border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                  class={control_button_class(false, :accent, "btn-xs")}
                 >
                   {option.label}
                 </button>
@@ -460,15 +447,21 @@ defmodule TechTreeWeb.HomeComponents do
               <div class="stats stats-vertical mt-4 border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)] shadow-none md:stats-horizontal">
                 <div class="stat px-4 py-3">
                   <div class="stat-title text-[var(--fp-muted)]">Children</div>
-                  <div class="stat-value text-xl text-[var(--fp-text)]">{@detail_node.child_count}</div>
+                  <div class="stat-value text-xl text-[var(--fp-text)]">
+                    {@detail_node.child_count}
+                  </div>
                 </div>
                 <div class="stat px-4 py-3">
                   <div class="stat-title text-[var(--fp-muted)]">Watchers</div>
-                  <div class="stat-value text-xl text-[var(--fp-text)]">{@detail_node.watcher_count}</div>
+                  <div class="stat-value text-xl text-[var(--fp-text)]">
+                    {@detail_node.watcher_count}
+                  </div>
                 </div>
                 <div class="stat px-4 py-3">
                   <div class="stat-title text-[var(--fp-muted)]">Comments</div>
-                  <div class="stat-value text-xl text-[var(--fp-text)]">{@detail_node.comment_count}</div>
+                  <div class="stat-value text-xl text-[var(--fp-text)]">
+                    {@detail_node.comment_count}
+                  </div>
                 </div>
               </div>
 
@@ -478,14 +471,7 @@ defmodule TechTreeWeb.HomeComponents do
                   type="button"
                   phx-click="focus-agent"
                   phx-value-agent_id={@detail_node.agent_id}
-                  class={[
-                    "btn btn-sm border-0",
-                    if(@selected_agent_id == @detail_node.agent_id,
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@selected_agent_id == @detail_node.agent_id)}
                 >
                   {if @selected_agent_id == @detail_node.agent_id,
                     do: "Clear agent focus",
@@ -497,15 +483,12 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="focus-subtree"
                   phx-value-mode="children"
                   phx-value-node_id={@detail_node.id}
-                  class={[
-                    "btn btn-sm border-0",
-                    if(
+                  class={
+                    control_button_class(
                       @subtree_root_id == @detail_node.id and @subtree_mode == "children",
-                      do: "bg-[var(--fp-highlight)] text-[var(--fp-stage)] hover:brightness-110",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                      :highlight
                     )
-                  ]}
+                  }
                 >
                   Highlight children
                 </button>
@@ -515,15 +498,12 @@ defmodule TechTreeWeb.HomeComponents do
                   phx-click="focus-subtree"
                   phx-value-mode="descendants"
                   phx-value-node_id={@detail_node.id}
-                  class={[
-                    "btn btn-sm border-0",
-                    if(
+                  class={
+                    control_button_class(
                       @subtree_root_id == @detail_node.id and @subtree_mode == "descendants",
-                      do: "bg-[var(--fp-highlight)] text-[var(--fp-stage)] hover:brightness-110",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                      :highlight
                     )
-                  ]}
+                  }
                 >
                   Highlight descendants
                 </button>
@@ -531,14 +511,7 @@ defmodule TechTreeWeb.HomeComponents do
                 <button
                   type="button"
                   phx-click="toggle-null-results"
-                  class={[
-                    "btn btn-sm border-0",
-                    if(@show_null_results?,
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@show_null_results?)}
                 >
                   {if @show_null_results?, do: "Hide null focus", else: "Highlight null results"}
                 </button>
@@ -546,14 +519,7 @@ defmodule TechTreeWeb.HomeComponents do
                 <button
                   type="button"
                   phx-click="filter-null-results"
-                  class={[
-                    "btn btn-sm border-0",
-                    if(@filter_to_null_results?,
-                      do: "bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@filter_to_null_results?, :panel)}
                 >
                   {if @filter_to_null_results?, do: "Show all nodes", else: "Filter to null results"}
                 </button>
@@ -613,14 +579,7 @@ defmodule TechTreeWeb.HomeComponents do
                 phx-click="set-view-mode"
                 phx-value-mode="graph"
                 aria-pressed={to_string(@view_mode == "graph")}
-                class={[
-                  "btn join-item btn-sm border-0",
-                  if(@view_mode == "graph",
-                    do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                    else:
-                      "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                  )
-                ]}
+                class={control_button_class(@view_mode == "graph")}
               >
                 Tree graph
               </button>
@@ -629,14 +588,7 @@ defmodule TechTreeWeb.HomeComponents do
                 phx-click="set-view-mode"
                 phx-value-mode="grid"
                 aria-pressed={to_string(@view_mode == "grid")}
-                class={[
-                  "btn join-item btn-sm border-0",
-                  if(@view_mode == "grid",
-                    do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                    else:
-                      "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                  )
-                ]}
+                class={control_button_class(@view_mode == "grid")}
               >
                 Cube field
               </button>
@@ -652,14 +604,7 @@ defmodule TechTreeWeb.HomeComponents do
                   type="button"
                   phx-click="focus-agent"
                   phx-value-agent_id={option.id}
-                  class={[
-                    "btn btn-xs border-0",
-                    if(@selected_agent_id == option.id,
-                      do: "bg-[var(--fp-accent)] text-black hover:brightness-110",
-                      else:
-                        "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
-                    )
-                  ]}
+                  class={control_button_class(@selected_agent_id == option.id, :accent, "btn-xs")}
                 >
                   {HomePresenter.agent_focus_chip_label(option)}
                 </button>
@@ -882,10 +827,28 @@ defmodule TechTreeWeb.HomeComponents do
 
   defp terrain_back_label(assigns) do
     cond do
-      assigns.grid_modal_node -> "Back to grid"
+      assigns.grid_modal_node -> "Back one level"
       Map.get(assigns, :grid_view_stack, []) != [] -> "Back one level"
       Map.get(assigns, :node_focus_target_id) -> "Back to overview"
       true -> nil
     end
+  end
+
+  defp control_button_class(active?, variant \\ :accent, size \\ "btn-sm") do
+    active_class =
+      case variant do
+        :highlight ->
+          "bg-[var(--fp-highlight)] text-[var(--fp-stage)] hover:brightness-110"
+
+        :panel ->
+          "bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+
+        _ ->
+          "bg-[var(--fp-accent)] text-black hover:brightness-110"
+      end
+
+    inactive_class = "bg-[var(--fp-accent-soft)] text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+
+    [size, "btn", "join-item", "border-0", if(active?, do: active_class, else: inactive_class)]
   end
 end

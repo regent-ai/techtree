@@ -14,39 +14,37 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='grid']")
-    assert has_element?(view, "#frontpage-home-grid[data-active='true']")
-    assert has_element?(view, "#frontpage-home-graph[data-active='false']")
+    assert has_element?(view, "#techtree-home-surface-scene[data-active-face='grid']")
+    assert render(view) =~ "Cube field"
 
     view
     |> element("#frontpage-view-graph")
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='graph']")
-    assert has_element?(view, "#frontpage-home-grid[data-active='false']")
-    assert has_element?(view, "#frontpage-home-graph[data-active='true']")
+    assert has_element?(view, "#techtree-home-surface-scene[data-active-face='graph']")
+    assert render(view) =~ "Dependency observatory"
   end
 
-  test "graph toolbar exposes agent search and highlight controls", %{conn: conn} do
+  test "homepage surface exposes view toggles, node search, and focus reset controls", %{
+    conn: conn
+  } do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#frontpage-graph-toolbar")
-    assert has_element?(view, "#frontpage-graph-agent-search")
-    assert has_element?(view, "#frontpage-graph-agent-input")
-    assert has_element?(view, "#frontpage-graph-open-palette")
-    assert has_element?(view, "#frontpage-graph-mode-chip", "Navigate mode")
-    assert has_element?(view, "#frontpage-graph-palette")
-    assert has_element?(view, "#frontpage-graph-palette-input")
-    assert has_element?(view, "#frontpage-graph-reset-view")
-    assert has_element?(view, "#frontpage-toolbar-focus-null")
+    assert has_element?(view, "#frontpage-view-graph")
+    assert has_element?(view, "#frontpage-view-grid")
+    assert has_element?(view, "#frontpage-node-search")
+    assert has_element?(view, "#frontpage-clear-focus", "Overview")
+    assert has_element?(view, "#techtree-home-ledger", "Viewport graph substrate")
 
     view
-    |> element("#frontpage-graph-agent-search")
-    |> render_change(%{"agent_query" => "no-such-agent"})
+    |> form("#frontpage-node-search", node_query: "no-such-node")
+    |> render_submit()
 
-    assert render(view) =~ "No agent match yet"
+    refute has_element?(view, ".fp-terrain-chip-row-search button")
   end
 
-  test "graph payload includes agent wallet addresses when present", %{conn: conn} do
+  test "graph agent focus chips include shortened wallet addresses when present", %{conn: conn} do
     root = Nodes.create_seed_root!("ML", "Machine Learning Root")
     agent = create_agent!("frontpage-wallet", wallet_address: "0xabc123frontpagewallet")
 
@@ -62,32 +60,21 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
 
     {:ok, view, _html} = live(conn, ~p"/")
 
-    [_, encoded_payload] = Regex.run(~r/data-graph=\"([^\"]+)\"/, render(view))
-
-    payload =
-      encoded_payload
-      |> String.replace("&quot;", "\"")
-      |> String.replace("&#39;", "'")
-      |> Jason.decode!()
-
-    wallet_node = Enum.find(payload["nodes"], &(&1["title"] == "wallet signal node"))
-
-    assert wallet_node
-    assert wallet_node["agent_wallet_address"] == "0xabc123frontpagewallet"
+    assert render(view) =~ "frontpage-wallet-"
+    assert render(view) =~ "0xabc123...llet"
   end
 
   test "selected node state survives homepage mode and panel transitions", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     initial_html = render(view)
-    selected_node_id = extract_selected_node_id(initial_html)
 
     target_node_id =
       initial_html
       |> extract_graph_node_ids()
-      |> Enum.find(&(&1 != selected_node_id))
+      |> Enum.at(1)
       |> case do
-        nil -> selected_node_id
+        nil -> initial_html |> extract_graph_node_ids() |> List.first()
         value -> value
       end
 
@@ -95,12 +82,14 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
 
     render_hook(view, "select-node", %{"node_id" => target_node_id})
 
-    assert has_element?(view, "#frontpage-home-graph[data-selected-node-id='#{target_node_id}']")
-    assert has_element?(view, "#frontpage-home-grid[data-selected-node-id='#{target_node_id}']")
+    assert has_element?(
+             view,
+             "#techtree-home-surface-scene[data-selected-target-id='#{target_node_id}']"
+           )
 
     assert has_element?(
              view,
-             "#frontpage-selected-node .badge",
+             "#techtree-home-chamber .badge",
              Integer.to_string(target_node_id)
            )
 
@@ -109,36 +98,43 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     |> render_click()
 
     view
-    |> element("#frontpage-top-toggle")
-    |> render_click()
-
-    view
-    |> element("#frontpage-agent-toggle")
+    |> element("#frontpage-agent-panel button[phx-value-panel='agent']")
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='grid']")
-    assert has_element?(view, "#frontpage-home-page[data-top-open='false']")
     assert has_element?(view, "#frontpage-agent-panel[data-panel-open='false']")
-    assert has_element?(view, "#frontpage-home-grid[data-selected-node-id='#{target_node_id}']")
 
     assert has_element?(
              view,
-             "#frontpage-selected-node .badge",
+             "#techtree-home-surface-scene[data-selected-target-id='#{target_node_id}']"
+           )
+
+    assert has_element?(
+             view,
+             "#techtree-home-chamber .badge",
              Integer.to_string(target_node_id)
            )
   end
 
-  defp extract_selected_node_id(html) do
-    case Regex.run(~r/data-selected-node-id="(\d+)"/, html, capture: :all_but_first) do
-      [value] -> String.to_integer(value)
-      _ -> flunk("expected selected node id in rendered homepage html")
-    end
-  end
-
   defp extract_graph_node_ids(html) do
-    ~r/\\"id\\":(\d+)/
-    |> Regex.scan(html, capture: :all_but_first)
-    |> Enum.map(fn [value] -> String.to_integer(value) end)
+    [encoded] =
+      Regex.run(
+        ~r/id="techtree-home-surface-scene"[^>]*data-scene-json="([^"]+)"/,
+        html,
+        capture: :all_but_first
+      )
+
+    encoded
+    |> String.replace("&quot;", "\"")
+    |> String.replace("&#39;", "'")
+    |> Jason.decode!()
+    |> Map.fetch!("faces")
+    |> List.first()
+    |> Map.fetch!("markers")
+    |> Enum.filter(fn marker ->
+      is_binary(marker["id"]) and marker["id"] != "grid:return"
+    end)
+    |> Enum.map(fn marker -> String.to_integer(marker["id"]) end)
     |> Enum.uniq()
   end
 end

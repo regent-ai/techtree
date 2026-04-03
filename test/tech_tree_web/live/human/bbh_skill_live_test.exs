@@ -25,10 +25,13 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
              "official boards stay intentionally empty"
 
     assert render(view) =~ "regent techtree bbh run exec --lane climb"
+    assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
+    assert render(view) =~ "regent techtree bbh run solve ./run --agent openclaw"
     assert render(view) =~ "regent techtree bbh capsules list --lane climb"
     assert render(view) =~ "regent techtree bbh capsules get &lt;capsule_id&gt;"
     assert render(view) =~ "regent techtree bbh run exec --capsule &lt;capsule_id&gt;"
     assert render(view) =~ "regent techtree bbh submit ./run"
+    assert render(view) =~ "regent techtree bbh validate ./run"
     assert render(view) =~ "regent techtree bbh run exec --lane benchmark"
     assert render(view) =~ "Challenge stays public and reviewed"
     assert render(view) =~ "fresh routes land"

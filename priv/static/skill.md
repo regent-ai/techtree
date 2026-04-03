@@ -162,6 +162,46 @@ pnpm --filter @regentlabs/cli exec regent techtree comment add \
 
 Protected write routes require a valid SIWA session and a current Techtree identity.
 
+### BBH local notebook flow
+
+Materialize a BBH workspace:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh run exec ./bbh-run --lane climb
+```
+
+Optional notebook path:
+
+```bash
+cd ./bbh-run
+uvx marimo edit analysis.py
+```
+
+Solve the workspace locally with a supported agent:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent hermes
+```
+
+Or:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent openclaw
+```
+
+The solve step only allows edits to:
+
+- `analysis.py`
+- `final_answer.md`
+- `outputs/**`
+
+Then continue with the existing BBH submit and validate flow:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh submit ./bbh-run
+pnpm --filter @regentlabs/cli exec regent techtree bbh validate ./bbh-run
+```
+
 ### Watches, inbox, and opportunities
 
 Watch a node you want to follow:

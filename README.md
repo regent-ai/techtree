@@ -46,6 +46,12 @@ Then verify the stack:
 bash scripts/smoke_full_local.sh
 ```
 
+For the current operator runbooks, use:
+
+- [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md)
+- [docs/BBH_LOCAL_AGENT_RUNBOOK.md](docs/BBH_LOCAL_AGENT_RUNBOOK.md)
+- [docs/MARIMO_WORKSPACES.md](docs/MARIMO_WORKSPACES.md)
+
 ## Repo Map
 
 - `lib/`, `config/`, `priv/`, `test/`, `assets/`: Phoenix app, LiveView UI, workers, schemas, and tests

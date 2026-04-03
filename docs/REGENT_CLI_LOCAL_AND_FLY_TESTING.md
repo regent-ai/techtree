@@ -14,6 +14,7 @@ For v0.1 launch scope:
 - local-only Regent transport is in scope
 - CLI tail of the `webapp` and `agent` chatboxes is in scope
 - paid node unlocks use Base Sepolia settlement with server-verified entitlement
+- BBH local solve is in scope through `regent techtree bbh run solve`
 
 ## What has to be running
 
@@ -223,6 +224,76 @@ pnpm --filter @regentlabs/cli exec regent chatbox tail --agent
 pnpm --filter @regentlabs/cli exec regent techtree autoskill buy 42
 pnpm --filter @regentlabs/cli exec regent techtree autoskill pull 42 ./pull-workspace
 ```
+
+## Local BBH workspace flow
+
+Materialize a BBH workspace first:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh run exec ./bbh-run --lane climb
+```
+
+Optional local notebook path:
+
+```bash
+cd ./bbh-run
+uvx marimo edit analysis.py
+```
+
+Run one supported local agent against that workspace:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent hermes
+```
+
+Or:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent openclaw
+```
+
+The solve step is local only and operator controlled. It only allows writes to:
+
+- `analysis.py`
+- `final_answer.md`
+- `outputs/**`
+
+It must leave behind:
+
+- `final_answer.md`
+- `outputs/verdict.json`
+
+Optional outputs are:
+
+- `outputs/report.html`
+- `outputs/run.log`
+
+Then continue with the normal BBH path:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh submit ./bbh-run
+pnpm --filter @regentlabs/cli exec regent techtree bbh validate ./bbh-run
+```
+
+## Local marimo and ACP path
+
+Techtree workspaces now include a workspace-local `pyproject.toml` with:
+
+```toml
+[tool.marimo.runtime]
+watcher_on_save = "autorun"
+```
+
+ACP-capable marimo agents remain a local notebook path for v1. That includes Codex, Claude Code, Gemini, and OpenCode through marimo's ACP bridge. They are documented for notebook editing, but they are not built into `regent techtree bbh run solve`.
+
+The two canonical runbooks are:
+
+- [docs/BBH_LOCAL_AGENT_RUNBOOK.md](BBH_LOCAL_AGENT_RUNBOOK.md)
+- [docs/MARIMO_WORKSPACES.md](MARIMO_WORKSPACES.md)
 
 If the created node should carry a paid encrypted payload, pass `--paid-payload @file.json`. That JSON may set `seller_payout_address` to a wallet that is different from the node creator wallet.
 

@@ -130,6 +130,9 @@ command_groups:
       - techtree bbh draft apply
       - techtree bbh draft ready
       - techtree bbh run exec
+      - techtree bbh run solve
+    rpc_methods:
+      - techtree.v1.bbh.run.solve
     path_templates:
       - /v1/bbh/leaderboard
       - /v1/bbh/capsules

@@ -23,11 +23,12 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
     <main id="bbh-skill-page" class="hu-page bbh-page" phx-hook="HumanMotion">
       <div class="hu-shell bbh-shell">
         <.human_header
-          kicker="BBH Skill"
+          kicker="BBH Branch"
           title="techtree-bbh"
-          subtitle="Install Regent once, practice in public, and keep one eye on fresh challenge routes."
+          subtitle="This is the BBH branch of the live TechTree: install once, hand the workspace to an agent, then keep the wall and the public branch story aligned."
         >
           <:actions>
+            <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
             <.link
               href={@raw_markdown_path}
               target="_blank"
@@ -43,26 +44,27 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
         <.human_section id="bbh-skill-start" title="Start here">
           <div class="bbh-skill-launchpad">
             <article class="bbh-skill-card bbh-skill-launchpad-main" data-motion="reveal">
-              <p class="bbh-rank">5-minute path</p>
-              <h2>Use the wall once, then you know the loop.</h2>
+              <p class="bbh-rank">BBH branch path</p>
+              <h2>Install TechTree once, then move from the homepage branch into the wall.</h2>
               <p class="bbh-skill-lead">
-                This surface is for first-time operators and returning power users alike. The only
-                thing you need to understand up front is the sequence: set up Regent, climb one
-                capsule, watch the wall move, then confirm the run page tells the same public
-                story. The v0.1 beta keeps the official boards intentionally empty.
+                The homepage now frames BBH as one branch of the live tree. This page picks up from
+                there: install Regent, start TechTree locally, hand the workspace to Openclaw or
+                Hermes, then confirm the wall and run page tell the same public story. The v0.1 beta
+                still keeps the official boards intentionally empty.
               </p>
 
               <ul class="bbh-skill-pill-list" aria-label="BBH first steps">
                 <li><span class="bbh-chip">Install Regent</span></li>
-                <li><span class="bbh-chip">Climb a capsule</span></li>
+                <li><span class="bbh-chip">Start TechTree</span></li>
+                <li><span class="bbh-chip">Hand the run to an agent</span></li>
                 <li><span class="bbh-chip">Check the wall and run page</span></li>
               </ul>
 
               <div class="bbh-skill-launchpad-note">
                 <p>
-                  Aha moment: if you can run the climb lane, submit, and see the wall and run page
-                  update, the beta loop is working. Challenge stays public and reviewed, while the
-                  official boards stay intentionally empty until the later verification update.
+                  Aha moment: if the homepage branch, this page, and the wall all point to the same
+                  run, the public BBH loop is working. Challenge stays public and reviewed, while
+                  the official boards stay intentionally empty until the later verification update.
                 </p>
               </div>
             </article>
@@ -74,8 +76,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   New operators, returning users, and anyone who wants the shortest path to value.
                 </h3>
                 <p>
-                  The page does not try to teach every command. It teaches the public three-lane
-                  loop first, then shows the one extra branch for browsing and picking a capsule
+                  The page does not try to teach every command. It continues the homepage install
+                  story first, then shows the one extra branch for browsing and picking a capsule
                   yourself when you want manual control.
                 </p>
               </div>
@@ -138,27 +140,39 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
           <.human_section id="bbh-skill-raw" title="Exact commands">
             <div class="bbh-skill-raw-card" data-motion="reveal">
               <p class="bbh-skill-lead">
-                These are the public BBH commands the wall assumes.
+                These are the public BBH commands the homepage branch and the wall assume.
               </p>
 
               <ol class="bbh-skill-command-stack bbh-skill-command-steps">
                 <li class="bbh-skill-command">
-                  <h2>1. Run the next capsule</h2>
+                  <h2>1. Install Regent once</h2>
+                  <div class="bbh-skill-code">
+                    <code>pnpm add -g @regentlabs/cli</code>
+                  </div>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>2. Start TechTree locally</h2>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree start</code>
+                  </div>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>3. Run the next capsule</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane climb</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>2. Solve the local workspace</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run solve ./run --agent hermes</code>
-                  </div>
+                  <h2>4. Solve the local workspace with your selected agent</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run solve ./run --agent openclaw</code>
                   </div>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh run solve ./run --agent hermes</code>
+                  </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>3. Or browse and pick a capsule yourself</h2>
+                  <h2>5. Or browse and pick a capsule yourself</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh capsules list --lane climb</code>
                   </div>
@@ -170,21 +184,21 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>4. Submit the run</h2>
+                  <h2>6. Submit the run</h2>
                   <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>5. Validate the same workspace</h2>
+                  <h2>7. Validate the same workspace</h2>
                   <div class="bbh-skill-code"><code>regent techtree bbh validate ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>6. Prove the same work in public</h2>
+                  <h2>8. Prove the same work in public</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane benchmark</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>7. Open challenge work when you need fresh frontier pressure</h2>
+                  <h2>9. Open challenge work when you need fresh frontier pressure</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane challenge</code>
                   </div>

@@ -12,21 +12,27 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert has_element?(view, "#bbh-skill-boundary")
     assert has_element?(view, "#bbh-skill-raw")
     assert render(view) =~ "/skills/techtree-bbh/raw"
-    assert render(view) =~ "Use the wall once, then you know the loop."
-    assert render(view) =~ "5-minute path"
+
+    assert render(view) =~
+             "Install TechTree once, then move from the homepage branch into the wall."
+
+    assert render(view) =~ "BBH branch path"
     assert render(view) =~ "Install Regent"
-    assert render(view) =~ "Climb a capsule"
+    assert render(view) =~ "Start TechTree"
+    assert render(view) =~ "Hand the run to an agent"
     assert render(view) =~ "Check the wall and run page"
     assert render(view) =~ "Practice / Proving / Challenge"
-    assert render(view) =~ "beta loop is working"
+    assert render(view) =~ "public BBH loop is working"
     assert render(view) =~ "manual control"
 
     assert render(view) =~
              "official boards stay intentionally empty"
 
+    assert render(view) =~ "pnpm add -g @regentlabs/cli"
+    assert render(view) =~ "regent techtree start"
     assert render(view) =~ "regent techtree bbh run exec --lane climb"
-    assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
     assert render(view) =~ "regent techtree bbh run solve ./run --agent openclaw"
+    assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
     assert render(view) =~ "regent techtree bbh capsules list --lane climb"
     assert render(view) =~ "regent techtree bbh capsules get &lt;capsule_id&gt;"
     assert render(view) =~ "regent techtree bbh run exec --capsule &lt;capsule_id&gt;"

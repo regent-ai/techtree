@@ -32,6 +32,8 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
 
     assert has_element?(view, "#bbh-leaderboard-page")
     assert render(view) =~ "Wall board"
+    assert render(view) =~ "Homepage tree"
+    assert render(view) =~ "BBH skill path"
     assert has_element?(view, "#bbh-capsule-wall")
     assert has_element?(view, "#bbh-wall-feed")
     assert has_element?(view, "#bbh-wall-drilldown")
@@ -46,7 +48,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "auto: --lane challenge"
     assert render(view) =~ "manual: --capsule &lt;capsule_id&gt;"
     assert render(view) =~ "public reviewed frontier lane"
-    assert render(view) =~ "later verification update"
+    assert render(view) =~ "homepage tree into the wall"
     assert has_element?(view, "#bbh-capsule-#{capsule.capsule_id}")
     assert has_element?(view, "#bbh-official-strip")
     assert render(view) =~ "wall-leader"

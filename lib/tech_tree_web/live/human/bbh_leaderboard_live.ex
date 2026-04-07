@@ -62,11 +62,13 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
     <main id="bbh-leaderboard-page" class="hu-page bbh-page" phx-hook="HumanMotion">
       <div class="hu-shell bbh-shell">
         <.human_header
-          kicker="BBH Py"
+          kicker="BBH Branch"
           title="Wall board"
-          subtitle="Practice, Proving, and Challenge stay wall-first. The official board sections start empty in this beta cut, and the pinned drilldown survives refresh."
+          subtitle="This is the BBH branch drilldown from the homepage tree. Practice, Proving, and Challenge stay wall-first, and the pinned drilldown survives refresh."
         >
           <:actions>
+            <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
+            <.link navigate={~p"/skills/techtree-bbh"} class="hu-ghost-link">BBH skill path</.link>
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>
             <span class="bbh-chip">Challenge: {@lane_counts.challenge}</span>
@@ -80,15 +82,15 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
             <.human_section id="bbh-capsule-wall" title="Wall board">
               <div class="bbh-wall-hero" data-motion="reveal">
                 <div class="bbh-wall-hero-copy">
-                  <p class="bbh-wall-kicker">Three-lane wall</p>
+                  <p class="bbh-wall-kicker">BBH wall branch</p>
                   <h2 class="bbh-wall-title">
-                    Practice, Proving, and Challenge stay visible before the ledger.
+                    Move from the homepage tree into the wall when you need a branch-specific drilldown.
                   </h2>
                   <p class="bbh-wall-note">
                     Practice is public climb work, Proving is benchmark work, and Challenge is the
-                    public reviewed frontier lane. Route setters keep Challenge fresh in public,
-                    while the official board sections stay intentionally empty until the later
-                    verification update.
+                    public reviewed frontier lane. The homepage keeps BBH visible as one branch of
+                    the tree; this page is where you stay once you want lane pressure, pinned
+                    capsules, and a live wall-first read.
                   </p>
                 </div>
 

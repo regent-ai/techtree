@@ -31,11 +31,8 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
 
     {:ok, frontpage, _html} = live(conn, "/")
 
-    frontpage
-    |> element("#frontpage-intro-enter")
-    |> render_click()
-
-    assert has_element?(frontpage, "#frontpage-home-page[data-intro-open='false']")
+    assert has_element?(frontpage, "#frontpage-home-page[data-install-agent='openclaw']")
+    assert has_element?(frontpage, "#frontpage-home-page[data-chat-tab='human']")
 
     frontpage
     |> element("#frontpage-view-grid")

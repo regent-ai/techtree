@@ -3,42 +3,32 @@ defmodule TechTreeWeb.HomeLiveShellTest do
 
   import Phoenix.LiveViewTest
 
-  test "renders the homepage shell with intro modal and both chatboxes", %{conn: conn} do
+  test "renders the install-first homepage shell with the live tree and right chat pane", %{
+    conn: conn
+  } do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#frontpage-home-page[data-intro-open='true']")
     assert has_element?(view, "#frontpage-home-page[data-view-mode='graph']")
-    assert has_element?(view, "#frontpage-home-page[data-data-mode='live']")
+    assert has_element?(view, "#frontpage-home-page[data-chat-tab='human']")
+    assert has_element?(view, "#frontpage-home-page[data-install-agent='openclaw']")
     assert has_element?(view, "#frontpage-regent-shell")
     assert has_element?(view, "#techtree-home-surface")
     assert has_element?(view, "#techtree-home-surface-scene[data-active-face='graph']")
     assert has_element?(view, "#frontpage-node-search")
-    assert has_element?(view, "#frontpage-reopen-intro")
-    assert has_element?(view, "#frontpage-agent-panel[data-panel-open='true']")
-    assert has_element?(view, "#frontpage-human-panel[data-panel-open='true']")
-    assert has_element?(view, "#frontpage-agent-panel .fp-rail-kicker", "AGENT")
-    assert has_element?(view, "#frontpage-human-panel .fp-rail-kicker", "HUMAN")
-    refute has_element?(view, "#frontpage-data-live")
-    refute has_element?(view, "#frontpage-data-fixture")
-    refute has_element?(view, "#frontpage-design-cobalt-orchard")
-    refute has_element?(view, "#detailCard")
-    refute has_element?(view, "#chatboxAccess")
-    refute has_element?(view, "#chatboxJoin")
-    refute has_element?(view, "#nodeSearch")
-    refute has_element?(view, "#commentsList")
-    assert render(view) =~ "Install Regent once"
-    assert render(view) =~ "Install in 1 command"
-    assert render(view) =~ "Star on GitHub"
-    assert has_element?(view, "#frontpage-intro-install")
-    assert has_element?(view, "#frontpage-intro-github")
-    assert has_element?(view, "#frontpage-intro-bbh-skill")
-    assert has_element?(view, "#frontpage-intro-persist")
-
-    assert has_element?(
-             view,
-             "#frontpage-intro-modal .fp-inline-command",
-             "pnpm add -g @regentlabs/cli"
-           )
+    assert has_element?(view, "#frontpage-install-panel")
+    assert has_element?(view, "#frontpage-install-agent-openclaw[aria-pressed='true']")
+    assert has_element?(view, "#frontpage-install-agent-hermes[aria-pressed='false']")
+    assert has_element?(view, "#frontpage-install-copy")
+    assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='human']")
+    assert has_element?(view, "#frontpage-human-chatbox")
+    assert has_element?(view, "#frontpage-agent-chatbox")
+    assert has_element?(view, "#frontpage-bbh-branch")
+    refute has_element?(view, "#frontpage-intro-modal")
+    assert render(view) =~ "Install TechTree for your Agent"
+    assert render(view) =~ "pnpm add -g @regentlabs/cli"
+    assert render(view) =~ "regent techtree start"
+    assert render(view) =~ "regent techtree bbh run solve ./run --agent openclaw"
+    assert render(view) =~ "BBH branch"
   end
 
   test "homepage starts in light mode", %{conn: conn} do
@@ -50,40 +40,44 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert html =~ ~s(data-theme="light")
   end
 
-  test "enter closes the intro modal without leaving the page", %{conn: conn} do
+  test "install agent toggle swaps the copied handoff command without leaving the page", %{
+    conn: conn
+  } do
     {:ok, view, _html} = live(conn, ~p"/")
 
     view
-    |> element("#frontpage-intro-enter")
+    |> element("#frontpage-install-agent-hermes")
     |> render_click()
 
-    assert has_element?(view, "#frontpage-home-page[data-intro-open='false']")
-    assert has_element?(view, "#frontpage-regent-shell")
+    assert has_element?(view, "#frontpage-home-page[data-install-agent='hermes']")
+    assert has_element?(view, "#frontpage-install-agent-hermes[aria-pressed='true']")
+    assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
   end
 
   test "homepage is fixed to the cobalt orchard design", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert render(view) =~ "TechTree"
-    assert render(view) =~ "Live public frontier"
+    assert render(view) =~ "TechTree Homepage"
+    assert render(view) =~ "ink orchard"
     refute render(view) =~ "live mockups"
     refute render(view) =~ "Frontpage Reset"
   end
 
-  test "panels can be collapsed independently", %{conn: conn} do
+  test "chat tabs can switch without disturbing the surface", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     view
-    |> element("#frontpage-agent-panel button[phx-value-panel='agent']")
+    |> element("#frontpage-chat-tab-agent")
     |> render_click()
 
-    assert has_element?(view, "#frontpage-agent-panel[data-panel-open='false']")
-    assert has_element?(view, "#frontpage-human-panel[data-panel-open='true']")
+    assert has_element?(view, "#frontpage-home-page[data-chat-tab='agent']")
+    assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='agent']")
 
     view
-    |> element("#frontpage-human-panel button[phx-value-panel='human']")
+    |> element("#frontpage-chat-tab-human")
     |> render_click()
 
-    assert has_element?(view, "#frontpage-human-panel[data-panel-open='false']")
+    assert has_element?(view, "#frontpage-home-page[data-chat-tab='human']")
   end
 end

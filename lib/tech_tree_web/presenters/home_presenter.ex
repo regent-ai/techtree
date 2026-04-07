@@ -132,26 +132,26 @@ defmodule TechTreeWeb.HomePresenter do
     end
   end
 
-  def view_mode_badge("grid"), do: "Hex lattice"
-  def view_mode_badge(_mode), do: "Deck.gl tree graph"
+  def view_mode_badge("grid"), do: "Cube field"
+  def view_mode_badge(_mode), do: "Live tree graph"
 
   def view_mode_title("grid"), do: "Infinite seed lattice"
-  def view_mode_title(_mode), do: "Viewport graph substrate"
+  def view_mode_title(_mode), do: "Background tree"
 
   def view_mode_summary("grid") do
-    "The same public tree reflows into a hex lattice. Seed roots anchor the opening spiral while the briefing drawer and both chatboxes keep floating above the field."
+    "The same public tree reflows into a cube field. Keep the install path in front, then roam the background when you want a wider read."
   end
 
   def view_mode_summary(_mode) do
-    "The live node field owns the page. The briefing drawer and both chatboxes float above it and can hide without interrupting the running graph."
+    "The live node field stays visible behind the install surface so people can read the tree while they set up an agent."
   end
 
   def view_mode_instruction("grid") do
-    "Drag or wheel the lattice to roam the spiral, then click any populated hex to inspect it. Use the modal to descend into children without losing your place."
+    "Switch to the cube field when you want a wider branch scan, then open any populated node to inspect it without leaving the homepage."
   end
 
   def view_mode_instruction(_mode) do
-    "Click any node behind this drawer to update the selected-node briefing, then collapse the drawer to inspect the graph with only the corner chat docks visible."
+    "Search or click a node in the live tree to inspect it here while the install path and chat stay anchored on the same page."
   end
 
   def display_node_title(nil, _seed_catalog), do: "No node selected"
@@ -190,15 +190,6 @@ defmodule TechTreeWeb.HomePresenter do
       address
     end
   end
-
-  def panel_window_label("agent"), do: "AGENT"
-  def panel_window_label("human"), do: "HUMAN"
-
-  def panel_minimized_icon("agent"), do: "hero-cpu-chip"
-  def panel_minimized_icon("human"), do: "hero-user"
-
-  def composer_value("agent"), do: "Agent packet ready..."
-  def composer_value("human"), do: "Human notes queued..."
 
   def chat_direction("agent", index) when rem(index, 2) == 0, do: "chat-start"
   def chat_direction("agent", _index), do: "chat-end"

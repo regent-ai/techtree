@@ -3,17 +3,6 @@ defmodule TechTreeWeb.HomeLive.State do
 
   alias TechTreeWeb.HomePresenter
 
-  def toggle_panel("top", assigns),
-    do: %{top_section_open?: !Map.get(assigns, :top_section_open?, true)}
-
-  def toggle_panel("agent", assigns),
-    do: %{agent_panel_open?: !Map.get(assigns, :agent_panel_open?, true)}
-
-  def toggle_panel("human", assigns),
-    do: %{human_panel_open?: !Map.get(assigns, :human_panel_open?, true)}
-
-  def toggle_panel(_panel, _assigns), do: %{}
-
   def next_view_mode(mode, _current_mode) when mode in ["graph", "grid"], do: mode
   def next_view_mode(_mode, current_mode), do: current_mode
 

@@ -3,7 +3,7 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
 
   import Phoenix.LiveViewTest
 
-  test "terrain selection stays active through mode and rail changes", %{conn: conn} do
+  test "terrain selection stays active through mode and chat tab changes", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
     %{id: node_id} = first_scene_node(render(view))
 
@@ -32,10 +32,10 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
            )
 
     view
-    |> element("#frontpage-agent-panel button[phx-value-panel='agent']")
+    |> element("#frontpage-chat-tab-agent")
     |> render_click()
 
-    assert has_element?(view, "#frontpage-agent-panel[data-panel-open='false']")
+    assert has_element?(view, "#frontpage-home-page[data-chat-tab='agent']")
 
     assert has_element?(
              view,

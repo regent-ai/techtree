@@ -9,14 +9,15 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-regent-shell")
     assert body =~ ~s(id="techtree-home-surface")
     assert body =~ ~s(id="techtree-home-chamber")
-    assert body =~ ~s(id="frontpage-agent-panel")
-    assert body =~ ~s(id="frontpage-human-panel")
-    assert body =~ ~s(id="frontpage-intro-modal")
-    assert body =~ "Install Regent once"
-    assert body =~ "Install in 1 command"
-    assert body =~ "Star on GitHub"
+    assert body =~ ~s(id="frontpage-chat-pane")
+    assert body =~ ~s(id="frontpage-human-chatbox")
+    assert body =~ ~s(id="frontpage-agent-chatbox")
+    assert body =~ "Install TechTree for your Agent"
     assert body =~ "pnpm add -g @regentlabs/cli"
+    assert body =~ "regent techtree start"
+    assert body =~ "regent techtree bbh run solve ./run --agent openclaw"
     assert body =~ "Connect Privy"
+    assert body =~ "BBH branch"
   end
 
   test "GET / renders configured Privy app id", %{conn: conn} do

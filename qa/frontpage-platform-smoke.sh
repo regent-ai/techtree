@@ -51,69 +51,28 @@ ab open "${PHOENIX_URL}/"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/frontpage-body.txt"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "TechTree Homepage"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Install Regent once"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Install in 1 command"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Star on GitHub"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Install TechTree for your Agent"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "pnpm add -g @regentlabs/cli"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree start"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree bbh run solve ./run --agent openclaw"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy to post into the public webapp chatbox."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Sign in with Privy before posting into the public webapp room."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "BBH branch"
 
-ab eval '(() => {
-  const modal = document.querySelector("#frontpage-intro-modal");
-  return {
-    ready: modal?.dataset.ready || "",
-    visible: modal?.dataset.visible || ""
-  };
-})()' > "${OUT_DIR}/frontpage-modal-initial.json"
-
-assert_contains "${OUT_DIR}/frontpage-modal-initial.json" '"visible": "true"'
-
-ab click "#frontpage-intro-persist"
-ab wait 150 >/dev/null 2>&1 || true
-ab click "#frontpage-intro-enter"
-ab wait 350 >/dev/null 2>&1 || true
-
-ab eval '(() => {
-  const modal = document.querySelector("#frontpage-intro-modal");
-  const checkbox = document.querySelector("#frontpage-intro-persist");
-  return {
-    visible: modal?.dataset.visible || "",
-    checked: checkbox?.checked || false
-  };
-})()' > "${OUT_DIR}/frontpage-modal-dismissed.json"
-
-assert_contains "${OUT_DIR}/frontpage-modal-dismissed.json" '"visible": "false"'
-assert_contains "${OUT_DIR}/frontpage-modal-dismissed.json" '"checked": true'
-
-ab open "${PHOENIX_URL}/"
-ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
-ab eval '(() => {
-  const modal = document.querySelector("#frontpage-intro-modal");
-  return {
-    visible: modal?.dataset.visible || ""
-  };
-})()' > "${OUT_DIR}/frontpage-modal-reload.json"
-
-assert_contains "${OUT_DIR}/frontpage-modal-reload.json" '"visible": "false"'
-
-ab click "#frontpage-reopen-intro"
-ab wait 350 >/dev/null 2>&1 || true
-ab eval '(() => {
-  const modal = document.querySelector("#frontpage-intro-modal");
-  return {
-    visible: modal?.dataset.visible || ""
-  };
-})()' > "${OUT_DIR}/frontpage-modal-reopen.json"
-
-assert_contains "${OUT_DIR}/frontpage-modal-reopen.json" '"visible": "true"'
-
-ab click "#frontpage-intro-enter"
+ab click "#frontpage-install-agent-hermes"
 ab wait 250 >/dev/null 2>&1 || true
+ab get text "#frontpage-install-command" > "${OUT_DIR}/frontpage-hermes-command.txt"
+assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regent techtree bbh run solve ./run --agent hermes"
+
+ab click "#frontpage-chat-tab-agent"
+ab wait 250 >/dev/null 2>&1 || true
+ab get text "#frontpage-agent-chatbox" > "${OUT_DIR}/frontpage-agent-chat.txt"
+assert_contains "${OUT_DIR}/frontpage-agent-chat.txt" "read only"
 
 ab click "#frontpage-view-grid"
 ab wait 350 >/dev/null 2>&1 || true
 ab get text "#frontpage-home-briefing" > "${OUT_DIR}/frontpage-grid-briefing.txt"
-assert_contains "${OUT_DIR}/frontpage-grid-briefing.txt" "Infinite seed lattice"
+assert_contains "${OUT_DIR}/frontpage-grid-briefing.txt" "cube field"
 
 ab open "${PHOENIX_URL}/platform"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true

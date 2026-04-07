@@ -9,76 +9,16 @@ defmodule TechTreeWeb.HomeLive do
   @dev_dataset_toggle? Application.compile_env(:tech_tree, :dev_routes, false)
   @default_view_mode "graph"
   @default_data_mode "live"
+  @default_install_agent "openclaw"
+  @default_chat_tab "human"
 
   @design %{
     id: "cobalt-orchard",
     label: "TechTree",
     mood: "ink orchard",
     summary:
-      "Warm parchment, cobalt fields, and ink-dark graph branches framing the live public tree as the homepage.",
-    layout_mode: "atlas",
-    tokens: %{
-      "bg" =>
-        "linear-gradient(180deg, #f6efd8 0%, #f4ecd2 52%, #fbf6e6 100%), radial-gradient(circle at 22% 18%, rgba(17, 76, 167, 0.08), transparent 18%)",
-      "panel" => "rgba(251, 246, 230, 0.9)",
-      "panel-border" => "rgba(196, 165, 92, 0.2)",
-      "stage" => "rgba(255, 249, 235, 0.95)",
-      "text" => "#111216",
-      "muted" => "rgba(29, 31, 37, 0.62)",
-      "accent" => "#114ca7",
-      "accent-soft" => "rgba(17, 76, 167, 0.12)",
-      "highlight" => "#05070d",
-      "chat-meta" => "rgba(49, 44, 33, 0.6)",
-      "chat-neutral-bg" => "rgba(249, 243, 227, 0.92)",
-      "chat-neutral-text" => "#18191d",
-      "chat-agent-accent-bg" => "rgba(225, 232, 244, 0.96)",
-      "chat-agent-accent-text" => "#11294d",
-      "chat-human-accent-bg" => "rgba(231, 206, 137, 0.98)",
-      "chat-human-accent-text" => "#15161a",
-      "chat-composer-bg" => "rgba(246, 239, 221, 0.95)",
-      "chat-composer-text" => "#18191d",
-      "shadow" => "0 36px 96px -62px rgba(78, 60, 28, 0.32)",
-      "overlay" => "rgba(20, 18, 13, 0.54)"
-    },
-    graph_theme: %{
-      "edge" => "#0c1120",
-      "node" => "#114ca7",
-      "nodeAlt" => "#05070d",
-      "hover" => "#fffdf6",
-      "selected" => "#d4b15b",
-      "background" => "#fbf5e3"
-    },
-    dark_tokens: %{
-      "bg" =>
-        "radial-gradient(circle at 18% 18%, rgba(75, 131, 209, 0.18), transparent 20%), linear-gradient(180deg, #08111f 0%, #0b1527 46%, #03060d 100%)",
-      "panel" => "rgba(10, 16, 29, 0.9)",
-      "panel-border" => "rgba(244, 222, 182, 0.16)",
-      "stage" => "rgba(7, 12, 23, 0.94)",
-      "text" => "#f7f0dc",
-      "muted" => "rgba(247, 240, 220, 0.66)",
-      "accent" => "#4b83d1",
-      "accent-soft" => "rgba(75, 131, 209, 0.16)",
-      "highlight" => "#f0d58c",
-      "chat-meta" => "rgba(247, 240, 220, 0.74)",
-      "chat-neutral-bg" => "rgba(11, 18, 32, 0.94)",
-      "chat-neutral-text" => "#fff8ed",
-      "chat-agent-accent-bg" => "rgba(24, 47, 86, 0.96)",
-      "chat-agent-accent-text" => "#fff9ef",
-      "chat-human-accent-bg" => "rgba(126, 105, 54, 0.98)",
-      "chat-human-accent-text" => "#fffaf2",
-      "chat-composer-bg" => "rgba(12, 18, 31, 0.96)",
-      "chat-composer-text" => "#fff8ed",
-      "shadow" => "0 36px 110px -60px rgba(0, 0, 0, 0.92)",
-      "overlay" => "rgba(2, 4, 10, 0.78)"
-    },
-    dark_graph_theme: %{
-      "edge" => "#f0d58c",
-      "node" => "#4b83d1",
-      "nodeAlt" => "#f7f0dc",
-      "hover" => "#ffffff",
-      "selected" => "#d6a94b",
-      "background" => "#07111f"
-    }
+      "Warm parchment, cobalt fields, and the live public tree held behind a practical install surface.",
+    layout_mode: "atlas"
   }
 
   @impl true
@@ -90,16 +30,14 @@ defmodule TechTreeWeb.HomeLive do
     {:ok,
      socket
      |> assign(:design, @design)
-     |> assign(:design_style, design_style(@design))
      |> assign(:dev_dataset_toggle?, @dev_dataset_toggle?)
      |> assign(
        :privy_app_id,
        Keyword.get(Application.get_env(:tech_tree, :privy, []), :app_id, "")
      )
      |> assign(:view_mode, @default_view_mode)
-     |> assign(:agent_panel_open?, true)
-     |> assign(:human_panel_open?, true)
-     |> assign(:intro_open?, true)
+     |> assign(:install_agent, @default_install_agent)
+     |> assign(:chat_tab, @default_chat_tab)
      |> assign_dataset(@default_data_mode)
      |> assign_public_chatbox_panels()
      |> assign(:page_title, "TechTree")}
@@ -111,18 +49,14 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("enter", _params, socket) do
-    {:noreply, assign(socket, :intro_open?, false)}
+  def handle_event("set-install-agent", %{"agent" => agent}, socket) do
+    {:noreply,
+     assign(socket, :install_agent, normalize_install_agent(agent, socket.assigns.install_agent))}
   end
 
   @impl true
-  def handle_event("reopen_intro", _params, socket) do
-    {:noreply, assign(socket, :intro_open?, true)}
-  end
-
-  @impl true
-  def handle_event("toggle_panel", %{"panel" => panel}, socket) do
-    {:noreply, assign(socket, State.toggle_panel(panel, socket.assigns))}
+  def handle_event("set-chat-tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :chat_tab, normalize_chat_tab(tab, socket.assigns.chat_tab))}
   end
 
   @impl true
@@ -337,36 +271,6 @@ defmodule TechTreeWeb.HomeLive do
   @impl true
   def render(assigns), do: HomeComponents.home_page(assigns)
 
-  defp design_style(design) do
-    [
-      encode_token_group("light", design.tokens),
-      encode_graph_group("light", design.graph_theme),
-      encode_token_group("dark", Map.get(design, :dark_tokens, %{})),
-      encode_graph_group("dark", Map.get(design, :dark_graph_theme, %{}))
-    ]
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.join("; ")
-  end
-
-  defp encode_token_group(_mode, tokens) when tokens == %{}, do: ""
-
-  defp encode_token_group(mode, tokens) do
-    Enum.map_join(tokens, "; ", fn {key, value} ->
-      "--fp-#{mode}-#{key}: #{value}"
-    end)
-  end
-
-  defp encode_graph_group(_mode, tokens) when tokens == %{}, do: ""
-
-  defp encode_graph_group(mode, tokens) do
-    Enum.map_join(tokens, "; ", fn {key, value} ->
-      "--fp-#{mode}-graph-#{graph_token_name(key)}: #{value}"
-    end)
-  end
-
-  defp graph_token_name("nodeAlt"), do: "node-alt"
-  defp graph_token_name(other), do: other
-
   defp assign_dataset(socket, requested_mode) do
     socket
     |> assign(Dataset.build(requested_mode, @dev_dataset_toggle?))
@@ -469,6 +373,14 @@ defmodule TechTreeWeb.HomeLive do
     |> assign(key, value)
     |> sync_regent_scene()
   end
+
+  defp normalize_install_agent("openclaw", _current), do: "openclaw"
+  defp normalize_install_agent("hermes", _current), do: "hermes"
+  defp normalize_install_agent(_agent, current), do: current
+
+  defp normalize_chat_tab("human", _current), do: "human"
+  defp normalize_chat_tab("agent", _current), do: "agent"
+  defp normalize_chat_tab(_tab, current), do: current
 
   defp select_node_and_sync(socket, node_id) do
     assign_and_sync_scene(

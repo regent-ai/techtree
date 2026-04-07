@@ -35,7 +35,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     assert has_element?(view, "#frontpage-view-grid")
     assert has_element?(view, "#frontpage-node-search")
     assert has_element?(view, "#frontpage-clear-focus", "Overview")
-    assert has_element?(view, "#techtree-home-ledger", "Viewport graph substrate")
+    assert has_element?(view, "#techtree-home-ledger", "Background tree")
 
     view
     |> form("#frontpage-node-search", node_query: "no-such-node")
@@ -64,7 +64,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     assert render(view) =~ "0xabc123...llet"
   end
 
-  test "selected node state survives homepage mode and panel transitions", %{conn: conn} do
+  test "selected node state survives homepage mode and chat tab transitions", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     initial_html = render(view)
@@ -89,7 +89,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
 
     assert has_element?(
              view,
-             "#techtree-home-chamber .badge",
+             "#frontpage-selected-node .badge",
              Integer.to_string(target_node_id)
            )
 
@@ -98,11 +98,11 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     |> render_click()
 
     view
-    |> element("#frontpage-agent-panel button[phx-value-panel='agent']")
+    |> element("#frontpage-chat-tab-agent")
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='grid']")
-    assert has_element?(view, "#frontpage-agent-panel[data-panel-open='false']")
+    assert has_element?(view, "#frontpage-home-page[data-chat-tab='agent']")
 
     assert has_element?(
              view,
@@ -111,7 +111,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
 
     assert has_element?(
              view,
-             "#techtree-home-chamber .badge",
+             "#frontpage-selected-node .badge",
              Integer.to_string(target_node_id)
            )
   end

@@ -7,16 +7,16 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
   test "homepage chatbox shells stay in the chrome contract", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#frontpage-agent-panel input[disabled]")
-    assert has_element?(view, "#frontpage-agent-panel button[disabled]", "Read only")
-    assert has_element?(view, "#frontpage-human-panel[data-privy-app-id]")
-    assert has_element?(view, "#frontpage-human-panel [data-chatbox-auth]", "Connect Privy")
-    assert has_element?(view, "#frontpage-human-panel [data-chatbox-transport]", "starting")
-    assert has_element?(view, "#frontpage-human-panel input[data-chatbox-input][disabled]")
-    assert has_element?(view, "#frontpage-human-panel button[data-chatbox-send][disabled]")
+    assert has_element?(view, "#frontpage-agent-chatbox input[disabled]")
+    assert has_element?(view, "#frontpage-agent-chatbox button[disabled]", "Read only")
+    assert has_element?(view, "#frontpage-human-chatbox[data-privy-app-id]")
+    assert has_element?(view, "#frontpage-human-chatbox [data-chatbox-auth]", "Connect Privy")
+    assert has_element?(view, "#frontpage-human-chatbox [data-chatbox-transport]", "starting")
+    assert has_element?(view, "#frontpage-human-chatbox input[data-chatbox-input][disabled]")
+    assert has_element?(view, "#frontpage-human-chatbox button[data-chatbox-send][disabled]")
     assert render(view) =~ "No live public posts yet."
-    assert render(view) =~ "Agent chatbox"
-    assert render(view) =~ "Human chatbox"
+    assert render(view) =~ "Agent chat"
+    assert render(view) =~ "Human chat"
     assert render(view) =~ "public webapp chatbox"
   end
 
@@ -30,13 +30,13 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
 
     assert has_element?(
              view,
-             "#frontpage-agent-panel .chat-bubble",
+             "#frontpage-agent-chatbox .chat-bubble",
              "agent canonical panel message"
            )
 
     assert has_element?(
              view,
-             "#frontpage-human-panel .chat-bubble",
+             "#frontpage-human-chatbox .chat-bubble",
              "human canonical panel message"
            )
   end

@@ -34,14 +34,14 @@ defmodule TechTreeWeb.HomeLiveGridTest do
     render_hook(view, "open-grid-node", %{"node_id" => root.id})
 
     assert has_element?(view, "#frontpage-scene-back")
-    assert has_element?(view, "#techtree-home-chamber", "Machine Learning")
-    assert has_element?(view, "#techtree-home-chamber button", "View descendants")
+    assert has_element?(view, "#frontpage-selected-node", "Machine Learning")
+    assert has_element?(view, "#frontpage-selected-node button", "View descendants")
 
     render_hook(view, "drilldown-grid-node", %{"node_id" => root.id})
 
     assert render(view) =~ "Depth 1"
     assert has_element?(view, "button[phx-click='return-grid-level']", "Return one level")
-    refute has_element?(view, "#techtree-home-chamber button", "Close grid detail")
+    refute has_element?(view, "#frontpage-selected-node button", "Close grid detail")
 
     render_hook(view, "return-grid-level", %{})
 

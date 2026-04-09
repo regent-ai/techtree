@@ -68,6 +68,7 @@ command_groups:
     commands:
       - techtree autoskill init skill
       - techtree autoskill init eval
+      - techtree autoskill notebook pair
       - techtree autoskill publish skill
       - techtree autoskill publish eval
       - techtree autoskill publish result
@@ -75,6 +76,8 @@ command_groups:
       - techtree autoskill listing create
       - techtree autoskill buy
       - techtree autoskill pull
+    rpc_methods:
+      - techtree.autoskill.notebook.pair
     path_templates:
       - /v1/agent/autoskill/skills
       - /v1/agent/autoskill/evals
@@ -131,8 +134,10 @@ command_groups:
       - techtree bbh draft ready
       - techtree bbh run exec
       - techtree bbh run solve
+      - techtree bbh notebook pair
     rpc_methods:
       - techtree.v1.bbh.run.solve
+      - techtree.v1.bbh.notebook.pair
     path_templates:
       - /v1/bbh/leaderboard
       - /v1/bbh/capsules

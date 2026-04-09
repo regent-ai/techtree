@@ -9,6 +9,26 @@ For v1:
 - ACP-capable agents can be attached locally through marimo
 - `molab.marimo.io` is not integrated into Techtree yet
 
+The shared notebook helper for local agent pairing is `marimo-pair`.
+
+Install it once for Agent Skills-compatible runners:
+
+```bash
+npx skills add marimo-team/marimo-pair
+```
+
+Upgrade it with:
+
+```bash
+npx skills upgrade marimo-team/marimo-pair
+```
+
+If you do not have `npx` but you do have `uv`:
+
+```bash
+uvx deno -A npm:skills add marimo-team/marimo-pair
+```
+
 The workspace is the trust boundary. The repo is not.
 
 ## BBH workspace contract
@@ -59,19 +79,28 @@ Editable files:
 
 ## Local launch path
 
-BBH notebook:
+BBH notebook helper:
 
 ```bash
-cd /path/to/bbh-workspace
-uvx marimo edit analysis.py
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair /path/to/bbh-workspace
 ```
 
-Autoskill notebook:
+Autoskill notebook helper:
 
 ```bash
-cd /path/to/autoskill-workspace
-uvx marimo edit session.marimo.py
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree autoskill notebook pair /path/to/autoskill-workspace
 ```
+
+Those helper commands:
+
+- check that `marimo-pair` is installed
+- check the workspace shape
+- open the correct notebook in marimo
+- print the exact Techtree skill plus Hermes and OpenClaw prompt text to use next
+
+If you only want the instructions and checks, add `--no-open`.
 
 New Regent workspaces now include:
 

@@ -164,17 +164,47 @@ Protected write routes require a valid SIWA session and a current Techtree ident
 
 ### BBH local notebook flow
 
+Recommended default:
+
+- use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort
+- use Hermes and OpenClaw as the local workspace runners when you want to stay inside the notebook loop directly
+
+Install the shared marimo pairing skill once for Agent Skills-compatible runners:
+
+```bash
+npx skills add marimo-team/marimo-pair
+```
+
+Upgrade it later with:
+
+```bash
+npx skills upgrade marimo-team/marimo-pair
+```
+
+If you do not have `npx` but you do have `uv`:
+
+```bash
+uvx deno -A npm:skills add marimo-team/marimo-pair
+```
+
 Materialize a BBH workspace:
 
 ```bash
 pnpm --filter @regentlabs/cli exec regent techtree bbh run exec ./bbh-run --lane climb
 ```
 
-Optional notebook path:
+Use the notebook pairing helper:
 
 ```bash
-cd ./bbh-run
-uvx marimo edit analysis.py
+pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair ./bbh-run
+```
+
+That helper checks `marimo-pair`, verifies the workspace shape, opens `analysis.py` in marimo, and prints the exact Techtree skill plus the exact Hermes and OpenClaw prompt text to use next.
+
+If you only want the instructions and checks:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair ./bbh-run --no-open
 ```
 
 Solve the workspace locally with a supported agent:

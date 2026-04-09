@@ -33,21 +33,22 @@ defmodule TechTree.Platform.SourceImport do
       |> Repo.insert!()
 
     counts =
-      with {:ok, pid} <- start_source_connection(source_database) do
-        try do
-          %{
-            explorer_tiles: import_explorer_tiles(pid),
-            agents: import_agents(pid),
-            basename_mints: import_basenames_mints(pid),
-            basename_payment_credits: import_basename_payment_credits(pid),
-            basename_mint_allowances: import_basename_mint_allowances(pid),
-            ens_subname_claims: import_ens_subname_claims(pid),
-            redeems: import_redeems(pid)
-          }
-        after
-          GenServer.stop(pid)
-        end
-      else
+      case start_source_connection(source_database) do
+        {:ok, pid} ->
+          try do
+            %{
+              explorer_tiles: import_explorer_tiles(pid),
+              agents: import_agents(pid),
+              basename_mints: import_basenames_mints(pid),
+              basename_payment_credits: import_basename_payment_credits(pid),
+              basename_mint_allowances: import_basename_mint_allowances(pid),
+              ens_subname_claims: import_ens_subname_claims(pid),
+              redeems: import_redeems(pid)
+            }
+          after
+            GenServer.stop(pid)
+          end
+
         {:error, reason} ->
           Repo.update!(
             ImportRun.changeset(run, %{

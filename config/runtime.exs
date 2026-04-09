@@ -130,83 +130,93 @@ config :tech_tree, :siwa,
 
 existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
 
-ethereum_chain_id =
-  env_or_dotenv.(
-    "TECHTREE_CHAIN_ID",
-    env_or_dotenv.("ETHEREUM_CHAIN_ID", cfg_fetch.(existing_ethereum_cfg, :chain_id))
-  )
-  |> validate_chain_id.()
-
-ethereum_rpc_url =
-  case ethereum_chain_id do
-    "84532" ->
-      env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
-
-    "11155111" ->
-      env_or_dotenv.("ETHEREUM_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
-
-    "31337" ->
-      env_or_dotenv.("ANVIL_RPC_URL", nil)
-
-    _ ->
-      env_or_dotenv.("ETHEREUM_MAINNET_RPC_URL", env_or_dotenv.("ETHEREUM_RPC_URL", nil))
-  end
-
-ethereum_writer_private_key =
-  case ethereum_chain_id do
-    "84532" ->
-      env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
-
-    "11155111" ->
-      env_or_dotenv.("ETHEREUM_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
-
-    "31337" ->
-      env_or_dotenv.("ANVIL_PRIVATE_KEY", nil)
-
-    _ ->
+{ethereum_mode, ethereum_chain_id, ethereum_rpc_url, registry_address,
+ registry_writer_private_key, cast_bin} =
+  if config_env() == :test do
+    {
+      cfg_fetch.(existing_ethereum_cfg, :mode) || "stub",
+      cfg_fetch.(existing_ethereum_cfg, :chain_id) |> validate_chain_id.(),
+      cfg_fetch.(existing_ethereum_cfg, :rpc_url),
+      cfg_fetch.(existing_ethereum_cfg, :registry_address),
+      cfg_fetch.(existing_ethereum_cfg, :writer_private_key),
+      cfg_fetch.(existing_ethereum_cfg, :cast_bin) || "cast"
+    }
+  else
+    ethereum_chain_id =
       env_or_dotenv.(
-        "ETHEREUM_MAINNET_PRIVATE_KEY",
-        env_or_dotenv.("ETHEREUM_PRIVATE_KEY", nil)
+        "TECHTREE_CHAIN_ID",
+        env_or_dotenv.("ETHEREUM_CHAIN_ID", cfg_fetch.(existing_ethereum_cfg, :chain_id))
       )
+      |> validate_chain_id.()
+
+    ethereum_rpc_url =
+      case ethereum_chain_id do
+        "84532" ->
+          env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+
+        "11155111" ->
+          env_or_dotenv.("ETHEREUM_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
+
+        "31337" ->
+          env_or_dotenv.("ANVIL_RPC_URL", nil)
+
+        _ ->
+          env_or_dotenv.("ETHEREUM_MAINNET_RPC_URL", env_or_dotenv.("ETHEREUM_RPC_URL", nil))
+      end
+
+    ethereum_writer_private_key =
+      case ethereum_chain_id do
+        "84532" ->
+          env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+
+        "11155111" ->
+          env_or_dotenv.("ETHEREUM_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
+
+        "31337" ->
+          env_or_dotenv.("ANVIL_PRIVATE_KEY", nil)
+
+        _ ->
+          env_or_dotenv.(
+            "ETHEREUM_MAINNET_PRIVATE_KEY",
+            env_or_dotenv.("ETHEREUM_PRIVATE_KEY", nil)
+          )
+      end
+
+    registry_address =
+      env_or_dotenv.(
+        "REGISTRY_CONTRACT_ADDRESS",
+        env_or_dotenv.(
+          "TECHTREE_REGISTRY",
+          cfg_fetch.(existing_ethereum_cfg, :registry_address)
+        )
+      )
+
+    registry_writer_private_key =
+      env_or_dotenv.(
+        "REGISTRY_WRITER_PRIVATE_KEY",
+        ethereum_writer_private_key || cfg_fetch.(existing_ethereum_cfg, :writer_private_key)
+      )
+
+    {
+      env_or_dotenv.(
+        "TECHTREE_ETHEREUM_MODE",
+        cfg_fetch.(existing_ethereum_cfg, :mode) || "auto"
+      ),
+      ethereum_chain_id,
+      ethereum_rpc_url || cfg_fetch.(existing_ethereum_cfg, :rpc_url),
+      registry_address,
+      registry_writer_private_key,
+      env_or_dotenv.("CAST_BIN", cfg_fetch.(existing_ethereum_cfg, :cast_bin) || "cast")
+    }
   end
 
 config :tech_tree, :ethereum,
-  mode:
-    env_or_dotenv.(
-      "TECHTREE_ETHEREUM_MODE",
-      cfg_fetch.(existing_ethereum_cfg, :mode) || "auto"
-    ),
-  rpc_url: ethereum_rpc_url || cfg_fetch.(existing_ethereum_cfg, :rpc_url),
-  registry_address:
-    env_or_dotenv.(
-      "REGISTRY_CONTRACT_ADDRESS",
-      env_or_dotenv.(
-        "TECHTREE_REGISTRY",
-        cfg_fetch.(existing_ethereum_cfg, :registry_address)
-      )
-    ),
-  writer_private_key:
-    env_or_dotenv.(
-      "REGISTRY_WRITER_PRIVATE_KEY",
-      ethereum_writer_private_key || cfg_fetch.(existing_ethereum_cfg, :writer_private_key)
-    ),
+  mode: ethereum_mode,
+  rpc_url: ethereum_rpc_url,
+  registry_address: registry_address,
+  writer_private_key: registry_writer_private_key,
   chain_id: ethereum_chain_id,
-  cast_bin: env_or_dotenv.("CAST_BIN", cfg_fetch.(existing_ethereum_cfg, :cast_bin) || "cast")
-
-registry_address =
-  env_or_dotenv.(
-    "REGISTRY_CONTRACT_ADDRESS",
-    env_or_dotenv.(
-      "TECHTREE_REGISTRY",
-      cfg_fetch.(existing_ethereum_cfg, :registry_address)
-    )
-  )
-
-registry_writer_private_key =
-  env_or_dotenv.(
-    "REGISTRY_WRITER_PRIVATE_KEY",
-    ethereum_writer_private_key || cfg_fetch.(existing_ethereum_cfg, :writer_private_key)
-  )
+  cast_bin: cast_bin
 
 lighthouse_api_key = env_or_dotenv.("LIGHTHOUSE_API_KEY", "")
 

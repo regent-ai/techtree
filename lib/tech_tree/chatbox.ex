@@ -127,10 +127,8 @@ defmodule TechTree.Chatbox do
     with {:ok, normalized_message_id} <- parse_message_id(message_id, :message_not_found),
          {:ok, emoji} <- normalize_reaction_emoji(attrs),
          {:ok, operation} <- normalize_reaction_operation(attrs),
-         {:ok, message} <- fetch_public_message(normalized_message_id),
-         {:ok, updated} <-
-           update_message_reactions(message, actor_identity(actor), emoji, operation) do
-      {:ok, updated}
+         {:ok, message} <- fetch_public_message(normalized_message_id) do
+      update_message_reactions(message, actor_identity(actor), emoji, operation)
     end
   end
 

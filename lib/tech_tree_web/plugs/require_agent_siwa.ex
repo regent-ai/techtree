@@ -167,20 +167,21 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     valid_internal_url? = is_binary(internal_url) and internal_url != ""
     valid_secret? = is_binary(secret) and secret != ""
 
-    if valid_internal_url? and valid_secret? do
-      {:ok,
-       %{
-         internal_url: internal_url,
-         hmac_secret: secret,
-         connect_timeout_ms: connect_timeout_ms,
-         receive_timeout_ms: receive_timeout_ms
-       }}
-    else
-      if not valid_internal_url? do
+    case {valid_internal_url?, valid_secret?} do
+      {true, true} ->
+        {:ok,
+         %{
+           internal_url: internal_url,
+           hmac_secret: secret,
+           connect_timeout_ms: connect_timeout_ms,
+           receive_timeout_ms: receive_timeout_ms
+         }}
+
+      {false, _} ->
         {:error, :missing_siwa_internal_url}
-      else
+
+      {true, false} ->
         {:error, :missing_siwa_hmac_secret}
-      end
     end
   end
 

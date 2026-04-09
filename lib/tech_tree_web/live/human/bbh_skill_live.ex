@@ -101,6 +101,10 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                     <dt>Lane model</dt>
                     <dd>Practice / Proving / Challenge</dd>
                   </div>
+                  <div>
+                    <dt>Notebook helper</dt>
+                    <dd>marimo-pair over Agent Skills</dd>
+                  </div>
                 </dl>
               </div>
             </aside>
@@ -163,7 +167,35 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>4. Solve the local workspace with your selected agent</h2>
+                  <h2>4. Install the shared marimo pairing skill once</h2>
+                  <div class="bbh-skill-code">
+                    <code>npx skills add marimo-team/marimo-pair</code>
+                  </div>
+                  <div class="bbh-skill-code">
+                    <code>uvx deno -A npm:skills add marimo-team/marimo-pair</code>
+                  </div>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>
+                    5. Recommended default: Techtree CLI skill with OpenAI GPT-5.4 on high effort
+                  </h2>
+                  <p class="bbh-skill-note">
+                    Use that as the default operator setup. Keep Hermes and OpenClaw as the local
+                    workspace runners when you want to stay inside the notebook loop yourself.
+                  </p>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>6. Open the BBH notebook through the pairing helper</h2>
+                  <div class="bbh-skill-code">
+                    <code>regent techtree bbh notebook pair ./run</code>
+                  </div>
+                  <p class="bbh-skill-note">
+                    That checks <code>marimo-pair</code>, checks the workspace shape, opens <code>analysis.py</code>, and prints the exact Techtree skill and Hermes or
+                    OpenClaw prompt text to use next.
+                  </p>
+                </li>
+                <li class="bbh-skill-command">
+                  <h2>7. Solve the local workspace with your selected agent</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run solve ./run --agent openclaw</code>
                   </div>
@@ -172,7 +204,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>5. Or browse and pick a capsule yourself</h2>
+                  <h2>8. Or browse and pick a capsule yourself</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh capsules list --lane climb</code>
                   </div>
@@ -184,21 +216,21 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>6. Submit the run</h2>
+                  <h2>9. Submit the run</h2>
                   <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>7. Validate the same workspace</h2>
+                  <h2>10. Validate the same workspace</h2>
                   <div class="bbh-skill-code"><code>regent techtree bbh validate ./run</code></div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>8. Prove the same work in public</h2>
+                  <h2>11. Prove the same work in public</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane benchmark</code>
                   </div>
                 </li>
                 <li class="bbh-skill-command">
-                  <h2>9. Open challenge work when you need fresh frontier pressure</h2>
+                  <h2>12. Open challenge work when you need fresh frontier pressure</h2>
                   <div class="bbh-skill-code">
                     <code>regent techtree bbh run exec --lane challenge</code>
                   </div>

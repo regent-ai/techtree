@@ -5,7 +5,7 @@ This is the operator path for solving a BBH workspace locally with an agent.
 The loop is:
 
 1. materialize a BBH workspace
-2. optionally open the notebook in marimo
+2. run the notebook pairing helper
 3. run one local agent against that workspace only
 4. inspect the outputs
 5. submit and validate through the existing BBH flow
@@ -16,6 +16,25 @@ The loop is:
 - The Regent runtime is running locally.
 - You already have a working SIWA session for protected BBH submit and validate steps.
 - The local BBH workspace came from `regent techtree bbh run exec`.
+- Install the shared marimo pairing skill once for Hermes or OpenClaw:
+
+```bash
+npx skills add marimo-team/marimo-pair
+```
+
+Upgrade later with:
+
+```bash
+npx skills upgrade marimo-team/marimo-pair
+```
+
+If you do not have `npx` but you do have `uv`:
+
+```bash
+uvx deno -A npm:skills add marimo-team/marimo-pair
+```
+
+- Recommended default: use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort, and treat Hermes or OpenClaw as the local workspace runners.
 
 ## Required workspace inputs
 
@@ -56,11 +75,25 @@ cd /Users/sean/Documents/regent/regent-cli
 pnpm --filter @regentlabs/cli exec regent techtree bbh run exec ./bbh-run --lane climb
 ```
 
-Optional notebook path:
+Use the notebook pairing helper:
 
 ```bash
-cd ./bbh-run
-uvx marimo edit analysis.py
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair ./bbh-run
+```
+
+That command does four things for you:
+
+- checks that `marimo-pair` is installed
+- checks that the BBH workspace shape is valid
+- opens `analysis.py` in marimo
+- prints the exact Techtree skill and the exact Hermes or OpenClaw prompt text to use next
+
+If you only want the instructions without opening marimo:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair ./bbh-run --no-open
 ```
 
 Solve with a supported local agent:

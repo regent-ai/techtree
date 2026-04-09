@@ -59,41 +59,45 @@ defmodule TechTreeWeb.Platform.ModerationLive do
 
   @impl true
   def handle_event("hide-message", %{"id" => id}, socket) do
-    with {:ok, message_id} <- parse_required_id(id) do
-      :ok =
-        Moderation.hide_chatbox_message(
-          message_id,
-          socket.assigns.current_admin,
-          socket.assigns.reason
-        )
+    case parse_required_id(id) do
+      {:ok, message_id} ->
+        :ok =
+          Moderation.hide_chatbox_message(
+            message_id,
+            socket.assigns.current_admin,
+            socket.assigns.reason
+          )
 
-      {:noreply,
-       socket
-       |> put_flash(:info, "Message hidden")
-       |> assign(:selected_message_id, message_id)
-       |> refresh_dashboard()}
-    else
-      :error -> {:noreply, put_flash(socket, :error, "Invalid message id")}
+        {:noreply,
+         socket
+         |> put_flash(:info, "Message hidden")
+         |> assign(:selected_message_id, message_id)
+         |> refresh_dashboard()}
+
+      :error ->
+        {:noreply, put_flash(socket, :error, "Invalid message id")}
     end
   end
 
   @impl true
   def handle_event("unhide-message", %{"id" => id}, socket) do
-    with {:ok, message_id} <- parse_required_id(id) do
-      :ok =
-        Moderation.unhide_chatbox_message(
-          message_id,
-          socket.assigns.current_admin,
-          socket.assigns.reason
-        )
+    case parse_required_id(id) do
+      {:ok, message_id} ->
+        :ok =
+          Moderation.unhide_chatbox_message(
+            message_id,
+            socket.assigns.current_admin,
+            socket.assigns.reason
+          )
 
-      {:noreply,
-       socket
-       |> put_flash(:info, "Message restored")
-       |> assign(:selected_message_id, message_id)
-       |> refresh_dashboard()}
-    else
-      :error -> {:noreply, put_flash(socket, :error, "Invalid message id")}
+        {:noreply,
+         socket
+         |> put_flash(:info, "Message restored")
+         |> assign(:selected_message_id, message_id)
+         |> refresh_dashboard()}
+
+      :error ->
+        {:noreply, put_flash(socket, :error, "Invalid message id")}
     end
   end
 

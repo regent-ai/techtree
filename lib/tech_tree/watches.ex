@@ -173,30 +173,32 @@ defmodule TechTree.Watches do
   defp create_watch(node_id, watcher_type, watcher_ref) do
     normalized_node_id = normalize_id(node_id)
 
-    with %Node{} = node <- Repo.get(Node, normalized_node_id) do
-      watch =
-        case Repo.get_by(NodeWatcher,
-               node_id: normalized_node_id,
-               watcher_type: watcher_type,
-               watcher_ref: watcher_ref
-             ) do
-          %NodeWatcher{} = existing ->
-            existing
+    case Repo.get(Node, normalized_node_id) do
+      %Node{} = node ->
+        watch =
+          case Repo.get_by(NodeWatcher,
+                 node_id: normalized_node_id,
+                 watcher_type: watcher_type,
+                 watcher_ref: watcher_ref
+               ) do
+            %NodeWatcher{} = existing ->
+              existing
 
-          nil ->
-            %NodeWatcher{}
-            |> NodeWatcher.changeset(%{
-              node_id: normalized_node_id,
-              watcher_type: watcher_type,
-              watcher_ref: watcher_ref
-            })
-            |> Repo.insert!()
-        end
+            nil ->
+              %NodeWatcher{}
+              |> NodeWatcher.changeset(%{
+                node_id: normalized_node_id,
+                watcher_type: watcher_type,
+                watcher_ref: watcher_ref
+              })
+              |> Repo.insert!()
+          end
 
-      :ok = Nodes.refresh_watcher_metrics!(node.id)
-      {:ok, watch}
-    else
-      nil -> {:error, :node_not_found}
+        :ok = Nodes.refresh_watcher_metrics!(node.id)
+        {:ok, watch}
+
+      nil ->
+        {:error, :node_not_found}
     end
   end
 
@@ -204,17 +206,19 @@ defmodule TechTree.Watches do
   defp delete_watch(node_id, watcher_type, watcher_ref) do
     normalized_node_id = normalize_id(node_id)
 
-    with %Node{} = node <- Repo.get(Node, normalized_node_id) do
-      NodeWatcher
-      |> where([w], w.node_id == ^normalized_node_id)
-      |> where([w], w.watcher_type == ^watcher_type)
-      |> where([w], w.watcher_ref == ^watcher_ref)
-      |> Repo.delete_all()
+    case Repo.get(Node, normalized_node_id) do
+      %Node{} = node ->
+        NodeWatcher
+        |> where([w], w.node_id == ^normalized_node_id)
+        |> where([w], w.watcher_type == ^watcher_type)
+        |> where([w], w.watcher_ref == ^watcher_ref)
+        |> Repo.delete_all()
 
-      :ok = Nodes.refresh_watcher_metrics!(node.id)
-      :ok
-    else
-      nil -> {:error, :node_not_found}
+        :ok = Nodes.refresh_watcher_metrics!(node.id)
+        :ok
+
+      nil ->
+        {:error, :node_not_found}
     end
   end
 

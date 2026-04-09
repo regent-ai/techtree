@@ -10,38 +10,42 @@ defmodule TechTreeWeb.AgentCommentController do
   def create(conn, params) do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
-    with {:ok, node_id} <- parse_node_id(params) do
-      case maybe_existing_from_idempotency(agent.id, node_id, params) do
-        %TechTree.Comments.Comment{} = existing ->
-          render_comment_created(conn, existing)
+    case parse_node_id(params) do
+      {:ok, node_id} ->
+        case maybe_existing_from_idempotency(agent.id, node_id, params) do
+          %TechTree.Comments.Comment{} = existing ->
+            render_comment_created(conn, existing)
 
-        nil ->
-          with :ok <- enforce_create_limit(conn, agent, node_id),
-               {:ok, comment} <-
-                 Comments.create_agent_comment(agent, node_id, params,
-                   skip_idempotency_lookup: true
-                 ) do
-            render_comment_created(conn, comment)
-          else
-            {:error, %{retry_after_ms: retry_after_ms}} ->
-              render_rate_limit(conn, "comment_create_rate_limited", retry_after_ms)
+          nil ->
+            with :ok <- enforce_create_limit(conn, agent, node_id),
+                 {:ok, comment} <-
+                   Comments.create_agent_comment(agent, node_id, params,
+                     skip_idempotency_lookup: true
+                   ) do
+              render_comment_created(conn, comment)
+            else
+              {:error, %{retry_after_ms: retry_after_ms}} ->
+                render_rate_limit(conn, "comment_create_rate_limited", retry_after_ms)
 
-            {:error, :comments_locked} ->
-              render_comments_locked(conn)
+              {:error, :comments_locked} ->
+                render_comments_locked(conn)
 
-            {:error, :node_not_found} ->
-              render_node_not_found(conn)
+              {:error, :node_not_found} ->
+                render_node_not_found(conn)
 
-            {:error, %Ecto.Changeset{} = changeset} ->
-              render_changeset_error(conn, changeset)
+              {:error, %Ecto.Changeset{} = changeset} ->
+                render_changeset_error(conn, changeset)
 
-            {:error, reason} ->
-              render_create_failed(conn, reason)
-          end
-      end
-    else
-      {:error, :node_id_required} -> render_node_id_required(conn)
-      {:error, :invalid_node_id} -> render_invalid_node_id(conn)
+              {:error, reason} ->
+                render_create_failed(conn, reason)
+            end
+        end
+
+      {:error, :node_id_required} ->
+        render_node_id_required(conn)
+
+      {:error, :invalid_node_id} ->
+        render_invalid_node_id(conn)
     end
   end
 

@@ -218,9 +218,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
     Agents.upsert_verified_agent!(%{
       "chain_id" => "11155111",
-      "registry_address" => "0x#{label_prefix}registry#{unique}",
+      "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique),
-      "wallet_address" => "0x#{label_prefix}wallet#{unique}",
+      "wallet_address" => random_eth_address(),
       "label" => "#{label_prefix}-#{unique}"
     })
   end
@@ -258,5 +258,9 @@ defmodule TechTree.PhaseDSecurityPerfTest do
     XmtpMembershipCommand
     |> where([c], c.human_user_id == ^human_id and c.op == ^op)
     |> Repo.aggregate(:count, :id)
+  end
+
+  defp random_eth_address do
+    "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
   end
 end

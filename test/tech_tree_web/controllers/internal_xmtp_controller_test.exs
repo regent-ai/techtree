@@ -30,7 +30,7 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
   end
 
   test "denies request when internal shared secret config is invalid", %{conn: conn} do
-    Application.put_env(:tech_tree, :internal_shared_secret, 12345)
+    Application.put_env(:tech_tree, :internal_shared_secret, 12_345)
 
     on_exit(fn ->
       Application.put_env(:tech_tree, :internal_shared_secret, "test-internal-secret")

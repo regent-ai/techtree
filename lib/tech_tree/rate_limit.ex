@@ -93,9 +93,8 @@ defmodule TechTree.RateLimit do
   @spec allow_chatbox_message(keyword()) :: :ok | {:error, limit_error()}
   def allow_chatbox_message(opts) do
     result =
-      with :ok <- consume_policy_keys("chatbox:message", @message_policy, opts),
-           :ok <- check_duplicate_message(opts) do
-        :ok
+      with :ok <- consume_policy_keys("chatbox:message", @message_policy, opts) do
+        check_duplicate_message(opts)
       end
 
     emit_throttle_event(result, :message)
@@ -155,13 +154,11 @@ defmodule TechTree.RateLimit do
            strict_consume_bucket(
              "rl:chatbox:post:#{normalized_identity}",
              @chatbox_post_cooldown_policy
-           ),
-         :ok <-
-           strict_consume_bucket(
-             "rl:chatbox:burst:#{normalized_identity}",
-             @chatbox_post_burst_policy
            ) do
-      :ok
+      strict_consume_bucket(
+        "rl:chatbox:burst:#{normalized_identity}",
+        @chatbox_post_burst_policy
+      )
     end
   end
 

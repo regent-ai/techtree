@@ -5,7 +5,7 @@ defmodule TechTree.MixProject do
     [
       app: :tech_tree,
       version: "0.1.0",
-      elixir: "~> 1.15",
+      elixir: "~> 1.19.5",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -71,7 +71,8 @@ defmodule TechTree.MixProject do
       {:regent_ui, path: "../packages/regent_ui"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:lazy_html, ">= 0.1.0", only: :test}
+      {:lazy_html, ">= 0.1.0", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

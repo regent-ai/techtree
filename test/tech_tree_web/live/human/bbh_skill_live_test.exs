@@ -22,6 +22,7 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert render(view) =~ "Hand the run to an agent"
     assert render(view) =~ "Check the wall and run page"
     assert render(view) =~ "Practice / Proving / Challenge"
+    assert render(view) =~ "marimo-pair over Agent Skills"
     assert render(view) =~ "public BBH loop is working"
     assert render(view) =~ "manual control"
 
@@ -31,6 +32,10 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert render(view) =~ "pnpm add -g @regentlabs/cli"
     assert render(view) =~ "regent techtree start"
     assert render(view) =~ "regent techtree bbh run exec --lane climb"
+    assert render(view) =~ "npx skills add marimo-team/marimo-pair"
+    assert render(view) =~ "uvx deno -A npm:skills add marimo-team/marimo-pair"
+    assert render(view) =~ "Techtree CLI skill with OpenAI GPT-5.4 on high effort"
+    assert render(view) =~ "regent techtree bbh notebook pair ./run"
     assert render(view) =~ "regent techtree bbh run solve ./run --agent openclaw"
     assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
     assert render(view) =~ "regent techtree bbh capsules list --lane climb"

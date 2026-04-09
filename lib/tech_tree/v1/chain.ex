@@ -126,18 +126,16 @@ defmodule TechTree.V1.Chain do
   defp decode_bytes_pair(_value), do: {:error, :invalid_node_published_data}
 
   defp decode_dynamic_bytes(binary, offset) when is_binary(binary) and is_integer(offset) do
-    cond do
-      offset < 0 or offset + 32 > byte_size(binary) ->
-        {:error, :invalid_node_published_data}
-
-      true ->
-        with {:ok, length} <- decode_u256(binary_part(binary, offset, 32)),
-             true <- offset + 32 + length <= byte_size(binary) do
-          {:ok, binary_part(binary, offset + 32, length)}
-        else
-          false -> {:error, :invalid_node_published_data}
-          {:error, reason} -> {:error, reason}
-        end
+    if offset < 0 or offset + 32 > byte_size(binary) do
+      {:error, :invalid_node_published_data}
+    else
+      with {:ok, length} <- decode_u256(binary_part(binary, offset, 32)),
+           true <- offset + 32 + length <= byte_size(binary) do
+        {:ok, binary_part(binary, offset + 32, length)}
+      else
+        false -> {:error, :invalid_node_published_data}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
@@ -147,9 +145,9 @@ defmodule TechTree.V1.Chain do
       "data" => @get_header_selector <> String.trim_leading(node_id, "0x")
     }
 
-    with {:ok, result} <- rpc_request(cfg, "eth_call", [call, "latest"]),
-         {:ok, header} <- decode_header_result(result) do
-      {:ok, header}
+    case rpc_request(cfg, "eth_call", [call, "latest"]) do
+      {:ok, result} -> decode_header_result(result)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -189,9 +187,8 @@ defmodule TechTree.V1.Chain do
              fetch_value(attrs, "payload_cid"),
              published_log.payload_cid
            ),
-         :ok <- verify_expected_header(fetch_value(attrs, "header"), header),
-         :ok <- verify_expected_value("author", fetch_value(attrs, "author"), header["author"]) do
-      :ok
+         :ok <- verify_expected_header(fetch_value(attrs, "header"), header) do
+      verify_expected_value("author", fetch_value(attrs, "author"), header["author"])
     end
   end
 
@@ -304,9 +301,9 @@ defmodule TechTree.V1.Chain do
     do: {:ok, chain_id}
 
   defp resolve_chain_id(cfg) do
-    with {:ok, chain_id_hex} <- rpc_request(cfg, "eth_chainId", []),
-         {:ok, chain_id} <- parse_hex_quantity(chain_id_hex) do
-      {:ok, chain_id}
+    case rpc_request(cfg, "eth_chainId", []) do
+      {:ok, chain_id_hex} -> parse_hex_quantity(chain_id_hex)
+      {:error, reason} -> {:error, reason}
     end
   end
 

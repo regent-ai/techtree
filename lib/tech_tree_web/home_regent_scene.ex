@@ -592,11 +592,11 @@ defmodule TechTreeWeb.HomeRegentScene do
   defp conduit_commands(conduit, nodes_by_id) do
     custom_commands = Map.get(conduit, "commands")
 
-    cond do
-      is_list(custom_commands) ->
-        custom_commands
+    case custom_commands do
+      commands when is_list(commands) ->
+        commands
 
-      true ->
+      _ ->
         with from_node when is_map(from_node) <- Map.get(nodes_by_id, conduit["from"]),
              to_node when is_map(to_node) <- Map.get(nodes_by_id, conduit["to"]) do
           base =

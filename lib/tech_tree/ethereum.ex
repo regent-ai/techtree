@@ -122,9 +122,8 @@ defmodule TechTree.Ethereum do
                manifest_hash,
                Integer.to_string(kind)
              ]
-           ),
-         {:ok, tx_hash} <- extract_tx_hash(output) do
-      {:ok, tx_hash}
+           ) do
+      extract_tx_hash(output)
     end
   end
 
@@ -224,12 +223,10 @@ defmodule TechTree.Ethereum do
     cast_runner = cfg.cast_runner
 
     result =
-      cond do
-        is_function(cast_runner, 2) ->
-          cast_runner.(cfg.cast_bin, args)
-
-        true ->
-          System.cmd(cfg.cast_bin, args, stderr_to_stdout: true)
+      if is_function(cast_runner, 2) do
+        cast_runner.(cfg.cast_bin, args)
+      else
+        System.cmd(cfg.cast_bin, args, stderr_to_stdout: true)
       end
 
     case result do
@@ -454,9 +451,8 @@ defmodule TechTree.Ethereum do
              :manifest_hash,
              verification.manifest_hash,
              decoded.manifest_hash
-           ),
-         :ok <- ensure_log_field_match(:kind, verification.kind, decoded.kind) do
-      :ok
+           ) do
+      ensure_log_field_match(:kind, verification.kind, decoded.kind)
     end
   end
 
@@ -526,9 +522,9 @@ defmodule TechTree.Ethereum do
 
   @spec parse_topic_uint(term()) :: {:ok, non_neg_integer()} | {:error, term()}
   defp parse_topic_uint(topic) do
-    with :ok <- validate_hex_word(topic, :invalid_node_created_log_topics),
-         {:ok, value} <- parse_hex_quantity(topic) do
-      {:ok, value}
+    case validate_hex_word(topic, :invalid_node_created_log_topics) do
+      :ok -> parse_hex_quantity(topic)
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -759,17 +755,15 @@ defmodule TechTree.Ethereum do
 
   @spec ensure_rpc_create_node_config(map()) :: :ok | {:error, term()}
   defp ensure_rpc_create_node_config(cfg) do
-    with :ok <- ensure_rpc_receipt_config(cfg),
-         :ok <- ensure_non_empty_config(cfg.writer_private_key, :writer_private_key) do
-      :ok
+    with :ok <- ensure_rpc_receipt_config(cfg) do
+      ensure_non_empty_config(cfg.writer_private_key, :writer_private_key)
     end
   end
 
   @spec ensure_rpc_receipt_config(map()) :: :ok | {:error, term()}
   defp ensure_rpc_receipt_config(cfg) do
-    with :ok <- ensure_non_empty_config(cfg.rpc_url, :rpc_url),
-         :ok <- ensure_non_empty_config(cfg.registry_address, :registry_address) do
-      :ok
+    with :ok <- ensure_non_empty_config(cfg.rpc_url, :rpc_url) do
+      ensure_non_empty_config(cfg.registry_address, :registry_address)
     end
   end
 

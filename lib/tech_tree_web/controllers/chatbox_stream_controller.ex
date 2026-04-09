@@ -8,15 +8,16 @@ defmodule TechTreeWeb.ChatboxStreamController do
   @heartbeat_ms 15_000
 
   def index(conn, params) do
-    with {:ok, room_id} <- resolve_room_id(conn, params) do
-      conn =
-        conn
-        |> put_resp_content_type("application/x-ndjson")
-        |> send_chunked(:ok)
+    case resolve_room_id(conn, params) do
+      {:ok, room_id} ->
+        conn =
+          conn
+          |> put_resp_content_type("application/x-ndjson")
+          |> send_chunked(:ok)
 
-      Phoenix.PubSub.subscribe(TechTree.PubSub, Chatbox.relay_topic())
-      stream_loop(conn, room_id)
-    else
+        Phoenix.PubSub.subscribe(TechTree.PubSub, Chatbox.relay_topic())
+        stream_loop(conn, room_id)
+
       {:error, :invalid_room} ->
         conn
         |> put_status(:unprocessable_entity)

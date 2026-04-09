@@ -23,10 +23,10 @@ defmodule TechTreeWeb.InternalXmtpController do
       |> Enum.reject(fn {_key, value} -> is_nil(value) end)
       |> Map.new()
 
-    with {:ok, room} <-
-           XMTPMirror.ensure_room(room_attrs) do
-      json(conn, %{data: encode_room(room)})
-    else
+    case XMTPMirror.ensure_room(room_attrs) do
+      {:ok, room} ->
+        json(conn, %{data: encode_room(room)})
+
       {:error, %Ecto.Changeset{} = changeset} ->
         render_changeset_error(conn, "room_ensure_failed", changeset)
     end
@@ -68,20 +68,20 @@ defmodule TechTreeWeb.InternalXmtpController do
 
   @spec lease_command(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def lease_command(conn, %{"room_key" => room_key}) do
-    data =
-      case XMTPMirror.lease_next_command(room_key) do
-        nil ->
-          nil
+    json(conn, %{
+      data:
+        case XMTPMirror.lease_next_command(room_key) do
+          nil ->
+            nil
 
-        command ->
-          %{
-            id: command.id,
-            op: command.op,
-            xmtp_inbox_id: command.xmtp_inbox_id
-          }
-      end
-
-    json(conn, %{data: data})
+          command ->
+            %{
+              id: command.id,
+              op: command.op,
+              xmtp_inbox_id: command.xmtp_inbox_id
+            }
+        end
+    })
   end
 
   def lease_command(conn, _params) do

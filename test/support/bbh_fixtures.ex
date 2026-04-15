@@ -168,6 +168,7 @@ defmodule TechTree.BBHFixtures do
     suffix = suffix()
     source = genome_source(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
     genome_id = Map.get(attrs, :genome_id, source["genome_id"])
+    bundle_hash = normalized_bundle_hash(source)
 
     defaults = %{
       genome_id: genome_id,
@@ -184,13 +185,26 @@ defmodule TechTree.BBHFixtures do
       data_profile: "python-only",
       axes: %{},
       notes: nil,
-      normalized_bundle_hash: normalized_bundle_hash(source),
+      normalized_bundle_hash: bundle_hash,
       source: source
     }
 
+    attrs = Map.merge(defaults, attrs)
+
     %Genome{}
-    |> Genome.changeset(Map.merge(defaults, attrs))
-    |> Repo.insert!()
+    |> Genome.changeset(attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, genome} ->
+        genome
+
+      {:error, changeset} ->
+        if Keyword.has_key?(changeset.errors, :normalized_bundle_hash) do
+          Repo.get_by!(Genome, normalized_bundle_hash: bundle_hash)
+        else
+          raise Ecto.InvalidChangesetError, action: :insert, changeset: changeset
+        end
+    end
   end
 
   def insert_run!(%Capsule{} = capsule, %Genome{} = genome, attrs \\ %{}) do

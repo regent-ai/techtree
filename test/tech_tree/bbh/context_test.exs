@@ -6,7 +6,7 @@ defmodule TechTree.BBH.ContextTest do
   alias TechTree.BBH
   alias TechTree.BBHFixtures
   alias TechTree.Repo
-  alias TechTree.BBH.{Assignment, Capsule, ReviewRequest}
+  alias TechTree.BBH.{Assignment, Capsule, ReviewRequest, Validation}
 
   test "promote_challenge_capsule publishes a reviewed draft capsule into the challenge lane" do
     %{capsule: capsule, publication_artifact_id: artifact_id, publication_review_id: review_id} =
@@ -96,6 +96,60 @@ defmodule TechTree.BBH.ContextTest do
              :count,
              :assignment_ref
            ) == 2
+  end
+
+  test "sync_status uses the latest validation for each run across multiple runs" do
+    %{run: first_run} = BBHFixtures.insert_validated_benchmark_bundle!()
+    %{run: second_run} = BBHFixtures.insert_validated_benchmark_bundle!()
+
+    BBHFixtures.insert_validation!(first_run, %{
+      result: "rejected",
+      summary: "A later replay rejected the run."
+    })
+
+    assert %{runs: runs} = BBH.sync_status([second_run.run_id, first_run.run_id])
+
+    statuses_by_run_id = Map.new(runs, &{&1.run_id, &1})
+
+    assert %{status: "validated", validation_status: "rejected"} =
+             Map.fetch!(statuses_by_run_id, first_run.run_id)
+
+    assert %{status: "validated", validation_status: "confirmed"} =
+             Map.fetch!(statuses_by_run_id, second_run.run_id)
+  end
+
+  test "sync_status prefers database-managed timestamps when validations share the same insert time" do
+    %{run: run, validation: first_validation} =
+      BBHFixtures.insert_validated_benchmark_bundle!(%{validation_id: "zzz_validation"})
+
+    second_validation =
+      BBHFixtures.insert_validation!(run, %{
+        validation_id: "aaa_validation",
+        result: "rejected",
+        summary: "Later review overturned the earlier result."
+      })
+
+    inserted_at = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+    updated_at = DateTime.add(inserted_at, 1, :second)
+
+    Repo.update_all(
+      from(validation in Validation,
+        where: validation.validation_id == ^first_validation.validation_id
+      ),
+      set: [inserted_at: inserted_at, updated_at: inserted_at]
+    )
+
+    Repo.update_all(
+      from(validation in Validation,
+        where: validation.validation_id == ^second_validation.validation_id
+      ),
+      set: [inserted_at: inserted_at, updated_at: updated_at]
+    )
+
+    assert %{runs: [%{run_id: run_id, validation_status: "rejected"}]} =
+             BBH.sync_status([run.run_id])
+
+    assert run_id == run.run_id
   end
 
   test "ready_draft creates an open review request and review submit activates certificate state" do

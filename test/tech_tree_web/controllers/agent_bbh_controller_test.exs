@@ -197,4 +197,30 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     assert run_id == run.run_id
     assert validation.result == "confirmed"
   end
+
+  test "POST /v1/agent/bbh/sync returns the latest validation for multiple runs", %{conn: conn} do
+    %{run: first_run} = BBHFixtures.insert_validated_benchmark_bundle!()
+    %{run: second_run} = BBHFixtures.insert_validated_benchmark_bundle!()
+
+    BBHFixtures.insert_validation!(first_run, %{
+      result: "rejected",
+      summary: "A later replay rejected the run."
+    })
+
+    response =
+      conn
+      |> with_siwa_headers([])
+      |> post("/v1/agent/bbh/sync", %{"run_ids" => [first_run.run_id, second_run.run_id]})
+      |> json_response(200)
+
+    runs_by_id =
+      response["data"]["runs"]
+      |> Map.new(fn run -> {run["run_id"], run} end)
+
+    assert %{"status" => "validated", "validation_status" => "rejected"} =
+             Map.fetch!(runs_by_id, first_run.run_id)
+
+    assert %{"status" => "validated", "validation_status" => "confirmed"} =
+             Map.fetch!(runs_by_id, second_run.run_id)
+  end
 end

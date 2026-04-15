@@ -7,7 +7,7 @@ defmodule TechTree.Agents do
   @spec upsert_verified_agent!(map()) :: AgentIdentity.t()
   def upsert_verified_agent!(attrs) do
     chain_id = normalize_integer(attrs, "chain_id")
-    registry_address = normalize_string(attrs, "registry_address")
+    registry_address = normalize_address(attrs, "registry_address")
     token_id = normalize_decimal(attrs, "token_id")
 
     existing =
@@ -24,7 +24,7 @@ defmodule TechTree.Agents do
       chain_id: chain_id,
       registry_address: registry_address,
       token_id: token_id,
-      wallet_address: normalize_string(attrs, "wallet_address"),
+      wallet_address: normalize_address(attrs, "wallet_address"),
       label: Map.get(attrs, "label") || Map.get(attrs, :label),
       status: status,
       last_verified_at: DateTime.utc_now()
@@ -66,6 +66,13 @@ defmodule TechTree.Agents do
       value when is_binary(value) and value != "" -> value
       _ -> raise ArgumentError, "missing #{key}"
     end
+  end
+
+  @spec normalize_address(map(), String.t()) :: String.t()
+  defp normalize_address(attrs, key) do
+    attrs
+    |> normalize_string(key)
+    |> String.downcase()
   end
 
   @spec fetch_value(map(), String.t()) :: term()

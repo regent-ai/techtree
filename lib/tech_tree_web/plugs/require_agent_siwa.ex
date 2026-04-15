@@ -8,8 +8,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   alias TechTree.Repo
   alias TechTreeWeb.ApiError
 
-  @http_verify_path "/v1/http-verify"
-  @default_sidecar_hmac_key_id "sidecar-internal-v1"
+  @http_verify_path "/v1/agent/siwa/http-verify"
   @default_sidecar_connect_timeout_ms 2_000
   @default_sidecar_receive_timeout_ms 5_000
   @deny_telemetry_event [:tech_tree, :agent, :siwa, :deny]
@@ -60,17 +59,15 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     with {:ok,
           %{
             internal_url: internal_url,
-            hmac_secret: hmac_secret,
             connect_timeout_ms: connect_timeout_ms,
             receive_timeout_ms: receive_timeout_ms
           }} <- fetch_siwa_http_config(),
          payload <- build_http_verify_payload(conn, normalized_headers),
-         {:ok, payload_json} <- Jason.encode(payload),
-         signed_headers <- sidecar_hmac_headers(hmac_secret, payload_json) do
+         {:ok, payload_json} <- Jason.encode(payload) do
       case Req.post(
              url: "#{internal_url}#{@http_verify_path}",
              body: payload_json,
-             headers: [{"content-type", "application/json"} | signed_headers],
+             headers: [{"content-type", "application/json"}],
              connect_options: [timeout: connect_timeout_ms],
              receive_timeout: receive_timeout_ms
            ) do
@@ -91,9 +88,6 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     else
       {:error, :missing_siwa_internal_url} ->
         {:error, %{reason: :missing_siwa_internal_url, source: :siwa_config}}
-
-      {:error, :missing_siwa_hmac_secret} ->
-        {:error, %{reason: :missing_siwa_hmac_secret, source: :siwa_config}}
 
       _ ->
         {:error, %{reason: :siwa_invalid_response, source: :sidecar_http}}
@@ -134,15 +128,13 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
           {:ok,
            %{
              internal_url: String.t(),
-             hmac_secret: String.t(),
              connect_timeout_ms: pos_integer(),
              receive_timeout_ms: pos_integer()
            }}
-          | {:error, :missing_siwa_internal_url | :missing_siwa_hmac_secret}
+          | {:error, :missing_siwa_internal_url}
   defp fetch_siwa_http_config do
     siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
     internal_url = Keyword.get(siwa_cfg, :internal_url)
-    configured_secret = Keyword.get(siwa_cfg, :shared_secret, "")
 
     connect_timeout_ms =
       normalize_positive_timeout_ms(
@@ -156,32 +148,15 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
         @default_sidecar_receive_timeout_ms
       )
 
-    env_secret = System.get_env("SIWA_HMAC_SECRET", "")
-
-    secret =
-      case configured_secret do
-        value when is_binary(value) and value != "" -> value
-        _ -> env_secret
-      end
-
-    valid_internal_url? = is_binary(internal_url) and internal_url != ""
-    valid_secret? = is_binary(secret) and secret != ""
-
-    case {valid_internal_url?, valid_secret?} do
-      {true, true} ->
-        {:ok,
-         %{
-           internal_url: internal_url,
-           hmac_secret: secret,
-           connect_timeout_ms: connect_timeout_ms,
-           receive_timeout_ms: receive_timeout_ms
-         }}
-
-      {false, _} ->
-        {:error, :missing_siwa_internal_url}
-
-      {true, false} ->
-        {:error, :missing_siwa_hmac_secret}
+    if is_binary(internal_url) and internal_url != "" do
+      {:ok,
+       %{
+         internal_url: internal_url,
+         connect_timeout_ms: connect_timeout_ms,
+         receive_timeout_ms: receive_timeout_ms
+       }}
+    else
+      {:error, :missing_siwa_internal_url}
     end
   end
 
@@ -208,34 +183,9 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     }
 
     case Map.get(normalized_headers, "content-digest") do
-      value when is_binary(value) and value != "" -> Map.put(base_payload, "bodyDigest", value)
+      value when is_binary(value) and value != "" -> Map.put(base_payload, "body_digest", value)
       _ -> base_payload
     end
-  end
-
-  @spec sidecar_hmac_headers(String.t(), String.t()) :: [{String.t(), String.t()}]
-  defp sidecar_hmac_headers(hmac_secret, payload_json) do
-    timestamp = Integer.to_string(System.os_time(:second))
-    signature = sidecar_hmac_signature(hmac_secret, timestamp, payload_json)
-
-    [
-      {"x-sidecar-key-id", sidecar_hmac_key_id()},
-      {"x-sidecar-timestamp", timestamp},
-      {"x-sidecar-signature", "sha256=#{signature}"}
-    ]
-  end
-
-  @spec sidecar_hmac_signature(String.t(), String.t(), String.t()) :: String.t()
-  defp sidecar_hmac_signature(secret, timestamp, payload_json) do
-    canonical_payload = "POST\n#{@http_verify_path}\n#{timestamp}\n#{payload_json}"
-
-    :crypto.mac(:hmac, :sha256, secret, canonical_payload)
-    |> Base.encode16(case: :lower)
-  end
-
-  @spec sidecar_hmac_key_id() :: String.t()
-  defp sidecar_hmac_key_id do
-    System.get_env("SIWA_HMAC_KEY_ID", @default_sidecar_hmac_key_id)
   end
 
   @spec extract_agent_claims(map()) :: {:ok, map()} | {:error, map()}
@@ -307,7 +257,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   @spec validate_hex_address(String.t(), String.t()) :: {:ok, String.t()} | {:error, map()}
   defp validate_hex_address(value, header) do
     if value =~ @hex_address_regex do
-      {:ok, value}
+      {:ok, String.downcase(value)}
     else
       {:error, %{reason: :invalid_agent_header, source: :request_headers, invalid_header: header}}
     end

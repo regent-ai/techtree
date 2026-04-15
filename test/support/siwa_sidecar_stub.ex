@@ -9,7 +9,7 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
   @spec call(Plug.Conn.t(), keyword()) :: Plug.Conn.t()
   def call(conn, _opts) do
     case {conn.method, conn.request_path} do
-      {"POST", "/v1/http-verify"} ->
+      {"POST", "/v1/agent/siwa/http-verify"} ->
         {:ok, raw_body, conn} = read_body(conn)
 
         parsed_body =

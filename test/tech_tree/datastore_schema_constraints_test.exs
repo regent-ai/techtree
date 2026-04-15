@@ -308,6 +308,63 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
       assert second.status == "banned"
       assert second.wallet_address == "0xwallet#{unique}b"
     end
+
+    test "upsert_verified_agent! reuses the same identity when registry casing changes" do
+      unique = System.unique_integer([:positive])
+      tuple = unique_agent_tuple(unique)
+
+      first =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => String.upcase(tuple.registry_address),
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => String.upcase("0xwallet#{unique}a"),
+          "label" => "agent-#{unique}-a"
+        })
+
+      second =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => tuple.registry_address,
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => "0xwallet#{unique}b",
+          "label" => "agent-#{unique}-b"
+        })
+
+      assert first.id == second.id
+      assert second.registry_address == tuple.registry_address
+      assert second.wallet_address == "0xwallet#{unique}b"
+    end
+
+    test "upsert_verified_agent! preserves banned status when registry casing changes" do
+      unique = System.unique_integer([:positive])
+      tuple = unique_agent_tuple(unique)
+
+      first =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => tuple.registry_address,
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => "0xwallet#{unique}a",
+          "label" => "agent-#{unique}-a",
+          "status" => "banned"
+        })
+
+      second =
+        Agents.upsert_verified_agent!(%{
+          "chain_id" => Integer.to_string(tuple.chain_id),
+          "registry_address" => String.upcase(tuple.registry_address),
+          "token_id" => Integer.to_string(unique),
+          "wallet_address" => String.upcase("0xwallet#{unique}b"),
+          "label" => "agent-#{unique}-b",
+          "status" => "active"
+        })
+
+      assert first.id == second.id
+      assert second.status == "banned"
+      assert second.registry_address == tuple.registry_address
+      assert second.wallet_address == String.downcase("0xwallet#{unique}b")
+    end
   end
 
   describe "Accounts.upsert_human_by_privy_id/2" do

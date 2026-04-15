@@ -55,7 +55,7 @@ defmodule TechTree.Agents.AgentIdentity do
     |> validate_required([:chain_id, :registry_address, :token_id, :wallet_address])
     |> validate_number(:chain_id, greater_than: 0)
     |> unique_constraint([:chain_id, :registry_address, :token_id],
-      name: :agent_identities_chain_registry_token_uidx
+      name: :agent_identities_chain_registry_token_uidx_ci
     )
   end
 end

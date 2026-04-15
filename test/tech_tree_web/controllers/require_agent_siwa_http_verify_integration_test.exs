@@ -29,7 +29,6 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     Application.put_env(:tech_tree, :siwa,
       internal_url: "http://127.0.0.1:#{sidecar_port}",
-      shared_secret: "integration-secret",
       skip_http_verify: false
     )
 
@@ -75,7 +74,6 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
            )
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/v1/tree/nodes"
@@ -169,7 +167,6 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     Application.put_env(:tech_tree, :siwa,
       internal_url: "http://127.0.0.1:1",
-      shared_secret: "integration-secret",
       skip_http_verify: false
     )
 
@@ -240,5 +237,51 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
                registry_address: registry,
                token_id: Decimal.new(token_id)
              )
+  end
+
+  test "denies banned agent when the request registry header only differs by case", %{conn: conn} do
+    SiwaSupport.put_sidecar_status(200)
+
+    wallet = SiwaSupport.random_eth_address()
+    registry = SiwaSupport.random_eth_address()
+    mixed_case_wallet = "0x" <> String.upcase(String.trim_leading(wallet, "0x"))
+    mixed_case_registry = "0x" <> String.upcase(String.trim_leading(registry, "0x"))
+    token_id = "909"
+
+    Agents.upsert_verified_agent!(%{
+      "chain_id" => "11155111",
+      "registry_address" => mixed_case_registry,
+      "token_id" => token_id,
+      "wallet_address" => mixed_case_wallet
+    })
+
+    {banned_count, _} =
+      Repo.update_all(
+        from(a in AgentIdentity,
+          where:
+            a.wallet_address == ^wallet and a.chain_id == 11_155_111 and
+              a.registry_address == ^registry
+        ),
+        set: [status: "banned"]
+      )
+
+    assert banned_count == 1
+
+    conn =
+      conn
+      |> SiwaSupport.with_siwa_headers(
+        wallet: mixed_case_wallet,
+        registry_address: mixed_case_registry,
+        token_id: token_id
+      )
+      |> post("/v1/tree/nodes", %{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "SIWA banned mixed case",
+        "parent_id" => 999_999,
+        "notebook_source" => "print('ok')"
+      })
+
+    assert %{"error" => %{"code" => "agent_banned"}} = json_response(conn, 403)
   end
 end

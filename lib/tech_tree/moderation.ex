@@ -15,6 +15,22 @@ defmodule TechTree.Moderation do
   alias TechTree.Chatbox.Message
 
   @default_dashboard_limit 60
+  @default_history_limit 12
+  @default_actions_limit 16
+
+  @type dashboard_state :: %{
+          messages: [Message.t()],
+          selected_message_id: integer() | nil,
+          selected_message: Message.t() | nil,
+          actor_history: [Message.t()],
+          recent_actions: [ModerationAction.t()]
+        }
+
+  @type safe_action_result ::
+          :ok
+          | {:error, :message_not_found}
+          | {:error, :agent_not_found}
+          | {:error, :human_not_found}
 
   @spec hide_node(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
   def hide_node(id, admin, reason) do
@@ -91,6 +107,73 @@ defmodule TechTree.Moderation do
     :ok
   end
 
+  @spec hide_chatbox_message_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          safe_action_result()
+  def hide_chatbox_message_if_present(id, admin, reason) do
+    with {:ok, message} <- Chatbox.hide_message_if_present(id) do
+      log!(:chatbox_message, message.id, "hide", admin, reason)
+      :ok
+    end
+  end
+
+  @spec unhide_chatbox_message_if_present(
+          integer() | String.t(),
+          HumanUser.t(),
+          String.t() | nil
+        ) :: safe_action_result()
+  def unhide_chatbox_message_if_present(id, admin, reason) do
+    with {:ok, message} <- Chatbox.unhide_message_if_present(id) do
+      log!(:chatbox_message, message.id, "unhide", admin, reason)
+      :ok
+    end
+  end
+
+  @spec ban_agent_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          safe_action_result()
+  def ban_agent_if_present(id, admin, reason) do
+    with {:ok, agent} <- fetch_entity(AgentIdentity, id, :agent_not_found) do
+      agent |> Ecto.Changeset.change(status: "banned") |> Repo.update!()
+      :ok = reconcile_agent_metrics!(agent.id)
+
+      log!(:agent, agent.id, "ban", admin, reason)
+      :ok
+    end
+  end
+
+  @spec unban_agent_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          safe_action_result()
+  def unban_agent_if_present(id, admin, reason) do
+    with {:ok, agent} <- fetch_entity(AgentIdentity, id, :agent_not_found) do
+      agent |> Ecto.Changeset.change(status: "active") |> Repo.update!()
+      :ok = reconcile_agent_metrics!(agent.id)
+
+      log!(:agent, agent.id, "unban", admin, reason)
+      :ok
+    end
+  end
+
+  @spec ban_human_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          safe_action_result()
+  def ban_human_if_present(id, admin, reason) do
+    with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
+      human |> Ecto.Changeset.change(role: "banned") |> Repo.update!()
+
+      log!(:human, human.id, "ban", admin, reason)
+      :ok
+    end
+  end
+
+  @spec unban_human_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          safe_action_result()
+  def unban_human_if_present(id, admin, reason) do
+    with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
+      human |> Ecto.Changeset.change(role: "user") |> Repo.update!()
+
+      log!(:human, human.id, "unban", admin, reason)
+      :ok
+    end
+  end
+
   @spec list_chatbox_dashboard_messages(map()) :: [Message.t()]
   def list_chatbox_dashboard_messages(filters \\ %{}) when is_map(filters) do
     limit =
@@ -132,6 +215,20 @@ defmodule TechTree.Moderation do
     |> limit(^limit)
     |> preload([_message, human, agent], author_human: human, author_agent: agent)
     |> Repo.all()
+  end
+
+  @spec chatbox_dashboard(map(), integer() | nil) :: dashboard_state()
+  def chatbox_dashboard(filters \\ %{}, selected_message_id \\ nil) when is_map(filters) do
+    messages = list_chatbox_dashboard_messages(filters)
+    selected_message = select_dashboard_message(messages, selected_message_id)
+
+    %{
+      messages: messages,
+      selected_message_id: selected_message && selected_message.id,
+      selected_message: selected_message,
+      actor_history: selected_author_history(selected_message),
+      recent_actions: list_recent_actions(limit: @default_actions_limit)
+    }
   end
 
   @spec log!(atom(), integer(), String.t(), HumanUser.t(), String.t() | nil) ::
@@ -231,5 +328,35 @@ defmodule TechTree.Moderation do
 
   defp where_author_ref(query, :agent, author_ref) do
     where(query, [message], message.author_agent_id == ^author_ref)
+  end
+
+  defp select_dashboard_message([], _selected_message_id), do: nil
+
+  defp select_dashboard_message(messages, selected_message_id) do
+    Enum.find(messages, &(&1.id == selected_message_id)) || List.first(messages)
+  end
+
+  defp selected_author_history(%Message{} = message) do
+    case author_ref(message) do
+      author_ref when is_integer(author_ref) and author_ref > 0 ->
+        list_chatbox_author_history(message.author_kind, author_ref,
+          limit: @default_history_limit
+        )
+
+      _ ->
+        []
+    end
+  end
+
+  defp selected_author_history(_message), do: []
+
+  defp author_ref(%Message{author_kind: :human, author_human_id: id}), do: id
+  defp author_ref(%Message{author_kind: :agent, author_agent_id: id}), do: id
+
+  defp fetch_entity(schema, id, not_found_reason) do
+    case Repo.get(schema, normalize_id(id)) do
+      nil -> {:error, not_found_reason}
+      record -> {:ok, record}
+    end
   end
 end

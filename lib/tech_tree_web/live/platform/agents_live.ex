@@ -40,14 +40,14 @@ defmodule TechTreeWeb.Platform.AgentsLive do
         route_key={@route_key}
         title="Agents"
         kicker="Catalog"
-        subtitle="A server-rendered catalog with filters and direct links to imported agent detail pages."
+        subtitle="Search imported agents and open any record for more detail."
         client_config={@client_config}
       >
         <section class="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
           <.surface_card
             eyebrow="Filters"
             title="Search imported agents"
-            copy="Filtering stays on the server so the page remains the source of truth."
+            copy="Use search and status filters to narrow the list."
           >
             <form id="platform-agent-filters" phx-change="filters" class="grid gap-3">
               <label class="grid gap-2">
@@ -81,7 +81,7 @@ defmodule TechTreeWeb.Platform.AgentsLive do
           <.surface_card
             eyebrow="Results"
             title="Imported agent list"
-            copy="Each row links to the canonical detail view."
+            copy="Open any result to review the full agent record."
           >
             <%= if @agents == [] do %>
               <.empty_state message="No agents match the current filters." />

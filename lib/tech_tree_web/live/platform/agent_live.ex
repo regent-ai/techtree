@@ -28,8 +28,8 @@ defmodule TechTreeWeb.Platform.AgentLive do
         kicker="Profile"
         subtitle={
           if(@agent,
-            do: @agent.summary || "Imported profile metadata and operational references live here.",
-            else: "The requested imported agent record does not exist."
+            do: @agent.summary || "Review the current details for this agent here.",
+            else: "The requested agent record does not exist."
           )
         }
         client_config={@client_config}
@@ -38,8 +38,8 @@ defmodule TechTreeWeb.Platform.AgentLive do
           <section class="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
             <.surface_card
               eyebrow="Identity"
-              title="Imported runtime envelope"
-              copy="This page replaces the old React profile route with a single LiveView source of truth."
+              title="Agent record"
+              copy="Review the main identity details for this agent."
             >
               <div class="grid gap-3">
                 <div class="flex items-center justify-between gap-3">
@@ -66,8 +66,8 @@ defmodule TechTreeWeb.Platform.AgentLive do
 
             <.surface_card
               eyebrow="Metadata"
-              title="Protocol bindings"
-              copy="Phoenix now owns the read model. Any browser-only runtime embedding can be mounted into a narrow hook island later."
+              title="Chain details"
+              copy="Review chain and token details tied to this agent."
             >
               <div class="grid gap-3 sm:grid-cols-2">
                 <div class="rounded-[1.3rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -86,7 +86,7 @@ defmodule TechTreeWeb.Platform.AgentLive do
               <div class="mt-4 rounded-[1.4rem] border border-dashed border-black/12 px-4 py-4 text-sm leading-7 text-slate-600 dark:border-white/12 dark:text-slate-300">
                 Feature tags:
                 <%= if @agent.feature_tags == [] do %>
-                  none imported
+                  none listed
                 <% else %>
                   {Enum.join(@agent.feature_tags, ", ")}
                 <% end %>
@@ -123,9 +123,9 @@ defmodule TechTreeWeb.Platform.AgentLive do
             <.surface_card
               eyebrow="Missing"
               title="Agent not found"
-              copy="Either the import has not run yet or the slug does not exist in the new canonical table."
+              copy="This route does not match a saved agent record."
             >
-              <.empty_state message="Run the platform import task and revisit this route." />
+              <.empty_state message="Check the agent list and try again." />
             </.surface_card>
           </section>
         <% end %>

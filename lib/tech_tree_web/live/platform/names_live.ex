@@ -24,14 +24,14 @@ defmodule TechTreeWeb.Platform.NamesLive do
         route_key={@route_key}
         title="Names"
         kicker="Basenames"
-        subtitle="Imported credits, allowances, and ENS claims are rendered directly from the server."
+        subtitle="Review names, credits, allowances, and recent ENS claims."
         client_config={@client_config}
       >
         <section id="platform-names-hook" class="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
           <.surface_card
             eyebrow="Overview"
             title="Credits, allowances, and ENS claims"
-            copy="The page bundles the full names snapshot into one read-only operator view."
+            copy="See the current names snapshot in one place."
           >
             <div class="grid gap-3">
               <div class="rounded-[1.4rem] border border-black/8 bg-black/5 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -75,7 +75,7 @@ defmodule TechTreeWeb.Platform.NamesLive do
           <.surface_card
             eyebrow="Claims"
             title="Credits and reservation data"
-            copy="Allowance, credit, and claim records are kept together for inspection."
+            copy="Review allowances, credits, and claim records together."
           >
             <div class="grid gap-3">
               <%= for credit <- @snapshot.credits do %>

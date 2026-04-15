@@ -30,14 +30,14 @@ defmodule TechTreeWeb.Platform.CreatorLive do
         route_key={@route_key}
         title="Creator"
         kicker="Launch Packets"
-        subtitle="Imported agent records can be inspected and selected without leaving the LiveView shell."
+        subtitle="Review launch candidates and inspect the details for one agent at a time."
         client_config={@client_config}
       >
         <section id="platform-creator-hook" class="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
           <.surface_card
             eyebrow="Agents"
             title="Choose a launch candidate"
-            copy="The page is intentionally simple: click an agent to load its imported metadata."
+            copy="Pick an agent from the list to load its details."
           >
             <div class="grid gap-3 sm:grid-cols-2">
               <%= for agent <- @agents do %>
@@ -59,7 +59,7 @@ defmodule TechTreeWeb.Platform.CreatorLive do
           <.surface_card
             eyebrow="Packet"
             title="Selected agent"
-            copy="The server keeps the selected record and renders the import details directly."
+            copy="Review the selected agent before you move on."
           >
             <%= if @selected_agent do %>
               <div class="grid gap-3">

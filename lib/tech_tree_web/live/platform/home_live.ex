@@ -25,8 +25,8 @@ defmodule TechTreeWeb.Platform.HomeLive do
       <.platform_shell
         route_key={@route_key}
         title="Regent Platform"
-        kicker="Phoenix Cutover"
-        subtitle="The old Vite/Nitro surface is now represented as a single Phoenix area under `/platform`, with LiveView owning route state and server rendering."
+        kicker="Platform"
+        subtitle="Start here to review imported records, open platform tools, and check service status."
         client_config={@client_config}
       >
         <section
@@ -45,20 +45,20 @@ defmodule TechTreeWeb.Platform.HomeLive do
             <.stat_card
               label="Tiles"
               value={Integer.to_string(@snapshot.counts.tiles)}
-              copy="Explorer coordinates available to LiveView."
+              copy="Frontier tiles ready to browse."
               tone="ocean"
             />
             <.stat_card
               label="Names"
               value={Integer.to_string(@snapshot.counts.names)}
-              copy="Basenames claims staged for the cutover."
+              copy="Name claims ready to review."
             />
           </div>
 
           <.surface_card
             eyebrow="Front door"
             title="One shell, many surfaces"
-            copy="The new shell groups the platform into bounded Phoenix routes while keeping the current Techtree root intact."
+            copy="Jump between platform areas from one clear starting point."
           >
             <div class="grid gap-3 sm:grid-cols-2">
               <%= for item <- nav_items() |> Enum.reject(&(&1.key == "home")) |> Enum.take(6) do %>
@@ -80,10 +80,10 @@ defmodule TechTreeWeb.Platform.HomeLive do
           <.surface_card
             eyebrow="Recent agents"
             title="Imported creation records"
-            copy="Creator and agents are now query-backed Phoenix pages instead of route-client islands."
+            copy="Review the latest imported agents and open any record for details."
           >
             <%= if @snapshot.recent_agents == [] do %>
-              <.empty_state message="No agents have been imported yet. Run `mix tech_tree.platform.import` with a source database URL to populate the new surface." />
+              <.empty_state message="No agents have been imported yet." />
             <% else %>
               <div class="grid gap-3">
                 <%= for agent <- @snapshot.recent_agents do %>
@@ -109,7 +109,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
           <.surface_card
             eyebrow="Ops"
             title="Facilitator and live infrastructure"
-            copy="The Facilitator page uses `Req` from Phoenix rather than a separate Nitro proxy layer."
+            copy="Check service status and the current public chat path from one place."
           >
             <div class="grid gap-3 sm:grid-cols-2">
               <div class="rounded-[1.4rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -121,7 +121,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
                 </div>
                 <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   {@snapshot.facilitator.base_url ||
-                    "Set FACILITATOR_API_BASE_URL to enable live health, supported, catalog, and upto checks."}
+                    "No Facilitator URL is configured for this environment."}
                 </p>
               </div>
               <div class="rounded-[1.4rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -130,7 +130,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
                 </p>
                 <p class="mt-3 text-2xl leading-none">public</p>
                 <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  Public chat now flows through the canonical chatbox datastore and relay-backed live transport.
+                  Public chat is available through the main room and relay path.
                 </p>
               </div>
             </div>

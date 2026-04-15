@@ -24,14 +24,14 @@ defmodule TechTreeWeb.Platform.FacilitatorLive do
         route_key={@route_key}
         title="Facilitator"
         kicker="Probe Shell"
-        subtitle="A small server-rendered health surface for the Facilitator API bridge."
+        subtitle="Check whether the Facilitator service is available in this environment."
         client_config={@client_config}
       >
         <section class="grid gap-4">
           <.surface_card
             eyebrow="Status"
-            title="Facilitator bridge"
-            copy="This panel reflects the current environment configuration."
+            title="Facilitator connection"
+            copy="Review the current service address for this environment."
           >
             <div class="rounded-[1.4rem] border border-black/8 bg-white/70 px-4 py-5 dark:border-white/10 dark:bg-white/5">
               <%= if @snapshot.base_url do %>

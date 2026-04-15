@@ -66,7 +66,7 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
         route_key={@route_key}
         title="Explorer"
         kicker="World Map"
-        subtitle="The Phoenix cutover keeps the explorer state server-owned while preserving the old drilldown flow."
+        subtitle="Browse frontier tiles, open details, and move deeper one layer at a time."
         client_config={@client_config}
       >
         <% visible_tiles = Platform.explorer_view_tiles(@snapshot, @path) %>
@@ -157,7 +157,7 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
             <.surface_card
               eyebrow="Path"
               title="Current drilldown"
-              copy="The route state stays on the server and the browser only sends tile events."
+              copy="Track where you are as you move deeper into the frontier."
             >
               <p class="text-sm leading-7 text-slate-600 dark:text-slate-300">
                 {if(@path == [], do: "Root tiles", else: Enum.join(@path, " → "))}

@@ -8,7 +8,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
   alias TechTree.Repo
   alias TechTree.Chatbox.Message
 
-  test "platform home renders the cutover shell", %{conn: conn} do
+  test "platform home renders the main platform shell", %{conn: conn} do
     agent_fixture(%{display_name: "Home Agent"})
     explorer_tile_fixture(%{coord_key: "0:0", x: 0, y: 0})
 
@@ -78,7 +78,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert has_element?(view, "#platform-tile-1-0")
   end
 
-  test "creator prepares a launch packet without leaving LiveView", %{conn: conn} do
+  test "creator prepares a launch packet", %{conn: conn} do
     agent = agent_fixture(%{display_name: "Creator Agent", slug: "creator-agent"})
 
     {:ok, view, _html} = live(conn, "/platform/creator")
@@ -92,7 +92,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert has_element?(view, "#platform-creator-hook")
   end
 
-  test "agents index filters results server-side", %{conn: conn} do
+  test "agents index filters results", %{conn: conn} do
     agent_fixture(%{display_name: "Visible Agent", status: "ready"})
     agent_fixture(%{display_name: "Hidden Agent", status: "failed"})
 
@@ -122,7 +122,7 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert render(view) =~ "creator, relay"
   end
 
-  test "facilitator route renders the Phoenix-native probe shell", %{conn: conn} do
+  test "facilitator route renders the facilitator status surface", %{conn: conn} do
     previous = System.get_env("FACILITATOR_API_BASE_URL")
 
     on_exit(fn ->
@@ -202,7 +202,81 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert render(view) =~ "unhide chatbox_message"
   end
 
-  test "platform cutover flow stays aligned across home, explorer, api, and detail routes", %{
+  test "admin moderation route can ban and restore a message author", %{conn: conn} do
+    admin = create_human!("platform-moderation-ban-admin", role: "admin")
+    author = create_human!("platform-moderation-ban-author", role: "user")
+    message = create_chatbox_message!(author, %{body: "platform moderation author flow"})
+
+    {:ok, view, _html} =
+      conn
+      |> init_test_session(%{privy_user_id: admin.privy_user_id})
+      |> live("/platform/moderation")
+
+    view
+    |> element("#moderation-ban-author-#{message.id}")
+    |> render_click()
+
+    assert Repo.get!(TechTree.Accounts.HumanUser, author.id).role == "banned"
+    assert has_element?(view, "#moderation-unban-author-#{message.id}")
+
+    view
+    |> element("#moderation-unban-author-#{message.id}")
+    |> render_click()
+
+    assert Repo.get!(TechTree.Accounts.HumanUser, author.id).role == "user"
+    assert render(view) =~ "ban human"
+    assert render(view) =~ "unban human"
+  end
+
+  test "admin moderation route stays live when a message disappears before a click", %{conn: conn} do
+    admin = create_human!("platform-moderation-stale-admin", role: "admin")
+    author = create_human!("platform-moderation-stale-author", role: "user")
+    message = create_chatbox_message!(author, %{body: "platform moderation stale message"})
+
+    {:ok, view, _html} =
+      conn
+      |> init_test_session(%{privy_user_id: admin.privy_user_id})
+      |> live("/platform/moderation")
+
+    Repo.delete!(message)
+
+    view
+    |> element("#moderation-hide-message-#{message.id}")
+    |> render_click()
+
+    assert render(view) =~ "That item is no longer available."
+    refute has_element?(view, "#moderation-hide-message-#{message.id}")
+  end
+
+  test "admin moderation route stays live when an author disappears before a click", %{conn: conn} do
+    admin = create_human!("platform-moderation-stale-author-admin", role: "admin")
+    author = create_human!("platform-moderation-stale-target-author", role: "user")
+    message = create_chatbox_message!(author, %{body: "platform moderation stale author"})
+
+    {:ok, view, _html} =
+      conn
+      |> init_test_session(%{privy_user_id: admin.privy_user_id})
+      |> live("/platform/moderation")
+
+    message
+    |> Ecto.Changeset.change(
+      author_human_id: nil,
+      author_display_name_snapshot: author.display_name,
+      author_wallet_address_snapshot: author.wallet_address
+    )
+    |> Repo.update!()
+
+    Repo.delete!(author)
+
+    view
+    |> element("#moderation-ban-author-#{message.id}")
+    |> render_click()
+
+    assert render(view) =~ "That item is no longer available."
+    assert render(view) =~ "platform moderation stale author"
+  end
+
+  test "platform flow stays aligned across home, explorer, api, and detail routes", %{
     conn: conn
   } do
     agent =

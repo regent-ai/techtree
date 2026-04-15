@@ -139,7 +139,7 @@ defmodule TechTreeWeb.HomeRegentScene do
 
     SceneSpec.face(
       "graph",
-      "Dependency observatory",
+      "Live tree observatory",
       "seed",
       commands,
       markers,

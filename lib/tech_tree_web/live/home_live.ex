@@ -12,15 +12,6 @@ defmodule TechTreeWeb.HomeLive do
   @default_install_agent "openclaw"
   @default_chat_tab "human"
 
-  @design %{
-    id: "cobalt-orchard",
-    label: "TechTree",
-    mood: "ink orchard",
-    summary:
-      "Warm parchment, cobalt fields, and the live public tree held behind a practical install surface.",
-    layout_mode: "atlas"
-  }
-
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -29,7 +20,6 @@ defmodule TechTreeWeb.HomeLive do
 
     {:ok,
      socket
-     |> assign(:design, @design)
      |> assign(:dev_dataset_toggle?, @dev_dataset_toggle?)
      |> assign(
        :privy_app_id,

@@ -7,6 +7,10 @@
     justify-content: flex-start;
   }
 
+  .fp-hero-shell {
+    grid-template-columns: 1fr;
+  }
+
   .fp-terrain-search {
     width: 100%;
   }
@@ -33,7 +37,9 @@
   .fp-command-card-head,
   .fp-command-card-actions,
   .fp-chat-pane-head,
-  .fp-chat-section-head {
+  .fp-chat-section-head,
+  .fp-story-card-head,
+  .fp-tree-peek {
     flex-direction: column;
   }
 
@@ -52,14 +58,24 @@
   .fp-chat-pane,
   .fp-install-panel,
   .fp-ledger-card,
-  .fp-ledger-briefing {
+  .fp-ledger-briefing,
+  .fp-hero-proof,
+  .fp-story-card,
+  .fp-tree-peek {
     border-radius: 1.15rem;
   }
 
   .fp-command-card,
   .fp-install-panel,
-  .fp-chat-pane {
+  .fp-chat-pane,
+  .fp-story-card,
+  .fp-hero-proof,
+  .fp-tree-peek {
     padding: 0.9rem;
+  }
+
+  .fp-chat-pane {
+    position: static;
   }
 }
 
@@ -74,7 +90,9 @@
   }
 
   .fp-ledger-actions,
-  .fp-install-chip-row {
+  .fp-install-chip-row,
+  .fp-story-chip-row,
+  .fp-story-inline-note {
     flex-direction: column;
     align-items: stretch;
   }

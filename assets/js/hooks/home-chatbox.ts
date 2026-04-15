@@ -1,9 +1,16 @@
 import type { Hook } from "phoenix_live_view"
 
 import { animate, stagger } from "../../vendor/anime.esm.js"
-import { Privy, LocalStorage } from "../../vendor/privy-core.esm.js"
+import { LocalStorage, Privy } from "../../vendor/privy-core.esm.js"
+import { clearPrivySession, syncPrivySessionAndXmtp } from "./privy-session"
+import {
+  labelForUser,
+  loginWithPrivyWallet,
+  type PrivyLike,
+  type PrivyUser,
+  requireEthereumProvider,
+} from "./privy-wallet"
 
-const PROVIDER_STORAGE_KEY = "techtree:privy:oauth-provider"
 const TRANSPORT_POLL_MS = 15_000
 
 type TransportMode = "libp2p" | "local_only" | "degraded"
@@ -16,29 +23,13 @@ type TransportStatusPayload = {
   }
 }
 
-type PrivyUser =
-  | {
-      id?: string
-      email?: { address?: string }
-      linked_accounts?: Array<{ type?: string; address?: string }>
-    }
-  | null
-
 interface HomeChatboxElement extends HTMLElement {
   _homeChatboxCleanup?: () => void
   _homeChatboxSeenKeys?: Set<string>
   _homeChatboxAbortControllers?: Set<AbortController>
   _homeChatboxMounted?: boolean
-}
-
-const labelForUser = (user: PrivyUser): string => {
-  if (!user) return "guest"
-  return user.email?.address || user.id || "connected"
-}
-
-const walletForUser = (user: PrivyUser): string | null => {
-  const wallet = user?.linked_accounts?.find((account) => account?.address)
-  return wallet?.address || null
+  _homeChatboxReduceMotion?: boolean
+  _homeChatboxCurrentTab?: string
 }
 
 const buildTransportLabel = (payload: NonNullable<TransportStatusPayload["data"]>): string => {
@@ -58,7 +49,36 @@ const transportToneClasses: Record<TransportMode | "ready", string[]> = {
   ready: ["border-[var(--fp-accent)]", "bg-[var(--fp-accent)]", "text-black"],
   libp2p: ["border-[var(--fp-accent)]", "bg-[var(--fp-accent)]", "text-black"],
   local_only: ["border-[var(--fp-panel-border)]", "bg-[var(--fp-panel)]", "text-[var(--fp-text)]"],
-  degraded: ["border-[var(--color-warning)]", "bg-[var(--fp-chat-human-accent-bg)]", "text-[var(--fp-text)]"],
+  degraded: [
+    "border-[var(--color-warning)]",
+    "bg-[var(--fp-chat-human-accent-bg)]",
+    "text-[var(--fp-text)]",
+  ],
+}
+
+const transportErrorClasses = [
+  "border-[var(--color-error)]",
+  "bg-[var(--color-error)]",
+  "text-[var(--color-error-content)]",
+]
+
+const chatPane = (root: HTMLElement) => root.closest<HTMLElement>("#frontpage-chat-pane")
+
+const activeChatSection = (root: HTMLElement) =>
+  chatPane(root)?.querySelector<HTMLElement>(".fp-chat-section[aria-hidden='false']")
+
+const animateActiveChatSection = (root: HomeChatboxElement) => {
+  if (root._homeChatboxReduceMotion) return
+
+  const section = activeChatSection(root)
+  if (!section) return
+
+  animate(section, {
+    opacity: [0.84, 1],
+    translateY: [10, 0],
+    duration: 260,
+    ease: "outExpo",
+  })
 }
 
 function registerAbortController(root: HomeChatboxElement): AbortController {
@@ -119,6 +139,13 @@ export const HomeChatbox: Hook = {
     const root = this.el as HomeChatboxElement
     root._homeChatboxMounted = true
     root._homeChatboxAbortControllers = new Set<AbortController>()
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const syncMotionPreference = () => {
+      root._homeChatboxReduceMotion = motionQuery.matches
+    }
+
+    syncMotionPreference()
+    root._homeChatboxCurrentTab = chatPane(root)?.dataset.chatTab || "human"
     const authButton = root.querySelector<HTMLButtonElement>("[data-chatbox-auth]")
     const sendButton = root.querySelector<HTMLButtonElement>("[data-chatbox-send]")
     const input = root.querySelector<HTMLInputElement>("[data-chatbox-input]")
@@ -126,7 +153,9 @@ export const HomeChatbox: Hook = {
     const transportBadge = root.querySelector<HTMLElement>("[data-chatbox-transport]")
     const transportStatusUrl = root.dataset.transportStatusUrl?.trim() || "/v1/runtime/transport"
     const postUrl = root.dataset.postUrl?.trim() || "/v1/chatbox/messages"
-    const sessionUrl = root.dataset.sessionUrl?.trim() || "/api/platform/auth/privy/session"
+    const sessionUrl = root.dataset.sessionUrl?.trim() || "/api/auth/privy/session"
+    const sessionCompleteUrl =
+      root.dataset.sessionCompleteUrl?.trim() || "/api/auth/privy/xmtp/complete"
     const privyAppId = root.dataset.privyAppId?.trim() || ""
     const csrfToken =
       document.querySelector<HTMLMetaElement>("meta[name='csrf-token']")?.content?.trim() || ""
@@ -139,19 +168,25 @@ export const HomeChatbox: Hook = {
     let sending = false
     const privy =
       privyAppId.length > 0
-        ? new Privy({ appId: privyAppId, clientId: privyAppId, storage: new LocalStorage() })
+        ? (new Privy({
+            appId: privyAppId,
+            clientId: privyAppId,
+            storage: new LocalStorage(),
+          }) as unknown as PrivyLike)
         : null
 
     const setState = (message: string) => {
       if (!root._homeChatboxMounted) return
       if (state.textContent === message) return
       state.textContent = message
-      animate(state, {
-        opacity: [0.55, 1],
-        translateY: [-3, 0],
-        duration: 280,
-        ease: "outQuad",
-      })
+      if (!root._homeChatboxReduceMotion) {
+        animate(state, {
+          opacity: [0.55, 1],
+          translateY: [-3, 0],
+          duration: 280,
+          ease: "outQuad",
+        })
+      }
     }
 
     const paintTransport = (payload: NonNullable<TransportStatusPayload["data"]>) => {
@@ -159,7 +194,10 @@ export const HomeChatbox: Hook = {
       const nextLabel = buildTransportLabel(payload)
       const tone = payload.ready ? "ready" : (payload.mode ?? "local_only")
       const nextClasses = transportToneClasses[tone]
-      const allClasses = new Set(Object.values(transportToneClasses).flat())
+      const allClasses = new Set([
+        ...Object.values(transportToneClasses).flat(),
+        ...transportErrorClasses,
+      ])
 
       for (const className of allClasses) {
         transportBadge.classList.remove(className)
@@ -169,12 +207,14 @@ export const HomeChatbox: Hook = {
 
       if (transportBadge.textContent !== nextLabel) {
         transportBadge.textContent = nextLabel
-        animate(transportBadge, {
-          scale: [0.9, 1],
-          opacity: [0.4, 1],
-          duration: 420,
-          ease: "outExpo",
-        })
+        if (!root._homeChatboxReduceMotion) {
+          animate(transportBadge, {
+            scale: [0.9, 1],
+            opacity: [0.4, 1],
+            duration: 420,
+            ease: "outExpo",
+          })
+        }
       }
     }
 
@@ -184,50 +224,31 @@ export const HomeChatbox: Hook = {
       const draft = input.value.trim()
 
       authButton.disabled = privy == null
-      authButton.textContent = connected ? `Disconnect ${labelForUser(currentUser)}` : "Connect Privy"
+      authButton.textContent = connected ? `Disconnect ${labelForUser(currentUser)}` : "Connect wallet"
 
       input.disabled = privy == null || !connected || sending
       sendButton.disabled = privy == null || !connected || sending || draft.length === 0
-      sendButton.textContent = sending ? "Writing to webapp chatbox..." : "Send to webapp chatbox"
+      sendButton.textContent = sending ? "Sending to public room..." : "Send to public room"
     }
 
-    const syncSession = async (user: PrivyUser) => {
+    const ensureSessionReady = async (user: PrivyUser) => {
       if (!privy || !user?.id) return
 
-      const token = await privy.getAccessToken()
-      if (!token) return
-
-      await fetchJson<Record<string, never>>(root, sessionUrl, {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          authorization: `Bearer ${token}`,
-          ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-        },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          display_name: labelForUser(user),
-          wallet_address: walletForUser(user),
-        }),
+      const session = await syncPrivySessionAndXmtp(privy, user, {
+        csrfToken,
+        sessionUrl,
+        completeUrl: sessionCompleteUrl,
       })
-    }
 
-    const clearSession = async () => {
-      await fetchJson<Record<string, never>>(root, sessionUrl, {
-        method: "DELETE",
-        headers: {
-          accept: "application/json",
-          ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-        },
-        credentials: "same-origin",
-      })
+      if (session.xmtp.status === "ready") {
+        setState("Connected. You can post in the public room.")
+      }
     }
 
     const refreshUser = async () => {
       if (!privy) {
         currentUser = null
-        setState("Privy is not configured for this environment.")
+        setState("Wallet sign-in is not available right now.")
         syncComposerState()
         return
       }
@@ -238,47 +259,22 @@ export const HomeChatbox: Hook = {
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
-          await syncSession(currentUser)
-          setState("Authenticated. Posts write to the public webapp chatbox.")
+          await ensureSessionReady(currentUser)
         } else {
-          setState("Connect Privy to post into the public webapp chatbox.")
+          setState("Connect your wallet to post in the public room.")
         }
       } catch (error) {
         currentUser = null
-        console.error("Home chatbox Privy refresh failed", error)
-        setState("Privy session lookup failed.")
+        console.error("Home chatbox wallet refresh failed", error)
+        setState(error instanceof Error ? error.message : "Wallet sign-in could not be checked.")
       } finally {
         syncComposerState()
       }
     }
 
-    const completeOAuthFlow = async () => {
-      if (!privy) return
-
-      const provider = window.localStorage.getItem(PROVIDER_STORAGE_KEY)
-      const url = new URL(window.location.href)
-      const code = url.searchParams.get("code")
-      const oauthState = url.searchParams.get("state")
-
-      if (!provider || !code || !oauthState) return
-
-      try {
-        await privy.auth.oauth.loginWithCode(code, oauthState, provider)
-      } catch (error) {
-        if (!root._homeChatboxMounted) return
-        console.error("Home chatbox Privy OAuth failed", error)
-        setState("Privy OAuth handoff failed.")
-      } finally {
-        window.localStorage.removeItem(PROVIDER_STORAGE_KEY)
-        url.searchParams.delete("code")
-        url.searchParams.delete("state")
-        window.history.replaceState({}, "", url.toString())
-      }
-    }
-
     const toggleAuth = async () => {
       if (!privy) {
-        setState("Privy is not configured for this environment.")
+        setState("Wallet sign-in is not available right now.")
         return
       }
 
@@ -288,10 +284,10 @@ export const HomeChatbox: Hook = {
 
         if (user?.id) {
           await privy.auth.logout({ userId: user.id })
-          await clearSession()
+          await clearPrivySession(sessionUrl, csrfToken)
           currentUser = null
           input.value = ""
-          setState("Disconnected. Connect Privy to post.")
+          setState("Disconnected. Connect your wallet to post in the public room.")
           syncComposerState()
           return
         }
@@ -299,11 +295,16 @@ export const HomeChatbox: Hook = {
         currentUser = null
       }
 
-      const redirectUri = window.location.href
-      const result = await privy.auth.oauth.generateURL("google", redirectUri)
-      window.localStorage.setItem(PROVIDER_STORAGE_KEY, "google")
-      setState("Redirecting to Privy...")
-      window.location.assign(result.url)
+      try {
+        const provider = await requireEthereumProvider()
+        setState("Check your wallet to continue.")
+        await loginWithPrivyWallet(privy, provider)
+        await refreshUser()
+      } catch (error) {
+        console.error("Home chatbox wallet sign-in failed", error)
+        setState(error instanceof Error ? error.message : "Wallet sign-in failed.")
+        syncComposerState()
+      }
     }
 
     const sendMessage = async () => {
@@ -316,13 +317,13 @@ export const HomeChatbox: Hook = {
       }
 
       sending = true
-      setState("Writing canonical row...")
+      setState("Sending your update...")
       syncComposerState()
 
       try {
         const token = await privy.getAccessToken()
         if (!token) {
-          throw new Error("Privy access token missing")
+          throw new Error("Your sign-in token is missing. Reconnect your wallet and try again.")
         }
 
         const payload = await fetchJson<{ ok?: boolean }>(root, postUrl, {
@@ -342,14 +343,16 @@ export const HomeChatbox: Hook = {
         if (!root._homeChatboxMounted || payload.ok === false) return
 
         input.value = ""
-        setState("Canonical row accepted. Mesh fanout will follow.")
-        animate(sendButton, {
-          scale: [1, 0.96, 1],
-          duration: 380,
-          ease: "outExpo",
-        })
+        setState("Posted to the public room.")
+        if (!root._homeChatboxReduceMotion) {
+          animate(sendButton, {
+            scale: [1, 0.96, 1],
+            duration: 380,
+            ease: "outExpo",
+          })
+        }
       } catch (error) {
-        setState(error instanceof Error ? error.message : "Unable to post chatbox message.")
+        setState(error instanceof Error ? error.message : "Unable to send your message.")
       } finally {
         sending = false
         syncComposerState()
@@ -368,8 +371,11 @@ export const HomeChatbox: Hook = {
         }
       } catch (error) {
         if (!root._homeChatboxMounted) return
-        transportBadge.textContent = "transport error"
-        transportBadge.classList.add("border-[var(--color-error)]", "bg-[var(--color-error)]", "text-[var(--color-error-content)]")
+        transportBadge.textContent = "status unavailable"
+        for (const className of Object.values(transportToneClasses).flat()) {
+          transportBadge.classList.remove(className)
+        }
+        transportBadge.classList.add(...transportErrorClasses)
         setState(error instanceof Error ? error.message : "Unable to load transport status.")
       }
     }
@@ -389,7 +395,7 @@ export const HomeChatbox: Hook = {
 
       root._homeChatboxSeenKeys = seenKeys
 
-      if (!initial && newEntries.length > 0) {
+      if (!initial && newEntries.length > 0 && !root._homeChatboxReduceMotion) {
         animate(newEntries, {
           opacity: [0, 1],
           translateY: [16, 0],
@@ -415,6 +421,17 @@ export const HomeChatbox: Hook = {
     authButton.addEventListener("click", handleAuthClick)
     sendButton.addEventListener("click", handleSendClick)
 
+    if ("addEventListener" in motionQuery) {
+      motionQuery.addEventListener("change", syncMotionPreference)
+    } else {
+      const legacyMotionQuery = motionQuery as MediaQueryList & {
+        addListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+        removeListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+      }
+
+      legacyMotionQuery.addListener(syncMotionPreference)
+    }
+
     syncComposerState()
     observeFeed(true)
 
@@ -425,11 +442,10 @@ export const HomeChatbox: Hook = {
     void (async () => {
       if (privy) {
         await privy.initialize()
-        await completeOAuthFlow()
         await refreshUser()
       } else {
         syncComposerState()
-        setState("Privy is not configured for this environment.")
+        setState("Wallet sign-in is not available right now.")
       }
 
       await refreshTransport()
@@ -444,6 +460,16 @@ export const HomeChatbox: Hook = {
       input.removeEventListener("keydown", handleInputKeydown)
       authButton.removeEventListener("click", handleAuthClick)
       sendButton.removeEventListener("click", handleSendClick)
+      if ("removeEventListener" in motionQuery) {
+        motionQuery.removeEventListener("change", syncMotionPreference)
+      } else {
+        const legacyMotionQuery = motionQuery as MediaQueryList & {
+          addListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+          removeListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+        }
+
+        legacyMotionQuery.removeListener(syncMotionPreference)
+      }
     }
   },
 
@@ -452,18 +478,20 @@ export const HomeChatbox: Hook = {
     const seenKeys = root._homeChatboxSeenKeys ?? new Set<string>()
     root._homeChatboxSeenKeys = seenKeys
 
+    if (root._homeChatboxCurrentTab !== chatPane(root)?.dataset.chatTab) {
+      root._homeChatboxCurrentTab = chatPane(root)?.dataset.chatTab || "human"
+      animateActiveChatSection(root)
+    }
+
     const entries = Array.from(root.querySelectorAll<HTMLElement>("[data-chatbox-entry]"))
     const newEntries = entries.filter((entry) => {
       const key = entry.dataset.messageKey || entry.id
-      if (seenKeys.has(key)) {
-        return false
-      }
-
+      if (seenKeys.has(key)) return false
       seenKeys.add(key)
       return true
     })
 
-    if (newEntries.length > 0) {
+    if (newEntries.length > 0 && !root._homeChatboxReduceMotion) {
       animate(newEntries, {
         opacity: [0, 1],
         translateY: [16, 0],

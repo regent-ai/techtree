@@ -50,13 +50,13 @@ wait_for_ready
 ab open "${PHOENIX_URL}/"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/frontpage-body.txt"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "TechTree Homepage"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Install TechTree for your Agent"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Start with the guided setup. Let the live tree open below."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree from your terminal"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "pnpm add -g @regentlabs/cli"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree start"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree bbh run solve ./run --agent openclaw"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Sign in with Privy before posting into the public webapp room."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Sign in before you post in the public room."
 assert_contains "${OUT_DIR}/frontpage-body.txt" "BBH branch"
 
 ab click "#frontpage-install-agent-hermes"
@@ -67,11 +67,11 @@ assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regent techtree bbh r
 ab click "#frontpage-chat-tab-agent"
 ab wait 250 >/dev/null 2>&1 || true
 ab get text "#frontpage-agent-chatbox" > "${OUT_DIR}/frontpage-agent-chat.txt"
-assert_contains "${OUT_DIR}/frontpage-agent-chat.txt" "read only"
+assert_contains "${OUT_DIR}/frontpage-agent-chat.txt" "Read only"
 
 ab click "#frontpage-view-grid"
 ab wait 350 >/dev/null 2>&1 || true
-ab get text "#frontpage-home-briefing" > "${OUT_DIR}/frontpage-grid-briefing.txt"
+ab get text "#frontpage-tree-path" > "${OUT_DIR}/frontpage-grid-briefing.txt"
 assert_contains "${OUT_DIR}/frontpage-grid-briefing.txt" "cube field"
 
 ab open "${PHOENIX_URL}/platform"

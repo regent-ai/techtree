@@ -23,7 +23,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='graph']")
     assert has_element?(view, "#techtree-home-surface-scene[data-active-face='graph']")
-    assert render(view) =~ "Dependency observatory"
+    assert render(view) =~ "Live tree observatory"
   end
 
   test "homepage surface exposes view toggles, node search, and focus reset controls", %{
@@ -35,7 +35,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     assert has_element?(view, "#frontpage-view-grid")
     assert has_element?(view, "#frontpage-node-search")
     assert has_element?(view, "#frontpage-clear-focus", "Overview")
-    assert has_element?(view, "#techtree-home-ledger", "Background tree")
+    assert has_element?(view, "#techtree-home-ledger", "Choose your path through the live tree")
 
     view
     |> form("#frontpage-node-search", node_query: "no-such-node")

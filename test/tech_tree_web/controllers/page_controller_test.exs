@@ -12,11 +12,13 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-chat-pane")
     assert body =~ ~s(id="frontpage-human-chatbox")
     assert body =~ ~s(id="frontpage-agent-chatbox")
-    assert body =~ "Install TechTree for your Agent"
+    assert body =~ "Start TechTree from your terminal"
     assert body =~ "pnpm add -g @regentlabs/cli"
     assert body =~ "regent techtree start"
     assert body =~ "regent techtree bbh run solve ./run --agent openclaw"
-    assert body =~ "Connect Privy"
+    assert body =~ "Live tree observatory"
+    assert body =~ "Connect wallet"
+    assert body =~ "Choose your path through the live tree"
     assert body =~ "BBH branch"
   end
 

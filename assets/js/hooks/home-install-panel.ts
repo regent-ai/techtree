@@ -76,7 +76,7 @@ export const HomeInstallPanel: Hook = {
 
       try {
         await navigator.clipboard.writeText(value)
-        setFeedback(root, `Copied ${label} line.`)
+        setFeedback(root, `Copied ${label} line. Paste it into your terminal.`)
 
         if (button) {
           animate(button, {
@@ -94,8 +94,33 @@ export const HomeInstallPanel: Hook = {
 
     button?.addEventListener("click", handleCopy)
 
+    const handleMotionChange = () => {
+      root._homeInstallReduceMotion = media.matches
+    }
+
+    if ("addEventListener" in media) {
+      media.addEventListener("change", handleMotionChange)
+    } else {
+      const legacyMedia = media as MediaQueryList & {
+        addListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+        removeListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+      }
+
+      legacyMedia.addListener(handleMotionChange)
+    }
+
     root._homeInstallCleanup = () => {
       button?.removeEventListener("click", handleCopy)
+      if ("removeEventListener" in media) {
+        media.removeEventListener("change", handleMotionChange)
+      } else {
+        const legacyMedia = media as MediaQueryList & {
+          addListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+          removeListener: (listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void) => void
+        }
+
+        legacyMedia.removeListener(handleMotionChange)
+      }
     }
   },
 

@@ -20,15 +20,32 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert has_element?(view, "#frontpage-install-agent-hermes[aria-pressed='false']")
     assert has_element?(view, "#frontpage-install-copy")
     assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='human']")
-    assert has_element?(view, "#frontpage-human-chatbox")
-    assert has_element?(view, "#frontpage-agent-chatbox")
+
+    assert has_element?(
+             view,
+             "#frontpage-chat-tab-human[aria-controls='frontpage-human-chatbox']"
+           )
+
+    assert has_element?(
+             view,
+             "#frontpage-chat-tab-agent[aria-controls='frontpage-agent-chatbox']"
+           )
+
+    assert has_element?(view, "#frontpage-chat-rail-link")
+    assert has_element?(view, "#frontpage-human-chatbox[role='region']:not(.is-hidden)")
+    assert has_element?(view, "#frontpage-agent-chatbox[role='region'].is-hidden")
+    assert has_element?(view, "#frontpage-human-chat-title")
+    assert has_element?(view, "#frontpage-agent-chat-title")
+    assert has_element?(view, "#frontpage-branch-paths")
     assert has_element?(view, "#frontpage-bbh-branch")
     refute has_element?(view, "#frontpage-intro-modal")
-    assert render(view) =~ "Install TechTree for your Agent"
+    assert render(view) =~ "Start TechTree from your terminal"
     assert render(view) =~ "pnpm add -g @regentlabs/cli"
     assert render(view) =~ "regent techtree start"
     assert render(view) =~ "regent techtree bbh run solve ./run --agent openclaw"
     assert render(view) =~ "BBH branch"
+    assert render(view) =~ "Jump to the public room panel"
+    assert render(view) =~ "Choose your path through the live tree"
   end
 
   test "homepage starts in light mode", %{conn: conn} do
@@ -54,12 +71,12 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert render(view) =~ "regent techtree bbh run solve ./run --agent hermes"
   end
 
-  test "homepage is fixed to the cobalt orchard design", %{conn: conn} do
+  test "homepage keeps the guided setup framing", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert render(view) =~ "TechTree"
-    assert render(view) =~ "TechTree Homepage"
-    assert render(view) =~ "ink orchard"
+    assert render(view) =~ "Start with the guided setup. Let the live tree open below."
+    assert render(view) =~ "Tree preview"
     refute render(view) =~ "live mockups"
     refute render(view) =~ "Frontpage Reset"
   end

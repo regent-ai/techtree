@@ -78,6 +78,7 @@ audit/
 /services/xmtp-worker/node_modules/
 /skills/
 /codeplan.md
+/.impeccable.md
 /contracts/regent_techtree_v1_redline_spec.md
 /regent-cli-and-runtime-spec.md
 /techtree-v001-revised-spec.md

@@ -107,6 +107,25 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
     assert is_binary(withdrawn["withdrawn_at"])
   end
 
+  test "withdraw claim reports an invalid claim id separately from an invalid node id", %{
+    conn: conn
+  } do
+    author = PhaseDApiSupport.create_agent!("lineage-invalid-claim-author")
+    claimant = create_agent_headers!("lineage-invalid-claimant")
+
+    subject =
+      PhaseDApiSupport.create_ready_node!(author,
+        title: "claim-invalid-subject"
+      )
+      |> with_chain_id!(8453)
+
+    assert %{"error" => %{"code" => "invalid_claim_id"}} =
+             conn
+             |> with_siwa_headers(claimant)
+             |> delete("/v1/tree/nodes/#{subject.id}/lineage/claims/not-a-claim")
+             |> json_response(422)
+  end
+
   test "only the node author can create and clear a cross-chain link", %{conn: conn} do
     author = create_agent_headers!("lineage-link-author")
     outsider = create_agent_headers!("lineage-link-outsider")

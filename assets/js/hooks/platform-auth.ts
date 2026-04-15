@@ -1,63 +1,20 @@
 import type { Hook } from "phoenix_live_view"
 
 import { animate } from "../../vendor/anime.esm.js"
-import { Privy, LocalStorage } from "../../vendor/privy-core.esm.js"
-
-const PROVIDER_STORAGE_KEY = "techtree:platform:privy:oauth-provider"
-
-type PrivyUser =
-  | {
-      id?: string
-      email?: { address?: string }
-      linked_accounts?: Array<{ type?: string; address?: string }>
-    }
-  | null
+import { LocalStorage, Privy } from "../../vendor/privy-core.esm.js"
+import { clearPrivySession, syncPrivySessionAndXmtp } from "./privy-session"
+import {
+  labelForUser,
+  loginWithPrivyWallet,
+  type PrivyLike,
+  type PrivyUser,
+  requireEthereumProvider,
+} from "./privy-wallet"
 
 type PlatformAuthElement = HTMLElement & {
   _platformAuthCleanup?: () => void
   _platformAuthMounted?: boolean
   _platformAuthAbortControllers?: Set<AbortController>
-}
-
-function registerAbortController(root: PlatformAuthElement): AbortController {
-  const controller = new AbortController()
-  const controllers = root._platformAuthAbortControllers ?? new Set<AbortController>()
-  controllers.add(controller)
-  root._platformAuthAbortControllers = controllers
-  return controller
-}
-
-function finishAbortController(root: PlatformAuthElement, controller: AbortController) {
-  root._platformAuthAbortControllers?.delete(controller)
-}
-
-async function fetchSessionJson<T>(root: PlatformAuthElement, input: string, init: RequestInit): Promise<T> {
-  const controller = registerAbortController(root)
-
-  try {
-    const response = await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    })
-
-    if (!response.ok) {
-      throw new Error(`platform auth request failed (${response.status})`)
-    }
-
-    return (await response.json().catch(() => ({}))) as T
-  } finally {
-    finishAbortController(root, controller)
-  }
-}
-
-function userLabel(user: PrivyUser): string {
-  if (!user) return "guest"
-  return user.email?.address || user.id || "connected"
-}
-
-function walletForUser(user: PrivyUser): string | null {
-  const wallet = user?.linked_accounts?.find((account) => account?.address)
-  return wallet?.address || null
 }
 
 export const PlatformAuth: Hook = {
@@ -75,10 +32,11 @@ export const PlatformAuth: Hook = {
       return
     }
 
-    const sessionUrl = "/api/platform/auth/privy/session"
+    const sessionUrl = "/api/auth/privy/session"
+    const completeUrl = "/api/auth/privy/xmtp/complete"
     const privy =
       appId.length > 0
-        ? new Privy({ appId, clientId: appId, storage: new LocalStorage() })
+        ? (new Privy({ appId, clientId: appId, storage: new LocalStorage() }) as unknown as PrivyLike)
         : null
 
     let currentUser: PrivyUser = null
@@ -102,47 +60,14 @@ export const PlatformAuth: Hook = {
       toggle.textContent = busy
         ? "Working..."
         : currentUser?.id
-          ? `Disconnect ${userLabel(currentUser)}`
-          : "Privy Login"
-    }
-
-    const syncSession = async (user: PrivyUser) => {
-      if (!privy || !user?.id) return
-
-      const token = await privy.getAccessToken()
-      if (!token) return
-
-      await fetchSessionJson<Record<string, never>>(root, sessionUrl, {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          authorization: `Bearer ${token}`,
-          ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-        },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          display_name: userLabel(user),
-          wallet_address: walletForUser(user),
-        }),
-      })
-    }
-
-    const clearSession = async () => {
-      await fetchSessionJson<Record<string, never>>(root, sessionUrl, {
-        method: "DELETE",
-        headers: {
-          accept: "application/json",
-          ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-        },
-        credentials: "same-origin",
-      })
+          ? `Disconnect ${labelForUser(currentUser)}`
+          : "Connect wallet"
     }
 
     const refreshUser = async () => {
       if (!privy) {
         currentUser = null
-        setState("Privy unavailable")
+        setState("Wallet sign-in is not available right now.")
         syncControls()
         return
       }
@@ -153,50 +78,22 @@ export const PlatformAuth: Hook = {
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
-          await syncSession(currentUser)
-          setState("connected")
+          await syncPrivySessionAndXmtp(privy, currentUser, {
+            csrfToken,
+            sessionUrl,
+            completeUrl,
+          })
+          setState("Connected")
         } else {
-          setState("idle")
+          setState("Idle")
         }
       } catch (error) {
         if (!root._platformAuthMounted) return
         console.error("platform auth refresh failed", error)
         currentUser = null
-        setState("session error")
+        setState(error instanceof Error ? error.message : "Wallet sign-in could not be checked.")
       } finally {
         syncControls()
-      }
-    }
-
-    const completeOAuthFlow = async () => {
-      if (!privy) return
-
-      const provider = window.localStorage.getItem(PROVIDER_STORAGE_KEY)
-      const url = new URL(window.location.href)
-      const code = url.searchParams.get("code")
-      const oauthState = url.searchParams.get("state")
-
-      if (!provider || !code || !oauthState) {
-        return
-      }
-
-      busy = true
-      syncControls()
-      setState("finishing login")
-
-      try {
-        await privy.auth.oauth.loginWithCode(code, oauthState, provider)
-        if (!root._platformAuthMounted) return
-        url.searchParams.delete("code")
-        url.searchParams.delete("state")
-        url.searchParams.delete("provider")
-        window.history.replaceState({}, document.title, url.toString())
-      } catch (error) {
-        console.error("platform auth oauth completion failed", error)
-        setState("oauth error")
-      } finally {
-        window.localStorage.removeItem(PROVIDER_STORAGE_KEY)
-        busy = false
       }
     }
 
@@ -205,21 +102,17 @@ export const PlatformAuth: Hook = {
 
       busy = true
       syncControls()
-      setState("redirecting")
+      setState("Check your wallet to continue.")
 
       try {
-        const redirectUri = new URL(window.location.href)
-        redirectUri.searchParams.delete("code")
-        redirectUri.searchParams.delete("state")
-        redirectUri.searchParams.delete("provider")
-
-        const result = await privy.auth.oauth.generateURL("google", redirectUri.toString())
-        window.localStorage.setItem(PROVIDER_STORAGE_KEY, "google")
-        window.location.assign(result.url)
+        const provider = await requireEthereumProvider()
+        await loginWithPrivyWallet(privy, provider)
+        await refreshUser()
       } catch (error) {
         console.error("platform auth login failed", error)
+        setState(error instanceof Error ? error.message : "Wallet sign-in failed.")
+      } finally {
         busy = false
-        setState("login error")
         syncControls()
       }
     }
@@ -229,16 +122,16 @@ export const PlatformAuth: Hook = {
 
       busy = true
       syncControls()
-      setState("disconnecting")
+      setState("Disconnecting")
 
       try {
-        await clearSession()
+        await clearPrivySession(sessionUrl, csrfToken)
         await privy.auth.logout({ userId: currentUser.id })
         currentUser = null
-        setState("idle")
+        setState("Idle")
       } catch (error) {
         console.error("platform auth logout failed", error)
-        setState("logout error")
+        setState(error instanceof Error ? error.message : "Disconnect failed.")
       } finally {
         busy = false
         syncControls()
@@ -266,10 +159,11 @@ export const PlatformAuth: Hook = {
     void (async () => {
       if (privy) {
         await privy.initialize()
-        await completeOAuthFlow()
+        await refreshUser()
+      } else {
+        syncControls()
+        setState("Wallet sign-in is not available right now.")
       }
-
-      await refreshUser()
     })()
   },
 

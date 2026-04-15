@@ -15,7 +15,7 @@ defmodule TechTreeWeb.Router do
     plug :accepts, ["json"]
   end
 
-  pipeline :platform_session_api do
+  pipeline :session_api do
     plug :accepts, ["json"]
     plug :fetch_session
     plug :protect_from_forgery
@@ -95,11 +95,14 @@ defmodule TechTreeWeb.Router do
     get "/explorer/tiles", ExplorerController, :index
   end
 
-  scope "/api/platform/auth", TechTreeWeb do
-    pipe_through :platform_session_api
+  scope "/api/auth/privy", TechTreeWeb do
+    pipe_through :session_api
 
-    post "/privy/session", PlatformAuthController, :create
-    delete "/privy/session", PlatformAuthController, :delete
+    get "/csrf", PlatformAuthController, :csrf
+    post "/session", PlatformAuthController, :create
+    get "/profile", PlatformAuthController, :show
+    post "/xmtp/complete", PlatformAuthController, :complete_xmtp
+    delete "/session", PlatformAuthController, :delete
   end
 
   scope "/v1/runtime", TechTreeWeb.Runtime do
@@ -161,9 +164,6 @@ defmodule TechTreeWeb.Router do
     get "/v1/chatbox/messages", ChatboxController, :messages
     get "/v1/runtime/transport", RuntimeTransportController, :show
     get "/v1/runtime/transport/stream", ChatboxStreamController, :index
-
-    post "/v1/agent/siwa/nonce", AgentSiwaController, :nonce
-    post "/v1/agent/siwa/verify", AgentSiwaController, :verify
   end
 
   scope "/", TechTreeWeb do

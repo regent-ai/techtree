@@ -38,11 +38,17 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
   end
 
   test "rejects banned humans even with a valid Privy JWT", %{privy: privy} do
-    {:ok, _human} =
+    wallet_address = "0x1234567890123456789012345678901234567890"
+
+    {:ok, human} =
       Accounts.upsert_human_by_privy_id("privy-banned-user", %{
         "display_name" => "Banned User",
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => deterministic_inbox_id(wallet_address),
         "role" => "banned"
       })
+
+    human_id = human.id
 
     token = privy_token("privy-banned-user", privy.app_id, privy.private_pem, 3600)
 
@@ -52,6 +58,16 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
              |> put_req_header("authorization", "Bearer #{token}")
              |> post("/v1/chatbox/messages", %{"body" => "hello from banned privy"})
              |> json_response(403)
+
+    assert %TechTree.Accounts.HumanUser{
+             id: ^human_id,
+             display_name: "Banned User",
+             wallet_address: ^wallet_address,
+             xmtp_inbox_id: xmtp_inbox_id,
+             role: "banned"
+           } = Accounts.get_human_by_privy_id("privy-banned-user")
+
+    assert xmtp_inbox_id == deterministic_inbox_id(wallet_address)
   end
 
   defp privy_token(privy_user_id, app_id, private_pem, exp_offset_seconds) do

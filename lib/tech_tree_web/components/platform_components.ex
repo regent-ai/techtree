@@ -29,7 +29,7 @@ defmodule TechTreeWeb.PlatformComponents do
           </div>
 
           <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
-            The Phoenix cutover keeps state on the server and leaves browser-only concerns to a thin interop layer.
+            Move through platform surfaces, inspect imported records, and keep account actions tied to one wallet.
           </p>
 
           <nav class="grid gap-2" aria-label="Platform navigation">
@@ -63,9 +63,9 @@ defmodule TechTreeWeb.PlatformComponents do
             data-lazy-fallback-message="Browser auth controls are unavailable right now. Reload the page or verify the Privy app settings."
             class="mt-auto rounded-[1.6rem] border border-black/8 bg-black px-4 py-4 text-white dark:border-white/10 dark:bg-slate-900"
           >
-            <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Auth bridge</p>
+            <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Wallet</p>
             <p class="mt-2 text-sm leading-6 text-white/78">
-              Use existing Privy JWT verification for user-owned browser actions. The hook keeps this panel browser-native without turning the rest of the page into a client app.
+              Connect a wallet here so account actions on this page stay tied to the same person.
             </p>
             <div class="mt-3 flex items-center gap-3">
               <button
@@ -73,10 +73,10 @@ defmodule TechTreeWeb.PlatformComponents do
                 data-platform-auth-action="toggle"
                 class="rounded-full border border-white/16 bg-white/10 px-4 py-2 text-sm transition hover:bg-white/16"
               >
-                Privy Login
+                Connect wallet
               </button>
               <span data-platform-auth-state class="text-xs uppercase tracking-[0.18em] text-white/56">
-                idle
+                Idle
               </span>
             </div>
           </div>
@@ -97,26 +97,26 @@ defmodule TechTreeWeb.PlatformComponents do
               <div class="grid gap-2 sm:grid-cols-3">
                 <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    State
+                    Browse
                   </p>
                   <p class="mt-2 text-sm leading-6">
-                    LiveView owns navigation, queries, and filters.
+                    Move between platform areas without losing your place.
                   </p>
                 </div>
                 <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    Interop
+                    Review
                   </p>
                   <p class="mt-2 text-sm leading-6">
-                    TypeScript hooks stay scoped to wallet, motion, and browser SDK seams.
+                    Inspect names, agents, and records in one place.
                   </p>
                 </div>
                 <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    Cutover
+                    Act
                   </p>
                   <p class="mt-2 text-sm leading-6">
-                    Source data moves in via a one-shot importer, not a permanent bridge.
+                    Connect a wallet when you need account-linked actions.
                   </p>
                 </div>
               </div>
@@ -205,25 +205,35 @@ defmodule TechTreeWeb.PlatformComponents do
 
   def nav_items do
     [
-      %{key: "home", href: "/platform", label: "Platform", copy: "Landing + stack overview"},
+      %{
+        key: "home",
+        href: "/platform",
+        label: "Platform",
+        copy: "Overview and quick entry points"
+      },
       %{
         key: "explorer",
         href: "/platform/explorer",
         label: "Explorer",
-        copy: "Imported tiles + frontier state"
+        copy: "Browse frontier tiles and drill into details"
       },
       %{
         key: "creator",
         href: "/platform/creator",
         label: "Creator",
-        copy: "Hosted deployment surface"
+        copy: "Review launch candidates"
       },
-      %{key: "agents", href: "/platform/agents", label: "Agents", copy: "Imported agent catalog"},
+      %{
+        key: "agents",
+        href: "/platform/agents",
+        label: "Agents",
+        copy: "Search the agent catalog"
+      },
       %{
         key: "facilitator",
         href: "/platform/facilitator",
         label: "Facilitator",
-        copy: "Operator payment and settlement snapshot"
+        copy: "Check service reachability"
       },
       %{
         key: "moderation",
@@ -231,8 +241,18 @@ defmodule TechTreeWeb.PlatformComponents do
         label: "Moderation",
         copy: "Hide content, ban actors, inspect action logs"
       },
-      %{key: "names", href: "/platform/names", label: "Names", copy: "Imported name claims"},
-      %{key: "redeem", href: "/platform/redeem", label: "Redeem", copy: "Redeem event history"}
+      %{
+        key: "names",
+        href: "/platform/names",
+        label: "Names",
+        copy: "Review names, credits, and claims"
+      },
+      %{
+        key: "redeem",
+        href: "/platform/redeem",
+        label: "Redeem",
+        copy: "Review redemption history"
+      }
     ]
   end
 

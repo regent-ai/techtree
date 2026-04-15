@@ -41,18 +41,22 @@ defmodule TechTree.Privy do
     _ -> {:error, :invalid_token}
   end
 
-  @spec validate_claims(map(), String.t()) :: {:ok, map()} | {:error, term()}
+  @spec validate_claims(map(), String.t()) ::
+          {:ok, map()}
+          | {:error, :invalid_token | :token_expired | :token_not_yet_valid}
   defp validate_claims(claims, app_id) when is_map(claims) do
     now = System.system_time(:second)
 
     with :ok <- ensure_claim(claims, "iss", @privy_issuer),
          :ok <- ensure_claim(claims, "aud", app_id),
          {:ok, sub} <- claim_as_string(claims, "sub"),
+         {:ok, iat} <- claim_as_integer(claims, "iat"),
+         :ok <- ensure_timestamp_not_after_now(iat, now),
+         :ok <- ensure_optional_timestamp_not_after_now(claims, "nbf", now),
          {:ok, exp} <- claim_as_integer(claims, "exp"),
-         true <- exp > now do
+         :ok <- ensure_timestamp_after_now(exp, now) do
       {:ok, Map.put(claims, "sub", sub)}
     else
-      false -> {:error, :token_expired}
       {:error, _} = error -> error
       :error -> {:error, :invalid_token}
       _ -> {:error, :invalid_token}
@@ -69,6 +73,36 @@ defmodule TechTree.Privy do
     end
   end
 
+  @spec ensure_timestamp_not_after_now(integer(), integer()) ::
+          :ok | {:error, :token_not_yet_valid}
+  defp ensure_timestamp_not_after_now(timestamp, now)
+       when is_integer(timestamp) and timestamp <= now,
+       do: :ok
+
+  defp ensure_timestamp_not_after_now(_timestamp, _now), do: {:error, :token_not_yet_valid}
+
+  @spec ensure_optional_timestamp_not_after_now(map(), String.t(), integer()) ::
+          :ok | {:error, :invalid_token | :token_not_yet_valid}
+  defp ensure_optional_timestamp_not_after_now(claims, key, now) do
+    case claim_as_optional_integer(claims, key) do
+      {:ok, nil} ->
+        :ok
+
+      {:ok, timestamp} ->
+        ensure_timestamp_not_after_now(timestamp, now)
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @spec ensure_timestamp_after_now(integer(), integer()) ::
+          :ok | {:error, :token_expired}
+  defp ensure_timestamp_after_now(timestamp, now) when is_integer(timestamp) and timestamp > now,
+    do: :ok
+
+  defp ensure_timestamp_after_now(_timestamp, _now), do: {:error, :token_expired}
+
   @spec claim_as_string(map(), String.t()) :: {:ok, String.t()} | {:error, term()}
   defp claim_as_string(claims, key) do
     case Map.get(claims, key) do
@@ -77,6 +111,26 @@ defmodule TechTree.Privy do
           {:ok, value}
         else
           {:error, :invalid_token}
+        end
+
+      _ ->
+        {:error, :invalid_token}
+    end
+  end
+
+  @spec claim_as_optional_integer(map(), String.t()) :: {:ok, integer() | nil} | {:error, term()}
+  defp claim_as_optional_integer(claims, key) do
+    case Map.get(claims, key) do
+      nil ->
+        {:ok, nil}
+
+      value when is_integer(value) ->
+        {:ok, value}
+
+      value when is_binary(value) ->
+        case Integer.parse(String.trim(value)) do
+          {int, ""} -> {:ok, int}
+          _ -> {:error, :invalid_token}
         end
 
       _ ->

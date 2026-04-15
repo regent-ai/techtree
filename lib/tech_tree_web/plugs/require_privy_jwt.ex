@@ -14,6 +14,7 @@ defmodule TechTreeWeb.Plugs.RequirePrivyJWT do
   def call(conn, _opts) do
     with {:ok, token} <- fetch_bearer_token(conn),
          {:ok, %{privy_user_id: privy_user_id}} <- Privy.verify_token(token),
+         :ok <- ensure_existing_human_allowed(Accounts.get_human_by_privy_id(privy_user_id)),
          {:ok, human} <- Accounts.upsert_human_by_privy_id(privy_user_id, %{}),
          :ok <- ensure_human_allowed(human) do
       assign(conn, :current_human, human)
@@ -54,4 +55,7 @@ defmodule TechTreeWeb.Plugs.RequirePrivyJWT do
 
   defp ensure_human_allowed(%{role: "banned"}), do: {:error, :human_banned}
   defp ensure_human_allowed(_human), do: :ok
+
+  defp ensure_existing_human_allowed(%{role: "banned"}), do: {:error, :human_banned}
+  defp ensure_existing_human_allowed(_human), do: :ok
 end

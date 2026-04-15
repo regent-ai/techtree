@@ -19,6 +19,8 @@ defmodule TechTree.Application do
         TechTree.Repo,
         {DNSCluster, query: Application.get_env(:tech_tree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: TechTree.PubSub},
+        TechTree.XmtpIdentity,
+        TechTree.Xmtp,
         TechTree.P2P.Supervisor,
         {Oban, Application.fetch_env!(:tech_tree, Oban)},
         TechTreeWeb.Endpoint

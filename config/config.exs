@@ -62,6 +62,40 @@ config :tech_tree, TechTree.P2P,
   health_interval_ms: 2_000,
   max_message_bytes: 32_768
 
+config :tech_tree, TechTree.Xmtp,
+  rooms: [
+    %{
+      key: "techtree_main_chat",
+      name: "TechTree Main Chat",
+      description: "The shared TechTree chat room.",
+      app_data: "techtree-main-chat",
+      agent_private_key: nil,
+      moderator_wallets: [],
+      capacity: 200,
+      presence_timeout_ms: :timer.minutes(2),
+      presence_check_interval_ms: :timer.seconds(30),
+      policy_options: %{
+        allowed_kinds: [:human, :agent],
+        required_claims: %{}
+      }
+    },
+    %{
+      key: "techtree_agents",
+      name: "TechTree Agents",
+      description: "A room reserved for agent identities.",
+      app_data: "techtree-agents",
+      agent_private_key: nil,
+      moderator_wallets: [],
+      capacity: 200,
+      presence_timeout_ms: :timer.minutes(2),
+      presence_check_interval_ms: :timer.seconds(30),
+      policy_options: %{
+        allowed_kinds: [:agent],
+        required_claims: %{}
+      }
+    }
+  ]
+
 # Configure the mailer
 #
 # By default it uses the "Local" adapter which stores the emails

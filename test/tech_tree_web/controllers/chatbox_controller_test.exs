@@ -28,7 +28,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
     assert %{"data" => [first], "next_cursor" => next_cursor} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/chatbox/messages", %{"limit" => "1"})
+             |> get("/v1/chatbox/messages", %{"limit" => "1", "room" => "webapp"})
              |> json_response(200)
 
     assert first["id"] == newer.id
@@ -37,10 +37,30 @@ defmodule TechTreeWeb.ChatboxControllerTest do
     assert %{"data" => older_page, "next_cursor" => _next_cursor} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
-             |> get("/v1/chatbox/messages", %{"before" => next_cursor, "limit" => "10"})
+             |> get("/v1/chatbox/messages", %{
+               "before" => next_cursor,
+               "limit" => "10",
+               "room" => "webapp"
+             })
              |> json_response(200)
 
     assert Enum.any?(older_page, &(&1["id"] == older.id))
+  end
+
+  test "GET /v1/chatbox/messages rejects unsupported room filters" do
+    assert %{"error" => %{"code" => "invalid_chatbox_room"}} =
+             Phoenix.ConnTest.build_conn()
+             |> put_req_header("accept", "application/json")
+             |> get("/v1/chatbox/messages", %{"room" => "agent"})
+             |> json_response(422)
+  end
+
+  test "GET /v1/chatbox/messages rejects blank room filters" do
+    assert %{"error" => %{"code" => "invalid_chatbox_room"}} =
+             Phoenix.ConnTest.build_conn()
+             |> put_req_header("accept", "application/json")
+             |> get("/v1/chatbox/messages", %{"room" => "   "})
+             |> json_response(422)
   end
 
   test "POST /v1/chatbox/messages persists and broadcasts human messages", %{conn: conn} do
@@ -187,5 +207,88 @@ defmodule TechTreeWeb.ChatboxControllerTest do
              conn
              |> post("/v1/chatbox/messages", %{"body" => "banned post"})
              |> json_response(403)
+  end
+
+  test "POST /v1/chatbox/messages requires secure room setup", %{privy: privy} do
+    {:ok, human} =
+      TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-no-room", %{
+        "display_name" => "No Room User",
+        "wallet_address" => "0x1234567890123456789012345678901234567890"
+      })
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_identity_required"}} =
+             conn
+             |> post("/v1/chatbox/messages", %{"body" => "should fail"})
+             |> json_response(422)
+  end
+
+  test "POST /v1/chatbox/messages/:id/reactions requires secure room setup", %{
+    privy: privy,
+    human: human
+  } do
+    message = create_chatbox_message!(human, %{body: "react-target-no-room"})
+
+    {:ok, missing_room_human} =
+      TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-react-no-room", %{
+        "display_name" => "No Room User",
+        "wallet_address" => "0x1234567890123456789012345678901234567890"
+      })
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(missing_room_human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_identity_required"}} =
+             conn
+             |> post("/v1/chatbox/messages/#{message.id}/reactions", %{"emoji" => "🔥"})
+             |> json_response(422)
+  end
+
+  test "POST /v1/chatbox/messages rejects stale saved chat identities", %{privy: privy} do
+    wallet_address = "0x2234567890123456789012345678901234567890"
+
+    {:ok, human} =
+      TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-stale-room", %{
+        "display_name" => "Stale Room User",
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => "stale-inbox-id"
+      })
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_identity_required"}} =
+             conn
+             |> post("/v1/chatbox/messages", %{"body" => "should fail"})
+             |> json_response(422)
+  end
+
+  test "POST /v1/chatbox/messages/:id/reactions rejects stale saved chat identities", %{
+    privy: privy,
+    human: human
+  } do
+    message = create_chatbox_message!(human, %{body: "react-target-stale-room"})
+    wallet_address = "0x3234567890123456789012345678901234567890"
+
+    {:ok, stale_room_human} =
+      TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-react-stale-room", %{
+        "display_name" => "Stale Room User",
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => "stale-inbox-id"
+      })
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(stale_room_human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_identity_required"}} =
+             conn
+             |> post("/v1/chatbox/messages/#{message.id}/reactions", %{"emoji" => "🔥"})
+             |> json_response(422)
   end
 end

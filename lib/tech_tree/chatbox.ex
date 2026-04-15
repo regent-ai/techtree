@@ -10,6 +10,7 @@ defmodule TechTree.Chatbox do
   alias TechTree.Repo
   alias TechTree.Chatbox.Message
   alias TechTree.Chatbox.MessageReaction
+  alias TechTree.XmtpIdentity
   alias TechTreeWeb.{Endpoint, PublicEncoding}
 
   @global_room "global"
@@ -74,6 +75,7 @@ defmodule TechTree.Chatbox do
           {:ok, Message.t(), create_status()}
           | {:error,
              :human_banned
+             | :xmtp_identity_required
              | :body_required
              | :body_too_long
              | :invalid_reply_to_message
@@ -82,7 +84,16 @@ defmodule TechTree.Chatbox do
   def create_human_message(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
 
   def create_human_message(%HumanUser{} = human, attrs) when is_map(attrs) do
-    create_message({:human, human}, Map.put_new(attrs, :room_id, @global_room))
+    case XmtpIdentity.ready_inbox_id(human) do
+      {:ok, _inbox_id} ->
+        create_message({:human, human}, Map.put_new(attrs, :room_id, @global_room))
+
+      {:error, :xmtp_identity_required} ->
+        {:error, :xmtp_identity_required}
+
+      {:error, :wallet_address_required} ->
+        {:error, :xmtp_identity_required}
+    end
   end
 
   @spec create_agent_message(AgentIdentity.t(), map()) ::
@@ -111,6 +122,7 @@ defmodule TechTree.Chatbox do
           | {:error,
              :human_banned
              | :agent_banned
+             | :xmtp_identity_required
              | :message_not_found
              | :invalid_reaction_emoji
              | :invalid_reaction_operation
@@ -121,6 +133,16 @@ defmodule TechTree.Chatbox do
   def react_to_message(%AgentIdentity{status: status}, _message_id, _attrs)
       when status in ["banned", "inactive"] do
     {:error, :agent_banned}
+  end
+
+  def react_to_message(%HumanUser{} = human, message_id, attrs) when is_map(attrs) do
+    with {:ok, _inbox_id} <- ready_reaction_identity(human),
+         {:ok, normalized_message_id} <- parse_message_id(message_id, :message_not_found),
+         {:ok, emoji} <- normalize_reaction_emoji(attrs),
+         {:ok, operation} <- normalize_reaction_operation(attrs),
+         {:ok, message} <- fetch_public_message(normalized_message_id) do
+      update_message_reactions(message, actor_identity(human), emoji, operation)
+    end
   end
 
   def react_to_message(actor, message_id, attrs) when is_map(attrs) do
@@ -134,35 +156,30 @@ defmodule TechTree.Chatbox do
 
   @spec hide_message(integer() | String.t()) :: {:ok, Message.t()}
   def hide_message(id) do
-    normalized_id =
-      case parse_message_id(id, :message_not_found) do
-        {:ok, value} -> value
-        {:error, :message_not_found} -> raise Ecto.NoResultsError
-      end
-
-    message = Repo.get!(Message, normalized_id)
-    {:ok, updated} = message |> Ecto.Changeset.change(moderation_state: "hidden") |> Repo.update()
-    updated = preload_message(updated)
-    broadcast("message.hidden", updated)
-    {:ok, updated}
+    case hide_message_if_present(id) do
+      {:ok, message} -> {:ok, message}
+      {:error, :message_not_found} -> raise Ecto.NoResultsError
+    end
   end
 
   @spec unhide_message(integer() | String.t()) :: {:ok, Message.t()}
   def unhide_message(id) do
-    normalized_id =
-      case parse_message_id(id, :message_not_found) do
-        {:ok, value} -> value
-        {:error, :message_not_found} -> raise Ecto.NoResultsError
-      end
+    case unhide_message_if_present(id) do
+      {:ok, message} -> {:ok, message}
+      {:error, :message_not_found} -> raise Ecto.NoResultsError
+    end
+  end
 
-    message = Repo.get!(Message, normalized_id)
+  @spec hide_message_if_present(integer() | String.t()) ::
+          {:ok, Message.t()} | {:error, :message_not_found}
+  def hide_message_if_present(id) do
+    update_message_visibility(id, "hidden", "message.hidden")
+  end
 
-    {:ok, updated} =
-      message |> Ecto.Changeset.change(moderation_state: "visible") |> Repo.update()
-
-    updated = preload_message(updated)
-    broadcast("message.updated", updated)
-    {:ok, updated}
+  @spec unhide_message_if_present(integer() | String.t()) ::
+          {:ok, Message.t()} | {:error, :message_not_found}
+  def unhide_message_if_present(id) do
+    update_message_visibility(id, "visible", "message.updated")
   end
 
   @spec create_message({:human | :agent, actor()}, map()) ::
@@ -307,6 +324,23 @@ defmodule TechTree.Chatbox do
     end
   end
 
+  defp update_message_visibility(id, moderation_state, event) do
+    with {:ok, normalized_id} <- parse_message_id(id, :message_not_found),
+         %Message{} = message <- Repo.get(Message, normalized_id) do
+      {:ok, updated} =
+        message
+        |> Ecto.Changeset.change(moderation_state: moderation_state)
+        |> Repo.update()
+
+      updated = preload_message(updated)
+      broadcast(event, updated)
+      {:ok, updated}
+    else
+      nil -> {:error, :message_not_found}
+      {:error, :message_not_found} = error -> error
+    end
+  end
+
   defp preload_message(%Message{} = message) do
     Repo.preload(message, [:author_human, :author_agent])
   end
@@ -412,6 +446,14 @@ defmodule TechTree.Chatbox do
     |> Map.put(:author_transport_id, "agent:#{agent.id}")
     |> Map.put(:author_label_snapshot, agent.label)
     |> Map.put(:author_wallet_address_snapshot, agent.wallet_address)
+  end
+
+  defp ready_reaction_identity(%HumanUser{} = human) do
+    case XmtpIdentity.ready_inbox_id(human) do
+      {:ok, inbox_id} -> {:ok, inbox_id}
+      {:error, :wallet_address_required} -> {:error, :xmtp_identity_required}
+      {:error, :xmtp_identity_required} -> {:error, :xmtp_identity_required}
+    end
   end
 
   defp author_scope(:human, %HumanUser{id: id}), do: "human:#{id}"

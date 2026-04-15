@@ -30,6 +30,12 @@ defmodule TechTreeWeb.ChatboxMembershipController do
           message: "requested chatbox room not found"
         })
 
+      {:error, :xmtp_identity_required} ->
+        ApiError.render(conn, :unprocessable_entity, %{
+          code: "chat_identity_required",
+          message: "finish secure room setup before you join the public room"
+        })
+
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
           code: "membership_request_failed",

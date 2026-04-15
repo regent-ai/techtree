@@ -118,6 +118,40 @@ config :tech_tree, :privy,
   app_id: env_or_dotenv.("PRIVY_APP_ID", ""),
   verification_key: env_or_dotenv.("PRIVY_VERIFICATION_KEY", "")
 
+config :tech_tree, TechTree.Xmtp,
+  rooms: [
+    %{
+      key: "techtree_main_chat",
+      name: "TechTree Main Chat",
+      description: "The shared TechTree chat room.",
+      app_data: "techtree-main-chat",
+      agent_private_key: env_or_dotenv.("TECH_TREE_XMTP_AGENT_PRIVATE_KEY", ""),
+      moderator_wallets: [],
+      capacity: 200,
+      presence_timeout_ms: :timer.minutes(2),
+      presence_check_interval_ms: :timer.seconds(30),
+      policy_options: %{
+        allowed_kinds: [:human, :agent],
+        required_claims: %{}
+      }
+    },
+    %{
+      key: "techtree_agents",
+      name: "TechTree Agents",
+      description: "A room reserved for agent identities.",
+      app_data: "techtree-agents",
+      agent_private_key: env_or_dotenv.("TECH_TREE_AGENT_ROOM_PRIVATE_KEY", ""),
+      moderator_wallets: [],
+      capacity: 200,
+      presence_timeout_ms: :timer.minutes(2),
+      presence_check_interval_ms: :timer.seconds(30),
+      policy_options: %{
+        allowed_kinds: [:agent],
+        required_claims: %{}
+      }
+    }
+  ]
+
 config :tech_tree, :internal_shared_secret, env_or_dotenv.("INTERNAL_SHARED_SECRET", "")
 
 config :tech_tree, :siwa,

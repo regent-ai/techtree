@@ -6,6 +6,7 @@ defmodule TechTree.XMTPMirror do
   alias TechTree.Accounts.HumanUser
   alias TechTree.QueryHelpers
   alias TechTree.Repo
+  alias TechTree.XmtpIdentity
 
   alias TechTree.XMTPMirror.{
     XmtpMembershipCommand,
@@ -134,13 +135,14 @@ defmodule TechTree.XMTPMirror do
   end
 
   @spec request_join(HumanUser.t(), map()) ::
-          {:ok, map()} | {:error, :room_not_found | :human_banned}
+          {:ok, map()} | {:error, :room_not_found | :human_banned | :xmtp_identity_required}
   def request_join(human, attrs \\ %{})
 
   def request_join(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
 
   def request_join(%HumanUser{} = human, attrs) when is_map(attrs) do
-    with {:ok, room} <- resolve_join_room(attrs) do
+    with {:ok, inbox_id} <- require_human_inbox_id(human),
+         {:ok, room} <- resolve_join_room(attrs) do
       status = membership_state_for(human, room)
 
       case status do
@@ -154,7 +156,7 @@ defmodule TechTree.XMTPMirror do
           {:ok, %{status: "pending", human_id: human.id, room_key: room.room_key}}
 
         _ ->
-          case create_membership_command(human, room, "add_member") do
+          case create_membership_command(human, room, inbox_id, "add_member") do
             {:ok, _command} ->
               {:ok,
                %{
@@ -172,11 +174,14 @@ defmodule TechTree.XMTPMirror do
   end
 
   @spec create_human_message(HumanUser.t(), map()) ::
-          {:ok, XmtpMessage.t()} | {:error, :human_banned | :room_not_found | Ecto.Changeset.t()}
+          {:ok, XmtpMessage.t()}
+          | {:error,
+             :human_banned | :room_not_found | :xmtp_identity_required | Ecto.Changeset.t()}
   def create_human_message(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
 
   def create_human_message(%HumanUser{} = human, attrs) when is_map(attrs) do
-    with {:ok, room} <- resolve_message_room(attrs) do
+    with {:ok, inbox_id} <- require_human_inbox_id(human),
+         {:ok, room} <- resolve_message_room(attrs) do
       message_id =
         value_for(attrs, :xmtp_message_id) ||
           "xmtp-#{room.id}-#{human.id}-#{System.unique_integer([:positive, :monotonic])}"
@@ -184,7 +189,7 @@ defmodule TechTree.XMTPMirror do
       message_attrs = %{
         room_id: room.id,
         xmtp_message_id: message_id,
-        sender_inbox_id: human.xmtp_inbox_id || "inbox-#{human.id}",
+        sender_inbox_id: inbox_id,
         sender_wallet_address: human.wallet_address,
         sender_label: human.display_name,
         sender_type: :human,
@@ -222,13 +227,16 @@ defmodule TechTree.XMTPMirror do
   end
 
   @spec heartbeat_presence(HumanUser.t(), map()) ::
-          {:ok, map()} | {:error, :room_not_found | :human_banned | Ecto.Changeset.t()}
+          {:ok, map()}
+          | {:error,
+             :room_not_found | :human_banned | :xmtp_identity_required | Ecto.Changeset.t()}
   def heartbeat_presence(human, attrs \\ %{})
 
   def heartbeat_presence(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
 
   def heartbeat_presence(%HumanUser{} = human, attrs) when is_map(attrs) do
-    with {:ok, room} <- resolve_join_room(attrs) do
+    with {:ok, inbox_id} <- require_human_inbox_id(human),
+         {:ok, room} <- resolve_join_room(attrs) do
       now = DateTime.utc_now()
 
       expires_at =
@@ -237,7 +245,7 @@ defmodule TechTree.XMTPMirror do
       presence_attrs = %{
         room_id: room.id,
         human_user_id: human.id,
-        xmtp_inbox_id: human.xmtp_inbox_id || "inbox-#{human.id}",
+        xmtp_inbox_id: inbox_id,
         last_seen_at: now,
         expires_at: expires_at,
         evicted_at: nil
@@ -285,12 +293,23 @@ defmodule TechTree.XMTPMirror do
         }
 
       %XmtpRoom{} = room ->
-        %{
-          human_id: human.id,
-          room_key: room.room_key,
-          room_present: true,
-          state: membership_state_for(human, room)
-        }
+        case require_human_inbox_id(human) do
+          {:ok, _inbox_id} ->
+            %{
+              human_id: human.id,
+              room_key: room.room_key,
+              room_present: true,
+              state: membership_state_for(human, room)
+            }
+
+          {:error, :xmtp_identity_required} ->
+            %{
+              human_id: human.id,
+              room_key: room.room_key,
+              room_present: true,
+              state: "setup_required"
+            }
+        end
     end
   end
 
@@ -315,7 +334,14 @@ defmodule TechTree.XMTPMirror do
             :ok
 
           _ ->
-            _ = create_membership_command(human, room, "remove_member")
+            case require_human_inbox_id(human) do
+              {:ok, inbox_id} ->
+                _ = create_membership_command(human, room, inbox_id, "remove_member")
+
+              {:error, :xmtp_identity_required} ->
+                :ok
+            end
+
             :ok
         end
 
@@ -370,7 +396,7 @@ defmodule TechTree.XMTPMirror do
     |> limit(1)
   end
 
-  defp create_membership_command(%HumanUser{} = human, %XmtpRoom{} = room, op) do
+  defp create_membership_command(%HumanUser{} = human, %XmtpRoom{} = room, inbox_id, op) do
     existing =
       XmtpMembershipCommand
       |> where(
@@ -389,7 +415,7 @@ defmodule TechTree.XMTPMirror do
         room_id: room.id,
         human_user_id: human.id,
         op: op,
-        xmtp_inbox_id: human.xmtp_inbox_id || "inbox-#{human.id}",
+        xmtp_inbox_id: inbox_id,
         status: "pending"
       })
       |> Repo.insert()
@@ -488,6 +514,14 @@ defmodule TechTree.XMTPMirror do
 
       _ ->
         "not_joined"
+    end
+  end
+
+  defp require_human_inbox_id(%HumanUser{} = human) do
+    case XmtpIdentity.ready_inbox_id(human) do
+      {:ok, inbox_id} -> {:ok, inbox_id}
+      {:error, :wallet_address_required} -> {:error, :xmtp_identity_required}
+      {:error, :xmtp_identity_required} -> {:error, :xmtp_identity_required}
     end
   end
 

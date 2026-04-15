@@ -8,6 +8,7 @@ defmodule TechTree.PhaseDApiSupport do
   alias TechTree.Chatbox.Message, as: ChatboxMessage
   alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
   alias Decimal, as: D
+  alias XmtpElixirSdk.Types
 
   @spec setup_privy_config!() :: %{
           app_id: String.t(),
@@ -78,10 +79,15 @@ defmodule TechTree.PhaseDApiSupport do
     unique = unique_suffix()
     role = Keyword.get(opts, :role, "user")
     privy_user_id = "privy-#{prefix}-#{unique}"
+    wallet_address = Keyword.get(opts, :wallet_address, random_eth_address())
 
     {:ok, human} =
       Accounts.upsert_human_by_privy_id(privy_user_id, %{
-        "wallet_address" => Keyword.get(opts, :wallet_address, "0x#{prefix}-wallet-#{unique}"),
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" =>
+          Keyword.get_lazy(opts, :xmtp_inbox_id, fn ->
+            deterministic_inbox_id(wallet_address)
+          end),
         "display_name" => Keyword.get(opts, :display_name, "#{prefix}-#{unique}"),
         "role" => role
       })
@@ -223,6 +229,17 @@ defmodule TechTree.PhaseDApiSupport do
   @spec random_eth_address() :: String.t()
   def random_eth_address do
     "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
+  end
+
+  @spec deterministic_inbox_id(String.t()) :: String.t()
+  def deterministic_inbox_id(wallet_address) do
+    identifier = %Types.Identifier{
+      identifier: String.downcase(wallet_address),
+      identifier_kind: :ethereum
+    }
+
+    {:ok, inbox_id} = XmtpElixirSdk.generate_inbox_id(identifier, 0, 1)
+    inbox_id
   end
 
   @spec generate_es256_pems() :: {String.t(), String.t()}

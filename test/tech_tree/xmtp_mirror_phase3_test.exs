@@ -123,10 +123,7 @@ defmodule TechTree.XMTPMirrorPhase3Test do
     human = create_human!("shard-aware")
 
     assert {:ok, %{room_key: room_key}} =
-             XMTPMirror.request_join(human, %{
-               "xmtp_inbox_id" => human.xmtp_inbox_id,
-               "shard_key" => shard_room.room_key
-             })
+             XMTPMirror.request_join(human, %{"shard_key" => shard_room.room_key})
 
     assert room_key == shard_room.room_key
 
@@ -192,12 +189,13 @@ defmodule TechTree.XMTPMirrorPhase3Test do
 
   defp create_human!(prefix) do
     unique = System.unique_integer([:positive, :monotonic])
+    wallet_address = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
 
     {:ok, human} =
       Accounts.upsert_human_by_privy_id("privy-#{prefix}-#{unique}", %{
         "display_name" => "#{prefix}-#{unique}",
-        "wallet_address" => "0x#{prefix}-wallet-#{unique}",
-        "xmtp_inbox_id" => "inbox-#{prefix}-#{unique}",
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => TechTree.PhaseDApiSupport.deterministic_inbox_id(wallet_address),
         "role" => "user"
       })
 

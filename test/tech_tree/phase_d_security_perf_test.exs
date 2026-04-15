@@ -3,6 +3,7 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
   alias Oban.Job
   alias TechTree.Agents
+  alias TechTree.PhaseDApiSupport
   alias TechTree.RateLimit
   alias TechTree.Accounts.HumanUser
   alias TechTree.Nodes.Node
@@ -102,14 +103,18 @@ defmodule TechTree.PhaseDSecurityPerfTest do
         })
 
       {:ok, human} =
-        %HumanUser{}
-        |> HumanUser.changeset(%{
-          privy_user_id: "phase-d-privy-#{System.unique_integer([:positive])}",
-          wallet_address: "0xphaseDhuman#{System.unique_integer([:positive])}",
-          xmtp_inbox_id: "phase-d-inbox-#{System.unique_integer([:positive])}",
-          display_name: "phase-d-human"
-        })
-        |> Repo.insert()
+        (
+          wallet_address = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
+
+          %HumanUser{}
+          |> HumanUser.changeset(%{
+            privy_user_id: "phase-d-privy-#{System.unique_integer([:positive])}",
+            wallet_address: wallet_address,
+            xmtp_inbox_id: PhaseDApiSupport.deterministic_inbox_id(wallet_address),
+            display_name: "phase-d-human"
+          })
+          |> Repo.insert()
+        )
 
       assert {:ok, %{status: "pending"}} = XMTPMirror.request_join(human)
 

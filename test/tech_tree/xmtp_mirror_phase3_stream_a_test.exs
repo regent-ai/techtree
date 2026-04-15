@@ -27,6 +27,39 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert command_count(room.id, human.id, "add_member") == 1
   end
 
+  test "request_join requires a stored chat identity" do
+    _room = create_canonical_room!()
+
+    {:ok, human} =
+      Accounts.upsert_human_by_privy_id(
+        "privy-missing-inbox-#{System.unique_integer([:positive])}",
+        %{
+          "wallet_address" => "0x1111111111111111111111111111111111111111",
+          "display_name" => "human-missing-inbox"
+        }
+      )
+
+    assert %{room_present: true, state: "setup_required"} = XMTPMirror.membership_for(human)
+    assert {:error, :xmtp_identity_required} = XMTPMirror.request_join(human)
+  end
+
+  test "request_join rejects stale stored chat identities that do not match the wallet" do
+    _room = create_canonical_room!()
+
+    {:ok, human} =
+      Accounts.upsert_human_by_privy_id(
+        "privy-stale-inbox-#{System.unique_integer([:positive])}",
+        %{
+          "wallet_address" => "0x1111111111111111111111111111111111111112",
+          "xmtp_inbox_id" => "stale-inbox-id",
+          "display_name" => "human-stale-inbox"
+        }
+      )
+
+    assert %{room_present: true, state: "setup_required"} = XMTPMirror.membership_for(human)
+    assert {:error, :xmtp_identity_required} = XMTPMirror.request_join(human)
+  end
+
   test "request_join is a no-op when membership is already joined" do
     room = create_canonical_room!()
     human = create_human!("joined")
@@ -203,11 +236,12 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
 
   defp create_human!(label) do
     unique = System.unique_integer([:positive])
+    wallet_address = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
 
     {:ok, human} =
       Accounts.upsert_human_by_privy_id("privy-#{label}-#{unique}", %{
-        "wallet_address" => "0x#{label}#{unique}",
-        "xmtp_inbox_id" => "inbox-#{label}-#{unique}",
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => TechTree.PhaseDApiSupport.deterministic_inbox_id(wallet_address),
         "display_name" => "human-#{label}-#{unique}"
       })
 

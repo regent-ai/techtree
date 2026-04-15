@@ -11,38 +11,24 @@ end
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-local_database_url = env_or_dotenv.("LOCAL_DATABASE_URL", "")
 partition = System.get_env("MIX_TEST_PARTITION")
 
-if is_binary(local_database_url) and String.trim(local_database_url) != "" do
-  parsed = URI.parse(local_database_url)
-  base_path = parsed.path || "/tech_tree_test"
-  partition_suffix = if is_binary(partition), do: partition, else: ""
-  partitioned_path = "#{base_path}#{partition_suffix}"
-  test_url = %{parsed | path: partitioned_path} |> URI.to_string()
+db_user =
+  System.get_env("DB_USER") || System.get_env("PGUSER") || System.get_env("USER") || "postgres"
 
-  config :tech_tree, TechTree.Repo,
-    url: test_url,
-    pool: Ecto.Adapters.SQL.Sandbox,
-    pool_size: System.schedulers_online() * 2
-else
-  db_user =
-    env_or_dotenv.("DB_USER", env_or_dotenv.("PGUSER", System.get_env("USER") || "postgres"))
+db_pass = System.get_env("DB_PASS") || System.get_env("PGPASSWORD") || ""
+db_host = System.get_env("DB_HOST") || System.get_env("PGHOST") || "localhost"
+db_port = System.get_env("DB_PORT") || System.get_env("PGPORT") || "5432"
+db_name = "tech_tree_test#{partition}"
 
-  db_pass = env_or_dotenv.("DB_PASS", env_or_dotenv.("PGPASSWORD", ""))
-  db_host = env_or_dotenv.("DB_HOST", env_or_dotenv.("PGHOST", "localhost"))
-  db_port = env_or_dotenv.("DB_PORT", env_or_dotenv.("PGPORT", "5432"))
-  db_name = "tech_tree_test#{partition}"
-
-  config :tech_tree, TechTree.Repo,
-    username: db_user,
-    password: db_pass,
-    hostname: db_host,
-    port: String.to_integer(db_port),
-    database: db_name,
-    pool: Ecto.Adapters.SQL.Sandbox,
-    pool_size: System.schedulers_online() * 2
-end
+config :tech_tree, TechTree.Repo,
+  username: db_user,
+  password: db_pass,
+  hostname: db_host,
+  port: String.to_integer(db_port),
+  database: db_name,
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
 
 config :tech_tree, Oban, testing: :manual
 config :tech_tree, TechTreeWeb.Telemetry, enable_periodic_poller: false

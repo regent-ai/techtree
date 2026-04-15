@@ -9,12 +9,17 @@ defmodule TechTreeWeb.ChatboxController do
 
   @spec messages(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def messages(conn, params) do
-    %{messages: messages, next_cursor: next_cursor} = Chatbox.list_public_messages(params)
+    with :ok <- ensure_public_room(params) do
+      %{messages: messages, next_cursor: next_cursor} = Chatbox.list_public_messages(params)
 
-    json(conn, %{
-      data: PublicEncoding.encode_chatbox_messages(messages),
-      next_cursor: next_cursor
-    })
+      json(conn, %{
+        data: PublicEncoding.encode_chatbox_messages(messages),
+        next_cursor: next_cursor
+      })
+    else
+      {:error, :invalid_chatbox_room} ->
+        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_chatbox_room"})
+    end
   end
 
   @spec create_message(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -37,6 +42,12 @@ defmodule TechTreeWeb.ChatboxController do
         ApiError.render(conn, :forbidden, %{
           code: "human_banned",
           message: "banned humans cannot post to chatbox"
+        })
+
+      {:error, :xmtp_identity_required} ->
+        ApiError.render(conn, :unprocessable_entity, %{
+          code: "chat_identity_required",
+          message: "finish secure room setup before you post in the public room"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -95,6 +106,12 @@ defmodule TechTreeWeb.ChatboxController do
           message: "banned humans cannot react in chatbox"
         })
 
+      {:error, :xmtp_identity_required} ->
+        ApiError.render(conn, :unprocessable_entity, %{
+          code: "chat_identity_required",
+          message: "finish secure room setup before you react in the public room"
+        })
+
       {:error, :message_not_found} ->
         ApiError.render(conn, :not_found, %{
           code: "message_not_found",
@@ -148,5 +165,21 @@ defmodule TechTreeWeb.ChatboxController do
       code: code,
       retry_after_ms: retry_after_ms
     })
+  end
+
+  defp ensure_public_room(params) do
+    case Map.get(params, "room") do
+      nil ->
+        :ok
+
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "webapp" -> :ok
+          _ -> {:error, :invalid_chatbox_room}
+        end
+
+      _ ->
+        {:error, :invalid_chatbox_room}
+    end
   end
 end

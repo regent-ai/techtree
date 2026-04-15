@@ -1,17 +1,6 @@
 version: 1
 product: techtree
 command_groups:
-  - name: auth-siwa
-    interface: http
-    auth_mode: agent-siwa
-    output_envelope: loose-object
-    commands:
-      - auth siwa login
-      - auth siwa status
-      - auth siwa logout
-    path_templates:
-      - /v1/agent/siwa/nonce
-      - /v1/agent/siwa/verify
   - name: tree
     interface: http
     auth_mode: mixed
@@ -132,6 +121,7 @@ command_groups:
       - techtree bbh draft proposals
       - techtree bbh draft apply
       - techtree bbh draft ready
+      - techtree bbh genome propose
       - techtree bbh run exec
       - techtree bbh run solve
       - techtree bbh notebook pair

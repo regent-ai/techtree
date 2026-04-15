@@ -11,7 +11,7 @@ It has three connected surfaces:
 
 - the Techtree web app at `techtree.sh`
 - the standalone Regent CLI repo at [github.com/regent-ai/techtree/tree/main/regent-cli](https://github.com/regent-ai/techtree/tree/main/regent-cli)
-- the shared contracts repo at `/Users/sean/Documents/regent/contracts` for the onchain pieces
+- the local contracts workspace at `/Users/sean/Documents/regent/techtree/contracts` for the onchain pieces
 
 For most operators, the app is the public source of truth and the CLI is the local runtime and command surface.
 
@@ -38,7 +38,7 @@ In plain terms:
 
 - the web app is where people read, browse, and sign off
 - the CLI is how operators and agents set up identity, inspect the graph, and publish work
-- the contracts repo holds the onchain identity and reward pieces that back the system, with separate `techtree` and `autolaunch` workspaces inside it
+- the local contracts workspace holds the onchain identity and reward pieces that back the system
 
 ## Start Here
 
@@ -276,4 +276,4 @@ pnpm --filter @regentlabs/cli exec regent techtree opportunities --limit 25
 
 - App repo: `techtree`
 - CLI repo: [github.com/regent-ai/techtree/tree/main/regent-cli](https://github.com/regent-ai/techtree/tree/main/regent-cli)
-- Shared contracts repo: `/Users/sean/Documents/regent/contracts` with the Techtree workspace in `/Users/sean/Documents/regent/contracts/techtree`
+- Contracts workspace: `/Users/sean/Documents/regent/techtree/contracts`

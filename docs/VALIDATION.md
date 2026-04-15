@@ -5,6 +5,7 @@ This is the canonical pre-launch path for the first public Base Sepolia Techtree
 Keep the launch split explicit all the way through:
 
 - browser auth uses Privy
+- browser auth also completes the wallet-backed XMTP room identity before a person joins the public room
 - agent auth uses SIWA with Ethereum Sepolia identity
 - Techtree publishing uses the Base Sepolia registry path
 - Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` chatboxes
@@ -35,10 +36,10 @@ pnpm test:pack-smoke
 
 ### Contracts
 
-Only run when the issue was explicitly assigned. The contracts Git repo is `/Users/sean/Documents/regent/contracts`, and the Techtree Foundry workspace inside it is:
+Only run when the issue was explicitly assigned. The Techtree Foundry workspace is:
 
 ```bash
-cd /Users/sean/Documents/regent/contracts/techtree
+cd /Users/sean/Documents/regent/techtree/contracts
 forge test --offline
 ```
 

@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: >
     Source-of-truth HTTP contract for the live Techtree backend. This file owns the
-    Techtree tree API, platform API, SIWA agent auth, BBH/reviewer/certificate flows,
+    Techtree tree API, platform API, browser auth, BBH/reviewer/certificate flows,
     chatbox HTTP surfaces, autoskill endpoints, and the runtime workspace publish/fetch
     stack that the CLI runtime still uses.
 tags:
@@ -30,40 +30,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/LooseObject"
 
-  /v1/agent/siwa/nonce:
-    post:
-      operationId: techtreeSiwaNonce
-      tags: [auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SiwaNonceRequest"
-      responses:
-        "200":
-          description: Nonce issued
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SiwaNonceResponse"
-  /v1/agent/siwa/verify:
-    post:
-      operationId: techtreeSiwaVerify
-      tags: [auth]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SiwaVerifyRequest"
-      responses:
-        "200":
-          description: Verification result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SiwaVerifyResponse"
   /api/platform/explorer/tiles:
     get:
       operationId: listPlatformExplorerTiles
@@ -75,24 +41,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LooseObject"
-  /api/platform/auth/privy/session:
-    post:
-      operationId: createPlatformPrivySession
+  /api/auth/privy/csrf:
+    get:
+      operationId: techtreePrivySessionCsrf
       tags: [auth]
+      responses:
+        "200":
+          description: CSRF token for session-backed browser writes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivySessionCsrf"
+  /api/auth/privy/session:
+    post:
+      operationId: createTechtreePrivySession
+      tags: [auth]
+      security: [{ PrivyBearerToken: [] }]
       requestBody:
+        required: true
         content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LooseObject"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivySessionRequest"
       responses:
         "200":
           description: Platform session created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LooseObject"
+                $ref: "#/components/schemas/PrivySessionResponse"
     delete:
-      operationId: deletePlatformPrivySession
+      operationId: deleteTechtreePrivySession
       tags: [auth]
       responses:
         "200":
@@ -101,6 +80,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OkEnvelope"
+  /api/auth/privy/profile:
+    get:
+      operationId: getTechtreePrivyProfile
+      tags: [auth]
+      responses:
+        "200":
+          description: Current browser session profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivySessionResponse"
+  /api/auth/privy/xmtp/complete:
+    post:
+      operationId: completeTechtreePrivyXmtpIdentity
+      tags: [auth]
+      security: [{ PrivyBearerToken: [] }]
+      description: Complete XMTP setup for the wallet already opened by the current Privy session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformPrivyXmtpCompleteRequest"
+      responses:
+        "200":
+          description: Platform XMTP identity ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivySessionResponse"
 
   /v1/tree/nodes:
     get:
@@ -802,7 +811,8 @@ paths:
     post:
       operationId: createWebappChatboxMessage
       tags: [chatbox]
-      security: [{ PrivySessionCookie: [] }]
+      security: [{ PrivyBearerToken: [] }]
+      description: Create a public-room message after the signed-in person has completed secure room setup.
       requestBody:
         required: true
         content:
@@ -818,7 +828,7 @@ paths:
     get:
       operationId: getWebappChatboxMembership
       tags: [chatbox]
-      security: [{ PrivySessionCookie: [] }]
+      security: [{ PrivyBearerToken: [] }]
       responses:
         "200":
           description: Current webapp chat membership
@@ -829,7 +839,7 @@ paths:
     post:
       operationId: requestWebappChatboxJoin
       tags: [chatbox]
-      security: [{ PrivySessionCookie: [] }]
+      security: [{ PrivyBearerToken: [] }]
       requestBody:
         content:
           application/json:
@@ -844,7 +854,8 @@ paths:
     post:
       operationId: reactToWebappChatboxMessage
       tags: [chatbox]
-      security: [{ PrivySessionCookie: [] }]
+      security: [{ PrivyBearerToken: [] }]
+      description: React in the public room after the signed-in person has completed secure room setup.
       parameters:
         - $ref: "#/components/parameters/NodeId"
       requestBody:
@@ -1649,11 +1660,11 @@ components:
       description: >
         Placeholder for the signed SIWA header bundle used by authenticated agent requests.
         The concrete header set is carried by the CLI request signer.
-    PrivySessionCookie:
-      type: apiKey
-      in: cookie
-      name: _tech_tree_key
-      description: Placeholder for the Privy-backed browser session cookie.
+    PrivyBearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Placeholder for the bearer token returned by Privy-backed browser auth.
   parameters:
     NodeId:
       name: id
@@ -1714,6 +1725,108 @@ components:
             type: object
             additionalProperties: true
       additionalProperties: true
+    PrivySessionCsrf:
+      type: object
+      required: [ok, csrf_token]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        csrf_token:
+          type: string
+      additionalProperties: false
+    PrivySessionRequest:
+      type: object
+      required: [wallet_address]
+      properties:
+        wallet_address:
+          $ref: "#/components/schemas/Address"
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 80
+      additionalProperties: false
+    PlatformPrivyXmtpCompleteRequest:
+      type: object
+      required: [wallet_address, client_id, signature_request_id, signature]
+      properties:
+        wallet_address:
+          $ref: "#/components/schemas/Address"
+        client_id:
+          type: string
+          minLength: 1
+        signature_request_id:
+          type: string
+          minLength: 1
+        signature:
+          type: string
+          minLength: 1
+      additionalProperties: false
+    PlatformPrivyHuman:
+      type: object
+      required: [id, privy_user_id, role]
+      properties:
+        id:
+          type: integer
+        privy_user_id:
+          type: string
+        wallet_address:
+          oneOf:
+            - $ref: "#/components/schemas/Address"
+            - type: "null"
+        display_name:
+          oneOf:
+            - type: string
+            - type: "null"
+        role:
+          type: string
+        xmtp_inbox_id:
+          oneOf:
+            - type: string
+            - type: "null"
+      additionalProperties: false
+    PlatformPrivyXmtpState:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready, signature_required]
+        inbox_id:
+          oneOf:
+            - type: string
+            - type: "null"
+        wallet_address:
+          oneOf:
+            - $ref: "#/components/schemas/Address"
+            - type: "null"
+        client_id:
+          oneOf:
+            - type: string
+            - type: "null"
+        signature_request_id:
+          oneOf:
+            - type: string
+            - type: "null"
+        signature_text:
+          oneOf:
+            - type: string
+            - type: "null"
+      additionalProperties: false
+    PrivySessionResponse:
+      type: object
+      required: [ok, human, xmtp]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        human:
+          $ref: "#/components/schemas/PlatformPrivyHuman"
+        xmtp:
+          oneOf:
+            - $ref: "#/components/schemas/PlatformPrivyXmtpState"
+            - type: "null"
+      additionalProperties: false
     TreeNode:
       type: object
       properties:
@@ -1783,37 +1896,94 @@ components:
       additionalProperties: true
     SiwaNonceRequest:
       type: object
+      required: [wallet_address, chain_id]
       properties:
         wallet_address: { $ref: "#/components/schemas/Address" }
-        chain_id: { type: integer }
-        registry_address: { $ref: "#/components/schemas/Address" }
-        token_id: { type: string }
+        chain_id: { type: integer, minimum: 1 }
         audience: { type: string }
-      additionalProperties: true
+      additionalProperties: false
     SiwaNonceResponse:
       type: object
-      additionalProperties: true
+      required: [ok, code, data]
+      properties:
+        ok: { type: boolean, enum: [true] }
+        code: { type: string, enum: [nonce_issued] }
+        data:
+          type: object
+          required: [nonce, walletAddress, chainId, expiresAt]
+          properties:
+            nonce: { type: string }
+            walletAddress: { $ref: "#/components/schemas/Address" }
+            chainId: { type: integer, minimum: 1 }
+            expiresAt: { type: string, format: date-time }
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
     SiwaVerifyRequest:
       type: object
-      additionalProperties: true
+      required: [wallet_address, chain_id, nonce, message, signature]
+      properties:
+        wallet_address: { $ref: "#/components/schemas/Address" }
+        chain_id: { type: integer, minimum: 1 }
+        nonce: { type: string }
+        message: { type: string }
+        signature: { type: string }
+        registry_address: { $ref: "#/components/schemas/Address" }
+        token_id: { type: string }
+      additionalProperties: false
     SiwaVerifyResponse:
       type: object
-      additionalProperties: true
+      required: [ok, code, data]
+      properties:
+        ok: { type: boolean, enum: [true] }
+        code: { type: string, enum: [siwa_verified] }
+        data:
+          type: object
+          required:
+            [
+              verified,
+              walletAddress,
+              chainId,
+              nonce,
+              keyId,
+              signatureScheme,
+              receipt,
+              receiptExpiresAt
+            ]
+          properties:
+            verified: { type: boolean, enum: [true] }
+            walletAddress: { $ref: "#/components/schemas/Address" }
+            chainId: { type: integer, minimum: 1 }
+            nonce: { type: string }
+            keyId: { type: string }
+            signatureScheme: { type: string, enum: [evm_personal_sign] }
+            receipt: { type: string }
+            receiptExpiresAt: { type: string, format: date-time }
+          additionalProperties: false
+        meta:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
     ChatboxMessage:
       type: object
       properties:
         id: { type: integer }
-        room: { type: string, enum: [webapp, agent] }
+        room_id: { type: string }
         body: { type: string }
       additionalProperties: true
     ChatboxListResponse:
       type: object
-      required: [data]
+      required: [data, next_cursor]
       properties:
         data:
           type: array
           items:
             $ref: "#/components/schemas/ChatboxMessage"
+        next_cursor:
+          type: integer
+          nullable: true
       additionalProperties: true
     ChatboxPostInput:
       type: object

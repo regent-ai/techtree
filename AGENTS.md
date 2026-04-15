@@ -30,6 +30,13 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
 - For API <-> backend functionality, treat the Regent CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regent-cli`, then update Techtree backend code to match.
+- For most agent work, use Regent CLI as the normal entry path into Techtree:
+  1. run `regent techtree identities list --chain sepolia` or mint if needed
+  2. run `regent auth siwa login --registry-address ... --token-id ...`
+  3. run `regent doctor techtree`
+  4. only then use protected Techtree commands such as `node create`, `comment add`, `inbox`, `opportunities`, `autoskill buy`, and `autoskill pull`
+- If an agent bypasses Regent CLI and calls the SIWA HTTP routes directly, it must send the current request shape only: snake_case fields with an explicit `chain_id`. Do not rely on the backend to invent a chain value.
+- Agent registry and wallet addresses are stored in lowercase. Treat case variants as the same identity.
 - Contract file meanings:
   - `api-contract.openapiv3.yaml` is the source of truth for a product's HTTP backend contract, including routes, auth, request bodies, response shapes, and stable error envelopes.
   - `regent-services-contract.openapiv3.yaml` is the source of truth for shared HTTP backend contracts that are not owned by one product, such as `regent-staking`.
@@ -41,7 +48,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
   - `/Users/sean/Documents/regent/regent-cli/docs/regent-services-contract.openapiv3.yaml`
   - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
   - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
-- If work changes code in `/Users/sean/Documents/regent/techtree`, `/Users/sean/Documents/regent/regent-cli`, or `/Users/sean/Documents/regent/contracts`, it is not done until validation has been run in all three repos. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/contracts/techtree` for the Techtree contracts workspace.
+- If work changes code in `/Users/sean/Documents/regent/techtree` or `/Users/sean/Documents/regent/regent-cli`, it is not done until validation has been run in the app, the CLI repo, and the local Techtree Foundry workspace. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/techtree/contracts`.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.
@@ -101,14 +108,14 @@ Main risks:
 Hand work here when the task is mainly onchain semantics, TECH token logic, staking, emissions, registry behavior, deploy scripts, Foundry tests, or app/CLI wording that must stay aligned with contract reality.
 
 Open these files first:
-- `/Users/sean/Documents/regent/contracts/techtree/README.md`
-- `/Users/sean/Documents/regent/contracts/techtree/AGENTS.md`
-- `/Users/sean/Documents/regent/contracts/techtree/src/TechTreeRegistry.sol`
-- `/Users/sean/Documents/regent/contracts/techtree/src/TechToken.sol`
-- `/Users/sean/Documents/regent/contracts/techtree/src/TechStakingVote.sol`
-- `/Users/sean/Documents/regent/contracts/techtree/src/TechEmissionController.sol`
-- `/Users/sean/Documents/regent/contracts/techtree/script/DeployTechTreeRegistry.s.sol`
-- `/Users/sean/Documents/regent/contracts/techtree/test/utils/TechContractsBase.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/README.md`
+- `/Users/sean/Documents/regent/techtree/contracts/AGENTS.md`
+- `/Users/sean/Documents/regent/techtree/contracts/src/TechTreeRegistry.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/src/TechToken.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/src/TechStakingVote.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/src/TechEmissionController.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/script/DeployTechTreeRegistry.s.sol`
+- `/Users/sean/Documents/regent/techtree/contracts/test/utils/TechContractsBase.sol`
 
 Main risks:
 - Terminology drift between app, CLI, and contracts.
@@ -145,7 +152,7 @@ Main risks:
 
 The following work must never be auto-picked by autonomous agents unless a human explicitly assigns it:
 
-- the shared contracts repo at `/Users/sean/Documents/regent/contracts`, including `/Users/sean/Documents/regent/contracts/techtree` and `/Users/sean/Documents/regent/contracts/autolaunch`
+- the local Techtree contract workspace at `/Users/sean/Documents/regent/techtree/contracts`
 - security-sensitive auth or trust-boundary changes
 - deploy and Fly.io changes
 - database migrations and schema transitions

@@ -37,9 +37,13 @@ Scope:
 
 3. `PlatformAuthController`
 
-- only persists `display_name` and `wallet_address`
+- only persists `display_name`, `wallet_address`, and the current XMTP inbox id for that wallet
 - does not trust client-supplied roles
+- requires a valid Privy bearer token before it writes the browser session
 - writes the browser session only after Privy JWT verification succeeds
+- requires a connected wallet address before it opens the browser session
+- creates or reopens the stored XMTP inbox id during session setup and uses a second wallet-sign step when the inbox is not ready yet
+- clears only the Privy session key on logout instead of dropping the full browser session
 
 ## Residual launch checks
 

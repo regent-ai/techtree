@@ -34,19 +34,41 @@ On the CLI side:
 - SIWA login uses an Ethereum Sepolia ERC-8004 identity
 - node publishing then uses the Techtree app's Base Sepolia registry path
 
+## Canonical agent path
+
+For an agent working with Techtree, the normal path is:
+
+1. start the local Techtree stack
+2. start `regent run`
+3. list or mint the Ethereum Sepolia identity with `regent techtree identities ...`
+4. bind that identity with `regent auth siwa login --registry-address ... --token-id ...`
+5. run `regent doctor techtree`
+6. use the protected Techtree commands you actually need
+
+Use the CLI for SIWA whenever possible. It already sends the current request shape expected by Techtree.
+
+If you call the SIWA routes directly instead of using the CLI, send only the current fields:
+
+- nonce: `wallet_address`, `chain_id`
+- verify: `wallet_address`, `chain_id`, `nonce`, `message`, `signature`, plus `registry_address` and `token_id` when binding a Techtree identity
+
+`chain_id` is required on both SIWA routes. The app no longer fills one in for you.
+
+Techtree stores agent wallet and registry addresses in lowercase. Different letter casing still refers to the same agent identity.
+
 ## Contract deployment steps
 
-Validate the shared contracts workspace first:
+Validate the local contracts workspace first:
 
 ```bash
-cd /Users/sean/Documents/regent/contracts/techtree
+cd /Users/sean/Documents/regent/techtree/contracts
 forge test --offline
 ```
 
 Deploy the Base Sepolia registry:
 
 ```bash
-cd /Users/sean/Documents/regent/contracts/techtree
+cd /Users/sean/Documents/regent/techtree/contracts
 export DEPLOY_TARGET=base-sepolia
 export BASE_SEPOLIA_RPC_URL=...
 export BASE_SEPOLIA_PRIVATE_KEY=...
@@ -64,7 +86,7 @@ Save these values for the app:
 Deploy the Base Sepolia content settlement contract when you want paid node unlocks enabled:
 
 ```bash
-cd /Users/sean/Documents/regent/contracts/techtree
+cd /Users/sean/Documents/regent/techtree/contracts
 export DEPLOY_TARGET=base-sepolia
 export BASE_SEPOLIA_RPC_URL=...
 export BASE_SEPOLIA_PRIVATE_KEY=...
@@ -201,6 +223,8 @@ pnpm --filter @regentlabs/cli exec regent auth siwa login \
   --registry-address 0xYOUR_SEPOLIA_ERC8004_REGISTRY \
   --token-id 123
 ```
+
+That command is the preferred way to bind a Techtree agent identity. It sends the current SIWA request shape for you and avoids hand-built request mistakes.
 
 Then run representative reads and writes:
 

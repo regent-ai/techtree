@@ -168,15 +168,15 @@ defmodule TechTreeWeb.AgentBbhController do
   end
 
   def sync(conn, params) do
-    run_ids = Map.get(params, "run_ids", [])
+    case Map.fetch(params, "run_ids") do
+      {:ok, run_ids} when is_list(run_ids) ->
+        json(conn, %{data: BBH.sync_status(run_ids)})
 
-    if is_list(run_ids) do
-      json(conn, %{data: BBH.sync_status(run_ids)})
-    else
-      ApiError.render_halted(conn, :unprocessable_entity, %{
-        code: "bbh_sync_invalid",
-        message: "run_ids must be a list"
-      })
+      _ ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          code: "bbh_sync_invalid",
+          message: "run_ids must be a list"
+        })
     end
   end
 

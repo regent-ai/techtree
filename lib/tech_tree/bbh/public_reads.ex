@@ -69,12 +69,18 @@ defmodule TechTree.BBH.PublicReads do
         nil
 
       run ->
-        %{
-          run: run,
-          capsule: Repo.get!(Capsule, run.capsule_id),
-          genome: Repo.get!(Genome, run.genome_id),
-          validations: list_validations(run.run_id)
-        }
+        case {Repo.get(Capsule, run.capsule_id), Repo.get(Genome, run.genome_id)} do
+          {%Capsule{} = capsule, %Genome{} = genome} ->
+            %{
+              run: run,
+              capsule: capsule,
+              genome: genome,
+              validations: list_validations(run.run_id)
+            }
+
+          _ ->
+            nil
+        end
     end
   end
 

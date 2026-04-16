@@ -4,6 +4,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
   import Phoenix.LiveViewTest
 
   alias TechTree.BBHFixtures
+  alias TechTree.Repo
 
   test "renders the wall-first leaderboard with separated official strip", %{conn: conn} do
     %{capsule: capsule} =
@@ -153,5 +154,23 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
       live(conn, ~p"/bbh/runs/0x9999999999999999999999999999999999999999999999999999999999999999")
 
     assert render(missing_view) =~ "Run not found"
+  end
+
+  test "run page failure copy no longer points every lane to the next climb", %{conn: conn} do
+    %{run: run, validation: validation} =
+      BBHFixtures.insert_validated_benchmark_bundle!(%{
+        genome_label: "rejected-run",
+        title: "Rejected Run",
+        model_id: "gpt-rejected"
+      })
+
+    validation
+    |> Ecto.Changeset.change(%{result: "rejected"})
+    |> Repo.update!()
+
+    {:ok, view, _html} = live(conn, ~p"/bbh/runs/#{run.run_id}")
+
+    assert render(view) =~ "needs another clean replay before it can move forward"
+    refute render(view) =~ "next climb"
   end
 end

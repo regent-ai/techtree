@@ -172,7 +172,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
                       {if validation.reproducible,
                         do: "Replay held cleanly and supports reviewed public status for this lane.",
                         else:
-                          "Replay did not hold, so this run stays wall-only until the next climb lands cleanly."}
+                          "Replay did not hold, so this run needs another clean replay before it can move forward."}
                     </p>
                     <dl class="bbh-validation-grid">
                       <div>

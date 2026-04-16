@@ -5,7 +5,12 @@ defmodule TechTree.BBH.RunIngest do
   alias TechTree.BBH.{Assignment, Genome, Helpers, Run, Validation}
   alias TechTree.Repo
 
+  @bbh_splits ["climb", "benchmark", "challenge", "draft"]
   @official_splits ["benchmark", "challenge"]
+  @run_source_statuses ["created", "running", "completed", "failed"]
+  @validation_roles ["official", "community"]
+  @review_methods ["replay", "manual", "replication"]
+  @review_results ["confirmed", "rejected", "mixed", "needs_revision"]
 
   def create_run(attrs) when is_map(attrs) do
     genome_source = Helpers.required_map(attrs, "genome_source")
@@ -22,7 +27,9 @@ defmodule TechTree.BBH.RunIngest do
          {:ok, score} <- score_from_workspace(workspace),
          :ok <- :ok do
       Multi.new()
-      |> Multi.run(:genome, fn repo, _changes -> insert_or_fetch_genome(repo, genome_changeset) end)
+      |> Multi.run(:genome, fn repo, _changes ->
+        insert_or_fetch_genome(repo, genome_changeset)
+      end)
       |> Multi.run(:run, fn repo, %{genome: genome} ->
         with {:ok, run_changeset} <-
                run_changeset(
@@ -164,7 +171,18 @@ defmodule TechTree.BBH.RunIngest do
     workspace_run_log = Helpers.optional_binary(workspace, "run_log")
     search_log = Helpers.optional_binary(workspace, "search_log")
     search_summary = Helpers.optional_map(workspace, "search_summary_json")
-    status = Map.get(run_source, "status") || "completed"
+
+    status =
+      run_source
+      |> Map.get("status", "completed")
+      |> required_enum("run_source.status", @run_source_statuses)
+
+    split =
+      run_source
+      |> Helpers.required_map("bbh")
+      |> Helpers.required_binary("split")
+      |> required_enum("run_source.bbh.split", @bbh_splits)
+
     run_source = normalize_run_source(run_source, search_summary)
 
     attrs = %{
@@ -176,7 +194,7 @@ defmodule TechTree.BBH.RunIngest do
       executor_type: Helpers.required_binary(executor, "type"),
       harness_type: Helpers.required_binary(executor, "harness"),
       harness_version: Helpers.required_binary(executor, "harness_version"),
-      split: Helpers.required_binary(Helpers.required_map(run_source, "bbh"), "split"),
+      split: split,
       status: normalize_run_status(status, score),
       raw_score: score.raw,
       normalized_score: score.normalized,
@@ -200,6 +218,8 @@ defmodule TechTree.BBH.RunIngest do
     _ = Helpers.required_binary(evaluator, "scorer_version")
 
     {:ok, Run.changeset(%Run{}, attrs)}
+  rescue
+    error in [ArgumentError] -> {:error, error}
   end
 
   defp validation_changeset(validation_id, run, review_source, workspace) do
@@ -209,9 +229,18 @@ defmodule TechTree.BBH.RunIngest do
       validation_id: validation_id,
       run_id: run.run_id,
       canonical_review_id: Map.get(review_source, "canonical_review_id"),
-      role: Helpers.required_binary(bbh, "role"),
-      method: Helpers.required_binary(review_source, "method"),
-      result: Helpers.required_binary(review_source, "result"),
+      role:
+        bbh
+        |> Helpers.required_binary("role")
+        |> required_enum("review_source.bbh.role", @validation_roles),
+      method:
+        review_source
+        |> Helpers.required_binary("method")
+        |> required_enum("review_source.method", @review_methods),
+      result:
+        review_source
+        |> Helpers.required_binary("result")
+        |> required_enum("review_source.result", @review_results),
       reproduced_raw_score: bbh["reproduced_raw_score"],
       reproduced_normalized_score: bbh["reproduced_normalized_score"],
       tolerance_raw_abs: Map.get(bbh, "raw_abs_tolerance", 0.01),
@@ -223,6 +252,8 @@ defmodule TechTree.BBH.RunIngest do
     }
 
     {:ok, Validation.changeset(%Validation{}, attrs)}
+  rescue
+    error in [ArgumentError] -> {:error, error}
   end
 
   defp maybe_complete_assignment(_repo, nil), do: {:ok, nil}
@@ -240,8 +271,12 @@ defmodule TechTree.BBH.RunIngest do
   end
 
   defp next_run_status(review_source) do
-    result = Helpers.required_binary(review_source, "result")
-    if result == "confirmed", do: "validated", else: "rejected"
+    case Helpers.required_binary(review_source, "result") do
+      "confirmed" -> "validated"
+      "rejected" -> "rejected"
+      "mixed" -> "rejected"
+      "needs_revision" -> "rejected"
+    end
   end
 
   defp score_from_workspace(workspace) do
@@ -251,7 +286,6 @@ defmodule TechTree.BBH.RunIngest do
     raw =
       cond do
         is_number(metrics["raw_score"]) -> metrics["raw_score"] * 1.0
-        is_number(metrics["primary"]) -> metrics["primary"] * 1.0
         true -> raise ArgumentError, "workspace.verdict_json.metrics.raw_score is required"
       end
 
@@ -267,9 +301,17 @@ defmodule TechTree.BBH.RunIngest do
   end
 
   defp normalize_run_status("completed", _score), do: "validation_pending"
+  defp normalize_run_status("created", _score), do: "validation_pending"
   defp normalize_run_status("failed", _score), do: "failed"
   defp normalize_run_status("running", _score), do: "running"
-  defp normalize_run_status(_status, _score), do: "validation_pending"
+
+  defp required_enum(value, field, allowed_values) when is_binary(value) do
+    if value in allowed_values do
+      value
+    else
+      raise ArgumentError, "#{field} must be one of: #{Enum.join(allowed_values, ", ")}"
+    end
+  end
 
   defp normalize_run_source(run_source, nil), do: run_source
 

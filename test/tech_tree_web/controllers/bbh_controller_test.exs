@@ -1,6 +1,8 @@
 defmodule TechTreeWeb.BbhControllerTest do
   use TechTreeWeb.ConnCase, async: true
 
+  import Ecto.Query
+
   alias TechTree.BBHFixtures
 
   test "GET /v1/bbh/leaderboard returns official validated benchmark entries", %{conn: conn} do
@@ -191,12 +193,12 @@ defmodule TechTreeWeb.BbhControllerTest do
 
     assert %{
              "data" => %{
-                "genome" => %{
-                  "genome_id" => genome_id,
-                  "label" => label
-                }
-              }
-            } = genome_response
+               "genome" => %{
+                 "genome_id" => genome_id,
+                 "label" => label
+               }
+             }
+           } = genome_response
 
     assert genome_id == genome.genome_id
     assert label == genome.label
@@ -251,6 +253,21 @@ defmodule TechTreeWeb.BbhControllerTest do
     assert %{"error" => %{"code" => "bbh_run_not_found"}} =
              conn
              |> get("/v1/bbh/runs/missing")
+             |> json_response(404)
+  end
+
+  test "GET /v1/bbh/runs/:id returns not found when linked records are missing", %{conn: conn} do
+    %{run: run} = BBHFixtures.insert_validated_benchmark_bundle!()
+
+    TechTree.Repo.query!("ALTER TABLE bbh_runs DROP CONSTRAINT bbh_runs_genome_id_fkey")
+
+    TechTree.BBH.Run
+    |> where([record], record.run_id == ^run.run_id)
+    |> TechTree.Repo.update_all(set: [genome_id: "missing-genome"])
+
+    assert %{"error" => %{"code" => "bbh_run_not_found"}} =
+             conn
+             |> get("/v1/bbh/runs/#{run.run_id}")
              |> json_response(404)
   end
 end

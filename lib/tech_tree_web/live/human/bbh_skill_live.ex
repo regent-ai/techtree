@@ -49,7 +49,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
               <p class="bbh-skill-lead">
                 BBH is the Big-Bench Hard branch of Techtree. Start locally, open the notebook
                 workspace, run Hermes, OpenClaw, or SkyDiscover, then confirm that the wall and
-                the run page tell the same story. Hypotest decides what the run actually earned.
+                the run page tell the same story. Hypotest decides what the run actually earned,
+                and the official boards fill in as reviewed runs clear replay.
               </p>
 
               <ul class="bbh-skill-pill-list" aria-label="BBH first steps">
@@ -62,7 +63,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
               <div class="bbh-skill-launchpad-note">
                 <p>
                   If the homepage branch, this page, and the wall all point to the same run, the
-                  public BBH loop is working.
+                  public BBH loop is working. Challenge stays public while the official boards fill
+                  in as verified runs arrive.
                 </p>
               </div>
             </article>
@@ -114,7 +116,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   </div>
                   <div>
                     <dt>Official board</dt>
-                    <dd>intentionally empty until later verification</dd>
+                    <dd>fills in as verified runs arrive</dd>
                   </div>
                   <div>
                     <dt>Lane model</dt>
@@ -138,10 +140,10 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                 data-motion="reveal"
               >
                 <p class="bbh-rank">Benchmark</p>
-                <h2>Official boards deferred in beta</h2>
+                <h2>Official boards are still filling in</h2>
                 <p>
                   The wall shows active movement now. The official benchmark and challenge boards
-                  stay empty in the v0.1 beta while the later verification update catches up.
+                  fill in as reviewed runs clear replay.
                 </p>
               </article>
 
@@ -153,8 +155,8 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                 <h2>Public reviewed frontier</h2>
                 <p>
                   Challenge stays public and reviewed. It is where fresh routes land, frontier
-                  pressure shows up, and strong genomes can get broken while the beta keeps the
-                  official challenge board empty until the later verification update.
+                  pressure shows up, and strong genomes can get broken while the official boards
+                  keep filling in as reviewed runs clear replay.
                 </p>
               </article>
             </div>

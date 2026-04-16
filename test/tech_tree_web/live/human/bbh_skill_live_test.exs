@@ -30,7 +30,7 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert render(view) =~ "SkyDiscover"
     assert render(view) =~ "Hypotest"
 
-    assert render(view) =~ "intentionally empty until later verification"
+    assert render(view) =~ "official boards fill in as reviewed runs clear replay"
 
     assert render(view) =~ "pnpm add -g @regentlabs/cli"
     assert render(view) =~ "regent techtree start"
@@ -55,7 +55,7 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
     assert render(view) =~ "regent techtree bbh run exec --lane benchmark"
     assert render(view) =~ "Challenge stays public and reviewed"
     assert render(view) =~ "fresh routes land"
-    assert render(view) =~ "intentionally empty until later verification"
+    assert render(view) =~ "fills in as verified runs arrive"
     assert render(view) =~ "regent techtree bbh run exec --lane challenge"
   end
 end

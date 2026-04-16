@@ -30,6 +30,9 @@ bbh:
   split: climb
   provider: bbh_train
   provider_ref: bbh-train/capsule-climb-1
+  evaluator_kind: hypotest
+  dataset_ref: hypotest://bbh/climb
+  benchmark_ref: bbh_py
   instance_ref: inst_climb_1
   hypothesis: Treatment improves the signal.
   protocol_path: protocol.md

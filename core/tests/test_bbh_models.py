@@ -42,11 +42,20 @@ def test_bbh_positive_validation_cases() -> None:
     assert challenge_capsule.bbh.split == "challenge"
     assert draft_capsule.bbh.split == "draft"
     assert published_challenge.bbh.split == "challenge"
+    assert climb_capsule.bbh.dataset_ref == "hypotest://bbh/climb"
     assert genome.model_id == "gpt-test"
     assert climb_run.bbh.split == "climb"
+    assert climb_run.solver.kind == "hermes"
+    assert benchmark_run.solver.kind == "skydiscover"
+    assert benchmark_run.search.algorithm == "adaevolve"
+    assert benchmark_run.search.summary.iterations_completed == 8
+    assert benchmark_run.paths.search_summary_path == "outputs/skydiscover/search_summary.json"
+    assert benchmark_run.evaluator.dataset_ref == "hypotest://bbh/benchmark"
     assert benchmark_run.bbh.assignment_ref == "assign_benchmark_1"
     assert challenge_run.instance.family_ref == "fam_challenge_1"
+    assert review.bbh.dataset_ref == "hypotest://bbh/benchmark"
     assert review.bbh.role == "official"
+    assert review.bbh.score_match is True
 
 
 def test_fixed_artifact_requires_instance_ref() -> None:
@@ -112,6 +121,22 @@ def test_genome_executor_id_must_match_bbh_genome_ref() -> None:
     payload["executor"]["id"] = "genome:beta"
 
     with pytest.raises(ValueError, match="must match bbh.genome_ref"):
+        BbhRunSourceV1.model_validate(payload)
+
+
+def test_skydiscover_runs_require_search_metadata() -> None:
+    payload = load_fixture("run_benchmark_fixed.source.yaml")
+    payload["search"] = None
+
+    with pytest.raises(ValueError, match="requires search metadata"):
+        BbhRunSourceV1.model_validate(payload)
+
+
+def test_non_skydiscover_runs_cannot_carry_search_metadata() -> None:
+    payload = load_fixture("run_climb_fixed.source.yaml")
+    payload["search"] = {"algorithm": "adaevolve"}
+
+    with pytest.raises(ValueError, match="search may only be present"):
         BbhRunSourceV1.model_validate(payload)
 
 

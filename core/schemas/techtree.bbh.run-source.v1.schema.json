@@ -1,5 +1,64 @@
 {
   "$defs": {
+    "ArtifactManifestEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "workspace_file",
+            "generated_output",
+            "report",
+            "checkpoint_pointer",
+            "data_file"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "required_for_validation": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required For Validation"
+        },
+        "sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Bytes"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "sha256"
+      ],
+      "title": "ArtifactManifestEntry",
+      "type": "object"
+    },
     "BbhRunProfile": {
       "additionalProperties": false,
       "properties": {
@@ -80,6 +139,13 @@
       "title": "BbhRunProfile",
       "type": "object"
     },
+    "EvaluatorKind": {
+      "enum": [
+        "hypotest"
+      ],
+      "title": "EvaluatorKind",
+      "type": "string"
+    },
     "HarnessType": {
       "enum": [
         "openclaw",
@@ -107,6 +173,43 @@
       ],
       "title": "Provider",
       "type": "string"
+    },
+    "RunEvaluator": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Benchmark Ref"
+        },
+        "dataset_ref": {
+          "minLength": 1,
+          "title": "Dataset Ref",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/EvaluatorKind"
+        },
+        "scorer_version": {
+          "minLength": 1,
+          "title": "Scorer Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "dataset_ref",
+        "scorer_version"
+      ],
+      "title": "RunEvaluator",
+      "type": "object"
     },
     "RunExecutor": {
       "additionalProperties": false,
@@ -251,6 +354,76 @@
           "title": "Analysis Path",
           "type": "string"
         },
+        "best_program_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/best_program.py",
+          "title": "Best Program Path"
+        },
+        "best_solution_patch_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/best_solution.patch",
+          "title": "Best Solution Patch Path"
+        },
+        "checkpoint_pointer_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/latest_checkpoint.txt",
+          "title": "Checkpoint Pointer Path"
+        },
+        "evaluator_artifacts_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/evaluator_artifacts.json",
+          "title": "Evaluator Artifacts Path"
+        },
+        "evaluator_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "eval/hypotest_skydiscover.py",
+          "title": "Evaluator Path"
+        },
         "final_answer_path": {
           "anyOf": [
             {
@@ -307,6 +480,62 @@
           "default": "outputs/report.html",
           "title": "Report Path"
         },
+        "search_config_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "search.config.yaml",
+          "title": "Search Config Path"
+        },
+        "search_log_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/search.log",
+          "title": "Search Log Path"
+        },
+        "search_summary_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "outputs/skydiscover/search_summary.json",
+          "title": "Search Summary Path"
+        },
+        "seed_program_path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "solver/initial_program.py",
+          "title": "Seed Program Path"
+        },
         "verdict_path": {
           "default": "outputs/verdict.json",
           "maxLength": 512,
@@ -351,6 +580,145 @@
       "title": "RunScore",
       "type": "object"
     },
+    "RunSearch": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": {
+          "minLength": 1,
+          "title": "Algorithm",
+          "type": "string"
+        },
+        "budget": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Budget"
+        },
+        "checkpoint_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpoint Ref"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunSearchSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "algorithm"
+      ],
+      "title": "RunSearch",
+      "type": "object"
+    },
+    "RunSearchSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Artifact Keys",
+          "type": "array"
+        },
+        "best_iteration": {
+          "minimum": 0,
+          "title": "Best Iteration",
+          "type": "integer"
+        },
+        "best_score": {
+          "title": "Best Score",
+          "type": "number"
+        },
+        "checkpoint_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpoint Ref"
+        },
+        "elapsed_ms": {
+          "minimum": 0,
+          "title": "Elapsed Ms",
+          "type": "integer"
+        },
+        "iterations_completed": {
+          "minimum": 0,
+          "title": "Iterations Completed",
+          "type": "integer"
+        },
+        "iterations_requested": {
+          "minimum": 1,
+          "title": "Iterations Requested",
+          "type": "integer"
+        },
+        "total_evaluations": {
+          "minimum": 0,
+          "title": "Total Evaluations",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "best_score",
+        "best_iteration",
+        "iterations_requested",
+        "iterations_completed",
+        "total_evaluations",
+        "elapsed_ms"
+      ],
+      "title": "RunSearchSummary",
+      "type": "object"
+    },
+    "RunSolver": {
+      "additionalProperties": false,
+      "properties": {
+        "entrypoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entrypoint"
+        },
+        "kind": {
+          "$ref": "#/$defs/SolverKind"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "RunSolver",
+      "type": "object"
+    },
     "RunStatus": {
       "enum": [
         "created",
@@ -359,6 +727,15 @@
         "failed"
       ],
       "title": "RunStatus",
+      "type": "string"
+    },
+    "SolverKind": {
+      "enum": [
+        "hermes",
+        "openclaw",
+        "skydiscover"
+      ],
+      "title": "SolverKind",
       "type": "string"
     },
     "Split": {
@@ -374,6 +751,13 @@
   },
   "additionalProperties": false,
   "properties": {
+    "artifact_manifest": {
+      "items": {
+        "$ref": "#/$defs/ArtifactManifestEntry"
+      },
+      "title": "Artifact Manifest",
+      "type": "array"
+    },
     "artifact_ref": {
       "maxLength": 256,
       "minLength": 1,
@@ -382,6 +766,9 @@
     },
     "bbh": {
       "$ref": "#/$defs/BbhRunProfile"
+    },
+    "evaluator": {
+      "$ref": "#/$defs/RunEvaluator"
     },
     "executor": {
       "$ref": "#/$defs/RunExecutor"
@@ -424,6 +811,20 @@
       ],
       "default": null
     },
+    "search": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RunSearch"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "solver": {
+      "$ref": "#/$defs/RunSolver"
+    },
     "status": {
       "$ref": "#/$defs/RunStatus",
       "default": "created"
@@ -432,7 +833,9 @@
   "required": [
     "artifact_ref",
     "executor",
+    "solver",
     "instance",
+    "evaluator",
     "bbh"
   ],
   "title": "BbhRunSourceV1",

@@ -40,6 +40,12 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     assert is_binary(capsule_id) and capsule_id != ""
     assert response["data"]["capsule"]["title"]
     assert response["data"]["capsule"]["protocol_md"]
+
+    assert get_in(response, ["data", "capsule", "execution_defaults", "solver", "kind"]) ==
+             "skydiscover"
+
+    assert get_in(response, ["data", "capsule", "execution_defaults", "solver", "search_algorithm"]) ==
+             "best_of_n"
   end
 
   test "POST /v1/agent/bbh/assignments/select returns a selected climb capsule", %{conn: conn} do
@@ -85,7 +91,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
       conn
       |> with_siwa_headers([])
       |> post("/v1/agent/bbh/runs", payload)
-      |> json_response(200)
+      |> json_response(201)
 
     assert %{
              "data" => %{
@@ -102,6 +108,15 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     run = Repo.get!(Run, run_id)
     assert run.capsule_id == capsule.capsule_id
     assert run.status == "validation_pending"
+    assert run.score_source == "hypotest:hypotest-v1"
+    assert get_in(run.run_source, ["solver", "kind"]) == "skydiscover"
+    assert get_in(run.run_source, ["search", "summary", "iterations_completed"]) == 6
+
+    assert get_in(run.run_source, ["paths", "search_summary_path"]) ==
+             "outputs/skydiscover/search_summary.json"
+
+    assert length(get_in(run.run_source, ["artifact_manifest"]) || []) > 0
+    assert get_in(run.run_source, ["evaluator", "dataset_ref"]) == "hypotest://bbh/climb"
   end
 
   test "benchmark and challenge submissions require an assignment_ref", %{conn: conn} do
@@ -155,7 +170,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
       conn
       |> with_siwa_headers([])
       |> post("/v1/agent/bbh/validations", payload)
-      |> json_response(200)
+      |> json_response(201)
 
     assert %{
              "data" => %{
@@ -171,6 +186,12 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
              Repo.get!(Validation, validation_id)
 
     assert Repo.get!(Run, run.run_id).status == "validated"
+
+    assert get_in(Repo.get!(Validation, validation_id).review_source, ["bbh", "evaluator_kind"]) ==
+             "hypotest"
+
+    assert get_in(Repo.get!(Validation, validation_id).review_source, ["bbh", "score_match"]) ==
+             true
   end
 
   test "POST /v1/agent/bbh/sync returns statuses for submitted runs", %{conn: conn} do

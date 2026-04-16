@@ -143,6 +143,9 @@ class Capsule:
                 "language": self.language,
                 "provider": self.provider,
                 "provider_ref": self.provider_ref,
+                "evaluator_kind": "hypotest",
+                "dataset_ref": self.provider_ref,
+                "benchmark_ref": self.family_ref or self.capsule_id,
                 "family_ref": self.family_ref,
                 "instance_ref": self.instance_ref,
                 "hypothesis": self.hypothesis,
@@ -174,6 +177,15 @@ class MaterializedWorkspace:
     run_log_path: Path
     data_dir: Path
     dist_dir: Path
+    search_config_path: Path | None = None
+    evaluator_py_path: Path | None = None
+    seed_program_path: Path | None = None
+    best_program_path: Path | None = None
+    search_summary_json_path: Path | None = None
+    evaluator_artifacts_json_path: Path | None = None
+    checkpoint_pointer_path: Path | None = None
+    best_solution_patch_path: Path | None = None
+    search_log_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,4 +206,7 @@ class ValidationResult:
     reproduced_normalized_score: float
     raw_abs_tolerance: float
     matches: bool
+    submitted_program_sha256: str | None
+    reproduced_program_sha256: str | None
+    artifact_match: bool
     review_source_path: Path

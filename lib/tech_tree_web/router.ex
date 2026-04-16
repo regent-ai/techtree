@@ -101,7 +101,6 @@ defmodule TechTreeWeb.Router do
     get "/csrf", PlatformAuthController, :csrf
     post "/session", PlatformAuthController, :create
     get "/profile", PlatformAuthController, :show
-    post "/xmtp/complete", PlatformAuthController, :complete_xmtp
     delete "/session", PlatformAuthController, :delete
   end
 

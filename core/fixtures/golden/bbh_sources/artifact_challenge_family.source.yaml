@@ -35,6 +35,9 @@ bbh:
   split: challenge
   provider: bbh
   provider_ref: bbh/capsule-challenge-family-1
+  evaluator_kind: hypotest
+  dataset_ref: hypotest://bbh/challenge
+  benchmark_ref: bbh_py
   family_ref: fam_challenge_1
   hypothesis: Challenge family hypothesis.
   protocol_path: protocol.md

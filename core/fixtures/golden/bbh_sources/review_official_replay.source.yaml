@@ -11,3 +11,10 @@ bbh:
   reproduced_raw_score: 4.2
   reproduced_normalized_score: 0.84
   raw_abs_tolerance: 0.01
+  evaluator_kind: hypotest
+  dataset_ref: hypotest://bbh/benchmark
+  scorer_version: v1
+  submitted_program_sha256: sha256:1111111111111111111111111111111111111111111111111111111111111111
+  reproduced_program_sha256: sha256:1111111111111111111111111111111111111111111111111111111111111111
+  score_match: true
+  artifact_match: true

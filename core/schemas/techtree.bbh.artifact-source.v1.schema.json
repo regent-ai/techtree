@@ -59,12 +59,29 @@
         "assignment_policy": {
           "$ref": "#/$defs/AssignmentPolicy"
         },
+        "benchmark_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Benchmark Ref"
+        },
         "data_refs": {
           "items": {
             "$ref": "#/$defs/BbhDataRef"
           },
           "title": "Data Refs",
           "type": "array"
+        },
+        "dataset_ref": {
+          "minLength": 1,
+          "title": "Dataset Ref",
+          "type": "string"
         },
         "difficulty": {
           "anyOf": [
@@ -78,6 +95,9 @@
           ],
           "default": null,
           "title": "Difficulty"
+        },
+        "evaluator_kind": {
+          "$ref": "#/$defs/EvaluatorKind"
         },
         "family_ref": {
           "anyOf": [
@@ -163,6 +183,8 @@
         "split",
         "provider",
         "provider_ref",
+        "evaluator_kind",
+        "dataset_ref",
         "hypothesis",
         "assignment_policy"
       ],
@@ -279,6 +301,13 @@
       },
       "title": "EnvironmentSystem",
       "type": "object"
+    },
+    "EvaluatorKind": {
+      "enum": [
+        "hypotest"
+      ],
+      "title": "EvaluatorKind",
+      "type": "string"
     },
     "FamilyEvalSpec": {
       "additionalProperties": false,

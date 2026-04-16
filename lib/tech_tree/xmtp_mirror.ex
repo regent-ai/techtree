@@ -20,6 +20,9 @@ defmodule TechTree.XMTPMirror do
   @default_capacity 200
   @default_presence_ttl_seconds 120
 
+  @type room_admin_action_error ::
+          :human_not_found | :human_banned | :room_not_found | :xmtp_identity_required
+
   @spec ensure_room(map()) :: {:ok, XmtpRoom.t()} | {:error, Ecto.Changeset.t()}
   def ensure_room(attrs) when is_map(attrs) do
     key = value_for(attrs, :room_key)
@@ -313,17 +316,27 @@ defmodule TechTree.XMTPMirror do
     end
   end
 
-  @spec add_human_to_canonical_room(integer() | String.t()) :: :ok
-  def add_human_to_canonical_room(human_id) do
-    human = Repo.get!(HumanUser, QueryHelpers.normalize_id(human_id))
-    _ = request_join(human, %{})
-    :ok
+  @spec add_human_to_canonical_room(integer() | String.t()) ::
+          :ok | {:error, room_admin_action_error()}
+  def add_human_to_canonical_room(human_id) when is_integer(human_id) or is_binary(human_id) do
+    with {:ok, human} <- fetch_human(human_id),
+         {:ok, _result} <- request_join(human, %{}) do
+      :ok
+    end
   end
 
-  @spec remove_human_from_canonical_room(integer() | String.t()) :: :ok
-  def remove_human_from_canonical_room(human_id) do
-    human = Repo.get!(HumanUser, QueryHelpers.normalize_id(human_id))
+  @spec remove_human_from_canonical_room(integer() | String.t()) ::
+          :ok | {:error, room_admin_action_error()}
+  def remove_human_from_canonical_room(human_id)
+      when is_integer(human_id) or is_binary(human_id) do
+    with {:ok, human} <- fetch_human(human_id) do
+      remove_human_from_canonical_room(human)
+    end
+  end
 
+  @spec remove_human_from_canonical_room(HumanUser.t()) ::
+          :ok | {:error, room_admin_action_error()}
+  def remove_human_from_canonical_room(%HumanUser{} = human) do
     case resolve_join_room(%{}) do
       {:ok, room} ->
         case membership_state_for(human, room) do
@@ -336,17 +349,27 @@ defmodule TechTree.XMTPMirror do
           _ ->
             case require_human_inbox_id(human) do
               {:ok, inbox_id} ->
-                _ = create_membership_command(human, room, inbox_id, "remove_member")
+                case create_membership_command(human, room, inbox_id, "remove_member") do
+                  {:ok, _command} -> :ok
+                  {:error, reason} -> {:error, reason}
+                end
 
               {:error, :xmtp_identity_required} ->
-                :ok
+                {:error, :xmtp_identity_required}
             end
-
-            :ok
         end
 
       {:error, _} ->
-        :ok
+        {:error, :room_not_found}
+    end
+  end
+
+  @spec best_effort_remove_human_from_canonical_room(integer() | String.t()) :: :ok
+  def best_effort_remove_human_from_canonical_room(human_id)
+      when is_integer(human_id) or is_binary(human_id) do
+    case remove_human_from_canonical_room(human_id) do
+      :ok -> :ok
+      {:error, _reason} -> :ok
     end
   end
 
@@ -522,6 +545,13 @@ defmodule TechTree.XMTPMirror do
       {:ok, inbox_id} -> {:ok, inbox_id}
       {:error, :wallet_address_required} -> {:error, :xmtp_identity_required}
       {:error, :xmtp_identity_required} -> {:error, :xmtp_identity_required}
+    end
+  end
+
+  defp fetch_human(human_id) do
+    case Repo.get(HumanUser, QueryHelpers.normalize_id(human_id)) do
+      %HumanUser{} = human -> {:ok, human}
+      nil -> {:error, :human_not_found}
     end
   end
 

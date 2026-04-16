@@ -6,6 +6,9 @@ executor:
   harness: hermes
   harness_version: 1.0.0
   profile: bbh
+solver:
+  kind: hermes
+  entrypoint: hermes
 instance:
   instance_ref: inst_climb_1
   family_ref: null
@@ -14,10 +17,31 @@ origin:
   workload: bbh
   transport: api
   trigger: assignment
+paths:
+  analysis_path: analysis.py
+  verdict_path: outputs/verdict.json
+  final_answer_path: final_answer.md
+  report_path: outputs/report.html
+  log_path: outputs/run.log
+  genome_path: genome.source.yaml
+  search_config_path: search.config.yaml
+  evaluator_path: eval/hypotest_skydiscover.py
+  seed_program_path: solver/initial_program.py
+  best_program_path: outputs/skydiscover/best_program.py
+  search_summary_path: outputs/skydiscover/search_summary.json
+  evaluator_artifacts_path: outputs/skydiscover/evaluator_artifacts.json
+  checkpoint_pointer_path: outputs/skydiscover/latest_checkpoint.txt
+  best_solution_patch_path: outputs/skydiscover/best_solution.patch
+  search_log_path: outputs/skydiscover/search.log
 status: completed
 score:
   raw: 4.2
   normalized: 0.84
+  scorer_version: v1
+evaluator:
+  kind: hypotest
+  dataset_ref: hypotest://bbh/climb
+  benchmark_ref: bbh_py
   scorer_version: v1
 bbh:
   split: climb

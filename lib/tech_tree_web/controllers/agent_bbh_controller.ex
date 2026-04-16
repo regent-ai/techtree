@@ -79,7 +79,9 @@ defmodule TechTreeWeb.AgentBbhController do
   def create_run(conn, params) do
     case BBH.create_run(params) do
       {:ok, %{run: run}} ->
-        json(conn, %{
+        conn
+        |> put_status(:created)
+        |> json(%{
           data: %{
             run_id: run.run_id,
             status: run.status,
@@ -128,7 +130,9 @@ defmodule TechTreeWeb.AgentBbhController do
   def create_validation(conn, params) do
     case BBH.create_validation(params) do
       {:ok, validation} ->
-        json(conn, %{
+        conn
+        |> put_status(:created)
+        |> json(%{
           data: %{
             validation_id: validation.validation_id,
             run_id: validation.run_id,

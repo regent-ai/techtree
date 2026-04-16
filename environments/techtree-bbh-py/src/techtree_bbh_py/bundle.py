@@ -34,11 +34,30 @@ def _copy_tree(source: Path, destination: Path) -> None:
 
 
 def _collect_files(workspace_dir: Path) -> tuple[BundleFile, ...]:
-    names = ["analysis.py", "verdict.json", "task.json", "protocol.md", "rubric.json"]
+    names = [
+        "analysis.py",
+        "search.config.yaml",
+        "eval/hypotest_skydiscover.py",
+        "solver/initial_program.py",
+        "task.json",
+        "protocol.md",
+        "rubric.json",
+        "final_answer.md",
+        "run.source.yaml",
+        "review.source.yaml",
+        "outputs/verdict.json",
+        "outputs/skydiscover/search.log",
+        "outputs/skydiscover/search_summary.json",
+        "outputs/skydiscover/best_program.py",
+        "outputs/skydiscover/evaluator_artifacts.json",
+        "outputs/skydiscover/latest_checkpoint.txt",
+        "outputs/skydiscover/best_solution.patch",
+    ]
     files: list[BundleFile] = []
     for name in names:
         path = workspace_dir / name
-        files.append(BundleFile(name=name, path=path, sha256=sha256_file(path), size_bytes=path.stat().st_size))
+        if path.exists():
+            files.append(BundleFile(name=name, path=path, sha256=sha256_file(path), size_bytes=path.stat().st_size))
     data_dir = workspace_dir / "data"
     if data_dir.exists():
         for path in sorted(data_dir.iterdir()):

@@ -18,33 +18,34 @@ defmodule TechTree.BBH.RunIngest do
 
     with {:ok, capsule} <- Helpers.fetch_capsule(capsule_id),
          :ok <- validate_assignment_requirement(capsule.split, assignment_ref),
-         {:ok, genome_id, genome_changeset} <- genome_changeset(genome_source),
+         {:ok, genome_changeset} <- genome_changeset(genome_source),
          {:ok, score} <- score_from_workspace(workspace),
-         {:ok, run_changeset} <-
-           run_changeset(
-             run_id,
-             capsule,
-             genome_id,
-             assignment_ref,
-             run_source,
-             genome_source,
-             artifact_source,
-             workspace,
-             score
-           ) do
+         :ok <- :ok do
       Multi.new()
-      |> Multi.insert(:genome, genome_changeset,
-        on_conflict: {:replace_all_except, [:genome_id, :inserted_at]},
-        conflict_target: :genome_id
-      )
-      |> Multi.insert(:run, run_changeset)
+      |> Multi.run(:genome, fn repo, _changes -> insert_or_fetch_genome(repo, genome_changeset) end)
+      |> Multi.run(:run, fn repo, %{genome: genome} ->
+        with {:ok, run_changeset} <-
+               run_changeset(
+                 run_id,
+                 capsule,
+                 genome.genome_id,
+                 assignment_ref,
+                 run_source,
+                 genome_source,
+                 artifact_source,
+                 workspace,
+                 score
+               ) do
+          repo.insert(run_changeset)
+        end
+      end)
       |> Multi.run(:assignment, fn repo, %{run: run} ->
         maybe_complete_assignment(repo, run.assignment_ref)
       end)
       |> Repo.transaction()
       |> case do
-        {:ok, %{run: run}} ->
-          {:ok, %{run: run, genome: Repo.get!(Genome, genome_id)}}
+        {:ok, %{run: run, genome: genome}} ->
+          {:ok, %{run: run, genome: genome}}
 
         {:error, _step, reason, _changes} ->
           {:error, reason}
@@ -82,7 +83,8 @@ defmodule TechTree.BBH.RunIngest do
   defp validate_assignment_requirement(_split, _assignment_ref), do: :ok
 
   defp genome_changeset(source) do
-    genome_id = source["genome_id"] || fingerprint_genome(source)
+    genome_id = fingerprint_genome(source)
+    source = Map.put(source, "genome_id", genome_id)
 
     attrs = %{
       genome_id: genome_id,
@@ -105,9 +107,30 @@ defmodule TechTree.BBH.RunIngest do
       source: source
     }
 
-    {:ok, genome_id, Genome.changeset(%Genome{}, attrs)}
+    {:ok, Genome.changeset(%Genome{}, attrs)}
   rescue
     error in [ArgumentError] -> {:error, error}
+  end
+
+  defp insert_or_fetch_genome(repo, genome_changeset) do
+    bundle_hash = Ecto.Changeset.get_field(genome_changeset, :normalized_bundle_hash)
+
+    case repo.get_by(Genome, normalized_bundle_hash: bundle_hash) do
+      %Genome{} = genome ->
+        {:ok, genome}
+
+      nil ->
+        case repo.insert(genome_changeset) do
+          {:ok, genome} ->
+            {:ok, genome}
+
+          {:error, changeset} ->
+            case repo.get_by(Genome, normalized_bundle_hash: bundle_hash) do
+              %Genome{} = genome -> {:ok, genome}
+              nil -> {:error, changeset}
+            end
+        end
+    end
   end
 
   defp normalized_genome_bundle(source) do
@@ -136,7 +159,13 @@ defmodule TechTree.BBH.RunIngest do
          score
        ) do
     executor = Helpers.required_map(run_source, "executor")
+    solver = Helpers.required_map(run_source, "solver")
+    evaluator = Helpers.required_map(run_source, "evaluator")
+    workspace_run_log = Helpers.optional_binary(workspace, "run_log")
+    search_log = Helpers.optional_binary(workspace, "search_log")
+    search_summary = Helpers.optional_map(workspace, "search_summary_json")
     status = Map.get(run_source, "status") || "completed"
+    run_source = normalize_run_source(run_source, search_summary)
 
     attrs = %{
       run_id: run_id,
@@ -151,6 +180,7 @@ defmodule TechTree.BBH.RunIngest do
       status: normalize_run_status(status, score),
       raw_score: score.raw,
       normalized_score: score.normalized,
+      score_source: score_source(evaluator),
       analysis_py: Helpers.required_binary(workspace, "analysis_py"),
       protocol_md: Helpers.required_binary(workspace, "protocol_md"),
       rubric_json: Helpers.required_map(workspace, "rubric_json"),
@@ -158,11 +188,16 @@ defmodule TechTree.BBH.RunIngest do
       verdict_json: Helpers.required_map(workspace, "verdict_json"),
       final_answer_md: Helpers.optional_binary(workspace, "final_answer_md"),
       report_html: Helpers.optional_binary(workspace, "report_html"),
-      run_log: Helpers.optional_binary(workspace, "run_log"),
+      run_log: merge_logs(workspace_run_log, search_log),
       artifact_source: artifact_source,
       genome_source: genome_source,
       run_source: run_source
     }
+
+    _ = Helpers.required_binary(solver, "kind")
+    _ = Helpers.required_binary(evaluator, "kind")
+    _ = Helpers.required_binary(evaluator, "dataset_ref")
+    _ = Helpers.required_binary(evaluator, "scorer_version")
 
     {:ok, Run.changeset(%Run{}, attrs)}
   end
@@ -235,4 +270,40 @@ defmodule TechTree.BBH.RunIngest do
   defp normalize_run_status("failed", _score), do: "failed"
   defp normalize_run_status("running", _score), do: "running"
   defp normalize_run_status(_status, _score), do: "validation_pending"
+
+  defp normalize_run_source(run_source, nil), do: run_source
+
+  defp normalize_run_source(run_source, search_summary) do
+    existing_search =
+      case Map.get(run_source, "search") do
+        %{} = search -> search
+        _ -> %{}
+      end
+
+    summary =
+      case Map.get(existing_search, "summary") do
+        %{} = current when map_size(current) > 0 -> current
+        _ -> search_summary
+      end
+
+    if map_size(existing_search) == 0 and is_nil(summary) do
+      run_source
+    else
+      Map.put(run_source, "search", Map.put(existing_search, "summary", summary))
+    end
+  end
+
+  defp merge_logs(nil, nil), do: nil
+  defp merge_logs(log, nil), do: log
+  defp merge_logs(nil, search_log), do: search_log
+
+  defp merge_logs(log, search_log) do
+    Enum.join([log, "[search]\n" <> search_log], "\n\n")
+  end
+
+  defp score_source(evaluator) do
+    [Map.get(evaluator, "kind"), Map.get(evaluator, "scorer_version")]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(":")
+  end
 end

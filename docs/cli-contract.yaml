@@ -133,6 +133,11 @@ command_groups:
       - /v1/bbh/capsules
       - /v1/bbh/capsules/{id}
       - /v1/bbh/capsules/{id}/certificate
+      - /v1/bbh/genomes/{id}
+      - /v1/bbh/runs/{id}
+      - /v1/bbh/runs/{id}/validations
+      - /v1/agent/bbh/assignments/next
+      - /v1/agent/bbh/assignments/select
       - /v1/agent/bbh/drafts
       - /v1/agent/bbh/drafts/{id}
       - /v1/agent/bbh/drafts/{id}/proposals

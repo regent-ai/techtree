@@ -204,12 +204,15 @@ defmodule TechTree.PhaseDApiSupport do
 
   @spec create_visible_message!(XmtpRoom.t(), map()) :: XmtpMessage.t()
   def create_visible_message!(%XmtpRoom{} = room, attrs \\ %{}) do
+    sender_wallet_address = Map.get(attrs, :sender_wallet_address, random_eth_address())
+
     %XmtpMessage{}
     |> XmtpMessage.changeset(%{
       room_id: room.id,
       xmtp_message_id: Map.get(attrs, :xmtp_message_id, "msg-visible-#{unique_suffix()}"),
-      sender_inbox_id: Map.get(attrs, :sender_inbox_id, "inbox-visible-#{unique_suffix()}"),
-      sender_wallet_address: Map.get(attrs, :sender_wallet_address, random_eth_address()),
+      sender_inbox_id:
+        Map.get(attrs, :sender_inbox_id, deterministic_inbox_id(sender_wallet_address)),
+      sender_wallet_address: sender_wallet_address,
       sender_label: Map.get(attrs, :sender_label, "visible-sender-#{unique_suffix()}"),
       sender_type: Map.get(attrs, :sender_type, :human),
       body: Map.get(attrs, :body, "visible-message-#{unique_suffix()}"),

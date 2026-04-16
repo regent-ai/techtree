@@ -1,11 +1,6 @@
 import type { PrivyLike, PrivyUser } from "./privy-wallet"
 
-import {
-  labelForUser,
-  requireEthereumProvider,
-  signWithConnectedWallet,
-  walletForUser,
-} from "./privy-wallet"
+import { labelForUser, walletForUser } from "./privy-wallet"
 
 export type PrivySessionResponse = {
   ok: true
@@ -17,20 +12,18 @@ export type PrivySessionResponse = {
     role: string
     xmtp_inbox_id: string | null
   }
-  xmtp: {
-    status: "ready" | "signature_required"
-    inbox_id: string | null
-    wallet_address: string | null
-    client_id: string | null
-    signature_request_id: string | null
-    signature_text: string | null
-  }
+  xmtp:
+    | {
+        status: "ready"
+        inbox_id: string | null
+        wallet_address: string | null
+      }
+    | null
 }
 
 type SessionOptions = {
   csrfToken: string
   sessionUrl: string
-  completeUrl: string
 }
 
 function csrfHeaders(csrfToken: string): Record<string, string> {
@@ -65,7 +58,7 @@ async function fetchSessionJson<T>(input: string, init: RequestInit): Promise<T>
   return (await response.json()) as T
 }
 
-export async function syncPrivySessionAndXmtp(
+export async function syncPrivySession(
   privy: PrivyLike,
   user: PrivyUser,
   options: SessionOptions,
@@ -95,41 +88,7 @@ export async function syncPrivySessionAndXmtp(
     }),
   })
 
-  if (session.xmtp.status === "ready") {
-    return session
-  }
-
-  const signatureText = session.xmtp.signature_text
-  const clientId = session.xmtp.client_id
-  const signatureRequestId = session.xmtp.signature_request_id
-
-  if (!signatureText || !clientId || !signatureRequestId) {
-    throw new Error("The secure room check could not continue.")
-  }
-
-  const provider = await requireEthereumProvider()
-  const { signature, address } = await signWithConnectedWallet(
-    provider,
-    signatureText,
-    session.xmtp.wallet_address,
-  )
-
-  return fetchSessionJson<PrivySessionResponse>(options.completeUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-      ...csrfHeaders(options.csrfToken),
-    },
-    credentials: "same-origin",
-    body: JSON.stringify({
-      wallet_address: address,
-      client_id: clientId,
-      signature_request_id: signatureRequestId,
-      signature,
-    }),
-  })
+  return session
 }
 
 export async function clearPrivySession(

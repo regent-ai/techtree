@@ -3,6 +3,18 @@
     "BbhReviewProfile": {
       "additionalProperties": false,
       "properties": {
+        "artifact_match": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Match"
+        },
         "assignment_ref": {
           "anyOf": [
             {
@@ -14,6 +26,14 @@
           ],
           "default": null,
           "title": "Assignment Ref"
+        },
+        "dataset_ref": {
+          "minLength": 1,
+          "title": "Dataset Ref",
+          "type": "string"
+        },
+        "evaluator_kind": {
+          "$ref": "#/$defs/EvaluatorKind"
         },
         "raw_abs_tolerance": {
           "default": 0.01,
@@ -35,6 +55,19 @@
           "default": null,
           "title": "Reproduced Normalized Score"
         },
+        "reproduced_program_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reproduced Program Sha256"
+        },
         "reproduced_raw_score": {
           "anyOf": [
             {
@@ -50,9 +83,27 @@
         "role": {
           "$ref": "#/$defs/ValidationRole"
         },
-        "scorer_version": {
+        "score_match": {
           "anyOf": [
             {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score Match"
+        },
+        "scorer_version": {
+          "minLength": 1,
+          "title": "Scorer Version",
+          "type": "string"
+        },
+        "submitted_program_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^sha256:[0-9a-f]{64}$",
               "type": "string"
             },
             {
@@ -60,14 +111,24 @@
             }
           ],
           "default": null,
-          "title": "Scorer Version"
+          "title": "Submitted Program Sha256"
         }
       },
       "required": [
-        "role"
+        "role",
+        "evaluator_kind",
+        "dataset_ref",
+        "scorer_version"
       ],
       "title": "BbhReviewProfile",
       "type": "object"
+    },
+    "EvaluatorKind": {
+      "enum": [
+        "hypotest"
+      ],
+      "title": "EvaluatorKind",
+      "type": "string"
     },
     "EvidenceKind": {
       "enum": [

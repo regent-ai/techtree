@@ -30,6 +30,9 @@ bbh:
   split: benchmark
   provider: bbh
   provider_ref: bbh/capsule-benchmark-1
+  evaluator_kind: hypotest
+  dataset_ref: hypotest://bbh/benchmark
+  benchmark_ref: bbh_py
   instance_ref: inst_benchmark_1
   hypothesis: Benchmark fixed hypothesis.
   protocol_path: protocol.md

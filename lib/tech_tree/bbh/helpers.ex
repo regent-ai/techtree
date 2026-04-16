@@ -98,4 +98,49 @@ defmodule TechTree.BBH.Helpers do
   def infer_mode(attrs) do
     if Map.get(attrs, "family_ref") || Map.get(attrs, :family_ref), do: "family", else: "fixed"
   end
+
+  def execution_defaults(%Capsule{} = capsule) do
+    %{
+      solver: execution_solver_defaults(capsule),
+      evaluator: execution_evaluator_defaults(capsule),
+      workspace: execution_workspace_defaults()
+    }
+  end
+
+  defp execution_solver_defaults(%Capsule{}) do
+    %{
+      kind: "skydiscover",
+      entrypoint: "uv run techtree-bbh sky-search",
+      search_algorithm: "best_of_n"
+    }
+  end
+
+  defp execution_evaluator_defaults(%Capsule{} = capsule) do
+    %{
+      kind: "hypotest",
+      dataset_ref: capsule.provider_ref,
+      benchmark_ref: capsule.capsule_id,
+      scorer_version: "hypotest-v0.1"
+    }
+  end
+
+  defp execution_workspace_defaults do
+    %{
+      analysis_path: "analysis.py",
+      verdict_path: "outputs/verdict.json",
+      final_answer_path: "final_answer.md",
+      report_path: "outputs/report.html",
+      log_path: "outputs/run.log",
+      genome_path: "genome.source.yaml",
+      search_config_path: "search.config.yaml",
+      evaluator_path: "eval/hypotest_skydiscover.py",
+      seed_program_path: "solver/initial_program.py",
+      best_program_path: "outputs/skydiscover/best_program.py",
+      search_summary_path: "outputs/skydiscover/search_summary.json",
+      evaluator_artifacts_path: "outputs/skydiscover/evaluator_artifacts.json",
+      checkpoint_pointer_path: "outputs/skydiscover/latest_checkpoint.txt",
+      best_solution_patch_path: "outputs/skydiscover/best_solution.patch",
+      search_log_path: "outputs/skydiscover/search.log"
+    }
+  end
 end

@@ -2,7 +2,6 @@ defmodule TechTreeWeb.AdminModerationController do
   use TechTreeWeb, :controller
 
   alias TechTree.Moderation
-  alias TechTree.XMTPMirror
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
 
@@ -66,16 +65,16 @@ defmodule TechTreeWeb.AdminModerationController do
   end
 
   @spec add_chatbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def add_chatbox_member(conn, %{"id" => id}) do
-    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
-      XMTPMirror.add_human_to_canonical_room(normalized_id)
+  def add_chatbox_member(conn, %{"id" => id} = params) do
+    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, admin ->
+      Moderation.add_human_to_chatbox(normalized_id, admin, params["reason"])
     end)
   end
 
   @spec remove_chatbox_member(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def remove_chatbox_member(conn, %{"id" => id}) do
-    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, _admin ->
-      XMTPMirror.remove_human_from_canonical_room(normalized_id)
+  def remove_chatbox_member(conn, %{"id" => id} = params) do
+    with_admin_action(conn, id, "invalid_human_id", "human_not_found", fn normalized_id, admin ->
+      Moderation.remove_human_from_chatbox(normalized_id, admin, params["reason"])
     end)
   end
 
@@ -91,8 +90,35 @@ defmodule TechTreeWeb.AdminModerationController do
     case ControllerHelpers.parse_positive_int(raw_id) do
       {:ok, normalized_id} ->
         admin = conn.assigns.current_human
-        action_fun.(normalized_id, admin)
-        json(conn, %{ok: true})
+
+        case action_fun.(normalized_id, admin) do
+          :ok ->
+            json(conn, %{ok: true})
+
+          {:error, :human_not_found} ->
+            ApiError.render(conn, :not_found, %{code: not_found_code})
+
+          {:error, :agent_not_found} ->
+            ApiError.render(conn, :not_found, %{code: not_found_code})
+
+          {:error, :message_not_found} ->
+            ApiError.render(conn, :not_found, %{code: not_found_code})
+
+          {:error, :comment_not_found} ->
+            ApiError.render(conn, :not_found, %{code: not_found_code})
+
+          {:error, :node_not_found} ->
+            ApiError.render(conn, :not_found, %{code: not_found_code})
+
+          {:error, :room_not_found} ->
+            ApiError.render(conn, :unprocessable_entity, %{code: "room_not_found"})
+
+          {:error, :xmtp_identity_required} ->
+            ApiError.render(conn, :unprocessable_entity, %{code: "chat_identity_required"})
+
+          {:error, :human_banned} ->
+            ApiError.render(conn, :unprocessable_entity, %{code: "human_banned"})
+        end
 
       {:error, _reason} ->
         ApiError.render(conn, :unprocessable_entity, %{code: invalid_code})

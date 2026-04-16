@@ -15,11 +15,13 @@ defmodule TechTree.XMTPMirrorPhase3Test do
         status: "active"
       })
 
+    sender_wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
+
     attrs = %{
       room_id: room.id,
       xmtp_message_id: "msg-1",
-      sender_inbox_id: "inbox-1",
-      sender_wallet_address: "0xsender",
+      sender_inbox_id: TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+      sender_wallet_address: sender_wallet_address,
       sender_label: "sender",
       sender_type: :human,
       body: "hello world",

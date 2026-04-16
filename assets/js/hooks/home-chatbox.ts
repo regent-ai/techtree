@@ -2,7 +2,7 @@ import type { Hook } from "phoenix_live_view"
 
 import { animate, stagger } from "../../vendor/anime.esm.js"
 import { LocalStorage, Privy } from "../../vendor/privy-core.esm.js"
-import { clearPrivySession, syncPrivySessionAndXmtp } from "./privy-session"
+import { clearPrivySession, syncPrivySession } from "./privy-session"
 import {
   labelForUser,
   loginWithPrivyWallet,
@@ -154,8 +154,6 @@ export const HomeChatbox: Hook = {
     const transportStatusUrl = root.dataset.transportStatusUrl?.trim() || "/v1/runtime/transport"
     const postUrl = root.dataset.postUrl?.trim() || "/v1/chatbox/messages"
     const sessionUrl = root.dataset.sessionUrl?.trim() || "/api/auth/privy/session"
-    const sessionCompleteUrl =
-      root.dataset.sessionCompleteUrl?.trim() || "/api/auth/privy/xmtp/complete"
     const privyAppId = root.dataset.privyAppId?.trim() || ""
     const csrfToken =
       document.querySelector<HTMLMetaElement>("meta[name='csrf-token']")?.content?.trim() || ""
@@ -234,15 +232,11 @@ export const HomeChatbox: Hook = {
     const ensureSessionReady = async (user: PrivyUser) => {
       if (!privy || !user?.id) return
 
-      const session = await syncPrivySessionAndXmtp(privy, user, {
+      await syncPrivySession(privy, user, {
         csrfToken,
         sessionUrl,
-        completeUrl: sessionCompleteUrl,
       })
-
-      if (session.xmtp.status === "ready") {
-        setState("Connected. You can post in the public room.")
-      }
+      setState("Connected. You can post in the public room.")
     }
 
     const refreshUser = async () => {

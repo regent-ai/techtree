@@ -5,6 +5,7 @@ defmodule TechTree.BBH.PublicReads do
 
   alias TechTree.BBH.{
     Capsule,
+    Helpers,
     Genome,
     ReviewRequest,
     ReviewSubmission,
@@ -189,6 +190,7 @@ defmodule TechTree.BBH.PublicReads do
       instance_ref: capsule.instance_ref,
       language: capsule.language,
       mode: capsule.mode,
+      execution_defaults: Helpers.execution_defaults(capsule),
       task_summary: capsule.task_json,
       rubric_summary: capsule.rubric_json,
       data_manifest:

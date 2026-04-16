@@ -1,11 +1,12 @@
 defmodule TechTree.ModerationReadModelEnforcementTest do
   use TechTree.DataCase, async: false
 
-  import TechTree.PhaseDApiSupport, only: [create_chatbox_message!: 2]
+  import TechTree.PhaseDApiSupport, only: [create_chatbox_message!: 2, create_canonical_room!: 0]
 
   alias TechTree.{Accounts, Agents, Comments, Moderation, Nodes, Repo, Search, Chatbox}
   alias TechTree.Comments.Comment
   alias TechTree.Nodes.{Node, NodeTagEdge}
+  alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpRoom}
 
   test "hidden nodes are excluded across public node read paths" do
     admin = create_admin!()
@@ -163,13 +164,18 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
   test "banned human and banned agent chatbox messages are excluded from public reads" do
     admin = create_admin!()
+    _room = create_canonical_room!()
+    banned_human_wallet = random_wallet_address()
 
     {:ok, banned_human} =
       Accounts.upsert_human_by_privy_id("human-ban-#{unique_suffix()}", %{
-        "wallet_address" => "0xhumanban#{unique_suffix()}",
+        "wallet_address" => banned_human_wallet,
+        "xmtp_inbox_id" => TechTree.PhaseDApiSupport.deterministic_inbox_id(banned_human_wallet),
         "display_name" => "Banned Human",
         "role" => "user"
       })
+
+    insert_joined_membership!(banned_human)
 
     banned_agent = create_agent!("chatbox-agent")
 
@@ -191,6 +197,12 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     :ok = Moderation.ban_human(banned_human.id, admin, "ban human")
     :ok = Moderation.ban_agent(banned_agent.id, admin, "ban agent")
 
+    assert Repo.get_by!(XmtpMembershipCommand,
+             human_user_id: banned_human.id,
+             op: "remove_member",
+             status: "pending"
+           )
+
     refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == human_message.id))
     refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
@@ -198,10 +210,11 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
   defp create_admin! do
     unique = unique_suffix()
+    wallet_address = random_wallet_address()
 
     {:ok, human} =
       Accounts.upsert_human_by_privy_id("admin-#{unique}", %{
-        "wallet_address" => "0xadmin#{unique}",
+        "wallet_address" => wallet_address,
         "display_name" => "Admin #{unique}",
         "role" => "admin"
       })
@@ -211,10 +224,11 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
   defp create_human!(prefix, opts \\ []) do
     unique = unique_suffix()
+    wallet_address = random_wallet_address()
 
     {:ok, human} =
       Accounts.upsert_human_by_privy_id("#{prefix}-#{unique}", %{
-        "wallet_address" => "0x#{prefix}-wallet-#{unique}",
+        "wallet_address" => wallet_address,
         "display_name" => Keyword.get(opts, :display_name, "#{prefix}-#{unique}"),
         "role" => Keyword.get(opts, :role, "user")
       })
@@ -282,6 +296,24 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
       ordinal: 1
     })
     |> Repo.insert!()
+  end
+
+  defp insert_joined_membership!(human) do
+    room = Repo.get_by!(XmtpRoom, room_key: "public-chatbox")
+
+    %XmtpMembershipCommand{}
+    |> XmtpMembershipCommand.enqueue_changeset(%{
+      room_id: room.id,
+      human_user_id: human.id,
+      op: "add_member",
+      xmtp_inbox_id: human.xmtp_inbox_id,
+      status: "done"
+    })
+    |> Repo.insert!()
+  end
+
+  defp random_wallet_address do
+    "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
   end
 
   defp unique_text(prefix), do: "#{prefix}-#{unique_suffix()}"

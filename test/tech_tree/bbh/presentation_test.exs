@@ -133,7 +133,6 @@ defmodule TechTree.BBH.PresentationTest do
     %{run: challenge_run} =
       BBHFixtures.insert_published_challenge_bundle!(%{
         title: "Challenge Capsule",
-        label: "challenge-runner",
         normalized_score: 0.74,
         raw_score: 3.7
       })
@@ -141,7 +140,6 @@ defmodule TechTree.BBH.PresentationTest do
     %{run: benchmark_run} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Benchmark Capsule",
-        label: "benchmark-runner",
         model_id: "gpt-benchmark-runner",
         normalized_score: 0.91,
         raw_score: 4.55
@@ -155,5 +153,25 @@ defmodule TechTree.BBH.PresentationTest do
     refute Enum.any?(benchmark_board.entries, &(&1.node_id == challenge_run.run_id))
     assert Enum.any?(challenge_board.entries, &(&1.node_id == challenge_run.run_id))
     refute Enum.any?(challenge_board.entries, &(&1.node_id == benchmark_run.run_id))
+  end
+
+  test "run page exposes solver, search, and evaluator provenance" do
+    %{run: run} =
+      BBHFixtures.insert_published_challenge_bundle!(%{
+        title: "Challenge Capsule",
+        normalized_score: 0.74,
+        raw_score: 3.7
+      })
+
+    assert {:ok, page} = Presentation.run_page(run.run_id)
+
+    rows = Map.new(page.execution_rows, &{&1.id, &1.value})
+
+    assert rows["solver"] == "skydiscover"
+    assert rows["search_algorithm"] == "adaevolve"
+    assert rows["search_budget"] == "6"
+    assert rows["evaluator"] == "hypotest"
+    assert rows["dataset_ref"] == "hypotest://bbh/challenge"
+    assert rows["score_source"] == "hypotest"
   end
 end

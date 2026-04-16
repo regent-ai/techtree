@@ -90,6 +90,13 @@ def main(argv: list[str] | None = None) -> int:
                     "analysis_py": str(workspace.analysis_py_path),
                     "verdict_json": str(workspace.verdict_json_path),
                     "run_source": str(workspace.run_source_path),
+                    "search_config": str(workspace.search_config_path) if workspace.search_config_path else None,
+                    "search_summary_json": (
+                        str(workspace.search_summary_json_path)
+                        if workspace.search_summary_json_path
+                        else None
+                    ),
+                    "search_log": str(workspace.search_log_path) if workspace.search_log_path else None,
                 },
                 indent=2,
                 sort_keys=True,

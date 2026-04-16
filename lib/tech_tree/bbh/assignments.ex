@@ -122,6 +122,7 @@ defmodule TechTree.BBH.Assignments do
       task_json: capsule.task_json,
       data_files: capsule.data_files,
       artifact_source: capsule.artifact_source,
+      execution_defaults: Helpers.execution_defaults(capsule),
       publication_artifact_id: capsule.publication_artifact_id,
       publication_review_id: capsule.publication_review_id,
       published_at: capsule.published_at

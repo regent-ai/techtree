@@ -6,14 +6,12 @@ defmodule TechTreeWeb.BbhControllerTest do
   test "GET /v1/bbh/leaderboard returns official validated benchmark entries", %{conn: conn} do
     %{genome: genome} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
-        label: "Benchmark leader",
         normalized_score: 0.91,
         raw_score: 4.5
       })
 
     _climb_bundle =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
-        label: "Ignored leader",
         model_id: "gpt-train",
         normalized_score: 0.99,
         raw_score: 5.0,
@@ -33,19 +31,16 @@ defmodule TechTreeWeb.BbhControllerTest do
         entry["genome_id"] == genome.genome_id
       end)
 
-    assert %{
-             "name" => "Benchmark leader",
-             "score_percent" => 91.0,
-             "validated_runs" => 1,
-             "harness_type" => "hermes",
-             "model_id" => "gpt-test"
-           } = leader
+    assert leader["name"] == genome.label
+    assert leader["score_percent"] == 91.0
+    assert leader["validated_runs"] == 1
+    assert leader["harness_type"] == "hermes"
+    assert leader["model_id"] == "gpt-test"
   end
 
   test "GET /v1/bbh/leaderboard can project a validated challenge board", %{conn: conn} do
     %{genome: genome} =
       BBHFixtures.insert_published_challenge_bundle!(%{
-        label: "Challenge leader",
         normalized_score: 0.74,
         raw_score: 3.8
       })
@@ -62,11 +57,9 @@ defmodule TechTreeWeb.BbhControllerTest do
         entry["genome_id"] == genome.genome_id
       end)
 
-    assert %{
-             "name" => "Challenge leader",
-             "score_percent" => 74.0,
-             "validated_runs" => 1
-           } = leader
+    assert leader["name"] == genome.label
+    assert leader["score_percent"] == 74.0
+    assert leader["validated_runs"] == 1
   end
 
   test "GET /v1/bbh/capsules returns narrow public inventory and hides drafts", %{conn: conn} do
@@ -125,7 +118,13 @@ defmodule TechTreeWeb.BbhControllerTest do
                "capsule_id" => capsule_id,
                "title" => "Public Challenge",
                "task_summary" => task_summary,
-               "rubric_summary" => rubric_summary
+               "rubric_summary" => rubric_summary,
+               "execution_defaults" => %{
+                 "solver" => %{"kind" => "skydiscover"},
+                 "workspace" => %{
+                   "search_summary_path" => "outputs/skydiscover/search_summary.json"
+                 }
+               }
              }
            } = response
 
@@ -183,7 +182,7 @@ defmodule TechTreeWeb.BbhControllerTest do
     conn: conn
   } do
     %{capsule: capsule, genome: genome, run: run, validation: validation} =
-      BBHFixtures.insert_validated_benchmark_bundle!(%{label: "Detail genome"})
+      BBHFixtures.insert_validated_benchmark_bundle!()
 
     genome_response =
       conn
@@ -192,16 +191,16 @@ defmodule TechTreeWeb.BbhControllerTest do
 
     assert %{
              "data" => %{
-               "genome" => %{
-                 "genome_id" => genome_id,
-                 "label" => "Detail genome"
-               },
-               "runs" => [%{"run_id" => run_id}]
-             }
-           } = genome_response
+                "genome" => %{
+                  "genome_id" => genome_id,
+                  "label" => label
+                }
+              }
+            } = genome_response
 
     assert genome_id == genome.genome_id
-    assert run_id == run.run_id
+    assert label == genome.label
+    assert Enum.any?(genome_response["data"]["runs"], &(&1["run_id"] == run.run_id))
 
     run_response =
       conn

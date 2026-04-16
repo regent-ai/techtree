@@ -43,11 +43,33 @@ defmodule TechTree.BBHFixtures do
       recommended_genome_source: %{"schema_version" => "techtree.bbh.genome-source.v1"},
       genome_notes_md: "",
       certificate_status: "none",
-      data_files: [%{"name" => "input.csv", "content" => "x,y\n1,2\n"}],
-      artifact_source: %{"schema_version" => "techtree.bbh.artifact-source.v1"}
+      data_files: [%{"name" => "input.csv", "content" => "x,y\n1,2\n"}]
     }
 
-    attrs = Map.merge(defaults, attrs)
+    attrs =
+      defaults
+      |> Map.merge(attrs)
+      |> Map.put_new_lazy(:artifact_source, fn ->
+        %{
+          "schema_version" => "techtree.bbh.artifact-source.v1",
+          "bbh" => %{
+            "split" => Map.get(attrs, :split, "climb"),
+            "provider" => Map.get(attrs, :provider, "bbh_train"),
+            "provider_ref" => Map.get(attrs, :provider_ref, "provider/#{suffix}"),
+            "evaluator_kind" => "hypotest",
+            "dataset_ref" => dataset_ref_for_split(Map.get(attrs, :split, "climb")),
+            "benchmark_ref" => "bbh_py",
+            "family_ref" => Map.get(attrs, :family_ref),
+            "instance_ref" => Map.get(attrs, :instance_ref, "instance_#{suffix}"),
+            "hypothesis" =>
+              Map.get(attrs, :hypothesis, "The treatment should improve the signal."),
+            "protocol_path" => "protocol.md",
+            "rubric_path" => "rubric.json",
+            "data_refs" => [%{"path" => "data/input.csv"}],
+            "assignment_policy" => Map.get(attrs, :assignment_policy, "auto_or_select")
+          }
+        }
+      end)
 
     %Capsule{}
     |> Capsule.changeset(attrs)
@@ -165,14 +187,16 @@ defmodule TechTree.BBHFixtures do
   end
 
   def insert_genome!(attrs \\ %{}) do
-    suffix = suffix()
+    requested_attrs = Map.take(attrs, [:genome_id, :label, :parent_genome_ref, :notes])
     source = genome_source(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
-    genome_id = Map.get(attrs, :genome_id, source["genome_id"])
     bundle_hash = normalized_bundle_hash(source)
+    genome_id = Map.get(attrs, :genome_id, "gen_" <> binary_part(bundle_hash, 0, 8))
+    label = Map.get(attrs, :label, "Genome #{String.slice(String.upcase(bundle_hash), 0, 6)}")
+    source = Map.merge(source, %{"genome_id" => genome_id, "label" => label})
 
     defaults = %{
       genome_id: genome_id,
-      label: Map.get(attrs, :label, "Genome #{suffix}"),
+      label: label,
       parent_genome_ref: nil,
       model_id: Map.get(attrs, :model_id, "gpt-test"),
       harness_type: Map.get(attrs, :harness_type, "hermes"),
@@ -191,19 +215,46 @@ defmodule TechTree.BBHFixtures do
 
     attrs = Map.merge(defaults, attrs)
 
-    %Genome{}
-    |> Genome.changeset(attrs)
-    |> Repo.insert()
-    |> case do
-      {:ok, genome} ->
-        genome
+    case Repo.get_by(Genome, normalized_bundle_hash: bundle_hash) do
+      %Genome{} = existing ->
+        ensure_compatible_genome_fixture!(existing, requested_attrs)
 
-      {:error, changeset} ->
-        if Keyword.has_key?(changeset.errors, :normalized_bundle_hash) do
-          Repo.get_by!(Genome, normalized_bundle_hash: bundle_hash)
-        else
-          raise Ecto.InvalidChangesetError, action: :insert, changeset: changeset
-        end
+      nil ->
+        %Genome{}
+        |> Genome.changeset(attrs)
+        |> Repo.insert!()
+    end
+  end
+
+  defp ensure_compatible_genome_fixture!(%Genome{} = existing, attrs) do
+    requested_fields =
+      [
+        {:genome_id, Map.get(attrs, :genome_id)},
+        {:label, Map.get(attrs, :label)},
+        {:parent_genome_ref, Map.get(attrs, :parent_genome_ref)},
+        {:notes, Map.get(attrs, :notes)}
+      ]
+      |> Enum.reject(fn {_field, value} -> is_nil(value) end)
+
+    conflicts =
+      Enum.filter(requested_fields, fn {field, requested} ->
+        Map.get(existing, field) != requested
+      end)
+
+    if conflicts == [] do
+      existing
+    else
+      details =
+        conflicts
+        |> Enum.map(fn {field, requested} ->
+          existing_value = Map.get(existing, field)
+          "#{field}=#{inspect(requested)} (existing #{inspect(existing_value)})"
+        end)
+        |> Enum.join(", ")
+
+      raise """
+      conflicting genome fixture for normalized_bundle_hash #{existing.normalized_bundle_hash}: #{details}
+      """
     end
   end
 
@@ -226,7 +277,7 @@ defmodule TechTree.BBHFixtures do
       status: Map.get(attrs, :status, "validation_pending"),
       raw_score: Map.get(attrs, :raw_score, 4.0),
       normalized_score: Map.get(attrs, :normalized_score, 0.8),
-      score_source: "workspace",
+      score_source: "hypotest",
       analysis_py: "print('analysis')\n",
       protocol_md: capsule.protocol_md,
       rubric_json: capsule.rubric_json,
@@ -282,7 +333,7 @@ defmodule TechTree.BBHFixtures do
       )
 
     assignment = insert_assignment!(capsule, %{origin: capsule.assignment_policy})
-    genome = insert_genome!(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
+    genome = insert_genome!(genome_attrs(attrs))
 
     run =
       insert_run!(
@@ -307,7 +358,7 @@ defmodule TechTree.BBHFixtures do
   end
 
   def run_submit_payload(%Capsule{} = capsule, attrs \\ %{}) do
-    genome = genome_source(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
+    genome = genome_source(genome_attrs(attrs))
     split = Map.get(attrs, :split, capsule.split)
     assignment_ref = Map.get(attrs, :assignment_ref)
 
@@ -327,6 +378,10 @@ defmodule TechTree.BBHFixtures do
           "harness_version" => genome["harness_version"],
           "profile" => genome["tool_profile"]
         },
+        "solver" => %{
+          "kind" => Map.get(attrs, :solver_kind, "skydiscover"),
+          "entrypoint" => Map.get(attrs, :solver_entrypoint, "uv run techtree-bbh sky-search")
+        },
         "instance" => %{
           "instance_ref" => capsule.instance_ref || capsule.capsule_id,
           "family_ref" => capsule.family_ref,
@@ -337,10 +392,33 @@ defmodule TechTree.BBHFixtures do
           "transport" => "api",
           "trigger" => "assignment"
         },
+        "paths" => run_paths(),
         "status" => Map.get(attrs, :status, "completed"),
         "score" => %{
           "raw" => Map.get(attrs, :raw_score, 4.0),
-          "normalized" => Map.get(attrs, :normalized_score, 0.8)
+          "normalized" => Map.get(attrs, :normalized_score, 0.8),
+          "scorer_version" => Map.get(attrs, :scorer_version, "hypotest-v1")
+        },
+        "search" =>
+          if Map.get(attrs, :solver_kind, "skydiscover") == "skydiscover" do
+            %{
+              "algorithm" => Map.get(attrs, :search_algorithm, "adaevolve"),
+              "budget" => Map.get(attrs, :search_budget, 6),
+              "checkpoint_ref" =>
+                Map.get(attrs, :checkpoint_ref, "checkpoint/#{capsule.capsule_id}"),
+              "summary" =>
+                search_summary_json(
+                  Map.get(attrs, :search_budget, 6),
+                  Map.get(attrs, :checkpoint_ref, "checkpoint/#{capsule.capsule_id}")
+                )
+            }
+          end,
+        "artifact_manifest" => artifact_manifest(),
+        "evaluator" => %{
+          "kind" => "hypotest",
+          "dataset_ref" => Map.get(attrs, :dataset_ref, dataset_ref_for_split(split)),
+          "benchmark_ref" => "bbh_py",
+          "scorer_version" => Map.get(attrs, :scorer_version, "hypotest-v1")
         },
         "bbh" => %{
           "split" => split,
@@ -359,7 +437,13 @@ defmodule TechTree.BBHFixtures do
           verdict_json(Map.get(attrs, :raw_score, 4.0), Map.get(attrs, :normalized_score, 0.8)),
         "final_answer_md" => "Final answer",
         "report_html" => "<p>report</p>",
-        "run_log" => "log"
+        "run_log" => "log",
+        "search_summary_json" =>
+          search_summary_json(
+            Map.get(attrs, :search_budget, 6),
+            Map.get(attrs, :checkpoint_ref, "checkpoint/#{capsule.capsule_id}")
+          ),
+        "search_log" => "search log"
       }
     }
   end
@@ -424,6 +508,18 @@ defmodule TechTree.BBHFixtures do
         "harness_version" => genome.harness_version,
         "profile" => genome.tool_profile
       },
+      "solver" => %{
+        "kind" =>
+          if(capsule.split in ["benchmark", "challenge"],
+            do: "skydiscover",
+            else: genome.harness_type
+          ),
+        "entrypoint" =>
+          if(capsule.split in ["benchmark", "challenge"],
+            do: "uv run techtree-bbh sky-search",
+            else: genome.harness_type
+          )
+      },
       "instance" => %{
         "instance_ref" => capsule.instance_ref || capsule.capsule_id,
         "family_ref" => capsule.family_ref,
@@ -433,6 +529,23 @@ defmodule TechTree.BBHFixtures do
         "workload" => "bbh",
         "transport" => "api",
         "trigger" => "assignment"
+      },
+      "paths" => run_paths(),
+      "search" =>
+        if capsule.split in ["benchmark", "challenge"] do
+          %{
+            "algorithm" => "adaevolve",
+            "budget" => 6,
+            "checkpoint_ref" => "checkpoint/#{capsule.capsule_id}",
+            "summary" => search_summary_json(6, "checkpoint/#{capsule.capsule_id}")
+          }
+        end,
+      "artifact_manifest" => artifact_manifest(),
+      "evaluator" => %{
+        "kind" => "hypotest",
+        "dataset_ref" => dataset_ref_for_split(capsule.split),
+        "benchmark_ref" => "bbh_py",
+        "scorer_version" => "hypotest-v1"
       },
       "bbh" => %{
         "split" => capsule.split,
@@ -458,10 +571,98 @@ defmodule TechTree.BBHFixtures do
         "reproduced_normalized_score" =>
           Map.get(attrs, :reproduced_normalized_score, run.normalized_score),
         "raw_abs_tolerance" => Map.get(attrs, :tolerance_raw_abs, 0.01),
-        "assignment_ref" => run.assignment_ref
+        "evaluator_kind" => "hypotest",
+        "dataset_ref" =>
+          Map.get(
+            attrs,
+            :dataset_ref,
+            get_in(run.run_source || %{}, ["evaluator", "dataset_ref"]) ||
+              dataset_ref_for_split(run.split)
+          ),
+        "scorer_version" =>
+          Map.get(
+            attrs,
+            :scorer_version,
+            get_in(run.run_source || %{}, ["evaluator", "scorer_version"]) || "hypotest-v1"
+          ),
+        "assignment_ref" => run.assignment_ref,
+        "submitted_program_sha256" => Map.get(attrs, :submitted_program_sha256, program_sha()),
+        "reproduced_program_sha256" => Map.get(attrs, :reproduced_program_sha256, program_sha()),
+        "score_match" => Map.get(attrs, :score_match, true),
+        "artifact_match" => Map.get(attrs, :artifact_match, true)
       }
     }
   end
+
+  defp run_paths do
+    %{
+      "analysis_path" => "analysis.py",
+      "verdict_path" => "outputs/verdict.json",
+      "final_answer_path" => "final_answer.md",
+      "report_path" => "outputs/report.html",
+      "log_path" => "outputs/run.log",
+      "genome_path" => "genome.source.yaml",
+      "search_config_path" => "search.config.yaml",
+      "evaluator_path" => "eval/hypotest_skydiscover.py",
+      "seed_program_path" => "solver/initial_program.py",
+      "best_program_path" => "outputs/skydiscover/best_program.py",
+      "search_summary_path" => "outputs/skydiscover/search_summary.json",
+      "evaluator_artifacts_path" => "outputs/skydiscover/evaluator_artifacts.json",
+      "checkpoint_pointer_path" => "outputs/skydiscover/latest_checkpoint.txt",
+      "best_solution_patch_path" => "outputs/skydiscover/best_solution.patch",
+      "search_log_path" => "outputs/skydiscover/search.log"
+    }
+  end
+
+  defp search_summary_json(search_budget, checkpoint_ref) do
+    %{
+      "best_score" => 0.8,
+      "best_iteration" => 1,
+      "iterations_requested" => search_budget,
+      "iterations_completed" => search_budget,
+      "total_evaluations" => search_budget,
+      "elapsed_ms" => 1200,
+      "checkpoint_ref" => checkpoint_ref,
+      "artifact_keys" => [
+        "config_path",
+        "summary_path",
+        "log_path",
+        "best_program_path",
+        "evaluator_artifacts_path",
+        "checkpoint_pointer_path",
+        "best_solution_patch_path",
+        "verdict_path"
+      ]
+    }
+  end
+
+  defp artifact_manifest do
+    [
+      %{
+        "path" => "search.config.yaml",
+        "kind" => "workspace_file",
+        "sha256" => program_sha(),
+        "size_bytes" => 128,
+        "required_for_validation" => true
+      },
+      %{
+        "path" => "outputs/skydiscover/best_program.py",
+        "kind" => "generated_output",
+        "sha256" => program_sha(),
+        "size_bytes" => 128,
+        "required_for_validation" => true
+      }
+    ]
+  end
+
+  defp program_sha do
+    "sha256:" <> String.duplicate("1", 64)
+  end
+
+  defp dataset_ref_for_split("benchmark"), do: "hypotest://bbh/benchmark"
+  defp dataset_ref_for_split("challenge"), do: "hypotest://bbh/challenge"
+  defp dataset_ref_for_split("draft"), do: "hypotest://bbh/draft"
+  defp dataset_ref_for_split(_split), do: "hypotest://bbh/climb"
 
   defp assignment_for_run(capsule, attrs) do
     cond do
@@ -484,6 +685,12 @@ defmodule TechTree.BBHFixtures do
     |> Base.encode16(case: :lower)
   end
 
+  defp genome_attrs(attrs) do
+    attrs
+    |> Map.take([:genome_id, :model_id, :harness_type])
+    |> maybe_put(:label, Map.get(attrs, :genome_label))
+  end
+
   defp suffix do
     System.unique_integer([:positive])
     |> Integer.to_string(36)
@@ -493,12 +700,15 @@ defmodule TechTree.BBHFixtures do
     "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
   end
 
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
   def insert_published_challenge_bundle!(attrs \\ %{}) do
     %{capsule: capsule, publication_artifact_id: artifact_id, publication_review_id: review_id} =
       insert_published_challenge_capsule!(attrs)
 
     assignment = insert_assignment!(capsule, %{origin: capsule.assignment_policy})
-    genome = insert_genome!(Map.take(attrs, [:genome_id, :label, :model_id, :harness_type]))
+    genome = insert_genome!(genome_attrs(attrs))
 
     run =
       insert_run!(

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
+from .integrations import SEARCH_SUMMARY_PATH, build_run_provenance_note, normalise_hypotest_output
 from .models import ScoreResult
 
 
@@ -17,6 +19,26 @@ def _json_text(value: object) -> str:
 
 def _clamp_normalized(value: float) -> float:
     return max(0.0, min(1.0, value))
+
+
+def _sha256_path(path: Path) -> str:
+    return f"sha256:{sha256(path.read_bytes()).hexdigest()}"
+
+
+def _artifact_manifest_entry(
+    path: Path,
+    workspace_dir: Path,
+    *,
+    kind: str,
+    required_for_validation: bool,
+) -> dict[str, Any]:
+    return {
+        "path": path.relative_to(workspace_dir).as_posix(),
+        "kind": kind,
+        "sha256": _sha256_path(path),
+        "size_bytes": path.stat().st_size,
+        "required_for_validation": required_for_validation,
+    }
 
 
 def _coerce_breakdown(verdict: dict[str, Any], rubric_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -88,17 +110,25 @@ def score_workspace(workspace_dir: Path) -> ScoreResult:
     verdict_path = workspace / "outputs" / "verdict.json"
     rubric_path = workspace / "rubric.json"
     run_source_path = workspace / "run.source.yaml"
+    search_config_path = workspace / "search.config.yaml"
+    search_summary_path = workspace / SEARCH_SUMMARY_PATH
     report_path = workspace / "outputs" / "report.html"
     score_path = workspace / "dist" / "score.json"
 
-    verdict = _read_json(verdict_path)
+    raw_verdict = _read_json(verdict_path)
     rubric_json = _read_json(rubric_path)
     run_source = _read_json(run_source_path)
+    search_config = _read_json(search_config_path)
+    search_summary = _read_json(search_summary_path)
 
+    rubric_items = rubric_json.get("items") if isinstance(rubric_json.get("items"), list) else []
+    verdict = normalise_hypotest_output(raw_verdict, rubric_items=rubric_items)
     raw_score, normalized_score, breakdown = _score_from_verdict(verdict, rubric_json)
     decision = str(verdict.get("decision") or "inconclusive")
     justification = str(verdict.get("justification") or "")
     status = "failed" if str(verdict.get("status") or "ok") == "error" else "completed"
+    scorer_version = str(search_summary.get("evaluator", {}).get("scorer_version") or "hypotest-v0.1")
+    provenance_note = build_run_provenance_note(search_config, search_summary)
 
     verdict["metrics"] = {
         "raw_score": raw_score,
@@ -109,13 +139,15 @@ def score_workspace(workspace_dir: Path) -> ScoreResult:
     verdict_path.write_text(_json_text(verdict), encoding="utf-8")
 
     run_source["status"] = status
+    run_source["notes"] = provenance_note
+    run_source.setdefault("bbh", {})
+    if isinstance(run_source["bbh"], dict):
+        run_source["bbh"]["notes"] = provenance_note
     run_source["score"] = {
         "raw": raw_score,
         "normalized": normalized_score,
-        "scorer_version": "bbh-v0.1",
+        "scorer_version": scorer_version,
     }
-    run_source_path.write_text(_json_text(run_source), encoding="utf-8")
-
     report_path.write_text(
         (
             "<html><body>"
@@ -127,6 +159,37 @@ def score_workspace(workspace_dir: Path) -> ScoreResult:
         encoding="utf-8",
     )
 
+    paths = run_source.get("paths") if isinstance(run_source.get("paths"), dict) else {}
+    artifact_manifest: list[dict[str, Any]] = []
+    for key, kind, required in [
+        ("analysis_path", "workspace_file", False),
+        ("search_config_path", "workspace_file", True),
+        ("evaluator_path", "workspace_file", True),
+        ("seed_program_path", "workspace_file", True),
+        ("best_program_path", "generated_output", True),
+        ("search_summary_path", "generated_output", True),
+        ("evaluator_artifacts_path", "generated_output", True),
+        ("checkpoint_pointer_path", "checkpoint_pointer", False),
+        ("best_solution_patch_path", "generated_output", False),
+        ("verdict_path", "generated_output", True),
+        ("report_path", "report", False),
+    ]:
+        relative_path = paths.get(key)
+        if not isinstance(relative_path, str):
+            continue
+        candidate = workspace / relative_path
+        if candidate.exists():
+            artifact_manifest.append(
+                _artifact_manifest_entry(
+                    candidate,
+                    workspace,
+                    kind=kind,
+                    required_for_validation=required,
+                )
+            )
+    run_source["artifact_manifest"] = artifact_manifest
+    run_source_path.write_text(_json_text(run_source), encoding="utf-8")
+
     score_path.write_text(
         _json_text(
             {
@@ -134,6 +197,7 @@ def score_workspace(workspace_dir: Path) -> ScoreResult:
                 "status": status,
                 "raw_score": raw_score,
                 "normalized_score": normalized_score,
+                "scorer_version": scorer_version,
                 "rubric_breakdown": breakdown,
             }
         ),

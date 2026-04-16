@@ -262,13 +262,14 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
 
   defp insert_message!(room, message_label, sent_at, moderation_state) do
     unique = System.unique_integer([:positive])
+    sender_wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
 
     %XmtpMessage{}
     |> XmtpMessage.changeset(%{
       room_id: room.id,
       xmtp_message_id: "msg-#{message_label}-#{unique}",
-      sender_inbox_id: "sender-#{unique}",
-      sender_wallet_address: "0xsender#{unique}",
+      sender_inbox_id: TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+      sender_wallet_address: sender_wallet_address,
       sender_label: "sender-#{unique}",
       sender_type: :human,
       body: "message #{message_label}",

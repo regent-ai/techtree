@@ -2,7 +2,7 @@ import type { Hook } from "phoenix_live_view"
 
 import { animate } from "../../vendor/anime.esm.js"
 import { LocalStorage, Privy } from "../../vendor/privy-core.esm.js"
-import { clearPrivySession, syncPrivySessionAndXmtp } from "./privy-session"
+import { clearPrivySession, syncPrivySession } from "./privy-session"
 import {
   labelForUser,
   loginWithPrivyWallet,
@@ -33,7 +33,6 @@ export const PlatformAuth: Hook = {
     }
 
     const sessionUrl = "/api/auth/privy/session"
-    const completeUrl = "/api/auth/privy/xmtp/complete"
     const privy =
       appId.length > 0
         ? (new Privy({ appId, clientId: appId, storage: new LocalStorage() }) as unknown as PrivyLike)
@@ -78,10 +77,9 @@ export const PlatformAuth: Hook = {
         currentUser = ((result?.user as PrivyUser) || null)?.id ? (result?.user as PrivyUser) : null
 
         if (currentUser?.id) {
-          await syncPrivySessionAndXmtp(privy, currentUser, {
+          await syncPrivySession(privy, currentUser, {
             csrfToken,
             sessionUrl,
-            completeUrl,
           })
           setState("Connected")
         } else {

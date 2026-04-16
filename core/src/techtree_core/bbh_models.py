@@ -50,6 +50,16 @@ class HarnessType(str, Enum):
     custom = "custom"
 
 
+class SolverKind(str, Enum):
+    hermes = "hermes"
+    openclaw = "openclaw"
+    skydiscover = "skydiscover"
+
+
+class EvaluatorKind(str, Enum):
+    hypotest = "hypotest"
+
+
 class AssignmentPolicy(str, Enum):
     auto = "auto"
     select = "select"
@@ -280,6 +290,9 @@ class BbhArtifactProfile(BbhBaseModel):
     language: Literal["python"] = "python"
     provider: Provider
     provider_ref: str = Field(min_length=1)
+    evaluator_kind: EvaluatorKind
+    dataset_ref: str = Field(min_length=1)
+    benchmark_ref: str | None = None
     family_ref: str | None = None
     instance_ref: str | None = None
     hypothesis: str = Field(min_length=1)
@@ -377,9 +390,32 @@ class RunPaths(BbhBaseModel):
     report_path: RelativePath | None = "outputs/report.html"
     log_path: RelativePath | None = "outputs/run.log"
     genome_path: RelativePath | None = "genome.source.yaml"
+    search_config_path: RelativePath | None = "search.config.yaml"
+    evaluator_path: RelativePath | None = "eval/hypotest_skydiscover.py"
+    seed_program_path: RelativePath | None = "solver/initial_program.py"
+    best_program_path: RelativePath | None = "outputs/skydiscover/best_program.py"
+    search_summary_path: RelativePath | None = "outputs/skydiscover/search_summary.json"
+    evaluator_artifacts_path: RelativePath | None = "outputs/skydiscover/evaluator_artifacts.json"
+    checkpoint_pointer_path: RelativePath | None = "outputs/skydiscover/latest_checkpoint.txt"
+    best_solution_patch_path: RelativePath | None = "outputs/skydiscover/best_solution.patch"
+    search_log_path: RelativePath | None = "outputs/skydiscover/search.log"
 
     _validate_paths = field_validator(
-        "analysis_path", "verdict_path", "final_answer_path", "report_path", "log_path", "genome_path"
+        "analysis_path",
+        "verdict_path",
+        "final_answer_path",
+        "report_path",
+        "log_path",
+        "genome_path",
+        "search_config_path",
+        "evaluator_path",
+        "seed_program_path",
+        "best_program_path",
+        "search_summary_path",
+        "evaluator_artifacts_path",
+        "checkpoint_pointer_path",
+        "best_solution_patch_path",
+        "search_log_path",
     )(lambda v: _ensure_relative_posix_path(v) if v is not None else v)
 
 
@@ -387,6 +423,46 @@ class RunScore(BbhBaseModel):
     raw: float
     normalized: float = Field(ge=0.0, le=1.0)
     scorer_version: str | None = None
+
+
+class RunSolver(BbhBaseModel):
+    kind: SolverKind
+    entrypoint: str | None = None
+
+
+class RunSearchSummary(BbhBaseModel):
+    best_score: float
+    best_iteration: int = Field(ge=0)
+    iterations_requested: int = Field(ge=1)
+    iterations_completed: int = Field(ge=0)
+    total_evaluations: int = Field(ge=0)
+    elapsed_ms: int = Field(ge=0)
+    checkpoint_ref: str | None = None
+    artifact_keys: list[str] = Field(default_factory=list)
+
+
+class ArtifactManifestEntry(BbhBaseModel):
+    path: RelativePath
+    kind: Literal["workspace_file", "generated_output", "report", "checkpoint_pointer", "data_file"]
+    sha256: Digest
+    size_bytes: int | None = Field(default=None, ge=0)
+    required_for_validation: bool | None = None
+
+    _validate_path = field_validator("path")(_ensure_relative_posix_path)
+
+
+class RunSearch(BbhBaseModel):
+    algorithm: str = Field(min_length=1)
+    budget: int | None = Field(default=None, ge=1)
+    checkpoint_ref: str | None = None
+    summary: RunSearchSummary | None = None
+
+
+class RunEvaluator(BbhBaseModel):
+    kind: EvaluatorKind
+    dataset_ref: str = Field(min_length=1)
+    benchmark_ref: str | None = None
+    scorer_version: str = Field(min_length=1)
 
 
 class BbhRunProfile(BbhBaseModel):
@@ -410,11 +486,15 @@ class BbhRunSourceV1(BbhBaseModel):
     schema_version: Literal["techtree.bbh.run-source.v1"] = "techtree.bbh.run-source.v1"
     artifact_ref: OpaqueRef
     executor: RunExecutor
+    solver: RunSolver
     instance: RunInstance
     origin: RunOrigin = Field(default_factory=RunOrigin)
     paths: RunPaths = Field(default_factory=RunPaths)
     status: RunStatus = RunStatus.created
     score: RunScore | None = None
+    search: RunSearch | None = None
+    artifact_manifest: list[ArtifactManifestEntry] = Field(default_factory=list)
+    evaluator: RunEvaluator
     bbh: BbhRunProfile
     notes: str | None = None
 
@@ -424,6 +504,10 @@ class BbhRunSourceV1(BbhBaseModel):
             raise ValueError("score may only be present once the run has completed or failed")
         if self.executor.type == "genome" and self.executor.id != self.bbh.genome_ref:
             raise ValueError("executor.id must match bbh.genome_ref for genome-backed runs")
+        if self.search is not None and self.solver.kind != SolverKind.skydiscover:
+            raise ValueError("search may only be present when solver.kind='skydiscover'")
+        if self.solver.kind == SolverKind.skydiscover and self.search is None:
+            raise ValueError("solver.kind='skydiscover' requires search metadata")
         return self
 
 
@@ -455,8 +539,14 @@ class BbhReviewProfile(BbhBaseModel):
     reproduced_raw_score: float | None = None
     reproduced_normalized_score: float | None = Field(default=None, ge=0.0, le=1.0)
     raw_abs_tolerance: float = Field(default=0.01, ge=0.0)
-    scorer_version: str | None = None
+    evaluator_kind: EvaluatorKind
+    dataset_ref: str = Field(min_length=1)
+    scorer_version: str = Field(min_length=1)
     assignment_ref: str | None = None
+    submitted_program_sha256: Digest | None = None
+    reproduced_program_sha256: Digest | None = None
+    score_match: bool | None = None
+    artifact_match: bool | None = None
 
 
 class BbhReviewSourceV1(BbhBaseModel):
@@ -478,4 +568,6 @@ class BbhReviewSourceV1(BbhBaseModel):
         if self.result == ReviewResult.confirmed and self.method == ReviewMethod.replay:
             if self.bbh.reproduced_raw_score is None or self.bbh.reproduced_normalized_score is None:
                 raise ValueError("confirmed replay validations must include reproduced scores")
+            if self.bbh.score_match is False:
+                raise ValueError("confirmed replay validations must record score_match=true")
         return self

@@ -778,6 +778,11 @@ defmodule TechTree.BBH.Presentation do
   end
 
   defp execution_rows(run, genome) do
+    run_source = run.run_source || %{}
+    solver = Map.get(run_source, "solver") || %{}
+    search = Map.get(run_source, "search") || %{}
+    evaluator = Map.get(run_source, "evaluator") || %{}
+
     [
       %{
         id: "backend",
@@ -788,6 +793,36 @@ defmodule TechTree.BBH.Presentation do
         id: "image",
         label: "Runtime image",
         value: stringify(genome.runtime_image)
+      },
+      %{
+        id: "solver",
+        label: "Solver",
+        value: stringify(solver["kind"])
+      },
+      %{
+        id: "search_algorithm",
+        label: "Search algorithm",
+        value: stringify(search["algorithm"])
+      },
+      %{
+        id: "search_budget",
+        label: "Search budget",
+        value: stringify(search["budget"])
+      },
+      %{
+        id: "evaluator",
+        label: "Evaluator",
+        value: stringify(evaluator["kind"])
+      },
+      %{
+        id: "dataset_ref",
+        label: "Dataset",
+        value: stringify(evaluator["dataset_ref"])
+      },
+      %{
+        id: "score_source",
+        label: "Score source",
+        value: stringify(run.score_source)
       },
       %{
         id: "python",
@@ -824,6 +859,12 @@ defmodule TechTree.BBH.Presentation do
   end
 
   defp decorate_validation(validation) do
+    review_bbh =
+      case validation.review_source do
+        %{"bbh" => %{} = bbh} -> bbh
+        _ -> %{}
+      end
+
     %{
       id: validation.validation_id,
       validator_id: validation.role || "official",
@@ -836,8 +877,8 @@ defmodule TechTree.BBH.Presentation do
           _ -> "pending validation"
         end,
       reproducible: validation.result == "confirmed",
-      artifact_match: validation.result == "confirmed",
-      score_match: validation.result == "confirmed"
+      artifact_match: Map.get(review_bbh, "artifact_match", validation.result == "confirmed"),
+      score_match: Map.get(review_bbh, "score_match", validation.result == "confirmed")
     }
   end
 

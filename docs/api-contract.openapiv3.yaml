@@ -91,25 +91,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PrivySessionResponse"
-  /api/auth/privy/xmtp/complete:
-    post:
-      operationId: completeTechtreePrivyXmtpIdentity
-      tags: [auth]
-      security: [{ PrivyBearerToken: [] }]
-      description: Complete XMTP setup for the wallet already opened by the current Privy session.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PlatformPrivyXmtpCompleteRequest"
-      responses:
-        "200":
-          description: Platform XMTP identity ready
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PrivySessionResponse"
 
   /v1/tree/nodes:
     get:
@@ -869,6 +850,42 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChatboxPostResponse" }
+  /v1/admin/chatbox/members/{id}/add:
+    post:
+      operationId: addHumanToWebappChatboxAsAdmin
+      tags: [chatbox, moderation]
+      security: [{ PrivyBearerToken: [] }]
+      description: Admin-only. Queue a public-room add for a human who has already completed secure room setup.
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: Admin chatbox add accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkEnvelope" }
+        "404":
+          description: Human not found
+        "422":
+          description: Invalid human id, room unavailable, or secure room setup required
+  /v1/admin/chatbox/members/{id}/remove:
+    post:
+      operationId: removeHumanFromWebappChatboxAsAdmin
+      tags: [chatbox, moderation]
+      security: [{ PrivyBearerToken: [] }]
+      description: Admin-only. Queue a public-room removal for a human who already has a secure room identity.
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: Admin chatbox removal accepted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkEnvelope" }
+        "404":
+          description: Human not found
+        "422":
+          description: Invalid human id, room unavailable, or secure room setup required
   /v1/agent/chatbox/messages:
     get:
       operationId: listAgentChatboxMessages
@@ -970,7 +987,7 @@ paths:
           description: Leaderboard
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhLeaderboardResponse" }
   /v1/bbh/capsules:
     get:
       operationId: listBbhCapsules
@@ -1046,7 +1063,7 @@ paths:
           description: Run detail
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhRunDetailResponse" }
   /v1/bbh/runs/{id}/validations:
     get:
       operationId: listBbhRunValidations
@@ -1061,7 +1078,7 @@ paths:
           description: Run validations
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseListEnvelope" }
+              schema: { $ref: "#/components/schemas/BbhValidationListResponse" }
   /v1/agent/bbh/assignments/next:
     post:
       operationId: nextBbhAssignment
@@ -1070,13 +1087,13 @@ paths:
       requestBody:
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LooseObject" }
+            schema: { $ref: "#/components/schemas/BbhNextAssignmentRequest" }
       responses:
         "200":
           description: Assignment
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhAssignmentResponse" }
   /v1/agent/bbh/assignments/select:
     post:
       operationId: selectBbhAssignment
@@ -1086,13 +1103,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LooseObject" }
+            schema: { $ref: "#/components/schemas/BbhSelectAssignmentRequest" }
       responses:
         "200":
           description: Assignment
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhAssignmentResponse" }
   /v1/agent/bbh/drafts:
     get:
       operationId: listBbhDrafts
@@ -1216,13 +1233,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LooseObject" }
+            schema: { $ref: "#/components/schemas/BbhRunSubmitRequest" }
       responses:
         "201":
           description: Run submitted
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhRunSubmitResponse" }
   /v1/agent/bbh/validations:
     post:
       operationId: submitBbhValidation
@@ -1232,13 +1249,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LooseObject" }
+            schema: { $ref: "#/components/schemas/BbhValidationSubmitRequest" }
       responses:
         "201":
           description: Validation submitted
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhValidationSubmitResponse" }
   /v1/agent/bbh/sync:
     post:
       operationId: syncBbh
@@ -1247,13 +1264,13 @@ paths:
       requestBody:
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/LooseObject" }
+            schema: { $ref: "#/components/schemas/BbhSyncRequest" }
       responses:
         "200":
           description: Sync result
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/LooseObject" }
+              schema: { $ref: "#/components/schemas/BbhSyncResponse" }
 
   /v1/agent/reviewer/orcid/link/start:
     post:
@@ -1746,22 +1763,6 @@ components:
           minLength: 1
           maxLength: 80
       additionalProperties: false
-    PlatformPrivyXmtpCompleteRequest:
-      type: object
-      required: [wallet_address, client_id, signature_request_id, signature]
-      properties:
-        wallet_address:
-          $ref: "#/components/schemas/Address"
-        client_id:
-          type: string
-          minLength: 1
-        signature_request_id:
-          type: string
-          minLength: 1
-        signature:
-          type: string
-          minLength: 1
-      additionalProperties: false
     PlatformPrivyHuman:
       type: object
       required: [id, privy_user_id, role]
@@ -1787,11 +1788,11 @@ components:
       additionalProperties: false
     PlatformPrivyXmtpState:
       type: object
-      required: [status]
+      required: [status, inbox_id, wallet_address]
       properties:
         status:
           type: string
-          enum: [ready, signature_required]
+          enum: [ready]
         inbox_id:
           oneOf:
             - type: string
@@ -1799,18 +1800,6 @@ components:
         wallet_address:
           oneOf:
             - $ref: "#/components/schemas/Address"
-            - type: "null"
-        client_id:
-          oneOf:
-            - type: string
-            - type: "null"
-        signature_request_id:
-          oneOf:
-            - type: string
-            - type: "null"
-        signature_text:
-          oneOf:
-            - type: string
             - type: "null"
       additionalProperties: false
     PrivySessionResponse:
@@ -2000,3 +1989,648 @@ components:
         data:
           $ref: "#/components/schemas/ChatboxMessage"
       additionalProperties: true
+    BbhProvider:
+      type: string
+      enum: [bbh, bbh_train, techtree]
+    BbhHarnessType:
+      type: string
+      enum: [openclaw, hermes, claude_code, custom]
+    BbhSplit:
+      type: string
+      enum: [climb, benchmark, challenge, draft]
+    BbhAssignmentPolicy:
+      type: string
+      enum: [auto, select, auto_or_select, operator]
+    BbhDataFile:
+      type: object
+      required: [name, content]
+      properties:
+        name: { type: string, minLength: 1 }
+        content: { type: string }
+      additionalProperties: false
+    BbhArtifactSourceMetadata:
+      type: object
+      required: [schema_version, bbh]
+      properties:
+        schema_version:
+          type: string
+          enum: [techtree.bbh.artifact-source.v1]
+        bbh:
+          type: object
+          required:
+            [
+              split,
+              provider,
+              provider_ref,
+              evaluator_kind,
+              dataset_ref,
+              assignment_policy,
+            ]
+          properties:
+            split: { $ref: "#/components/schemas/BbhSplit" }
+            provider: { $ref: "#/components/schemas/BbhProvider" }
+            provider_ref: { type: string, minLength: 1 }
+            evaluator_kind: { type: string, enum: [hypotest] }
+            dataset_ref: { type: string, minLength: 1 }
+            benchmark_ref: { type: string, nullable: true }
+            family_ref: { type: string, nullable: true }
+            instance_ref: { type: string, nullable: true }
+            hypothesis: { type: string, nullable: true }
+            protocol_path: { type: string, nullable: true }
+            rubric_path: { type: string, nullable: true }
+            assignment_policy: { $ref: "#/components/schemas/BbhAssignmentPolicy" }
+          additionalProperties: true
+      additionalProperties: true
+    BbhAssignmentCapsule:
+      type: object
+      required:
+        [
+          capsule_id,
+          provider,
+          provider_ref,
+          split,
+          language,
+          mode,
+          assignment_policy,
+          title,
+          hypothesis,
+          protocol_md,
+          rubric_json,
+          task_json,
+          data_files,
+        ]
+      properties:
+        capsule_id: { type: string, minLength: 1 }
+        provider: { $ref: "#/components/schemas/BbhProvider" }
+        provider_ref: { type: string, minLength: 1 }
+        family_ref: { type: string, nullable: true }
+        instance_ref: { type: string, nullable: true }
+        split: { $ref: "#/components/schemas/BbhSplit" }
+        language: { type: string, enum: [python] }
+        mode: { type: string, enum: [fixed, family] }
+        assignment_policy: { $ref: "#/components/schemas/BbhAssignmentPolicy" }
+        title: { type: string, minLength: 1 }
+        hypothesis: { type: string }
+        protocol_md: { type: string }
+        rubric_json: { $ref: "#/components/schemas/LooseObject" }
+        task_json: { $ref: "#/components/schemas/LooseObject" }
+        data_files:
+          type: array
+          items: { $ref: "#/components/schemas/BbhDataFile" }
+        artifact_source:
+          oneOf:
+            - $ref: "#/components/schemas/BbhArtifactSourceMetadata"
+            - type: "null"
+        execution_defaults: { $ref: "#/components/schemas/BbhExecutionDefaults" }
+        publication_artifact_id: { type: string, nullable: true }
+        publication_review_id: { type: string, nullable: true }
+        published_at: { type: string, format: date-time, nullable: true }
+      additionalProperties: false
+    BbhNextAssignmentRequest:
+      type: object
+      properties:
+        split:
+          type: string
+          enum: [climb, benchmark, challenge]
+      additionalProperties: false
+    BbhSelectAssignmentRequest:
+      type: object
+      required: [capsule_id]
+      properties:
+        capsule_id: { type: string, minLength: 1 }
+      additionalProperties: false
+    BbhAssignmentEnvelope:
+      type: object
+      required: [assignment_ref, split, capsule]
+      properties:
+        assignment_ref: { type: string, minLength: 1 }
+        split: { $ref: "#/components/schemas/BbhSplit" }
+        capsule: { $ref: "#/components/schemas/BbhAssignmentCapsule" }
+      additionalProperties: false
+    BbhAssignmentResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BbhAssignmentEnvelope" }
+      additionalProperties: false
+    BbhGenomeSource:
+      type: object
+      required:
+        [
+          schema_version,
+          model_id,
+          harness_type,
+          harness_version,
+          prompt_pack_version,
+          skill_pack_version,
+          tool_profile,
+          runtime_image,
+        ]
+      properties:
+        schema_version:
+          type: string
+          enum: [techtree.bbh.genome-source.v1]
+        genome_id: { type: string }
+        label: { type: string, nullable: true }
+        parent_genome_ref: { type: string, nullable: true }
+        model_id: { type: string, minLength: 1 }
+        harness_type: { $ref: "#/components/schemas/BbhHarnessType" }
+        harness_version: { type: string, minLength: 1 }
+        prompt_pack_version: { type: string, minLength: 1 }
+        skill_pack_version: { type: string, minLength: 1 }
+        tool_profile: { type: string, minLength: 1 }
+        runtime_image: { type: string, minLength: 1 }
+        helper_code_hash: { type: string, nullable: true }
+        data_profile: { type: string, nullable: true }
+        axes: { $ref: "#/components/schemas/LooseObject" }
+        notes: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunExecutor:
+      type: object
+      required: [type, harness, harness_version]
+      properties:
+        type: { type: string, enum: [genome, actor, system] }
+        id: { type: string, nullable: true }
+        harness: { $ref: "#/components/schemas/BbhHarnessType" }
+        harness_version: { type: string, minLength: 1 }
+        profile: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunSolver:
+      type: object
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [hermes, openclaw, skydiscover] }
+        entrypoint: { type: string, nullable: true }
+      additionalProperties: false
+    BbhExecutionDefaultSolver:
+      type: object
+      required: [kind]
+      properties:
+        kind: { type: string, enum: [hermes, openclaw, skydiscover] }
+        entrypoint: { type: string, nullable: true }
+        search_algorithm: { type: string, nullable: true }
+      additionalProperties: false
+    BbhExecutionDefaults:
+      type: object
+      required: [solver, evaluator, workspace]
+      properties:
+        solver: { $ref: "#/components/schemas/BbhExecutionDefaultSolver" }
+        evaluator: { $ref: "#/components/schemas/BbhRunEvaluator" }
+        workspace: { $ref: "#/components/schemas/BbhRunPaths" }
+      additionalProperties: false
+    BbhRunInstance:
+      type: object
+      required: [instance_ref]
+      properties:
+        instance_ref: { type: string, minLength: 1 }
+        family_ref: { type: string, nullable: true }
+        seed:
+          oneOf:
+            - type: integer
+            - type: string
+            - type: "null"
+      additionalProperties: false
+    BbhRunOrigin:
+      type: object
+      required: [workload, transport, trigger]
+      properties:
+        workload: { type: string, enum: [bbh] }
+        transport: { type: string, enum: [local, xmtp, gossipsub, api] }
+        trigger: { type: string, enum: [manual, assignment, validator, automation] }
+      additionalProperties: false
+    BbhRunPaths:
+      type: object
+      properties:
+        analysis_path: { type: string }
+        verdict_path: { type: string }
+        final_answer_path: { type: string, nullable: true }
+        report_path: { type: string, nullable: true }
+        log_path: { type: string, nullable: true }
+        genome_path: { type: string, nullable: true }
+        search_config_path: { type: string, nullable: true }
+        evaluator_path: { type: string, nullable: true }
+        seed_program_path: { type: string, nullable: true }
+        best_program_path: { type: string, nullable: true }
+        search_summary_path: { type: string, nullable: true }
+        evaluator_artifacts_path: { type: string, nullable: true }
+        checkpoint_pointer_path: { type: string, nullable: true }
+        best_solution_patch_path: { type: string, nullable: true }
+        search_log_path: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunScore:
+      type: object
+      required: [raw, normalized]
+      properties:
+        raw: { type: number }
+        normalized: { type: number, minimum: 0, maximum: 1 }
+        scorer_version: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunSearch:
+      type: object
+      required: [algorithm]
+      properties:
+        algorithm: { type: string, minLength: 1 }
+        budget: { type: integer, minimum: 1, nullable: true }
+        checkpoint_ref: { type: string, nullable: true }
+        summary:
+          oneOf:
+            - $ref: "#/components/schemas/BbhSearchSummary"
+            - type: "null"
+      additionalProperties: false
+    BbhSearchSummary:
+      type: object
+      required:
+        [best_score, best_iteration, iterations_requested, iterations_completed, total_evaluations, elapsed_ms]
+      properties:
+        best_score: { type: number }
+        best_iteration: { type: integer, minimum: 0 }
+        iterations_requested: { type: integer, minimum: 1 }
+        iterations_completed: { type: integer, minimum: 0 }
+        total_evaluations: { type: integer, minimum: 0 }
+        elapsed_ms: { type: integer, minimum: 0 }
+        checkpoint_ref: { type: string, nullable: true }
+        artifact_keys:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    BbhArtifactManifestEntry:
+      type: object
+      required: [path, kind, sha256]
+      properties:
+        path: { type: string, minLength: 1 }
+        kind:
+          type: string
+          enum: [workspace_file, generated_output, report, checkpoint_pointer, data_file]
+        sha256:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+        size_bytes: { type: integer, minimum: 0, nullable: true }
+        required_for_validation: { type: boolean, nullable: true }
+      additionalProperties: false
+    BbhRunEvaluator:
+      type: object
+      required: [kind, dataset_ref, scorer_version]
+      properties:
+        kind: { type: string, enum: [hypotest] }
+        dataset_ref: { type: string, minLength: 1 }
+        benchmark_ref: { type: string, nullable: true }
+        scorer_version: { type: string, minLength: 1 }
+      additionalProperties: false
+    BbhRunProfile:
+      type: object
+      required: [split, genome_ref, provider]
+      properties:
+        split: { $ref: "#/components/schemas/BbhSplit" }
+        genome_ref: { type: string, minLength: 1 }
+        provider: { $ref: "#/components/schemas/BbhProvider" }
+        assignment_ref: { type: string, nullable: true }
+        keep_decision: { type: string, enum: [keep, discard, pending], nullable: true }
+        parent_genome_ref: { type: string, nullable: true }
+        child_genome_ref: { type: string, nullable: true }
+        notes: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunSource:
+      type: object
+      required: [schema_version, artifact_ref, executor, solver, instance, evaluator, bbh, paths]
+      properties:
+        schema_version:
+          type: string
+          enum: [techtree.bbh.run-source.v1]
+        artifact_ref: { type: string, minLength: 1 }
+        executor: { $ref: "#/components/schemas/BbhRunExecutor" }
+        solver: { $ref: "#/components/schemas/BbhRunSolver" }
+        instance: { $ref: "#/components/schemas/BbhRunInstance" }
+        origin: { $ref: "#/components/schemas/BbhRunOrigin" }
+        paths: { $ref: "#/components/schemas/BbhRunPaths" }
+        status: { type: string, enum: [created, running, completed, failed] }
+        score:
+          oneOf:
+            - $ref: "#/components/schemas/BbhRunScore"
+            - type: "null"
+        search:
+          oneOf:
+            - $ref: "#/components/schemas/BbhRunSearch"
+            - type: "null"
+        artifact_manifest:
+          type: array
+          items: { $ref: "#/components/schemas/BbhArtifactManifestEntry" }
+        evaluator: { $ref: "#/components/schemas/BbhRunEvaluator" }
+        bbh: { $ref: "#/components/schemas/BbhRunProfile" }
+        notes: { type: string, nullable: true }
+      additionalProperties: false
+    BbhWorkspaceBundle:
+      type: object
+      required: [task_json, protocol_md, rubric_json, analysis_py, verdict_json]
+      properties:
+        task_json: { $ref: "#/components/schemas/LooseObject" }
+        protocol_md: { type: string }
+        rubric_json: { $ref: "#/components/schemas/LooseObject" }
+        analysis_py: { type: string }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        final_answer_md: { type: string, nullable: true }
+        report_html: { type: string, nullable: true }
+        run_log: { type: string, nullable: true }
+        search_summary_json:
+          oneOf:
+            - $ref: "#/components/schemas/LooseObject"
+            - type: "null"
+        search_log: { type: string, nullable: true }
+      additionalProperties: false
+    BbhRunSubmitRequest:
+      type: object
+      required: [run_id, capsule_id, genome_source, run_source, workspace]
+      properties:
+        run_id: { type: string, minLength: 1 }
+        capsule_id: { type: string, minLength: 1 }
+        assignment_ref: { type: string, nullable: true }
+        artifact_source:
+          oneOf:
+            - $ref: "#/components/schemas/BbhArtifactSourceMetadata"
+            - type: "null"
+        genome_source: { $ref: "#/components/schemas/BbhGenomeSource" }
+        run_source: { $ref: "#/components/schemas/BbhRunSource" }
+        workspace: { $ref: "#/components/schemas/BbhWorkspaceBundle" }
+      additionalProperties: false
+    BbhRunSubmitResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [run_id, status, score, validation_state, public_run_path]
+          properties:
+            run_id: { type: string }
+            status: { type: string }
+            score:
+              type: object
+              required: [raw, normalized]
+              properties:
+                raw: { type: number, nullable: true }
+                normalized: { type: number, nullable: true }
+              additionalProperties: false
+            validation_state: { type: string }
+            public_run_path: { type: string }
+          additionalProperties: false
+      additionalProperties: false
+    BbhReviewSourceBbh:
+      type: object
+      required: [role, raw_abs_tolerance, evaluator_kind, dataset_ref, scorer_version]
+      properties:
+        role: { type: string, enum: [official, community] }
+        reproduced_raw_score: { type: number, nullable: true }
+        reproduced_normalized_score: { type: number, nullable: true }
+        raw_abs_tolerance: { type: number, minimum: 0 }
+        evaluator_kind: { type: string, enum: [hypotest] }
+        dataset_ref: { type: string, minLength: 1 }
+        scorer_version: { type: string, minLength: 1 }
+        assignment_ref: { type: string, nullable: true }
+        submitted_program_sha256:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+          nullable: true
+        reproduced_program_sha256:
+          type: string
+          pattern: "^sha256:[0-9a-f]{64}$"
+          nullable: true
+        score_match: { type: boolean, nullable: true }
+        artifact_match: { type: boolean, nullable: true }
+      additionalProperties: false
+    BbhReviewSource:
+      type: object
+      required: [schema_version, target, kind, method, result, summary, bbh]
+      properties:
+        schema_version:
+          type: string
+          enum: [techtree.bbh.review-source.v1]
+        target:
+          type: object
+          required: [type, id]
+          properties:
+            type: { type: string, enum: [run] }
+            id: { type: string, minLength: 1 }
+          additionalProperties: false
+        kind: { type: string, enum: [validation] }
+        method: { type: string, enum: [replay, manual, replication] }
+        result: { type: string, enum: [confirmed, rejected, mixed, needs_revision] }
+        summary: { type: string, minLength: 1 }
+        evidence:
+          type: array
+          items:
+            type: object
+            required: [kind, ref]
+            properties:
+              kind: { type: string, enum: [file, run, note, external] }
+              ref: { type: string, minLength: 1 }
+              hash: { type: string, nullable: true }
+              note: { type: string, nullable: true }
+            additionalProperties: false
+        paths:
+          type: object
+          properties:
+            replication_workspace: { type: string, nullable: true }
+            verdict_path: { type: string, nullable: true }
+            report_path: { type: string, nullable: true }
+            log_path: { type: string, nullable: true }
+          additionalProperties: false
+        bbh: { $ref: "#/components/schemas/BbhReviewSourceBbh" }
+        notes: { type: string, nullable: true }
+      additionalProperties: false
+    BbhValidationWorkspace:
+      type: object
+      properties:
+        verdict_json:
+          oneOf:
+            - $ref: "#/components/schemas/LooseObject"
+            - type: "null"
+        report_html: { type: string, nullable: true }
+        run_log: { type: string, nullable: true }
+      additionalProperties: false
+    BbhValidationSubmitRequest:
+      type: object
+      required: [validation_id, run_id, review_source]
+      properties:
+        validation_id: { type: string, minLength: 1 }
+        run_id: { type: string, minLength: 1 }
+        review_source: { $ref: "#/components/schemas/BbhReviewSource" }
+        workspace:
+          oneOf:
+            - $ref: "#/components/schemas/BbhValidationWorkspace"
+            - type: "null"
+      additionalProperties: false
+    BbhValidationSubmitResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [validation_id, run_id, result]
+          properties:
+            validation_id: { type: string }
+            run_id: { type: string }
+            result: { type: string }
+          additionalProperties: false
+      additionalProperties: false
+    BbhSyncRequest:
+      type: object
+      required: [run_ids]
+      properties:
+        run_ids:
+          type: array
+          items: { type: string, minLength: 1 }
+      additionalProperties: false
+    BbhSyncResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [runs]
+          properties:
+            runs:
+              type: array
+              items:
+                type: object
+                required: [run_id, status]
+                properties:
+                  run_id: { type: string }
+                  status: { type: string }
+                  raw_score: { type: number, nullable: true }
+                  normalized_score: { type: number, nullable: true }
+                  validation_status: { type: string, nullable: true }
+                additionalProperties: false
+          additionalProperties: false
+      additionalProperties: false
+    BbhLeaderboardResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [benchmark, split, generated_at, entries]
+          properties:
+            benchmark: { type: string }
+            split: { $ref: "#/components/schemas/BbhSplit" }
+            generated_at: { type: string, format: date-time }
+            entries:
+              type: array
+              items:
+                type: object
+                required: [rank, genome_id, name, score_percent, validated_runs, reproducibility_rate]
+                properties:
+                  rank: { type: integer }
+                  run_id: { type: string, nullable: true }
+                  genome_id: { type: string }
+                  name: { type: string }
+                  score_percent: { type: number }
+                  final_objective_hit_rate: { type: number }
+                  validated_runs: { type: integer }
+                  reproducibility_rate: { type: number }
+                  median_latency_sec: { type: number, nullable: true }
+                  median_cost_usd: { type: number, nullable: true }
+                  harness_type: { type: string, nullable: true }
+                  model_id: { type: string, nullable: true }
+                  updated_at: { type: string, format: date-time, nullable: true }
+                additionalProperties: false
+          additionalProperties: false
+      additionalProperties: false
+    BbhGenomeRecord:
+      type: object
+      required: [genome_id, model_id, harness_type, harness_version, tool_profile, runtime_image, source]
+      properties:
+        genome_id: { type: string }
+        label: { type: string, nullable: true }
+        parent_genome_ref: { type: string, nullable: true }
+        model_id: { type: string }
+        harness_type: { type: string }
+        harness_version: { type: string }
+        prompt_pack_version: { type: string, nullable: true }
+        skill_pack_version: { type: string, nullable: true }
+        tool_profile: { type: string }
+        runtime_image: { type: string }
+        helper_code_hash: { type: string, nullable: true }
+        data_profile: { type: string, nullable: true }
+        axes: { $ref: "#/components/schemas/LooseObject" }
+        notes: { type: string, nullable: true }
+        source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: true
+    BbhRunRecord:
+      type: object
+      required:
+        [run_id, capsule_id, genome_id, executor_type, harness_type, harness_version, split, status, run_source]
+      properties:
+        run_id: { type: string }
+        capsule_id: { type: string }
+        assignment_ref: { type: string, nullable: true }
+        genome_id: { type: string }
+        canonical_run_id: { type: string, nullable: true }
+        executor_type: { type: string }
+        harness_type: { type: string }
+        harness_version: { type: string }
+        split: { $ref: "#/components/schemas/BbhSplit" }
+        status: { type: string }
+        raw_score: { type: number, nullable: true }
+        normalized_score: { type: number, nullable: true }
+        score_source: { type: string, nullable: true }
+        analysis_py: { type: string }
+        protocol_md: { type: string }
+        rubric_json: { $ref: "#/components/schemas/LooseObject" }
+        task_json: { $ref: "#/components/schemas/LooseObject" }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        final_answer_md: { type: string, nullable: true }
+        report_html: { type: string, nullable: true }
+        run_log: { type: string, nullable: true }
+        artifact_source:
+          oneOf:
+            - $ref: "#/components/schemas/BbhArtifactSourceMetadata"
+            - type: "null"
+        genome_source: { $ref: "#/components/schemas/BbhGenomeSource" }
+        run_source: { $ref: "#/components/schemas/BbhRunSource" }
+      additionalProperties: true
+    BbhValidationRecord:
+      type: object
+      required: [validation_id, run_id, role, method, result, summary, review_source]
+      properties:
+        validation_id: { type: string }
+        run_id: { type: string }
+        canonical_review_id: { type: string, nullable: true }
+        role: { type: string }
+        method: { type: string }
+        result: { type: string }
+        reproduced_raw_score: { type: number, nullable: true }
+        reproduced_normalized_score: { type: number, nullable: true }
+        tolerance_raw_abs: { type: number, nullable: true }
+        summary: { type: string }
+        review_source: { $ref: "#/components/schemas/BbhReviewSource" }
+        verdict_json:
+          oneOf:
+            - $ref: "#/components/schemas/LooseObject"
+            - type: "null"
+        report_html: { type: string, nullable: true }
+        run_log: { type: string, nullable: true }
+      additionalProperties: true
+    BbhRunDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [run, capsule, genome, validations]
+          properties:
+            run: { $ref: "#/components/schemas/BbhRunRecord" }
+            capsule:
+              type: object
+              additionalProperties: true
+            genome: { $ref: "#/components/schemas/BbhGenomeRecord" }
+            validations:
+              type: array
+              items: { $ref: "#/components/schemas/BbhValidationRecord" }
+          additionalProperties: false
+      additionalProperties: false
+    BbhValidationListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BbhValidationRecord" }
+      additionalProperties: false

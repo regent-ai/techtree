@@ -30,6 +30,9 @@ bbh:
   split: challenge
   provider: bbh
   provider_ref: bbh/capsule-challenge-fixed-1
+  evaluator_kind: hypotest
+  dataset_ref: hypotest://bbh/challenge
+  benchmark_ref: bbh_py
   instance_ref: inst_challenge_1
   hypothesis: Published challenge hypothesis.
   protocol_path: protocol.md

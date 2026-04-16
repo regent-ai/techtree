@@ -13,6 +13,7 @@ defmodule TechTree.Moderation do
   alias TechTree.Accounts.HumanUser
   alias TechTree.Chatbox
   alias TechTree.Chatbox.Message
+  alias TechTree.XMTPMirror
 
   @default_dashboard_limit 60
   @default_history_limit 12
@@ -31,6 +32,13 @@ defmodule TechTree.Moderation do
           | {:error, :message_not_found}
           | {:error, :agent_not_found}
           | {:error, :human_not_found}
+
+  @type chatbox_membership_action_result ::
+          :ok
+          | {:error, :human_not_found}
+          | {:error, :human_banned}
+          | {:error, :room_not_found}
+          | {:error, :xmtp_identity_required}
 
   @spec hide_node(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
   def hide_node(id, admin, reason) do
@@ -93,6 +101,7 @@ defmodule TechTree.Moderation do
   def ban_human(id, admin, reason) do
     human = Repo.get!(HumanUser, normalize_id(id))
     human |> Ecto.Changeset.change(role: "banned") |> Repo.update!()
+    :ok = XMTPMirror.best_effort_remove_human_from_canonical_room(human.id)
 
     log!(:human, human.id, "ban", admin, reason)
     :ok
@@ -157,6 +166,7 @@ defmodule TechTree.Moderation do
   def ban_human_if_present(id, admin, reason) do
     with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
       human |> Ecto.Changeset.change(role: "banned") |> Repo.update!()
+      :ok = XMTPMirror.best_effort_remove_human_from_canonical_room(human.id)
 
       log!(:human, human.id, "ban", admin, reason)
       :ok
@@ -171,6 +181,36 @@ defmodule TechTree.Moderation do
 
       log!(:human, human.id, "unban", admin, reason)
       :ok
+    end
+  end
+
+  @spec add_human_to_chatbox(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          chatbox_membership_action_result()
+  def add_human_to_chatbox(id, admin, reason) do
+    human = Repo.get!(HumanUser, normalize_id(id))
+
+    case XMTPMirror.add_human_to_canonical_room(human.id) do
+      :ok ->
+        log!(:human, human.id, "add_chatbox_member", admin, reason)
+        :ok
+
+      {:error, reason_code} ->
+        {:error, reason_code}
+    end
+  end
+
+  @spec remove_human_from_chatbox(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          chatbox_membership_action_result()
+  def remove_human_from_chatbox(id, admin, reason) do
+    human = Repo.get!(HumanUser, normalize_id(id))
+
+    case XMTPMirror.remove_human_from_canonical_room(human.id) do
+      :ok ->
+        log!(:human, human.id, "remove_chatbox_member", admin, reason)
+        :ok
+
+      {:error, reason_code} ->
+        {:error, reason_code}
     end
   end
 

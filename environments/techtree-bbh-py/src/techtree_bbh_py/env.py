@@ -12,10 +12,6 @@ from .score import score_workspace
 from .validate import validate_workspace
 
 
-def _json_text(value: object) -> str:
-    return json.dumps(value, indent=2, sort_keys=True) + "\n"
-
-
 def _default_workspace_root(split: str) -> Path:
     return Path.cwd() / ".techtree-bbh" / split
 
@@ -38,35 +34,6 @@ def _default_genome(capsule: Capsule, harness_type: BbhHarnessType) -> dict[str,
     }
 
 
-def _default_verdict(capsule: Capsule) -> dict[str, Any]:
-    rubric_breakdown: list[dict[str, Any]] = []
-    total_points = 0.0
-    awarded_points = 0.0
-    for item in capsule.rubric:
-        total_points += float(item.points_possible)
-        points_awarded = float(item.points_possible) if item.rubric_item_id == "final_objective" else 0.0
-        awarded_points += points_awarded
-        rubric_breakdown.append(
-            {
-                "rubric_item_id": item.rubric_item_id,
-                "points_awarded": points_awarded,
-                "points_possible": float(item.points_possible),
-                "notes": "Seeded by techtree-bbh smoke mode.",
-            }
-        )
-    normalized = 0.0 if total_points <= 0 else min(1.0, awarded_points / total_points)
-    return {
-        "decision": "support",
-        "justification": "Smoke mode generated a deterministic placeholder verdict for local validation.",
-        "metrics": {
-            "raw_score": awarded_points,
-            "normalized_score": normalized,
-        },
-        "rubric_breakdown": rubric_breakdown,
-        "status": "ok",
-    }
-
-
 @dataclass(slots=True)
 class BbhPyEnvironment:
     split: str
@@ -75,6 +42,10 @@ class BbhPyEnvironment:
     workspace_root: Path | None = None
     public_dataset: str | None = None
     problem_jsonl: str | None = None
+    solver_kind: str = "skydiscover"
+    search_algorithm: str = "best_of_n"
+    evaluator_kind: str = "hypotest"
+    scorer_version: str = "hypotest-v0.1"
     metadata: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -110,6 +81,10 @@ class BbhPyEnvironment:
             genome_source=resolved_genome,
             assignment_ref=resolved_assignment_ref,
             harness_type=harness_type,
+            solver_kind=self.solver_kind,
+            search_algorithm=self.search_algorithm,
+            evaluator_kind=self.evaluator_kind,
+            scorer_version=self.scorer_version,
         )
 
     def score(self, workspace_dir: Path) -> ScoreResult:
@@ -132,14 +107,13 @@ class BbhPyEnvironment:
             assignment_ref=assignment_ref,
             harness_type=harness_type,
         )
-        verdict_payload = _default_verdict(workspace.capsule)
-        workspace.verdict_json_path.write_text(_json_text(verdict_payload), encoding="utf-8")
+        score = self.score(workspace.workspace_dir)
+        validation = self.validate(workspace.workspace_dir, run_id=workspace.workspace_dir.name)
+        verdict_payload = json.loads(workspace.verdict_json_path.read_text(encoding="utf-8"))
         workspace.final_answer_md_path.write_text(
             f"# Final answer\n\n{verdict_payload['justification']}\n",
             encoding="utf-8",
         )
-        score = self.score(workspace.workspace_dir)
-        validation = self.validate(workspace.workspace_dir, run_id=workspace.workspace_dir.name)
         return {
             "workspace_dir": str(workspace.workspace_dir),
             "capsule_id": workspace.capsule.capsule_id,
@@ -168,6 +142,10 @@ def load_environment(
     problem_jsonl: str | None = None,
     workspace_root: str | None = None,
     official_mode: bool = False,
+    solver_kind: str = "skydiscover",
+    search_algorithm: str = "best_of_n",
+    evaluator_kind: str = "hypotest",
+    scorer_version: str = "hypotest-v0.1",
     **_: object,
 ) -> BbhPyEnvironment:
     if split not in {"climb", "benchmark", "challenge", "draft"}:
@@ -189,5 +167,9 @@ def load_environment(
         workspace_root=Path(workspace_root) if workspace_root else None,
         public_dataset=public_dataset,
         problem_jsonl=problem_jsonl,
+        solver_kind=solver_kind,
+        search_algorithm=search_algorithm,
+        evaluator_kind=evaluator_kind,
+        scorer_version=scorer_version,
         metadata={"source": public_dataset or problem_jsonl or f"techtree-bbh-py/{split}"},
     )

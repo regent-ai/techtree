@@ -9,7 +9,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     %{capsule: capsule} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Capsule Alpha",
-        label: "wall-leader",
+        genome_label: "wall-leader",
         model_id: "gpt-wall-leader"
       })
 
@@ -49,6 +49,8 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "manual: --capsule &lt;capsule_id&gt;"
     assert render(view) =~ "public reviewed frontier lane"
     assert render(view) =~ "homepage tree into the wall"
+    assert render(view) =~ "SkyDiscover search"
+    assert render(view) =~ "Hypotest replay"
     assert has_element?(view, "#bbh-capsule-#{capsule.capsule_id}")
     assert has_element?(view, "#bbh-official-strip")
     assert render(view) =~ "wall-leader"
@@ -71,7 +73,6 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     %{run: challenge_run} =
       BBHFixtures.insert_published_challenge_bundle!(%{
         title: "Reviewed Frontier Capsule",
-        label: "challenge-runner",
         normalized_score: 0.76,
         raw_score: 3.8
       })
@@ -92,7 +93,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     %{capsule: first_capsule} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Capsule One",
-        label: "first-runner",
+        genome_label: "first-runner",
         model_id: "gpt-first",
         normalized_score: 0.72,
         raw_score: 3.6
@@ -101,7 +102,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     %{capsule: second_capsule} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Capsule Two",
-        label: "second-runner",
+        genome_label: "second-runner",
         model_id: "gpt-second",
         normalized_score: 0.91,
         raw_score: 4.55
@@ -130,7 +131,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
   test "renders the run page and not found fallback", %{conn: conn} do
     %{run: run, validation: validation, capsule: capsule} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
-        label: "live-run",
+        genome_label: "live-run",
         title: "Run Capsule",
         model_id: "gpt-live-run"
       })
@@ -145,6 +146,8 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "Benchmark ledger boundary"
     assert render(view) =~ "Certificate"
     assert render(view) =~ "apples-to-apples comparison lane"
+    assert render(view) =~ "This section shows how the run was made"
+    assert render(view) =~ "SkyDiscover appears here"
 
     {:ok, missing_view, _html} =
       live(conn, ~p"/bbh/runs/0x9999999999999999999999999999999999999999999999999999999999999999")

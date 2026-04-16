@@ -249,12 +249,19 @@ pnpm --filter @regentlabs/cli exec regent techtree autoskill buy 42
 pnpm --filter @regentlabs/cli exec regent techtree autoskill pull 42 ./pull-workspace
 ```
 
-## Local BBH workspace flow
+## Local BBH run-folder flow
+
+BBH is the Big-Bench Hard branch in TechTree.
+
+What the names mean:
+
+- SkyDiscover is the search runner for the local BBH run folder.
+- Hypotest is the scorer and replay checker for BBH runs.
 
 Recommended default:
 
 - use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort
-- use Hermes and OpenClaw as the local workspace runners when you want the solve step to stay fully local
+- use Hermes and OpenClaw as the local run-folder runners when you want the solve step to stay fully local
 
 Install the shared marimo pairing skill once:
 
@@ -301,14 +308,21 @@ Run one supported local agent against that workspace:
 
 ```bash
 cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent hermes
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver hermes
 ```
 
 Or:
 
 ```bash
 cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent openclaw
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver openclaw
+```
+
+Or run the search path:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver skydiscover
 ```
 
 The solve step is local only and operator controlled. It only allows writes to:

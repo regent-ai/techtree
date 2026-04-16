@@ -1,12 +1,19 @@
 # BBH Local Agent Runbook
 
-This is the operator path for solving a BBH workspace locally with an agent.
+This is the operator path for solving a BBH run folder locally with an agent.
+
+BBH is the Big-Bench Hard branch in TechTree.
+
+What the names mean:
+
+- SkyDiscover is the search runner. It explores multiple candidate attempts inside the run folder and writes the search files that travel with the run.
+- Hypotest is the scorer and replay check. It turns the run output into the verdict file and is the same scoring path used again during replay validation.
 
 The loop is:
 
-1. materialize a BBH workspace
+1. materialize a BBH run folder
 2. run the notebook pairing helper
-3. run one local agent against that workspace only
+3. run one local agent against that run folder only
 4. inspect the outputs
 5. submit and validate through the existing BBH flow
 
@@ -15,7 +22,7 @@ The loop is:
 - Techtree is running locally.
 - The Regent runtime is running locally.
 - You already have a working SIWA session for protected BBH submit and validate steps.
-- The local BBH workspace came from `regent techtree bbh run exec`.
+- The local BBH run folder came from `regent techtree bbh run exec`.
 - Install the shared marimo pairing skill once for Hermes or OpenClaw:
 
 ```bash
@@ -34,9 +41,9 @@ If you do not have `npx` but you do have `uv`:
 uvx deno -A npm:skills add marimo-team/marimo-pair
 ```
 
-- Recommended default: use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort, and treat Hermes or OpenClaw as the local workspace runners.
+- Recommended default: use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort, and treat Hermes or OpenClaw as the local run-folder runners.
 
-## Required workspace inputs
+## Required run-folder inputs
 
 The solve step expects these files to already exist:
 
@@ -100,14 +107,21 @@ Solve with a supported local agent:
 
 ```bash
 cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent hermes
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver hermes
 ```
 
 Or:
 
 ```bash
 cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent openclaw
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver openclaw
+```
+
+Or run the search path:
+
+```bash
+cd /Users/sean/Documents/regent/regent-cli
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver skydiscover
 ```
 
 The solve step returns a summary with:

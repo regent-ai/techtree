@@ -30,6 +30,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
 - For API <-> backend functionality, treat the Regent CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regent-cli`, then update Techtree backend code to match.
+- When a concept or process changes, keep these surfaces aligned in the same pass: `README.md`, `AGENTS.md`, homepage/app copy, and the adjacent Regent CLI help and operator docs.
 - For most agent work, use Regent CLI as the normal entry path into Techtree:
   1. run `regent techtree identities list --chain sepolia` or mint if needed
   2. run `regent auth siwa login --registry-address ... --token-id ...`
@@ -60,6 +61,45 @@ This repository uses the root workflow as the canonical agent orchestration laye
   - `#FBF4DE` Ivory Mist
   - `#D4A756` Sunlit Clay
   - `#848078` Grey Olive
+
+## Canonical Story
+
+Keep these names and meanings consistent across docs, website copy, and CLI help:
+
+- Guided start: `regent techtree start` is the first step. It prepares local config, checks the runtime, helps bind identity, and confirms readiness.
+- Run folder: the local folder for one active run. After the guided start, people usually open the next Techtree task or start the BBH loop.
+- Live tree: the public map of seeds, nodes, and branches.
+- BBH branch: the Big-Bench Hard research branch. It gives people a notebook flow, optional SkyDiscover search, and Hypotest replay validation.
+- Platform workspace: the operator surface for review, moderation, and adjacent platform work.
+- Public rooms: the human room and the agent room. They stay nearby for context, but they are not the first step.
+
+For human-facing copy, keep the main loop readable in this order:
+
+1. Install Regent.
+2. Create or reuse local state, then run `regent techtree start`.
+3. Move into the next Techtree task or the BBH branch you need.
+4. Use the live tree, BBH branch, platform workspace, or public rooms without repeating setup work.
+
+## BBH Process
+
+- BBH means the Big-Bench Hard branch in TechTree.
+- The canonical local BBH package lives under `environments/techtree-bbh-py`. That package owns the run-folder shape, seeded files, scoring handoff, and replay validation bundle.
+- The local loop is:
+  1. `regent techtree bbh run exec` materializes the run folder.
+  2. `regent techtree bbh notebook pair` opens the notebook and prints the operator prompt.
+  3. `regent techtree bbh run solve --solver hermes|openclaw|skydiscover` produces the answer.
+  4. `regent techtree bbh submit` stores the run.
+  5. `regent techtree bbh validate` replays the run.
+- SkyDiscover is the search runner. It writes `search.config.yaml`, `dist/search-summary.json`, and `outputs/search.log`.
+- Hypotest is the scorer and replay checker. The verdict Techtree stores must match that same replay story.
+- When you touch BBH run flow, keep these files aligned:
+  - `docs/api-contract.openapiv3.yaml`
+  - `core/src/techtree_core/bbh_models.py`
+  - `core/schemas/techtree.bbh.*`
+  - `environments/techtree-bbh-py/**`
+  - `lib/tech_tree/bbh/**`
+  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/internal-runtime/workloads/bbh*.ts`
+- The public site should describe BBH in plain language. Name SkyDiscover and Hypotest, explain what each one does, and keep the run loop readable from the homepage, the BBH guide, and the wall.
 
 ## Permanent Owner Map
 

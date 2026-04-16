@@ -8,7 +8,7 @@ defmodule TechTree.BBH.PresentationTest do
     confirmed =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Confirmed Capsule",
-        label: "confirmed-runner",
+        genome_label: "confirmed-runner",
         model_id: "gpt-confirmed",
         normalized_score: 0.88,
         raw_score: 4.4
@@ -71,7 +71,7 @@ defmodule TechTree.BBH.PresentationTest do
     first =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Capsule A",
-        label: "runner-a",
+        genome_label: "runner-a",
         model_id: "gpt-runner-a",
         normalized_score: 0.61,
         raw_score: 3.05
@@ -80,7 +80,7 @@ defmodule TechTree.BBH.PresentationTest do
     second =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         title: "Capsule B",
-        label: "runner-b",
+        genome_label: "runner-b",
         model_id: "gpt-runner-b",
         normalized_score: 0.97,
         raw_score: 4.85

@@ -24,17 +24,27 @@ defmodule TechTreeWeb.Platform.RedeemLive do
         route_key={@route_key}
         title="Redeem"
         kicker="Claims"
-        subtitle="The redeem route displays imported claim history with no client-side state."
+        subtitle="Review imported claim history here, then jump into the next route you need."
         client_config={@client_config}
       >
         <section id="platform-redeem-hook" class="grid gap-4">
           <.surface_card
             eyebrow="Ledger"
             title="Redeem claims"
-            copy="Source collection history is surfaced directly from the platform tables."
+            copy="Source collection history is surfaced directly from the platform tables, with the next route one click away."
           >
             <%= if @snapshot.claims == [] do %>
-              <.empty_state message="No redeem claims have been imported yet." />
+              <div class="grid gap-3">
+                <.empty_state message="No redeem claims have been imported yet. Return to Platform or open the names route if you need a nearby review surface." />
+                <div class="flex flex-wrap gap-2">
+                  <.link navigate="/platform/names" class="btn fp-command-secondary">
+                    Open Names
+                  </.link>
+                  <.link navigate="/platform" class="btn fp-command-secondary">
+                    Back to Platform
+                  </.link>
+                </div>
+              </div>
             <% else %>
               <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <%= for claim <- @snapshot.claims do %>
@@ -48,6 +58,15 @@ defmodule TechTreeWeb.Platform.RedeemLive do
                     </p>
                   </article>
                 <% end %>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-2">
+                <.link navigate="/platform/names" class="btn fp-command-secondary">
+                  Open Names
+                </.link>
+                <.link navigate="/platform" class="btn fp-command-secondary">
+                  Back to Platform
+                </.link>
               </div>
             <% end %>
           </.surface_card>

@@ -24,7 +24,7 @@ defmodule TechTreeWeb.Platform.NamesLive do
         route_key={@route_key}
         title="Names"
         kicker="Basenames"
-        subtitle="Review names, credits, allowances, and recent ENS claims."
+        subtitle="Review names, credits, allowances, and ENS claims, then jump to the route that matches the next review step."
         client_config={@client_config}
       >
         <section id="platform-names-hook" class="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
@@ -60,16 +60,20 @@ defmodule TechTreeWeb.Platform.NamesLive do
             title="Name claims"
             copy="Newest basenames appear first."
           >
-            <div class="grid gap-3">
-              <%= for claim <- @snapshot.recent do %>
-                <div class="rounded-[1.4rem] border border-black/8 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/5">
-                  <p class="font-display text-lg">{claim.fqdn}</p>
-                  <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    {claim.owner_address || "n/a"}
-                  </p>
-                </div>
-              <% end %>
-            </div>
+            <%= if @snapshot.recent == [] do %>
+              <.empty_state message="No recent name claims are available yet. Check the overview counts or return later after the next import." />
+            <% else %>
+              <div class="grid gap-3">
+                <%= for claim <- @snapshot.recent do %>
+                  <div class="rounded-[1.4rem] border border-black/8 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/5">
+                    <p class="font-display text-lg">{claim.fqdn}</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                      {claim.owner_address || "n/a"}
+                    </p>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
           </.surface_card>
 
           <.surface_card
@@ -78,6 +82,10 @@ defmodule TechTreeWeb.Platform.NamesLive do
             copy="Review allowances, credits, and claim records together."
           >
             <div class="grid gap-3">
+              <%= if @snapshot.credits == [] and @snapshot.allowances == [] and @snapshot.ens_claims == [] do %>
+                <.empty_state message="No credits, allowances, or ENS claim records are ready yet. Return to Platform if you want a broader next step." />
+              <% end %>
+
               <%= for credit <- @snapshot.credits do %>
                 <div class="rounded-[1.4rem] border border-black/8 bg-white/70 px-4 py-4 dark:border-white/10 dark:bg-white/5">
                   <p class="font-display text-lg">{credit.address}</p>
@@ -104,6 +112,15 @@ defmodule TechTreeWeb.Platform.NamesLive do
                   </p>
                 </div>
               <% end %>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2">
+              <.link navigate="/platform/redeem" class="btn fp-command-secondary">
+                Open Redeem
+              </.link>
+              <.link navigate="/platform" class="btn fp-command-secondary">
+                Back to Platform
+              </.link>
             </div>
           </.surface_card>
         </section>

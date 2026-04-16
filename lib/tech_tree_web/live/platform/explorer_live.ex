@@ -21,8 +21,13 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
   end
 
   @impl true
+  def handle_params(params, _uri, socket) do
+    {:noreply, apply_params(socket, params)}
+  end
+
+  @impl true
   def handle_event("select-tile", %{"coord-key" => coord_key}, socket) do
-    {:noreply, assign(socket, :selected_coord_key, coord_key)}
+    {:noreply, push_patch(socket, to: explorer_path(socket.assigns.path, coord_key))}
   end
 
   @impl true
@@ -38,11 +43,9 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
           {:noreply, socket}
         else
           path = socket.assigns.path ++ [tile.coord_key]
+          next_selected = first_visible_coord_key(snapshot, path)
 
-          {:noreply,
-           socket
-           |> assign(:path, path)
-           |> assign(:selected_coord_key, tile.coord_key)}
+          {:noreply, push_patch(socket, to: explorer_path(path, next_selected))}
         end
     end
   end
@@ -51,11 +54,9 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
   def handle_event("return", _params, socket) do
     path = socket.assigns.path
     next_path = Enum.drop(path, -1)
+    next_selected = preferred_coord_key(socket.assigns.snapshot, next_path, List.last(path))
 
-    {:noreply,
-     socket
-     |> assign(:path, next_path)
-     |> assign(:selected_coord_key, List.last(next_path))}
+    {:noreply, push_patch(socket, to: explorer_path(next_path, next_selected))}
   end
 
   @impl true
@@ -76,7 +77,7 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
           <.surface_card
             eyebrow="Tiles"
             title="Imported frontier"
-            copy="Click a tile to open the modal. Use drilldown and return to move between levels."
+            copy="The first visible tile stays selected so you always have a starting point. Use drilldown and return to move between levels."
           >
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <%= for tile <- visible_tiles do %>
@@ -85,7 +86,15 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
                   type="button"
                   phx-click="select-tile"
                   phx-value-coord-key={tile.coord_key}
-                  class="rounded-[1.4rem] border border-black/8 bg-white/70 px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-black/14 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/18 dark:hover:bg-white/10"
+                  class={[
+                    "rounded-[1.4rem] border px-4 py-4 text-left transition hover:-translate-y-0.5",
+                    if(@selected_coord_key == tile.coord_key,
+                      do:
+                        "border-amber-300/70 bg-amber-50/90 shadow-[0_16px_44px_-32px_rgba(217,119,6,0.45)] dark:border-amber-300/40 dark:bg-amber-200/10",
+                      else:
+                        "border-black/8 bg-white/70 hover:border-black/14 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/18 dark:hover:bg-white/10"
+                    )
+                  ]}
                 >
                   <p class="font-display text-lg">{tile.title}</p>
                   <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -93,6 +102,12 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
                   </p>
                   <p class="mt-3 text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     {tile.terrain || "unknown"}
+                  </p>
+                  <p
+                    :if={@selected_coord_key == tile.coord_key}
+                    class="mt-3 text-[0.66rem] uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300"
+                  >
+                    Selected
                   </p>
                 </button>
               <% end %>
@@ -107,7 +122,7 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
               <div class="flex items-start justify-between gap-4">
                 <div>
                   <p class="font-display text-[0.68rem] uppercase tracking-[0.28em] text-amber-600 dark:text-amber-300">
-                    Modal
+                    Selected tile
                   </p>
                   <h3 class="mt-3 text-2xl leading-none sm:text-3xl">
                     {if(selected_tile, do: selected_tile.title, else: "Select a tile")}
@@ -157,11 +172,16 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
             <.surface_card
               eyebrow="Path"
               title="Current drilldown"
-              copy="Track where you are as you move deeper into the frontier."
+              copy="Use the current path and the selected tile to keep your place when you share or reload this route."
             >
-              <p class="text-sm leading-7 text-slate-600 dark:text-slate-300">
-                {if(@path == [], do: "Root tiles", else: Enum.join(@path, " → "))}
-              </p>
+              <div class="grid gap-2">
+                <p class="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  {if(@path == [], do: "Root tiles", else: Enum.join(@path, " → "))}
+                </p>
+                <p class="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  Selected: {if(selected_tile, do: selected_tile.coord_key, else: "none")}
+                </p>
+              </div>
             </.surface_card>
           </div>
         </section>
@@ -176,4 +196,66 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
   defp current_selected_tile(snapshot, coord_key) do
     Platform.explorer_tile(snapshot, coord_key)
   end
+
+  defp apply_params(socket, params) do
+    snapshot = socket.assigns.snapshot
+    path = normalize_path(snapshot, Map.get(params, "path"))
+    selected = preferred_coord_key(snapshot, path, Map.get(params, "selected"))
+
+    socket
+    |> assign(:path, path)
+    |> assign(:selected_coord_key, selected)
+  end
+
+  defp normalize_path(snapshot, nil), do: normalize_path(snapshot, "")
+
+  defp normalize_path(snapshot, value) when is_binary(value) do
+    value
+    |> String.split(",", trim: true)
+    |> Enum.reduce([], fn coord_key, acc ->
+      next_path = acc ++ [coord_key]
+
+      if Platform.explorer_view_tiles(snapshot, next_path) == [] do
+        acc
+      else
+        next_path
+      end
+    end)
+  end
+
+  defp preferred_coord_key(snapshot, path, coord_key) do
+    visible_tiles = Platform.explorer_view_tiles(snapshot, path)
+    visible_coord_keys = Enum.map(visible_tiles, & &1.coord_key)
+
+    cond do
+      is_binary(coord_key) and coord_key in visible_coord_keys ->
+        coord_key
+
+      true ->
+        first_visible_coord_key(snapshot, path)
+    end
+  end
+
+  defp first_visible_coord_key(snapshot, path) do
+    snapshot
+    |> Platform.explorer_view_tiles(path)
+    |> List.first()
+    |> case do
+      nil -> nil
+      tile -> tile.coord_key
+    end
+  end
+
+  defp explorer_path(path, selected_coord_key) do
+    params =
+      %{}
+      |> maybe_put("path", if(path == [], do: nil, else: Enum.join(path, ",")))
+      |> maybe_put("selected", selected_coord_key)
+
+    ~p"/platform/explorer?#{params}"
+  end
+
+  defp maybe_put(params, _key, nil), do: params
+  defp maybe_put(params, _key, ""), do: params
+  defp maybe_put(params, key, value), do: Map.put(params, key, value)
 end

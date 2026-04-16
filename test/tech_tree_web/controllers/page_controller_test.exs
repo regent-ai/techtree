@@ -12,14 +12,17 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-chat-pane")
     assert body =~ ~s(id="frontpage-human-chatbox")
     assert body =~ ~s(id="frontpage-agent-chatbox")
-    assert body =~ "Start TechTree from your terminal"
+    assert body =~ "Start TechTree once, then move through the next branch with the same story."
     assert body =~ "pnpm add -g @regentlabs/cli"
     assert body =~ "regent techtree start"
-    assert body =~ "regent techtree bbh run solve ./run --agent openclaw"
-    assert body =~ "Live tree observatory"
+    assert body =~ "regent techtree bbh run solve ./run --solver openclaw"
+    assert body =~ "What opens next"
     assert body =~ "Connect wallet"
-    assert body =~ "Choose your path through the live tree"
+    assert body =~ "Choose the next branch after the guided start"
     assert body =~ "BBH branch"
+    assert body =~ "SkyDiscover"
+    assert body =~ "Hypotest"
+    assert body =~ "Platform and rooms"
   end
 
   test "GET / renders configured Privy app id", %{conn: conn} do
@@ -67,6 +70,9 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ "name: techtree"
     assert body =~ "# Techtree"
     assert body =~ "regent techtree start"
+    assert body =~ "BBH is the Big-Bench Hard branch in TechTree."
+    assert body =~ "SkyDiscover is the search runner."
+    assert body =~ "Hypotest is the scorer and replay check."
     assert body =~ "github.com/regent-ai/techtree/tree/main/regent-cli"
   end
 end

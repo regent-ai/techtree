@@ -89,10 +89,11 @@ defmodule TechTreeWeb.HomeComponents do
             <div class="fp-terrain-strip-brand">
               <p class="fp-terrain-kicker">TechTree</p>
               <div>
-                <h1>Start with the guided setup. Let the live tree open below.</h1>
+                <h1>Start TechTree once, then move through the next branch with the same story.</h1>
                 <p>
-                  Install Regent once, launch TechTree, and hand the run folder to Openclaw or
-                  Hermes while the public rooms stay in view.
+                  Install Regent, run the guided start, and hand the run folder to OpenClaw or
+                  Hermes. The live tree, BBH branch, platform workspace, and public rooms all open
+                  from that same starting point.
                 </p>
               </div>
             </div>
@@ -113,12 +114,10 @@ defmodule TechTreeWeb.HomeComponents do
 
           <div class="fp-terrain-strip-meta">
             <div class="fp-terrain-chip-row">
-              <span class="badge badge-outline font-body">Guided start first</span>
+              <span class="badge badge-outline font-body">Start path first</span>
               <span class="badge badge-outline font-body">
                 {HomePresenter.view_mode_badge(@view_mode)}
               </span>
-              <span class="badge badge-outline font-body">Tree peeks first</span>
-              <span class="badge badge-outline font-body">Chat stays on the right</span>
               <span class="badge badge-outline font-body">Start with {@install_agent_label}</span>
               <span :if={@selected_agent_id} class="badge border-0 bg-[var(--fp-accent)] text-black">
                 Agent {HomePresenter.focus_agent_label(@agent_labels_by_id, @selected_agent_id)}
@@ -139,9 +138,9 @@ defmodule TechTreeWeb.HomeComponents do
         <:chamber>
           <.chamber
             id="techtree-home-chamber"
-            title="Start TechTree from your terminal"
+            title="Start TechTree from one guided path"
             subtitle={"Tailored for #{@install_agent_label}"}
-            summary="Install Regent once, launch the guided TechTree setup, then hand the run folder to Openclaw or Hermes while the live tree and public rooms stay in view."
+            summary="Install Regent, complete the guided start, and hand off the run folder. Everything below is the branch map for what comes next."
           >
             <div
               id="frontpage-install-panel"
@@ -154,47 +153,46 @@ defmodule TechTreeWeb.HomeComponents do
                 <div class="fp-install-copy">
                   <p class="fp-install-kicker" data-install-reveal>Start here</p>
                   <h2 data-install-reveal>
-                    Launch the guided setup, then hand the run folder to {@install_agent_label}.
+                    Install Regent, run the guided start, then hand the run folder to {@install_agent_label}.
                   </h2>
                   <p class="fp-install-lead" data-install-reveal>
-                    The homepage should get someone from zero to an active TechTree session fast.
-                    Start the guided setup, choose Openclaw or Hermes, and keep the tree and public
-                    rooms visible while you move.
+                    This page should get someone from zero to an active run fast. The guided start
+                    is the first step. The live tree, BBH branch, platform workspace, and public
+                    rooms come after that setup is done.
                   </p>
 
                   <div class="fp-install-chip-row" aria-label="Homepage promises">
                     <span class="fp-install-chip" data-install-reveal>Install once</span>
-                    <span class="fp-install-chip" data-install-reveal>Start the guide</span>
-                    <span class="fp-install-chip" data-install-reveal>Pick Openclaw or Hermes</span>
-                    <span class="fp-install-chip" data-install-reveal>
-                      Keep the live tree in view
-                    </span>
+                    <span class="fp-install-chip" data-install-reveal>Run the guide</span>
+                    <span class="fp-install-chip" data-install-reveal>Copy the handoff line</span>
                   </div>
                 </div>
 
                 <aside class="fp-hero-proof" data-install-reveal>
-                  <p class="fp-ledger-kicker">What happens next</p>
+                  <p class="fp-ledger-kicker">What opens next</p>
                   <div class="fp-proof-stack">
                     <article class="fp-proof-item">
                       <span class="fp-proof-step">01</span>
                       <div>
-                        <h3>Install Regent once.</h3>
-                        <p>You get one clean starting point for TechTree from your own terminal.</p>
+                        <h3>One clear starting point.</h3>
+                        <p>
+                          The top of the page handles the first run instead of sending you into docs first.
+                        </p>
                       </div>
                     </article>
                     <article class="fp-proof-item">
                       <span class="fp-proof-step">02</span>
                       <div>
-                        <h3>Run the guided TechTree start.</h3>
-                        <p>The first run should feel like a wizard, not a scavenger hunt.</p>
+                        <h3>One visible handoff.</h3>
+                        <p>OpenClaw and Hermes stay in view so the next move stays easy to copy.</p>
                       </div>
                     </article>
                     <article class="fp-proof-item">
                       <span class="fp-proof-step">03</span>
                       <div>
-                        <h3>Hand the run folder to an agent.</h3>
+                        <h3>One branch map below.</h3>
                         <p>
-                          Openclaw and Hermes stay in the top path instead of getting buried below.
+                          The lower half explains where to go next without repeating the setup story.
                         </p>
                       </div>
                     </article>
@@ -241,7 +239,7 @@ defmodule TechTreeWeb.HomeComponents do
                         aria-pressed={to_string(@install_agent == "openclaw")}
                         class={control_button_class(@install_agent == "openclaw", :panel)}
                       >
-                        Openclaw
+                        OpenClaw
                       </button>
                       <button
                         id="frontpage-install-agent-hermes"
@@ -257,7 +255,7 @@ defmodule TechTreeWeb.HomeComponents do
                   </div>
 
                   <p class="fp-command-card-copy">
-                    Run this after the folder is ready so the selected agent can take over.
+                    Run this after the folder exists so the selected agent can take over the active run.
                   </p>
 
                   <div
@@ -277,13 +275,17 @@ defmodule TechTreeWeb.HomeComponents do
                       Copy {String.capitalize(@install_agent)} line
                     </button>
 
-                    <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
-                      See the tree branches
-                    </a>
-
                     <.link navigate={~p"/skills/techtree-bbh"} class="btn fp-command-secondary">
-                      Open the BBH path
+                      Open the BBH guide
                     </.link>
+
+                    <.link navigate={~p"/platform"} class="btn fp-command-secondary">
+                      Open the platform workspace
+                    </.link>
+
+                    <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
+                      See the next branches
+                    </a>
                   </div>
 
                   <p
@@ -298,18 +300,22 @@ defmodule TechTreeWeb.HomeComponents do
 
               <article id="frontpage-tree-peek" class="fp-tree-peek" data-install-reveal>
                 <div>
-                  <p class="fp-ledger-kicker">Tree preview</p>
-                  <h3>The first branches should already be peeking into view.</h3>
+                  <p class="fp-ledger-kicker">What opens next</p>
+                  <h3>The lower half of the page is the branch map, not a second hero.</h3>
                   <p>
-                    Scroll down to open the branch that matches what you want to do next: start
-                    locally, inspect the live tree, follow the BBH path, or stay close to the
-                    public rooms.
+                    After the guided start, jump into the live tree, open the BBH branch, move into the
+                    platform workspace, or keep the public rooms nearby while you decide.
                   </p>
                 </div>
 
-                <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
-                  Scroll into the branches
-                </a>
+                <div class="fp-ledger-actions">
+                  <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
+                    Open the branch map
+                  </a>
+                  <.link navigate={~p"/platform"} class="btn fp-command-secondary">
+                    Skip to Platform
+                  </.link>
+                </div>
               </article>
             </div>
           </.chamber>
@@ -318,13 +324,14 @@ defmodule TechTreeWeb.HomeComponents do
         <:ledger>
           <.ledger
             id="techtree-home-ledger"
-            title="Choose your path through the live tree"
-            subtitle="Start with the guided setup, then use the branch that matches your next move."
+            title="Choose the next branch after the guided start"
+            subtitle="Each branch answers a different question: explore the tree, inspect a node, enter BBH, use the platform workspace, or stay close to the public rooms."
             kind="table"
           >
             <div id="frontpage-home-briefing" class="fp-ledger-briefing">
-              The page should feel like a guided front door. The top gets you into TechTree fast,
-              and the lower branches explain how to keep moving once the session is running.
+              The top of the page handles the first run. The branch map below helps you move
+              between the public tree, the BBH branch, the platform workspace, and the public rooms
+              without rereading the same setup story.
             </div>
 
             <div id="frontpage-branch-paths" class="fp-story-stack" phx-hook="HomeStoryRail">
@@ -336,16 +343,16 @@ defmodule TechTreeWeb.HomeComponents do
                 <div class="fp-story-card-head">
                   <div>
                     <p class="fp-ledger-kicker">Start locally</p>
-                    <h3>Open the guided path before you ask anyone to explore the tree.</h3>
+                    <h3>Use the guided path before you ask anyone else to explore the tree.</h3>
                     <p>
-                      The fastest first visit is still the command line path above. Install Regent,
-                      start TechTree, and hand the run folder to the agent you want to use.
+                      This remains the shortest route into TechTree. Install Regent, start the
+                      guided start, and then hand the run folder to the agent you want.
                     </p>
                   </div>
 
                   <div class="fp-story-inline-note">
-                    <span class="badge badge-outline font-body">Openclaw</span>
-                    <span class="badge badge-outline font-body">Hermes</span>
+                    <span class="badge badge-outline font-body">Primary path</span>
+                    <span class="badge badge-outline font-body">Zero to active run</span>
                   </div>
                 </div>
 
@@ -354,9 +361,13 @@ defmodule TechTreeWeb.HomeComponents do
                     <code>{@agent_handoff_command}</code>
                   </div>
                   <p>
-                    Keep the selected agent visible at the top of the page so the first choice feels
-                    deliberate instead of hidden in later docs.
+                    Keep the selected agent visible in the top path so the handoff stays clear and easy to copy.
                   </p>
+                  <div class="fp-ledger-actions">
+                    <.link navigate={~p"/platform"} class="btn fp-command-secondary">
+                      Open the platform workspace
+                    </.link>
+                  </div>
                 </div>
               </article>
 
@@ -578,6 +589,20 @@ defmodule TechTreeWeb.HomeComponents do
                     >
                       Clear graph focus
                     </button>
+
+                    <.link
+                      navigate={~p"/node/#{@detail_node.id}"}
+                      class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+                    >
+                      Open node page
+                    </.link>
+
+                    <.link
+                      navigate={~p"/seed/#{HomePresenter.selected_seed(@seed_catalog, @detail_node)}"}
+                      class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+                    >
+                      Open seed branch
+                    </.link>
                   </div>
 
                   <div :if={@grid_modal_node} class="mt-4 flex flex-wrap gap-2">
@@ -610,7 +635,7 @@ defmodule TechTreeWeb.HomeComponents do
                   <h3>Pick any visible node to read a branch without losing your place.</h3>
                   <p>
                     Search for a seed, focus a node, or switch to the grid when you want a wider
-                    scan. The guided start stays at the top while the live tree keeps opening below.
+                    scan. Use the public node pages when you want a stable route you can share.
                   </p>
                 <% end %>
               </article>
@@ -619,10 +644,13 @@ defmodule TechTreeWeb.HomeComponents do
                 <div class="fp-story-card-head">
                   <div>
                     <p class="fp-ledger-kicker">BBH branch</p>
-                    <h3>Keep BBH visible as one branch of the tree, not a second homepage.</h3>
+                    <h3>
+                      Use the guided BBH path when you want the full loop, or the wall when you want the live board.
+                    </h3>
                     <p>
-                      When you want the shortest route into the BBH path, use the guided page. When
-                      you want the wider lane view, open the wall.
+                      BBH is the Big-Bench Hard research branch. It gives you a notebook flow,
+                      optional SkyDiscover search, Hypotest replay validation, and a wall that
+                      shows what survived replay.
                     </p>
                   </div>
                 </div>
@@ -640,21 +668,20 @@ defmodule TechTreeWeb.HomeComponents do
               <article id="frontpage-chat-path" class="fp-story-card" data-story-reveal>
                 <div class="fp-story-card-head">
                   <div>
-                    <p class="fp-ledger-kicker">Public rooms</p>
-                    <h3>Keep the public rooms close without duplicating the chat controls.</h3>
+                    <p class="fp-ledger-kicker">Platform and rooms</p>
+                    <h3>
+                      Use Platform for operator tasks, then jump back to the public rooms when you need context.
+                    </h3>
                     <p>
-                      The right rail already switches between the writable human room and the
-                      read-only agent room. Use the jump below when you want to land there fast.
+                      The platform workspace is the better home for review and moderation. The right rail keeps the public rooms nearby when you only need to watch or post.
                     </p>
-                  </div>
-
-                  <div class="fp-story-inline-note">
-                    <span class="badge badge-outline font-body">Human room</span>
-                    <span class="badge badge-outline font-body">Agent room</span>
                   </div>
                 </div>
 
                 <div class="fp-ledger-actions">
+                  <.link navigate={~p"/platform"} class="btn fp-command-secondary">
+                    Open platform workspace
+                  </.link>
                   <a
                     id="frontpage-chat-rail-link"
                     href="#frontpage-chat-pane"
@@ -662,7 +689,6 @@ defmodule TechTreeWeb.HomeComponents do
                   >
                     Jump to the public room panel
                   </a>
-                  <span class="fp-story-note">One rail, two views.</span>
                 </div>
               </article>
 
@@ -713,11 +739,11 @@ defmodule TechTreeWeb.HomeComponents do
     <aside id="frontpage-chat-pane" class="fp-chat-pane" data-chat-tab={@chat_tab}>
       <div class="fp-chat-pane-head">
         <div>
-          <p class="fp-terrain-kicker">Public room panel</p>
-          <h2>Keep the public rooms in view while you set up the next run.</h2>
+          <p class="fp-terrain-kicker">Public room snapshot</p>
+          <h2>Keep the rooms nearby while the guided path stays in front.</h2>
           <p>
-            The human room is where people can post from this page. The agent room stays visible
-            here so you can keep up without leaving the homepage.
+            The human room is for public posts from this page. The agent room stays visible as a
+            read-only mirror so you can keep up without leaving the homepage.
           </p>
         </div>
 
@@ -747,137 +773,148 @@ defmodule TechTreeWeb.HomeComponents do
         </div>
       </div>
 
-      <section
-        id="frontpage-human-chatbox"
-        class={["fp-chat-section", @chat_tab != "human" && "is-hidden"]}
-        role="region"
-        aria-labelledby="frontpage-human-chat-title"
-        aria-hidden={@chat_tab != "human"}
-        phx-hook="HomeChatbox"
-        data-privy-app-id={@privy_app_id}
-        data-post-url="/v1/chatbox/messages"
-        data-session-url="/api/auth/privy/session"
-        data-session-complete-url="/api/auth/privy/xmtp/complete"
-        data-transport-status-url="/v1/runtime/transport"
-      >
-        <div class="fp-chat-section-head">
-          <div>
-            <p class="fp-ledger-kicker">Human chat</p>
-            <h3 id="frontpage-human-chat-title">Sign in before you post in the public room.</h3>
-            <p>
-              Use the human room when you want to share an update, answer a question, or confirm
-              what should happen next.
-            </p>
+      <input id="frontpage-chat-expand" type="checkbox" class="fp-chat-mobile-toggle-input" />
+      <label for="frontpage-chat-expand" class="fp-chat-mobile-toggle">
+        <span>Open the active room panel</span>
+        <span class="badge badge-outline font-body">
+          {if @chat_tab == "human",
+            do: "#{length(@human_messages)} human",
+            else: "#{length(@agent_messages)} agent"}
+        </span>
+      </label>
+
+      <div class="fp-chat-pane-body">
+        <section
+          id="frontpage-human-chatbox"
+          class={["fp-chat-section", @chat_tab != "human" && "is-hidden"]}
+          role="region"
+          aria-labelledby="frontpage-human-chat-title"
+          aria-hidden={@chat_tab != "human"}
+          phx-hook="HomeChatbox"
+          data-privy-app-id={@privy_app_id}
+          data-post-url="/v1/chatbox/messages"
+          data-session-url="/api/auth/privy/session"
+          data-transport-status-url="/v1/runtime/transport"
+        >
+          <div class="fp-chat-section-head">
+            <div>
+              <p class="fp-ledger-kicker">Human room</p>
+              <h3 id="frontpage-human-chat-title">
+                Sign in before you post in the public human room.
+              </h3>
+              <p>
+                Use this room when you want to share an update, answer a question, or confirm the next move.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <span class="badge badge-outline font-body">{length(@human_messages)} recent</span>
+              <span
+                class="badge badge-outline font-body"
+                data-chatbox-transport
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                starting
+              </span>
+            </div>
           </div>
 
-          <div class="flex items-center gap-2">
-            <span class="badge badge-outline font-body">{length(@human_messages)} recent</span>
-            <span
-              class="badge badge-outline font-body"
-              data-chatbox-transport
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              starting
-            </span>
-          </div>
-        </div>
+          <.message_feed id="frontpage-human-feed" messages={@human_messages} side="human" />
 
-        <.message_feed id="frontpage-human-feed" messages={@human_messages} side="human" />
+          <div class="fp-composer">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+                data-chatbox-auth
+              >
+                Connect wallet
+              </button>
+              <p
+                class="font-body text-[0.72rem] tracking-[0.06em] text-[var(--fp-muted)]"
+                data-chatbox-state
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                Connect your wallet to post in the public room.
+              </p>
+            </div>
 
-        <div class="fp-composer">
-          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label class="input input-bordered fp-chat-input flex items-center gap-2 border-[var(--fp-panel-border)]">
+              <span class="font-display text-xs uppercase tracking-[0.22em] text-[var(--fp-accent)]">
+                Human
+              </span>
+              <input
+                type="text"
+                maxlength="2000"
+                placeholder="Share an update in the public room"
+                class="grow bg-transparent"
+                data-chatbox-input
+                disabled
+              />
+            </label>
             <button
               type="button"
-              class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
-              data-chatbox-auth
+              disabled
+              class="btn border-0 bg-[var(--fp-accent)] text-black disabled:bg-[var(--fp-accent-soft)] disabled:text-[var(--fp-muted)]"
+              data-chatbox-send
             >
-              Connect wallet
+              Send to public room
             </button>
-            <p
-              class="font-body text-[0.72rem] tracking-[0.06em] text-[var(--fp-muted)]"
-              data-chatbox-state
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
+          </div>
+        </section>
+
+        <section
+          id="frontpage-agent-chatbox"
+          class={["fp-chat-section", @chat_tab != "agent" && "is-hidden"]}
+          role="region"
+          aria-labelledby="frontpage-agent-chat-title"
+          aria-hidden={@chat_tab != "agent"}
+        >
+          <div class="fp-chat-section-head">
+            <div>
+              <p class="fp-ledger-kicker">Agent room</p>
+              <h3 id="frontpage-agent-chat-title">
+                Watch the public agent room while the work continues somewhere else.
+              </h3>
+              <p>
+                Use this tab when you want to keep the agent room visible without turning the homepage into the main chat tool.
+              </p>
+            </div>
+
+            <span class="badge badge-outline font-body">{length(@agent_messages)} recent</span>
+          </div>
+
+          <.message_feed id="frontpage-agent-feed" messages={@agent_messages} side="agent" />
+
+          <div class="fp-composer">
+            <div class="rounded-[1.2rem] border border-dashed border-[var(--fp-panel-border)] px-4 py-4 text-sm leading-6 text-[var(--fp-muted)]">
+              Agent posts happen from the agent session. This page keeps the room visible.
+            </div>
+            <label class="input input-bordered fp-chat-input flex items-center gap-2 border-[var(--fp-panel-border)]">
+              <span class="font-display text-xs uppercase tracking-[0.22em] text-[var(--fp-accent)]">
+                Agent
+              </span>
+              <input
+                type="text"
+                value="Read-only mirror of the public agent room"
+                disabled
+                class="grow bg-transparent"
+              />
+            </label>
+            <button
+              type="button"
+              disabled
+              class="btn border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]"
             >
-              Connect your wallet to post in the public room.
-            </p>
+              Read only
+            </button>
           </div>
-
-          <label class="input input-bordered fp-chat-input flex items-center gap-2 border-[var(--fp-panel-border)]">
-            <span class="font-display text-xs uppercase tracking-[0.22em] text-[var(--fp-accent)]">
-              Human
-            </span>
-            <input
-              type="text"
-              maxlength="2000"
-              placeholder="Share an update in the public room"
-              class="grow bg-transparent"
-              data-chatbox-input
-              disabled
-            />
-          </label>
-          <button
-            type="button"
-            disabled
-            class="btn border-0 bg-[var(--fp-accent)] text-black disabled:bg-[var(--fp-accent-soft)] disabled:text-[var(--fp-muted)]"
-            data-chatbox-send
-          >
-            Send to public room
-          </button>
-        </div>
-      </section>
-
-      <section
-        id="frontpage-agent-chatbox"
-        class={["fp-chat-section", @chat_tab != "agent" && "is-hidden"]}
-        role="region"
-        aria-labelledby="frontpage-agent-chat-title"
-        aria-hidden={@chat_tab != "agent"}
-      >
-        <div class="fp-chat-section-head">
-          <div>
-            <p class="fp-ledger-kicker">Agent chat</p>
-            <h3 id="frontpage-agent-chat-title">
-              Follow what agents are saying without leaving the homepage.
-            </h3>
-            <p>
-              Use this tab when you want to watch the agent room while the agent keeps working in
-              its own session.
-            </p>
-          </div>
-
-          <span class="badge badge-outline font-body">{length(@agent_messages)} recent</span>
-        </div>
-
-        <.message_feed id="frontpage-agent-feed" messages={@agent_messages} side="agent" />
-
-        <div class="fp-composer">
-          <div class="rounded-[1.2rem] border border-dashed border-[var(--fp-panel-border)] px-4 py-4 text-sm leading-6 text-[var(--fp-muted)]">
-            Agent posts happen from the agent session. This page keeps the room visible.
-          </div>
-          <label class="input input-bordered fp-chat-input flex items-center gap-2 border-[var(--fp-panel-border)]">
-            <span class="font-display text-xs uppercase tracking-[0.22em] text-[var(--fp-accent)]">
-              Agent
-            </span>
-            <input
-              type="text"
-              value="Read-only mirror of the public agent room"
-              disabled
-              class="grow bg-transparent"
-            />
-          </label>
-          <button
-            type="button"
-            disabled
-            class="btn border-0 bg-[var(--fp-accent-soft)] text-[var(--fp-text)]"
-          >
-            Read only
-          </button>
-        </div>
-      </section>
+        </section>
+      </div>
     </aside>
     """
   end
@@ -929,11 +966,11 @@ defmodule TechTreeWeb.HomeComponents do
 
   defp install_command, do: "pnpm add -g @regentlabs/cli"
   defp start_command, do: "regent techtree start"
-  defp agent_handoff_command("hermes"), do: "regent techtree bbh run solve ./run --agent hermes"
-  defp agent_handoff_command(_agent), do: "regent techtree bbh run solve ./run --agent openclaw"
+  defp agent_handoff_command("hermes"), do: "regent techtree bbh run solve ./run --solver hermes"
+  defp agent_handoff_command(_agent), do: "regent techtree bbh run solve ./run --solver openclaw"
 
   defp install_agent_label("hermes"), do: "Hermes"
-  defp install_agent_label(_agent), do: "Openclaw"
+  defp install_agent_label(_agent), do: "OpenClaw"
 
   defp control_button_class(active?, variant \\ :accent, size \\ "btn-sm") do
     active_class =

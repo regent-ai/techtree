@@ -654,7 +654,7 @@
 
 .bbh-skill-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -766,6 +766,13 @@
   font-family: var(--tt-font-title);
   font-size: 0.98rem;
   line-height: 1.15;
+}
+
+.bbh-skill-group-title {
+  margin: 0;
+  font-family: var(--tt-font-title);
+  font-size: clamp(1.12rem, 2vw, 1.4rem);
+  line-height: 1.06;
 }
 
 .bbh-skill-boundary-card-official {
@@ -911,6 +918,7 @@
 }
 
 @media (max-width: 800px) {
+  .bbh-skill-grid,
   .bbh-official-strip,
   .bbh-skill-boundary-grid,
   .bbh-skill-spec-grid,
@@ -944,6 +952,7 @@
   }
 
   .bbh-wall-grid,
+  .bbh-skill-grid,
   .bbh-official-strip,
   .bbh-drilldown-stats,
   .bbh-drilldown-files,

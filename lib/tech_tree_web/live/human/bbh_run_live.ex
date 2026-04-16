@@ -117,6 +117,13 @@ defmodule TechTreeWeb.Human.BbhRunLive do
           </.human_section>
 
           <.human_section id="bbh-run-execution" title="Execution">
+            <div class="bbh-copy">
+              <p>
+                This section shows how the run was made. SkyDiscover appears here when the run used
+                a search pass. Hypotest is the scorer behind the stored verdict and the replay
+                result.
+              </p>
+            </div>
             <ul class="hu-list">
               <%= for row <- @execution_rows do %>
                 <li id={"bbh-execution-#{row.id}"}>

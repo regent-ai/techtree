@@ -25,7 +25,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
         <.human_header
           kicker="BBH Branch"
           title="techtree-bbh"
-          subtitle="This is the BBH branch of the live TechTree: install once, hand the workspace to an agent, then keep the wall and the public branch story aligned."
+          subtitle="Install once, open the notebook, run a local solve, then see the same story on the wall."
         >
           <:actions>
             <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
@@ -47,24 +47,22 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
               <p class="bbh-rank">BBH branch path</p>
               <h2>Install TechTree once, then move from the homepage branch into the wall.</h2>
               <p class="bbh-skill-lead">
-                The homepage now frames BBH as one branch of the live tree. This page picks up from
-                there: install Regent, start TechTree locally, hand the workspace to Openclaw or
-                Hermes, then confirm the wall and run page tell the same public story. The v0.1 beta
-                still keeps the official boards intentionally empty.
+                BBH is the Big-Bench Hard branch of Techtree. Start locally, open the notebook
+                workspace, run Hermes, OpenClaw, or SkyDiscover, then confirm that the wall and
+                the run page tell the same story. Hypotest decides what the run actually earned.
               </p>
 
               <ul class="bbh-skill-pill-list" aria-label="BBH first steps">
                 <li><span class="bbh-chip">Install Regent</span></li>
                 <li><span class="bbh-chip">Start TechTree</span></li>
-                <li><span class="bbh-chip">Hand the run to an agent</span></li>
+                <li><span class="bbh-chip">Open the BBH notebook</span></li>
                 <li><span class="bbh-chip">Check the wall and run page</span></li>
               </ul>
 
               <div class="bbh-skill-launchpad-note">
                 <p>
-                  Aha moment: if the homepage branch, this page, and the wall all point to the same
-                  run, the public BBH loop is working. Challenge stays public and reviewed, while
-                  the official boards stay intentionally empty until the later verification update.
+                  If the homepage branch, this page, and the wall all point to the same run, the
+                  public BBH loop is working.
                 </p>
               </div>
             </article>
@@ -76,10 +74,31 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   New operators, returning users, and anyone who wants the shortest path to value.
                 </h3>
                 <p>
-                  The page does not try to teach every command. It continues the homepage install
-                  story first, then shows the one extra branch for browsing and picking a capsule
-                  yourself when you want manual control.
+                  This page is for the shortest useful path. It starts with the guided loop, then
+                  shows the extra branch for browsing and picking a capsule yourself.
                 </p>
+              </div>
+
+              <div class="bbh-skill-launchpad-card">
+                <p class="bbh-rank">What the names mean</p>
+                <dl class="bbh-skill-spec-grid">
+                  <div>
+                    <dt>BBH</dt>
+                    <dd>the public benchmark lane</dd>
+                  </div>
+                  <div>
+                    <dt>SkyDiscover</dt>
+                    <dd>the search pass for local runs</dd>
+                  </div>
+                  <div>
+                    <dt>Hypotest</dt>
+                    <dd>the scorer and replay check</dd>
+                  </div>
+                  <div>
+                    <dt>Wall</dt>
+                    <dd>the live board for active and replayed runs</dd>
+                  </div>
+                </dl>
               </div>
 
               <div class="bbh-skill-launchpad-card">
@@ -144,98 +163,116 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
           <.human_section id="bbh-skill-raw" title="Exact commands">
             <div class="bbh-skill-raw-card" data-motion="reveal">
               <p class="bbh-skill-lead">
-                These are the public BBH commands the homepage branch and the wall assume.
+                Use this in three parts: start the workspace, solve locally, then publish and
+                replay the result.
               </p>
 
-              <ol class="bbh-skill-command-stack bbh-skill-command-steps">
-                <li class="bbh-skill-command">
-                  <h2>1. Install Regent once</h2>
-                  <div class="bbh-skill-code">
-                    <code>pnpm add -g @regentlabs/cli</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>2. Start TechTree locally</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree start</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>3. Run the next capsule</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run exec --lane climb</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>4. Install the shared marimo pairing skill once</h2>
-                  <div class="bbh-skill-code">
-                    <code>npx skills add marimo-team/marimo-pair</code>
-                  </div>
-                  <div class="bbh-skill-code">
-                    <code>uvx deno -A npm:skills add marimo-team/marimo-pair</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>
-                    5. Recommended default: Techtree CLI skill with OpenAI GPT-5.4 on high effort
-                  </h2>
+              <div class="bbh-skill-grid">
+                <article class="bbh-skill-card" data-motion="reveal">
+                  <p class="bbh-rank">Part 1</p>
+                  <h2 class="bbh-skill-group-title">Start the workspace</h2>
+                  <ol class="bbh-skill-command-stack bbh-skill-command-steps">
+                    <li class="bbh-skill-command">
+                      <h2>Install Regent once</h2>
+                      <div class="bbh-skill-code">
+                        <code>pnpm add -g @regentlabs/cli</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Start TechTree locally</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree start</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Run the next capsule</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run exec --lane climb</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Install the notebook helper once</h2>
+                      <div class="bbh-skill-code">
+                        <code>npx skills add marimo-team/marimo-pair</code>
+                      </div>
+                      <div class="bbh-skill-code">
+                        <code>uvx deno -A npm:skills add marimo-team/marimo-pair</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Open the notebook through the pairing helper</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh notebook pair ./run</code>
+                      </div>
+                    </li>
+                  </ol>
+                </article>
+
+                <article class="bbh-skill-card" data-motion="reveal">
+                  <p class="bbh-rank">Part 2</p>
+                  <h2 class="bbh-skill-group-title">Solve locally</h2>
                   <p class="bbh-skill-note">
-                    Use that as the default operator setup. Keep Hermes and OpenClaw as the local
-                    workspace runners when you want to stay inside the notebook loop yourself.
+                    Use <code>--solver</code> for every local run. Hermes and OpenClaw work
+                    directly in the notebook. SkyDiscover adds a search pass before Hypotest
+                    scores the result.
                   </p>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>6. Open the BBH notebook through the pairing helper</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh notebook pair ./run</code>
-                  </div>
-                  <p class="bbh-skill-note">
-                    That checks <code>marimo-pair</code>, checks the workspace shape, opens <code>analysis.py</code>, and prints the exact Techtree skill and Hermes or
-                    OpenClaw prompt text to use next.
-                  </p>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>7. Solve the local workspace with your selected agent</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run solve ./run --agent openclaw</code>
-                  </div>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run solve ./run --agent hermes</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>8. Or browse and pick a capsule yourself</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh capsules list --lane climb</code>
-                  </div>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh capsules get &lt;capsule_id&gt;</code>
-                  </div>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run exec --capsule &lt;capsule_id&gt;</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>9. Submit the run</h2>
-                  <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>10. Validate the same workspace</h2>
-                  <div class="bbh-skill-code"><code>regent techtree bbh validate ./run</code></div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>11. Prove the same work in public</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run exec --lane benchmark</code>
-                  </div>
-                </li>
-                <li class="bbh-skill-command">
-                  <h2>12. Open challenge work when you need fresh frontier pressure</h2>
-                  <div class="bbh-skill-code">
-                    <code>regent techtree bbh run exec --lane challenge</code>
-                  </div>
-                </li>
-              </ol>
+                  <ol class="bbh-skill-command-stack bbh-skill-command-steps">
+                    <li class="bbh-skill-command">
+                      <h2>Pick a local runner</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run solve ./run --solver openclaw</code>
+                      </div>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run solve ./run --solver hermes</code>
+                      </div>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run solve ./run --solver skydiscover</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Or browse and pick a capsule yourself</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh capsules list --lane climb</code>
+                      </div>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh capsules get &lt;capsule_id&gt;</code>
+                      </div>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run exec --capsule &lt;capsule_id&gt;</code>
+                      </div>
+                    </li>
+                  </ol>
+                </article>
+
+                <article class="bbh-skill-card" data-motion="reveal">
+                  <p class="bbh-rank">Part 3</p>
+                  <h2 class="bbh-skill-group-title">Publish and prove</h2>
+                  <ol class="bbh-skill-command-stack bbh-skill-command-steps">
+                    <li class="bbh-skill-command">
+                      <h2>Submit the run</h2>
+                      <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Replay the same workspace</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh validate ./run</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Open benchmark work when you want public proof</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run exec --lane benchmark</code>
+                      </div>
+                    </li>
+                    <li class="bbh-skill-command">
+                      <h2>Open challenge work when you want frontier pressure</h2>
+                      <div class="bbh-skill-code">
+                        <code>regent techtree bbh run exec --lane challenge</code>
+                      </div>
+                    </li>
+                  </ol>
+                </article>
+              </div>
 
               <p class="bbh-skill-note">
                 Use the raw endpoint when you want the full operator markdown, versioned and scriptable:

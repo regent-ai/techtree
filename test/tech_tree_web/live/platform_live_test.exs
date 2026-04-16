@@ -78,6 +78,39 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert has_element?(view, "#platform-tile-1-0")
   end
 
+  test "explorer keeps the selected tile and drilldown path in the URL", %{conn: conn} do
+    explorer_tile_fixture(%{coord_key: "0:0", x: 0, y: 0, title: "Origin Tile"})
+
+    explorer_tile_fixture(%{
+      coord_key: "1:0",
+      x: 1,
+      y: 0,
+      title: "Branch Tile",
+      metadata: %{"parent_coord_key" => "0:0"}
+    })
+
+    {:ok, view, _html} = live(conn, "/platform/explorer")
+
+    assert render(view) =~ "Origin Tile"
+
+    view
+    |> element("#platform-tile-0-0")
+    |> render_click()
+
+    assert_patch(view, "/platform/explorer?selected=0%3A0")
+
+    view
+    |> element("#platform-explorer-action-drilldown")
+    |> render_click()
+
+    assert_patch(view, "/platform/explorer?path=0%3A0&selected=1%3A0")
+
+    {:ok, reopened, _html} = live(conn, "/platform/explorer?path=0:0&selected=1:0")
+
+    assert render(reopened) =~ "Branch Tile"
+    assert has_element?(reopened, "#platform-tile-1-0")
+  end
+
   test "creator prepares a launch packet", %{conn: conn} do
     agent = agent_fixture(%{display_name: "Creator Agent", slug: "creator-agent"})
 
@@ -90,6 +123,22 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert render(view) =~ "Creator Agent"
     assert render(view) =~ agent.owner_address
     assert has_element?(view, "#platform-creator-hook")
+  end
+
+  test "creator keeps the selected agent in the URL", %{conn: conn} do
+    agent_fixture(%{display_name: "Creator Agent", slug: "creator-agent"})
+
+    {:ok, view, _html} = live(conn, "/platform/creator")
+
+    view
+    |> element("button[phx-value-slug='creator-agent']")
+    |> render_click()
+
+    assert_patch(view, "/platform/creator?agent=creator-agent")
+
+    {:ok, reopened, _html} = live(conn, "/platform/creator?agent=creator-agent")
+
+    assert render(reopened) =~ "Creator Agent"
   end
 
   test "agents index filters results", %{conn: conn} do
@@ -105,6 +154,24 @@ defmodule TechTreeWeb.PlatformLiveTest do
 
     assert html =~ "Visible Agent"
     refute html =~ "Hidden Agent"
+  end
+
+  test "agents index keeps filters in the URL", %{conn: conn} do
+    agent_fixture(%{display_name: "Visible Agent", status: "ready"})
+    agent_fixture(%{display_name: "Hidden Agent", status: "failed"})
+
+    {:ok, view, _html} = live(conn, "/platform/agents")
+
+    view
+    |> form("#platform-agent-filters", filters: %{search: "Visible", status: "ready"})
+    |> render_change()
+
+    assert_patch(view, "/platform/agents?search=Visible&status=ready")
+
+    {:ok, reopened, _html} = live(conn, "/platform/agents?search=Visible&status=ready")
+
+    assert render(reopened) =~ "Visible Agent"
+    refute render(reopened) =~ "Hidden Agent"
   end
 
   test "agent detail renders imported metadata", %{conn: conn} do

@@ -50,19 +50,22 @@ wait_for_ready
 ab open "${PHOENIX_URL}/"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/frontpage-body.txt"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Start with the guided setup. Let the live tree open below."
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree from your terminal"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree once, then move through the next branch with the same story."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree from one guided path"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "pnpm add -g @regentlabs/cli"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree start"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree bbh run solve ./run --agent openclaw"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect Privy"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Sign in before you post in the public room."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree bbh run solve ./run --solver openclaw"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "SkyDiscover"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Hypotest"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect wallet"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect your wallet to post in the public room."
 assert_contains "${OUT_DIR}/frontpage-body.txt" "BBH branch"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Platform and rooms"
 
 ab click "#frontpage-install-agent-hermes"
 ab wait 250 >/dev/null 2>&1 || true
 ab get text "#frontpage-install-command" > "${OUT_DIR}/frontpage-hermes-command.txt"
-assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regent techtree bbh run solve ./run --agent hermes"
+assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regent techtree bbh run solve ./run --solver hermes"
 
 ab click "#frontpage-chat-tab-agent"
 ab wait 250 >/dev/null 2>&1 || true
@@ -78,21 +81,21 @@ ab open "${PHOENIX_URL}/platform"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/platform-home-body.txt"
 assert_contains "${OUT_DIR}/platform-home-body.txt" "Regent Platform"
-assert_contains "${OUT_DIR}/platform-home-body.txt" "One shell, many surfaces"
-assert_contains "${OUT_DIR}/platform-home-body.txt" "Privy Login"
+assert_contains "${OUT_DIR}/platform-home-body.txt" "Move through platform surfaces, inspect imported records, and keep operator actions grouped in one place."
+assert_contains "${OUT_DIR}/platform-home-body.txt" "Connect wallet"
 
 ab open "${PHOENIX_URL}/platform/explorer"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/platform-explorer-body.txt"
 assert_contains "${OUT_DIR}/platform-explorer-body.txt" "Explorer"
 assert_contains "${OUT_DIR}/platform-explorer-body.txt" "World Map"
-assert_contains "${OUT_DIR}/platform-explorer-body.txt" "Privy Login"
+assert_contains "${OUT_DIR}/platform-explorer-body.txt" "Connect wallet"
 
 ab open "${PHOENIX_URL}/platform/creator"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/platform-creator-body.txt"
 assert_contains "${OUT_DIR}/platform-creator-body.txt" "Creator"
 assert_contains "${OUT_DIR}/platform-creator-body.txt" "Choose a launch candidate"
-assert_contains "${OUT_DIR}/platform-creator-body.txt" "Privy Login"
+assert_contains "${OUT_DIR}/platform-creator-body.txt" "Connect wallet"
 
 echo "frontpage/platform smoke passed"

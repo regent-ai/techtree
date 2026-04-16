@@ -209,7 +209,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
              |> json_response(403)
   end
 
-  test "POST /v1/chatbox/messages requires secure room setup", %{privy: privy} do
+  test "POST /v1/chatbox/messages rejects humans without a stored room identity", %{privy: privy} do
     {:ok, human} =
       TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-no-room", %{
         "display_name" => "No Room User",
@@ -222,11 +222,11 @@ defmodule TechTreeWeb.ChatboxControllerTest do
 
     assert %{"error" => %{"code" => "chat_identity_required"}} =
              conn
-             |> post("/v1/chatbox/messages", %{"body" => "should fail"})
+             |> post("/v1/chatbox/messages", %{"body" => "should work"})
              |> json_response(422)
   end
 
-  test "POST /v1/chatbox/messages/:id/reactions requires secure room setup", %{
+  test "POST /v1/chatbox/messages/:id/reactions rejects humans without a stored room identity", %{
     privy: privy,
     human: human
   } do
@@ -248,7 +248,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
              |> json_response(422)
   end
 
-  test "POST /v1/chatbox/messages rejects stale saved chat identities", %{privy: privy} do
+  test "POST /v1/chatbox/messages rejects humans with stale saved room identities", %{privy: privy} do
     wallet_address = "0x2234567890123456789012345678901234567890"
 
     {:ok, human} =
@@ -264,14 +264,15 @@ defmodule TechTreeWeb.ChatboxControllerTest do
 
     assert %{"error" => %{"code" => "chat_identity_required"}} =
              conn
-             |> post("/v1/chatbox/messages", %{"body" => "should fail"})
+             |> post("/v1/chatbox/messages", %{"body" => "should work"})
              |> json_response(422)
   end
 
-  test "POST /v1/chatbox/messages/:id/reactions rejects stale saved chat identities", %{
-    privy: privy,
-    human: human
-  } do
+  test "POST /v1/chatbox/messages/:id/reactions rejects humans with stale saved room identities",
+       %{
+         privy: privy,
+         human: human
+       } do
     message = create_chatbox_message!(human, %{body: "react-target-stale-room"})
     wallet_address = "0x3234567890123456789012345678901234567890"
 

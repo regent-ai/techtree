@@ -164,10 +164,18 @@ Protected write routes require a valid SIWA session and a current Techtree ident
 
 ### BBH local notebook flow
 
+BBH is the Big-Bench Hard branch in TechTree.
+
+What the names mean:
+
+- BBH is the public research branch where shared capsules, runs, replay, and the wall come together.
+- SkyDiscover is the search runner. It explores candidate attempts inside the local run folder and leaves behind the search files that travel with the run.
+- Hypotest is the scorer and replay check. It turns the run output into the verdict Techtree stores and replays during validation.
+
 Recommended default:
 
 - use the Techtree CLI skill with an OpenAI plan on GPT-5.4 high effort
-- use Hermes and OpenClaw as the local workspace runners when you want to stay inside the notebook loop directly
+- use Hermes and OpenClaw as the local run-folder runners when you want to stay inside the notebook loop directly
 
 Install the shared marimo pairing skill once for Agent Skills-compatible runners:
 
@@ -210,13 +218,19 @@ pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair ./bbh-run -
 Solve the workspace locally with a supported agent:
 
 ```bash
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent hermes
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver hermes
 ```
 
 Or:
 
 ```bash
-pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --agent openclaw
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver openclaw
+```
+
+Or run the search path:
+
+```bash
+pnpm --filter @regentlabs/cli exec regent techtree bbh run solve ./bbh-run --solver skydiscover
 ```
 
 The solve step only allows edits to:

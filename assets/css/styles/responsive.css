@@ -77,6 +77,18 @@
   .fp-chat-pane {
     position: static;
   }
+
+  .fp-chat-mobile-toggle {
+    display: flex;
+  }
+
+  .fp-chat-pane-body {
+    display: none;
+  }
+
+  .fp-chat-mobile-toggle-input:checked ~ .fp-chat-pane-body {
+    display: grid;
+  }
 }
 
 @media (max-width: 560px) {
@@ -85,8 +97,8 @@
   }
 
   .fp-chat-feed {
-    min-height: 14rem;
-    max-height: 16rem;
+    min-height: 11rem;
+    max-height: 14rem;
   }
 
   .fp-ledger-actions,

@@ -13,9 +13,9 @@ defmodule TechTreeWeb.PlatformComponents do
 
   def platform_shell(assigns) do
     ~H"""
-    <div class="platform-app min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),transparent_24%),radial-gradient(circle_at_80%_0%,rgba(56,189,248,0.18),transparent_28%),linear-gradient(180deg,#f5f1e8_0%,#ecf5ff_52%,#f4efe6_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),transparent_28%),radial-gradient(circle_at_82%_0%,rgba(56,189,248,0.14),transparent_30%),linear-gradient(180deg,#111723_0%,#0a1320_56%,#0d1117_100%)] dark:text-slate-50">
+    <div class="platform-app min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_24%),radial-gradient(circle_at_84%_0%,rgba(56,189,248,0.12),transparent_28%),linear-gradient(180deg,#f1ede2_0%,#e7eef6_42%,#e9eef4_100%)] text-slate-950 dark:bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.12),transparent_26%),radial-gradient(circle_at_82%_0%,rgba(56,189,248,0.1),transparent_30%),linear-gradient(180deg,#0f1722_0%,#0c131d_56%,#0b1018_100%)] dark:text-slate-50">
       <div class="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-4 px-3 py-3 sm:px-4 lg:flex-row lg:px-6 lg:py-5">
-        <aside class="platform-panel platform-panel--nav flex w-full shrink-0 flex-col gap-4 overflow-hidden rounded-[2rem] border border-black/8 bg-white/78 p-4 shadow-[0_20px_80px_-48px_rgba(15,23,42,0.55)] backdrop-blur lg:w-[280px] dark:border-white/10 dark:bg-slate-950/68 dark:shadow-[0_20px_90px_-52px_rgba(2,6,23,0.95)]">
+        <aside class="platform-panel platform-panel--nav flex w-full shrink-0 flex-col gap-4 overflow-hidden rounded-[1.65rem] border border-black/8 bg-white/82 p-4 shadow-[0_20px_80px_-48px_rgba(15,23,42,0.55)] backdrop-blur lg:w-[292px] dark:border-white/10 dark:bg-slate-950/72 dark:shadow-[0_20px_90px_-52px_rgba(2,6,23,0.95)]">
           <div class="flex items-center justify-between gap-3">
             <div>
               <p class="font-display text-[0.72rem] uppercase tracking-[0.28em] text-amber-600 dark:text-amber-300">
@@ -28,8 +28,33 @@ defmodule TechTreeWeb.PlatformComponents do
             </div>
           </div>
 
+          <div
+            id="platform-auth-panel"
+            phx-hook="PlatformAuth"
+            data-privy-app-id={Map.get(@client_config, :privy_app_id, "")}
+            data-lazy-fallback-message="Browser auth controls are unavailable right now. Reload the page or verify the Privy app settings."
+            class="rounded-[1.35rem] border border-black/8 bg-black px-4 py-4 text-white dark:border-white/10 dark:bg-slate-900"
+          >
+            <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Wallet first</p>
+            <p class="mt-2 text-sm leading-6 text-white/78">
+              Connect a wallet before you use account-linked actions in the workspace.
+            </p>
+            <div class="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                data-platform-auth-action="toggle"
+                class="rounded-full border border-white/16 bg-white/10 px-4 py-2 text-sm transition hover:bg-white/16"
+              >
+                Connect wallet
+              </button>
+              <span data-platform-auth-state class="text-xs uppercase tracking-[0.18em] text-white/56">
+                Idle
+              </span>
+            </div>
+          </div>
+
           <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Move through platform surfaces, inspect imported records, and keep account actions tied to one wallet.
+            Move through platform surfaces, inspect imported records, and keep operator actions grouped in one place.
           </p>
 
           <nav class="grid gap-2" aria-label="Platform navigation">
@@ -37,7 +62,7 @@ defmodule TechTreeWeb.PlatformComponents do
               <.link
                 navigate={item.href}
                 class={[
-                  "group flex items-center justify-between rounded-2xl border px-3 py-3 text-sm transition",
+                  "group flex items-center justify-between rounded-[1.25rem] border px-3 py-3 text-sm transition",
                   nav_link_class(@route_key, item.key)
                 ]}
               >
@@ -55,35 +80,10 @@ defmodule TechTreeWeb.PlatformComponents do
               </.link>
             <% end %>
           </nav>
-
-          <div
-            id="platform-auth-panel"
-            phx-hook="PlatformAuth"
-            data-privy-app-id={Map.get(@client_config, :privy_app_id, "")}
-            data-lazy-fallback-message="Browser auth controls are unavailable right now. Reload the page or verify the Privy app settings."
-            class="mt-auto rounded-[1.6rem] border border-black/8 bg-black px-4 py-4 text-white dark:border-white/10 dark:bg-slate-900"
-          >
-            <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Wallet</p>
-            <p class="mt-2 text-sm leading-6 text-white/78">
-              Connect a wallet here so account actions on this page stay tied to the same person.
-            </p>
-            <div class="mt-3 flex items-center gap-3">
-              <button
-                type="button"
-                data-platform-auth-action="toggle"
-                class="rounded-full border border-white/16 bg-white/10 px-4 py-2 text-sm transition hover:bg-white/16"
-              >
-                Connect wallet
-              </button>
-              <span data-platform-auth-state class="text-xs uppercase tracking-[0.18em] text-white/56">
-                Idle
-              </span>
-            </div>
-          </div>
         </aside>
 
         <div class="flex min-h-[80vh] min-w-0 flex-1 flex-col gap-4">
-          <header class="platform-panel rounded-[2rem] border border-black/8 bg-white/72 px-5 py-5 shadow-[0_20px_80px_-48px_rgba(15,23,42,0.35)] backdrop-blur dark:border-white/10 dark:bg-slate-950/58">
+          <header class="platform-panel rounded-[1.65rem] border border-black/8 bg-white/76 px-5 py-5 shadow-[0_20px_80px_-48px_rgba(15,23,42,0.35)] backdrop-blur dark:border-white/10 dark:bg-slate-950/62">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div class="max-w-3xl">
                 <p class="font-display text-[0.72rem] uppercase tracking-[0.32em] text-amber-600 dark:text-amber-300">
@@ -95,30 +95,19 @@ defmodule TechTreeWeb.PlatformComponents do
                 </p>
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
-                <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    Browse
-                  </p>
-                  <p class="mt-2 text-sm leading-6">
-                    Move between platform areas without losing your place.
-                  </p>
-                </div>
-                <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    Review
-                  </p>
-                  <p class="mt-2 text-sm leading-6">
-                    Inspect names, agents, and records in one place.
-                  </p>
-                </div>
-                <div class="rounded-2xl border border-black/8 bg-white/72 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-                  <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                    Act
-                  </p>
-                  <p class="mt-2 text-sm leading-6">
-                    Connect a wallet when you need account-linked actions.
-                  </p>
-                </div>
+                <%= for item <- workspace_links() do %>
+                  <.link
+                    navigate={item.href}
+                    class="rounded-[1.2rem] border border-black/8 bg-white/72 px-4 py-3 transition hover:border-black/14 hover:bg-white dark:border-white/10 dark:bg-white/5 dark:hover:border-white/18 dark:hover:bg-white/10"
+                  >
+                    <p class="text-[0.64rem] uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                      {item.label}
+                    </p>
+                    <p class="mt-2 text-sm leading-6">
+                      {item.copy}
+                    </p>
+                  </.link>
+                <% end %>
               </div>
             </div>
           </header>
@@ -253,6 +242,14 @@ defmodule TechTreeWeb.PlatformComponents do
         label: "Redeem",
         copy: "Review redemption history"
       }
+    ]
+  end
+
+  def workspace_links do
+    [
+      %{href: "/", label: "Public home", copy: "Return to the guided front door."},
+      %{href: "/human", label: "Seed map", copy: "Open the human-facing tree routes."},
+      %{href: "/skills/techtree-bbh", label: "BBH guide", copy: "Jump into the guided BBH lane."}
     ]
   end
 

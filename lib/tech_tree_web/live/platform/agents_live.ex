@@ -20,16 +20,20 @@ defmodule TechTreeWeb.Platform.AgentsLive do
   end
 
   @impl true
-  def handle_event("filters", %{"filters" => filters}, socket) do
-    normalized = normalize_filters(filters)
+  def handle_params(params, _uri, socket) do
+    filters = normalize_filters(params)
 
     {:noreply,
      socket
-     |> assign(:filters, normalized)
-     |> assign(
-       :agents,
-       Platform.list_agents(limit: 24, search: normalized["search"], status: normalized["status"])
-     )}
+     |> assign(:filters, filters)
+     |> assign(:agents, list_agents(filters))}
+  end
+
+  @impl true
+  def handle_event("filters", %{"filters" => filters}, socket) do
+    normalized = normalize_filters(filters)
+
+    {:noreply, push_patch(socket, to: agents_path(normalized))}
   end
 
   @impl true
@@ -40,14 +44,14 @@ defmodule TechTreeWeb.Platform.AgentsLive do
         route_key={@route_key}
         title="Agents"
         kicker="Catalog"
-        subtitle="Search imported agents and open any record for more detail."
+        subtitle="Search imported agents, keep the filter state in the URL, and jump into the right record fast."
         client_config={@client_config}
       >
         <section class="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
           <.surface_card
             eyebrow="Filters"
             title="Search imported agents"
-            copy="Use search and status filters to narrow the list."
+            copy="Use search and status filters to narrow the list. The current filter state stays in the URL."
           >
             <form id="platform-agent-filters" phx-change="filters" class="grid gap-3">
               <label class="grid gap-2">
@@ -75,6 +79,15 @@ defmodule TechTreeWeb.Platform.AgentsLive do
                   class="input input-bordered w-full"
                 />
               </label>
+
+              <div class="flex flex-wrap gap-2">
+                <.link navigate="/platform/agents" class="btn fp-command-secondary">
+                  Clear filters
+                </.link>
+                <.link navigate="/platform/creator" class="btn fp-command-secondary">
+                  Switch to Creator
+                </.link>
+              </div>
             </form>
           </.surface_card>
 
@@ -84,7 +97,17 @@ defmodule TechTreeWeb.Platform.AgentsLive do
             copy="Open any result to review the full agent record."
           >
             <%= if @agents == [] do %>
-              <.empty_state message="No agents match the current filters." />
+              <div class="grid gap-3">
+                <.empty_state message="No agents match the current filters. Widen the search or switch to the Creator route if you already know which record you need." />
+                <div class="flex flex-wrap gap-2">
+                  <.link navigate="/platform/agents" class="btn fp-command-secondary">
+                    Clear filters
+                  </.link>
+                  <.link navigate="/platform/creator" class="btn fp-command-secondary">
+                    Open Creator
+                  </.link>
+                </div>
+              </div>
             <% else %>
               <div class="grid gap-3">
                 <%= for agent <- @agents do %>
@@ -120,6 +143,23 @@ defmodule TechTreeWeb.Platform.AgentsLive do
     }
   end
 
+  defp list_agents(filters) do
+    Platform.list_agents(limit: 24, search: filters["search"], status: filters["status"])
+  end
+
+  defp agents_path(filters) do
+    params =
+      %{}
+      |> maybe_put("search", filters["search"])
+      |> maybe_put("status", filters["status"])
+
+    ~p"/platform/agents?#{params}"
+  end
+
   defp normalize_text(value) when is_binary(value), do: String.trim(value)
   defp normalize_text(_), do: ""
+
+  defp maybe_put(params, _key, nil), do: params
+  defp maybe_put(params, _key, ""), do: params
+  defp maybe_put(params, key, value), do: Map.put(params, key, value)
 end

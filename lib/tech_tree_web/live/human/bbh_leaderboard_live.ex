@@ -64,7 +64,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
         <.human_header
           kicker="BBH Branch"
           title="Wall board"
-          subtitle="This is the BBH branch drilldown from the homepage tree. Practice, Proving, and Challenge stay wall-first, and the pinned drilldown survives refresh."
+          subtitle="Follow the live BBH board by lane, keep one capsule pinned, and see which runs held up in replay."
         >
           <:actions>
             <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
@@ -88,9 +88,12 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                   </h2>
                   <p class="bbh-wall-note">
                     Practice is public climb work, Proving is benchmark work, and Challenge is the
-                    public reviewed frontier lane. The homepage keeps BBH visible as one branch of
-                    the tree; this page is where you stay once you want lane pressure, pinned
-                    capsules, and a live wall-first read.
+                    public reviewed frontier lane.
+                  </p>
+                  <p class="bbh-wall-note">
+                    Stay here when you want lane pressure, a pinned capsule, and a clear read of
+                    which runs came through direct notebook work, which used SkyDiscover search,
+                    and which already held up under Hypotest replay.
                   </p>
                 </div>
 

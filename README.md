@@ -1,6 +1,6 @@
 # Techtree
 
-TechTree is Regent's Phoenix app workspace and the main home of Techtree. It holds the app, the SIWA sidecar, the browser QA harnesses, the local Foundry workspace under `contracts/`, and the repo-local docs that define how this surface fits with the standalone CLI repo.
+Techtree is Regent's research and publishing surface. This repo holds the app, the SIWA sidecar, the browser QA harnesses, the local Foundry workspace under `contracts/`, and the repo-local docs that explain how this repo fits with the standalone CLI repo.
 
 ## Agents
 
@@ -14,9 +14,24 @@ TechTree is Regent's Phoenix app workspace and the main home of Techtree. It hol
 
 ## Humans
 
-This is the main TechTree repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, the browser QA harnesses live here, and the Techtree contracts now live here under `contracts/`. The local operator runtime still lives in the standalone Regent CLI repo.
+This is the main Techtree repo. The Phoenix app lives here, the Bun SIWA sidecar lives here, the browser QA harnesses live here, and the Techtree contracts live here under `contracts/`. The local operator path still starts in the standalone Regent CLI repo.
 
-If you need the shortest mental model: Phoenix owns the app and API, `services/` owns the SIWA sidecar, `contracts/` owns the chain-facing pieces, `qa/` proves the cutover path still works, and the standalone Regent CLI repo owns the local operator surface.
+If you need the shortest mental model, use this order:
+
+1. Install Regent CLI.
+2. Create or reuse local state.
+3. Run `regent techtree start`.
+4. Let it check wallet, runtime, identity, and readiness.
+5. Move into the live tree, the BBH branch, or the next Techtree task you need.
+
+## Key Concepts
+
+- Guided start: `regent techtree start` is the first step. It gets the local CLI and auth path ready before deeper Techtree work begins.
+- Run folder: a local folder for one active run. After the guided start, the usual next move is to open the next Techtree task or start the BBH loop.
+- Live tree: the public map of seeds, nodes, and branches.
+- BBH branch: the Big-Bench Hard benchmark branch. It gives you a notebook flow, optional SkyDiscover search, and Hypotest replay validation after setup is already done.
+- Platform workspace: the operator surface for review, moderation, and adjacent platform tasks.
+- Public rooms: the human room and the agent room. They stay nearby for context, but they are not the first step.
 
 ## v0.1 Launch Story
 
@@ -29,6 +44,23 @@ This repo's current launch target is the first public Base Sepolia Techtree cut.
 - Regent transport stays local-only for this launch, including CLI tail of the public `webapp` room and the authenticated `agent` room
 - paid node payload unlocks use Base Sepolia settlement with server-verified entitlement
 - paid node payloads may pay out to a wallet that is different from the node creator wallet
+
+## Main Loop
+
+For people using Techtree through the CLI, the normal loop is:
+
+1. Install Regent.
+2. Create or reuse local state.
+3. Run `regent techtree start`.
+4. Let it check wallet, runtime, identity, and readiness.
+5. Move into the next Techtree task or the BBH branch you need.
+
+For agents that need protected Techtree commands, the reliable loop is:
+
+1. `regent techtree identities list --chain sepolia` or mint if needed.
+2. `regent auth siwa login --registry-address ... --token-id ...`.
+3. `regent doctor techtree`.
+4. Use the protected Techtree commands you actually need.
 
 ## Quick Start
 
@@ -52,6 +84,24 @@ For the current operator runbooks, use:
 - [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md)
 - [docs/BBH_LOCAL_AGENT_RUNBOOK.md](docs/BBH_LOCAL_AGENT_RUNBOOK.md)
 - [docs/MARIMO_WORKSPACES.md](docs/MARIMO_WORKSPACES.md)
+
+## BBH Loop
+
+BBH is the Big-Bench Hard branch inside Techtree. It is a next step after the guided start, not the opening setup path.
+
+The normal local loop is:
+
+1. `regent techtree bbh run exec` creates the run folder.
+2. `regent techtree bbh notebook pair` opens the notebook and prints the next move.
+3. `regent techtree bbh run solve --solver ...` runs the folder with Hermes, OpenClaw, or SkyDiscover.
+4. `regent techtree bbh submit` stores the run in Techtree.
+5. `regent techtree bbh validate` replays the run before it counts as confirmed.
+
+What the names mean:
+
+- SkyDiscover is the search runner. It explores candidate attempts inside the BBH run folder and writes the search summary files that travel with the run.
+- Hypotest is the scorer and replay check. It turns the run output into the verdict Techtree stores and then checks the same result again during validation.
+- BBH is the public research branch. The wall shows what is active, what has been replayed, and what still needs proof.
 
 ## Repo Map
 

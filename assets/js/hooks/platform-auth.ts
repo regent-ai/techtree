@@ -33,6 +33,7 @@ export const PlatformAuth: Hook = {
     }
 
     const sessionUrl = "/api/auth/privy/session"
+    const completeUrl = "/api/auth/privy/xmtp/complete"
     const privy =
       appId.length > 0
         ? (new Privy({ appId, clientId: appId, storage: new LocalStorage() }) as unknown as PrivyLike)
@@ -80,6 +81,7 @@ export const PlatformAuth: Hook = {
           await syncPrivySession(privy, currentUser, {
             csrfToken,
             sessionUrl,
+            completeUrl,
           })
           setState("Connected")
         } else {

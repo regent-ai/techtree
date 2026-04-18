@@ -154,6 +154,7 @@ export const HomeChatbox: Hook = {
     const transportStatusUrl = root.dataset.transportStatusUrl?.trim() || "/v1/runtime/transport"
     const postUrl = root.dataset.postUrl?.trim() || "/v1/chatbox/messages"
     const sessionUrl = root.dataset.sessionUrl?.trim() || "/api/auth/privy/session"
+    const completeUrl = "/api/auth/privy/xmtp/complete"
     const privyAppId = root.dataset.privyAppId?.trim() || ""
     const csrfToken =
       document.querySelector<HTMLMetaElement>("meta[name='csrf-token']")?.content?.trim() || ""
@@ -235,6 +236,7 @@ export const HomeChatbox: Hook = {
       await syncPrivySession(privy, user, {
         csrfToken,
         sessionUrl,
+        completeUrl,
       })
       setState("Connected. You can post in the public room.")
     }

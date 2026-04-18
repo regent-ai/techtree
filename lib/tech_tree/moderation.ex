@@ -34,7 +34,7 @@ defmodule TechTree.Moderation do
           | {:error, :human_not_found}
 
   @type chatbox_membership_action_result ::
-          :ok
+          {:ok, XMTPMirror.room_admin_action_status()}
           | {:error, :human_not_found}
           | {:error, :human_banned}
           | {:error, :room_not_found}
@@ -190,9 +190,12 @@ defmodule TechTree.Moderation do
     human = Repo.get!(HumanUser, normalize_id(id))
 
     case XMTPMirror.add_human_to_canonical_room(human.id) do
-      :ok ->
+      {:ok, :enqueued} ->
         log!(:human, human.id, "add_chatbox_member", admin, reason)
-        :ok
+        {:ok, :enqueued}
+
+      {:ok, status} ->
+        {:ok, status}
 
       {:error, reason_code} ->
         {:error, reason_code}
@@ -205,9 +208,12 @@ defmodule TechTree.Moderation do
     human = Repo.get!(HumanUser, normalize_id(id))
 
     case XMTPMirror.remove_human_from_canonical_room(human.id) do
-      :ok ->
+      {:ok, :enqueued} ->
         log!(:human, human.id, "remove_chatbox_member", admin, reason)
-        :ok
+        {:ok, :enqueued}
+
+      {:ok, status} ->
+        {:ok, status}
 
       {:error, reason_code} ->
         {:error, reason_code}

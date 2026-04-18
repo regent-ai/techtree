@@ -208,6 +208,33 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
   end
 
+  test "banning a human still queues public-room removal after their saved room id was cleared" do
+    admin = create_admin!()
+    _room = create_canonical_room!()
+    wallet_address = random_wallet_address()
+    inbox_id = TechTree.PhaseDApiSupport.deterministic_inbox_id(wallet_address)
+
+    {:ok, human} =
+      Accounts.upsert_human_by_privy_id("human-ban-stale-#{unique_suffix()}", %{
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => inbox_id,
+        "display_name" => "Banned Human",
+        "role" => "user"
+      })
+
+    insert_joined_membership!(human)
+    {:ok, cleared_human} = Accounts.update_human(human, %{"xmtp_inbox_id" => nil})
+
+    :ok = Moderation.ban_human(cleared_human.id, admin, "ban human after clear")
+
+    assert Repo.get_by!(XmtpMembershipCommand,
+             human_user_id: cleared_human.id,
+             op: "remove_member",
+             status: "pending",
+             xmtp_inbox_id: inbox_id
+           )
+  end
+
   defp create_admin! do
     unique = unique_suffix()
     wallet_address = random_wallet_address()
@@ -240,7 +267,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     unique = unique_suffix()
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => "0x#{prefix}-registry-#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{prefix}-wallet-#{unique}",

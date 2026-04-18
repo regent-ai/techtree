@@ -101,8 +101,22 @@ defmodule TechTreeWeb.Router do
 
     get "/csrf", PlatformAuthController, :csrf
     post "/session", PlatformAuthController, :create
+    post "/xmtp/complete", PlatformAuthController, :complete_xmtp
     get "/profile", PlatformAuthController, :show
     delete "/session", PlatformAuthController, :delete
+  end
+
+  scope "/api/auth/agent", TechTreeWeb do
+    pipe_through :session_api
+
+    get "/session", AgentSessionController, :show
+    delete "/session", AgentSessionController, :delete
+  end
+
+  scope "/api/auth/agent", TechTreeWeb do
+    pipe_through [:session_api, :api_agent]
+
+    post "/session", AgentSessionController, :create
   end
 
   scope "/v1/runtime", TechTreeWeb.Runtime do

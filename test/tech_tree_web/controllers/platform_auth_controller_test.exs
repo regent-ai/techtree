@@ -4,9 +4,16 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
   import Phoenix.Controller, only: [get_csrf_token: 0]
   import TechTree.PhaseDApiSupport
 
+  import TechTreeWeb.TestSupport.SiwaIntegrationSupport,
+    only: [cast_wallet_address!: 1, cast_wallet_sign!: 2]
+
   alias TechTree.Accounts
+  alias TechTree.XmtpIdentity
+
+  @test_wallet_private_key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
   setup do
+    ensure_xmtp_identity_runtime!()
     privy = setup_privy_config!()
 
     on_exit(fn ->
@@ -16,17 +23,27 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
     {:ok, privy: privy}
   end
 
-  test "POST /api/auth/privy/session writes the browser session and returns the human row", %{
-    conn: conn,
-    privy: privy
-  } do
+  defp ensure_xmtp_identity_runtime! do
+    case Process.whereis(TechTree.XmtpIdentity.Runtime.IdentityServer) do
+      nil -> start_supervised!(TechTree.XmtpIdentity)
+      _pid -> :ok
+    end
+  end
+
+  test "POST /api/auth/privy/session writes the browser session and returns the next secure room step",
+       %{
+         conn: conn,
+         privy: privy
+       } do
+    wallet_address = cast_wallet_address!(@test_wallet_private_key) |> String.downcase()
+
     conn =
       conn
       |> csrf_json_conn()
       |> with_privy_bearer("privy-platform-user", privy.app_id, privy.private_pem)
       |> post("/api/auth/privy/session", %{
         "display_name" => "Platform User",
-        "wallet_address" => "0x1234567890123456789012345678901234567890"
+        "wallet_address" => wallet_address
       })
 
     assert %{
@@ -34,11 +51,22 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
              "human" => %{
                "privy_user_id" => "privy-platform-user",
                "display_name" => "Platform User",
-               "wallet_address" => "0x1234567890123456789012345678901234567890",
+               "wallet_address" => ^wallet_address,
                "xmtp_inbox_id" => nil
              },
-             "xmtp" => nil
+             "xmtp" => %{
+               "status" => "signature_required",
+               "wallet_address" => ^wallet_address,
+               "client_id" => client_id,
+               "signature_request_id" => signature_request_id,
+               "signature_text" => signature_text,
+               "inbox_id" => nil
+             }
            } = json_response(conn, 200)
+
+    assert is_binary(client_id) and client_id != ""
+    assert is_binary(signature_request_id) and signature_request_id != ""
+    assert is_binary(signature_text) and signature_text != ""
 
     assert get_session(conn, :privy_user_id) == "privy-platform-user"
   end
@@ -110,13 +138,74 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
                "wallet_address" => ^wallet_address,
                "xmtp_inbox_id" => nil
              },
-             "xmtp" => nil
+             "xmtp" => %{"status" => "signature_required", "wallet_address" => ^wallet_address}
            } = json_response(conn, 200)
 
     assert %TechTree.Accounts.HumanUser{
              wallet_address: ^wallet_address,
              xmtp_inbox_id: nil
            } = Accounts.get_human_by_privy_id("privy-platform-stale")
+  end
+
+  test "POST /api/auth/privy/xmtp/complete stores the room identity and returns a ready session",
+       %{conn: conn, privy: privy} do
+    wallet_address = cast_wallet_address!(@test_wallet_private_key) |> String.downcase()
+
+    session_conn =
+      conn
+      |> csrf_json_conn()
+      |> with_privy_bearer("privy-platform-complete", privy.app_id, privy.private_pem)
+      |> post("/api/auth/privy/session", %{
+        "display_name" => "Complete User",
+        "wallet_address" => wallet_address
+      })
+
+    assert %{
+             "ok" => true,
+             "xmtp" => %{
+               "status" => "signature_required",
+               "wallet_address" => ^wallet_address,
+               "client_id" => client_id,
+               "signature_request_id" => signature_request_id,
+               "signature_text" => signature_text
+             }
+           } = json_response(session_conn, 200)
+
+    signature = cast_wallet_sign!(@test_wallet_private_key, signature_text)
+    expected_inbox_id = deterministic_inbox_id(wallet_address)
+
+    complete_conn =
+      session_conn
+      |> csrf_json_conn()
+      |> post("/api/auth/privy/xmtp/complete", %{
+        "wallet_address" => wallet_address,
+        "client_id" => client_id,
+        "signature_request_id" => signature_request_id,
+        "signature" => signature
+      })
+
+    assert %{
+             "ok" => true,
+             "human" => %{
+               "privy_user_id" => "privy-platform-complete",
+               "wallet_address" => ^wallet_address,
+               "xmtp_inbox_id" => ^expected_inbox_id
+             },
+             "xmtp" => %{
+               "status" => "ready",
+               "wallet_address" => ^wallet_address,
+               "inbox_id" => ^expected_inbox_id
+             }
+           } = json_response(complete_conn, 200)
+
+    assert %TechTree.Accounts.HumanUser{
+             wallet_address: ^wallet_address,
+             xmtp_inbox_id: ^expected_inbox_id
+           } = Accounts.get_human_by_privy_id("privy-platform-complete")
+
+    assert {:ok, ^expected_inbox_id} =
+             Accounts.get_human_by_privy_id("privy-platform-complete")
+             |> XmtpIdentity.ready_inbox_id()
   end
 
   test "GET /api/auth/privy/profile returns the current signed-in human", %{
@@ -160,7 +249,7 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
            } = json_response(profile_conn, 200)
   end
 
-  test "DELETE /api/auth/privy/session clears the signed-in session cookie", %{
+  test "DELETE /api/auth/privy/session clears only the techtree sign-in", %{
     conn: conn,
     privy: privy
   } do
@@ -177,11 +266,15 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
 
     logout_conn =
       session_conn
-      |> csrf_json_conn()
+      |> recycle()
+      |> init_test_session(%{privy_user_id: "privy-platform-logout", other_key: "keep-me"})
+      |> put_req_header("x-csrf-token", get_csrf_token())
+      |> put_req_header("accept", "application/json")
       |> delete("/api/auth/privy/session")
 
     assert %{"ok" => true} = json_response(logout_conn, 200)
-    assert logout_conn.resp_cookies["_tech_tree_key"].max_age == 0
+    assert get_session(logout_conn, :privy_user_id) == nil
+    assert get_session(logout_conn, :other_key) == "keep-me"
 
     profile_conn =
       logout_conn
@@ -250,6 +343,21 @@ defmodule TechTreeWeb.PlatformAuthControllerTest do
       |> post("/api/auth/privy/session", %{"display_name" => "No Token"})
 
     assert %{"ok" => false, "error" => %{"code" => "privy_required"}} = json_response(conn, 401)
+  end
+
+  test "POST /api/auth/privy/xmtp/complete requires a signed-in session", %{conn: conn} do
+    conn =
+      conn
+      |> csrf_json_conn()
+      |> post("/api/auth/privy/xmtp/complete", %{
+        "wallet_address" => cast_wallet_address!(@test_wallet_private_key) |> String.downcase(),
+        "client_id" => "client-id",
+        "signature_request_id" => "request-id",
+        "signature" => "0xsigned"
+      })
+
+    assert %{"ok" => false, "error" => %{"code" => "privy_session_required"}} =
+             json_response(conn, 401)
   end
 
   defp csrf_json_conn(conn) do

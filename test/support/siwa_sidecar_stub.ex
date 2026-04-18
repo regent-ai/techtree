@@ -33,10 +33,31 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
 
         body =
           case status do
-            200 -> ~s({"ok":true,"code":"http_envelope_valid"})
-            401 -> ~s({"ok":false,"code":"receipt_invalid"})
-            422 -> ~s({"ok":false,"code":"http_signature_input_invalid"})
-            _ -> ~s({"ok":false,"code":"internal_error"})
+            200 ->
+              headers = Map.get(parsed_body, "headers", %{})
+
+              Jason.encode!(%{
+                ok: true,
+                code: "http_envelope_valid",
+                data: %{
+                  agent_claims: %{
+                    wallet_address: Map.get(headers, "x-agent-wallet-address"),
+                    chain_id: Map.get(headers, "x-agent-chain-id"),
+                    registry_address: Map.get(headers, "x-agent-registry-address"),
+                    token_id: Map.get(headers, "x-agent-token-id"),
+                    label: Map.get(headers, "x-agent-label")
+                  }
+                }
+              })
+
+            401 ->
+              ~s({"ok":false,"code":"receipt_invalid"})
+
+            422 ->
+              ~s({"ok":false,"code":"http_signature_input_invalid"})
+
+            _ ->
+              ~s({"ok":false,"code":"internal_error"})
           end
 
         conn

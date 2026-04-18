@@ -316,17 +316,39 @@ defmodule TechTree.XMTPMirror do
     end
   end
 
+  @type room_admin_action_status ::
+          :enqueued
+          | :already_joined
+          | :already_pending_join
+          | :already_not_joined
+          | :already_pending_removal
+
   @spec add_human_to_canonical_room(integer() | String.t()) ::
-          :ok | {:error, room_admin_action_error()}
+          {:ok, room_admin_action_status()} | {:error, room_admin_action_error()}
   def add_human_to_canonical_room(human_id) when is_integer(human_id) or is_binary(human_id) do
     with {:ok, human} <- fetch_human(human_id),
-         {:ok, _result} <- request_join(human, %{}) do
-      :ok
+         {:ok, room} <- resolve_join_room(%{}) do
+      case membership_state_for(human, room) do
+        "joined" ->
+          {:ok, :already_joined}
+
+        "join_pending" ->
+          {:ok, :already_pending_join}
+
+        _ ->
+          case request_join(human, %{}) do
+            {:ok, _result} -> {:ok, :enqueued}
+            {:error, reason} -> {:error, reason}
+          end
+      end
+    else
+      {:error, :room_not_found} -> {:error, :room_not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
   @spec remove_human_from_canonical_room(integer() | String.t()) ::
-          :ok | {:error, room_admin_action_error()}
+          {:ok, room_admin_action_status()} | {:error, room_admin_action_error()}
   def remove_human_from_canonical_room(human_id)
       when is_integer(human_id) or is_binary(human_id) do
     with {:ok, human} <- fetch_human(human_id) do
@@ -335,22 +357,25 @@ defmodule TechTree.XMTPMirror do
   end
 
   @spec remove_human_from_canonical_room(HumanUser.t()) ::
-          :ok | {:error, room_admin_action_error()}
+          {:ok, room_admin_action_status()} | {:error, room_admin_action_error()}
   def remove_human_from_canonical_room(%HumanUser{} = human) do
     case resolve_join_room(%{}) do
       {:ok, room} ->
         case membership_state_for(human, room) do
           "not_joined" ->
-            :ok
+            {:ok, :already_not_joined}
+
+          "join_failed" ->
+            {:ok, :already_not_joined}
 
           "leave_pending" ->
-            :ok
+            {:ok, :already_pending_removal}
 
           _ ->
-            case require_human_inbox_id(human) do
+            case require_human_room_inbox_id(human, room) do
               {:ok, inbox_id} ->
                 case create_membership_command(human, room, inbox_id, "remove_member") do
-                  {:ok, _command} -> :ok
+                  {:ok, _command} -> {:ok, :enqueued}
                   {:error, reason} -> {:error, reason}
                 end
 
@@ -368,7 +393,7 @@ defmodule TechTree.XMTPMirror do
   def best_effort_remove_human_from_canonical_room(human_id)
       when is_integer(human_id) or is_binary(human_id) do
     case remove_human_from_canonical_room(human_id) do
-      :ok -> :ok
+      {:ok, _status} -> :ok
       {:error, _reason} -> :ok
     end
   end
@@ -547,6 +572,56 @@ defmodule TechTree.XMTPMirror do
       {:error, :xmtp_identity_required} -> {:error, :xmtp_identity_required}
     end
   end
+
+  defp require_human_room_inbox_id(%HumanUser{} = human, %XmtpRoom{} = room) do
+    case require_human_inbox_id(human) do
+      {:ok, inbox_id} ->
+        {:ok, inbox_id}
+
+      {:error, :xmtp_identity_required} ->
+        case fallback_room_inbox_id(human, room) do
+          nil -> {:error, :xmtp_identity_required}
+          inbox_id -> {:ok, inbox_id}
+        end
+    end
+  end
+
+  defp fallback_room_inbox_id(%HumanUser{} = human, %XmtpRoom{} = room) do
+    latest_presence_inbox_id(human, room) || latest_membership_inbox_id(human, room)
+  end
+
+  defp latest_presence_inbox_id(%HumanUser{} = human, %XmtpRoom{} = room) do
+    XmtpPresence
+    |> where(
+      [presence],
+      presence.room_id == ^room.id and presence.human_user_id == ^human.id and
+        is_nil(presence.evicted_at)
+    )
+    |> order_by([presence], desc: presence.last_seen_at, desc: presence.id)
+    |> limit(1)
+    |> select([presence], presence.xmtp_inbox_id)
+    |> Repo.one()
+    |> normalize_inbox_id()
+  end
+
+  defp latest_membership_inbox_id(%HumanUser{} = human, %XmtpRoom{} = room) do
+    XmtpMembershipCommand
+    |> where([command], command.room_id == ^room.id and command.human_user_id == ^human.id)
+    |> order_by([command], desc: command.inserted_at, desc: command.id)
+    |> limit(1)
+    |> select([command], command.xmtp_inbox_id)
+    |> Repo.one()
+    |> normalize_inbox_id()
+  end
+
+  defp normalize_inbox_id(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_inbox_id(_value), do: nil
 
   defp fetch_human(human_id) do
     case Repo.get(HumanUser, QueryHelpers.normalize_id(human_id)) do

@@ -136,7 +136,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
       |> with_privy_bearer(admin.privy_user_id, privy.app_id, privy.private_pem)
     end
 
-    assert %{"ok" => true} =
+    assert %{"ok" => true, "data" => %{"status" => "enqueued"}} =
              authed_conn.()
              |> post("/v1/admin/chatbox/members/#{target_human.id}/add", %{"reason" => "room-add"})
              |> json_response(200)
@@ -147,7 +147,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
              status: "pending"
            )
 
-    assert %{"ok" => true} =
+    assert %{"ok" => true, "data" => %{"status" => "enqueued"}} =
              authed_conn.()
              |> post("/v1/admin/chatbox/members/#{target_human.id}/remove", %{
                "reason" => "room-remove"
@@ -159,6 +159,70 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
              op: "remove_member",
              status: "pending"
            )
+
+    assert Repo.aggregate(
+             from(a in ModerationAction,
+               where:
+                 a.actor_ref == ^admin.id and a.target_ref == ^target_human.id and
+                   a.action in ["add_chatbox_member", "remove_chatbox_member"]
+             ),
+             :count,
+             :id
+           ) == 2
+  end
+
+  test "admin chatbox member endpoints report no-op states without logging them again", %{
+    privy: privy
+  } do
+    admin = create_human!("moderation-room-admin-status", role: "admin")
+    target_human = create_human!("moderation-room-human-status", role: "user")
+    room = create_canonical_room!()
+
+    authed_conn = fn ->
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(admin.privy_user_id, privy.app_id, privy.private_pem)
+    end
+
+    assert %{"ok" => true, "data" => %{"status" => "enqueued"}} =
+             authed_conn.()
+             |> post("/v1/admin/chatbox/members/#{target_human.id}/add", %{"reason" => "room-add"})
+             |> json_response(200)
+
+    assert %{"ok" => true, "data" => %{"status" => "already_pending_join"}} =
+             authed_conn.()
+             |> post("/v1/admin/chatbox/members/#{target_human.id}/add", %{"reason" => "room-add"})
+             |> json_response(200)
+
+    add_command =
+      Repo.get_by!(XmtpMembershipCommand,
+        room_id: room.id,
+        human_user_id: target_human.id,
+        op: "add_member",
+        status: "pending"
+      )
+
+    add_command
+    |> Ecto.Changeset.change(status: "done")
+    |> Repo.update!()
+
+    assert %{"ok" => true, "data" => %{"status" => "already_joined"}} =
+             authed_conn.()
+             |> post("/v1/admin/chatbox/members/#{target_human.id}/add", %{"reason" => "room-add"})
+             |> json_response(200)
+
+    assert %{"ok" => true, "data" => %{"status" => "enqueued"}} =
+             authed_conn.()
+             |> post("/v1/admin/chatbox/members/#{target_human.id}/remove", %{
+               "reason" => "room-remove"
+             })
+             |> json_response(200)
+
+    assert %{"ok" => true, "data" => %{"status" => "already_pending_removal"}} =
+             authed_conn.()
+             |> post("/v1/admin/chatbox/members/#{target_human.id}/remove", %{
+               "reason" => "room-remove"
+             })
+             |> json_response(200)
 
     assert Repo.aggregate(
              from(a in ModerationAction,
@@ -196,7 +260,7 @@ defmodule TechTreeWeb.AdminModerationControllerTest do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => "0x#{prefix}-registry-#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{prefix}-wallet-#{unique}",

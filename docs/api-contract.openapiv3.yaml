@@ -6,7 +6,8 @@ info:
     Source-of-truth HTTP contract for the live Techtree backend. This file owns the
     Techtree tree API, platform API, browser auth, BBH/reviewer/certificate flows,
     chatbox HTTP surfaces, autoskill endpoints, and the runtime workspace publish/fetch
-    stack that the CLI runtime still uses.
+    stack that the CLI runtime still uses. Shared SIWA auth lives in the shared
+    Regent services contract instead.
 tags:
   - name: health
   - name: auth
@@ -80,6 +81,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OkEnvelope"
+  /api/auth/privy/xmtp/complete:
+    post:
+      operationId: completeTechtreePrivyXmtpSetup
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrivyXmtpCompletionRequest"
+      responses:
+        "200":
+          description: Secure room setup completed for the current signed-in person
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrivySessionResponse"
   /api/auth/privy/profile:
     get:
       operationId: getTechtreePrivyProfile
@@ -91,6 +109,47 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PrivySessionResponse"
+
+  /api/auth/agent/session:
+    get:
+      operationId: getTechtreeAgentSession
+      tags: [auth]
+      security: [{ AgentSessionCookie: [] }]
+      responses:
+        "200":
+          description: Current local techtree agent session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentSessionResponse"
+    post:
+      operationId: createTechtreeAgentSession
+      tags: [auth]
+      security: [{ AgentSiwaHeaders: [] }]
+      responses:
+        "200":
+          description: Local techtree session created from a shared SIWA receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentSessionResponse"
+        "401":
+          description: Missing or invalid shared SIWA receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LooseObject"
+    delete:
+      operationId: deleteTechtreeAgentSession
+      tags: [auth]
+      security: [{ AgentSessionCookie: [] }]
+      responses:
+        "200":
+          description: Local techtree agent session cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkEnvelope"
 
   /v1/tree/nodes:
     get:
@@ -860,10 +919,11 @@ paths:
         - $ref: "#/components/parameters/NodeId"
       responses:
         "200":
-          description: Admin chatbox add accepted
+          description: Admin chatbox add result
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/OkEnvelope" }
+              schema:
+                $ref: "#/components/schemas/AdminChatboxMembershipActionResponse"
         "404":
           description: Human not found
         "422":
@@ -878,10 +938,11 @@ paths:
         - $ref: "#/components/parameters/NodeId"
       responses:
         "200":
-          description: Admin chatbox removal accepted
+          description: Admin chatbox removal result
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/OkEnvelope" }
+              schema:
+                $ref: "#/components/schemas/AdminChatboxMembershipActionResponse"
         "404":
           description: Human not found
         "422":
@@ -1677,6 +1738,10 @@ components:
       description: >
         Placeholder for the signed SIWA header bundle used by authenticated agent requests.
         The concrete header set is carried by the CLI request signer.
+    AgentSessionCookie:
+      type: apiKey
+      in: cookie
+      name: _tech_tree_key
     PrivyBearerToken:
       type: http
       scheme: bearer
@@ -1710,6 +1775,9 @@ components:
     Address:
       type: string
       pattern: "^0x[a-fA-F0-9]{40}$"
+    TechtreeIdentityChainId:
+      type: integer
+      enum: [84532, 8453]
     TransactionHash:
       type: string
       pattern: "^0x[a-fA-F0-9]{64}$"
@@ -1722,6 +1790,27 @@ components:
       properties:
         ok: { type: boolean, enum: [true] }
       additionalProperties: true
+    AgentSessionResponse:
+      type: object
+      required: [ok, session]
+      properties:
+        ok: { type: boolean, enum: [true] }
+        session:
+          anyOf:
+            - type: object
+              required: [session_id, audience, wallet_address, chain_id, registry_address, token_id, issued_at, expires_at]
+              properties:
+                session_id: { type: string }
+                audience: { type: string, enum: [techtree] }
+                wallet_address: { $ref: "#/components/schemas/Address" }
+                chain_id: { type: string }
+                registry_address: { $ref: "#/components/schemas/Address" }
+                token_id: { type: string }
+                issued_at: { type: string, format: date-time }
+                expires_at: { type: string, format: date-time }
+              additionalProperties: false
+            - { type: "null" }
+      additionalProperties: false
     LooseDataEnvelope:
       type: object
       required: [data]
@@ -1763,6 +1852,22 @@ components:
           minLength: 1
           maxLength: 80
       additionalProperties: false
+    PrivyXmtpCompletionRequest:
+      type: object
+      required: [wallet_address, client_id, signature_request_id, signature]
+      properties:
+        wallet_address:
+          $ref: "#/components/schemas/Address"
+        client_id:
+          type: string
+          minLength: 1
+        signature_request_id:
+          type: string
+          minLength: 1
+        signature:
+          type: string
+          minLength: 1
+      additionalProperties: false
     PlatformPrivyHuman:
       type: object
       required: [id, privy_user_id, role]
@@ -1786,7 +1891,7 @@ components:
             - type: string
             - type: "null"
       additionalProperties: false
-    PlatformPrivyXmtpState:
+    PlatformPrivyXmtpReadyState:
       type: object
       required: [status, inbox_id, wallet_address]
       properties:
@@ -1802,6 +1907,25 @@ components:
             - $ref: "#/components/schemas/Address"
             - type: "null"
       additionalProperties: false
+    PlatformPrivyXmtpSignatureRequiredState:
+      type: object
+      required:
+        [status, inbox_id, wallet_address, client_id, signature_request_id, signature_text]
+      properties:
+        status:
+          type: string
+          enum: [signature_required]
+        inbox_id:
+          type: "null"
+        wallet_address:
+          $ref: "#/components/schemas/Address"
+        client_id:
+          type: string
+        signature_request_id:
+          type: string
+        signature_text:
+          type: string
+      additionalProperties: false
     PrivySessionResponse:
       type: object
       required: [ok, human, xmtp]
@@ -1813,8 +1937,32 @@ components:
           $ref: "#/components/schemas/PlatformPrivyHuman"
         xmtp:
           oneOf:
-            - $ref: "#/components/schemas/PlatformPrivyXmtpState"
+            - $ref: "#/components/schemas/PlatformPrivyXmtpReadyState"
+            - $ref: "#/components/schemas/PlatformPrivyXmtpSignatureRequiredState"
             - type: "null"
+      additionalProperties: false
+    AdminChatboxMembershipActionResponse:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum:
+                [
+                  enqueued,
+                  already_joined,
+                  already_pending_join,
+                  already_not_joined,
+                  already_pending_removal,
+                ]
+          additionalProperties: false
       additionalProperties: false
     TreeNode:
       type: object
@@ -1883,78 +2031,6 @@ components:
         body_plaintext: { type: string, nullable: true }
         idempotency_key: { type: string, nullable: true }
       additionalProperties: true
-    SiwaNonceRequest:
-      type: object
-      required: [wallet_address, chain_id]
-      properties:
-        wallet_address: { $ref: "#/components/schemas/Address" }
-        chain_id: { type: integer, minimum: 1 }
-        audience: { type: string }
-      additionalProperties: false
-    SiwaNonceResponse:
-      type: object
-      required: [ok, code, data]
-      properties:
-        ok: { type: boolean, enum: [true] }
-        code: { type: string, enum: [nonce_issued] }
-        data:
-          type: object
-          required: [nonce, walletAddress, chainId, expiresAt]
-          properties:
-            nonce: { type: string }
-            walletAddress: { $ref: "#/components/schemas/Address" }
-            chainId: { type: integer, minimum: 1 }
-            expiresAt: { type: string, format: date-time }
-          additionalProperties: false
-        meta:
-          type: object
-          additionalProperties: true
-      additionalProperties: false
-    SiwaVerifyRequest:
-      type: object
-      required: [wallet_address, chain_id, nonce, message, signature]
-      properties:
-        wallet_address: { $ref: "#/components/schemas/Address" }
-        chain_id: { type: integer, minimum: 1 }
-        nonce: { type: string }
-        message: { type: string }
-        signature: { type: string }
-        registry_address: { $ref: "#/components/schemas/Address" }
-        token_id: { type: string }
-      additionalProperties: false
-    SiwaVerifyResponse:
-      type: object
-      required: [ok, code, data]
-      properties:
-        ok: { type: boolean, enum: [true] }
-        code: { type: string, enum: [siwa_verified] }
-        data:
-          type: object
-          required:
-            [
-              verified,
-              walletAddress,
-              chainId,
-              nonce,
-              keyId,
-              signatureScheme,
-              receipt,
-              receiptExpiresAt
-            ]
-          properties:
-            verified: { type: boolean, enum: [true] }
-            walletAddress: { $ref: "#/components/schemas/Address" }
-            chainId: { type: integer, minimum: 1 }
-            nonce: { type: string }
-            keyId: { type: string }
-            signatureScheme: { type: string, enum: [evm_personal_sign] }
-            receipt: { type: string }
-            receiptExpiresAt: { type: string, format: date-time }
-          additionalProperties: false
-        meta:
-          type: object
-          additionalProperties: true
-      additionalProperties: false
     ChatboxMessage:
       type: object
       properties:

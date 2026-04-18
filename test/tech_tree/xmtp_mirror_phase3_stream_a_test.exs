@@ -179,14 +179,14 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     room = create_canonical_room!()
     human = create_human!("admin")
 
-    assert :ok = XMTPMirror.add_human_to_canonical_room(human.id)
+    assert {:ok, :enqueued} = XMTPMirror.add_human_to_canonical_room(human.id)
     assert command_count(room.id, human.id, "add_member") == 1
 
-    assert :ok = XMTPMirror.add_human_to_canonical_room(human.id)
+    assert {:ok, :already_pending_join} = XMTPMirror.add_human_to_canonical_room(human.id)
     assert command_count(room.id, human.id, "add_member") == 1
 
     _leased = XMTPMirror.lease_next_command(@canonical_room_key)
-    assert :ok = XMTPMirror.add_human_to_canonical_room(human.id)
+    assert {:ok, :already_pending_join} = XMTPMirror.add_human_to_canonical_room(human.id)
     assert command_count(room.id, human.id, "add_member") == 1
 
     assert :ok =
@@ -195,11 +195,38 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
                %{status: "done"}
              )
 
-    assert :ok = XMTPMirror.remove_human_from_canonical_room(human.id)
+    assert {:ok, :enqueued} = XMTPMirror.remove_human_from_canonical_room(human.id)
     assert command_count(room.id, human.id, "remove_member") == 1
 
-    assert :ok = XMTPMirror.remove_human_from_canonical_room(human.id)
+    assert {:ok, :already_pending_removal} = XMTPMirror.remove_human_from_canonical_room(human.id)
     assert command_count(room.id, human.id, "remove_member") == 1
+  end
+
+  test "remove_human_from_canonical_room reuses the last known room inbox when profile setup was cleared" do
+    room = create_canonical_room!()
+    human = create_human!("stale-remove")
+    original_inbox_id = human.xmtp_inbox_id
+
+    _joined = insert_membership_command!(room, human, "add_member", "done")
+
+    {:ok, stale_human} = Accounts.update_human(human, %{"xmtp_inbox_id" => nil})
+
+    assert {:ok, :enqueued} = XMTPMirror.remove_human_from_canonical_room(stale_human.id)
+
+    assert %XmtpMembershipCommand{
+             op: "remove_member",
+             status: "pending",
+             xmtp_inbox_id: ^original_inbox_id
+           } =
+             XmtpMembershipCommand
+             |> where(
+               [command],
+               command.room_id == ^room.id and command.human_user_id == ^human.id and
+                 command.op == "remove_member"
+             )
+             |> order_by([command], desc: command.inserted_at, desc: command.id)
+             |> limit(1)
+             |> Repo.one!()
   end
 
   test "list_public_messages excludes hidden and is deterministic for equal sent_at values" do

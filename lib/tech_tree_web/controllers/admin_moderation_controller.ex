@@ -83,7 +83,7 @@ defmodule TechTreeWeb.AdminModerationController do
           term(),
           String.t(),
           String.t(),
-          (integer(), TechTree.Accounts.HumanUser.t() -> :ok)
+          (integer(), TechTree.Accounts.HumanUser.t() -> :ok | {:ok, atom()})
         ) :: Plug.Conn.t()
   defp with_admin_action(conn, raw_id, invalid_code, not_found_code, action_fun)
        when is_function(action_fun, 2) do
@@ -94,6 +94,9 @@ defmodule TechTreeWeb.AdminModerationController do
         case action_fun.(normalized_id, admin) do
           :ok ->
             json(conn, %{ok: true})
+
+          {:ok, status} when is_atom(status) ->
+            json(conn, %{ok: true, data: %{status: Atom.to_string(status)}})
 
           {:error, :human_not_found} ->
             ApiError.render(conn, :not_found, %{code: not_found_code})

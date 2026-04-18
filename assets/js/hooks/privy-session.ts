@@ -1,6 +1,26 @@
 import type { PrivyLike, PrivyUser } from "./privy-wallet"
 
-import { labelForUser, walletForUser } from "./privy-wallet"
+import {
+  labelForUser,
+  requireEthereumProvider,
+  signWithConnectedWallet,
+  walletForUser,
+} from "./privy-wallet"
+
+type PrivyReadyXmtpState = {
+  status: "ready"
+  inbox_id: string
+  wallet_address: string | null
+}
+
+type PrivySignatureRequiredXmtpState = {
+  status: "signature_required"
+  inbox_id: null
+  wallet_address: string
+  client_id: string
+  signature_request_id: string
+  signature_text: string
+}
 
 export type PrivySessionResponse = {
   ok: true
@@ -12,18 +32,13 @@ export type PrivySessionResponse = {
     role: string
     xmtp_inbox_id: string | null
   }
-  xmtp:
-    | {
-        status: "ready"
-        inbox_id: string | null
-        wallet_address: string | null
-      }
-    | null
+  xmtp: PrivyReadyXmtpState | PrivySignatureRequiredXmtpState | null
 }
 
 type SessionOptions = {
   csrfToken: string
   sessionUrl: string
+  completeUrl: string
 }
 
 function csrfHeaders(csrfToken: string): Record<string, string> {
@@ -87,6 +102,31 @@ export async function syncPrivySession(
       wallet_address: walletAddress,
     }),
   })
+
+  if (session.xmtp?.status === "signature_required") {
+    const provider = await requireEthereumProvider()
+    const { signature } = await signWithConnectedWallet(
+      provider,
+      session.xmtp.signature_text,
+      session.xmtp.wallet_address,
+    )
+
+    return await fetchSessionJson<PrivySessionResponse>(options.completeUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        ...csrfHeaders(options.csrfToken),
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        wallet_address: session.xmtp.wallet_address,
+        client_id: session.xmtp.client_id,
+        signature_request_id: session.xmtp.signature_request_id,
+        signature,
+      }),
+    })
+  }
 
   return session
 }

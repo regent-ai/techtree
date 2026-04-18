@@ -68,7 +68,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert Repo.exists?(
              from(a in AgentIdentity,
                where:
-                 a.wallet_address == ^wallet and a.chain_id == 11_155_111 and
+                 a.wallet_address == ^wallet and a.chain_id == 84_532 and
                    a.registry_address == ^registry
              )
            )
@@ -80,7 +80,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
            } = SiwaSupport.sidecar_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
-    assert headers["x-agent-chain-id"] == "11155111"
+    assert headers["x-agent-chain-id"] == "84532"
     assert headers["x-agent-registry-address"] == registry
     assert headers["x-agent-token-id"] == "101"
   end
@@ -143,7 +143,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       conn
       |> put_req_header("accept", "application/json")
       |> put_req_header("x-agent-wallet-address", SiwaSupport.random_eth_address())
-      |> put_req_header("x-agent-chain-id", "11155111")
+      |> put_req_header("x-agent-chain-id", "84532")
       |> put_req_header("x-agent-registry-address", SiwaSupport.random_eth_address())
       |> post("/v1/tree/nodes", %{
         "seed" => "ML",
@@ -154,7 +154,15 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       })
 
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
-    assert SiwaSupport.sidecar_last_request() == nil
+
+    assert %{
+             "headers" => headers,
+             "method" => "POST",
+             "path" => "/v1/tree/nodes"
+           } = SiwaSupport.sidecar_last_request()
+
+    assert headers["x-agent-wallet-address"]
+    assert headers["x-agent-registry-address"]
 
     assert_receive {:siwa_deny, %{reason: :missing_agent_headers, source: :request_headers}}
   end
@@ -196,7 +204,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     token_id = "808"
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => registry,
       "token_id" => token_id,
       "wallet_address" => wallet
@@ -206,7 +214,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       Repo.update_all(
         from(a in AgentIdentity,
           where:
-            a.wallet_address == ^wallet and a.chain_id == 11_155_111 and
+            a.wallet_address == ^wallet and a.chain_id == 84_532 and
               a.registry_address == ^registry
         ),
         set: [status: "banned"]
@@ -233,7 +241,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert %AgentIdentity{status: "banned"} =
              Repo.get_by!(AgentIdentity,
-               chain_id: 11_155_111,
+               chain_id: 84_532,
                registry_address: registry,
                token_id: Decimal.new(token_id)
              )
@@ -249,7 +257,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     token_id = "909"
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => mixed_case_registry,
       "token_id" => token_id,
       "wallet_address" => mixed_case_wallet
@@ -259,7 +267,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       Repo.update_all(
         from(a in AgentIdentity,
           where:
-            a.wallet_address == ^wallet and a.chain_id == 11_155_111 and
+            a.wallet_address == ^wallet and a.chain_id == 84_532 and
               a.registry_address == ^registry
         ),
         set: [status: "banned"]

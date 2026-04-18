@@ -28,8 +28,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   def call(conn, _opts) do
     normalized_headers = downcase_headers(conn.req_headers)
 
-    with {:ok, agent_claims} <- extract_agent_claims(normalized_headers),
-         :ok <- verify_with_sidecar(conn, normalized_headers),
+    with {:ok, agent_claims} <- verify_with_sidecar(conn, normalized_headers),
          :ok <- ensure_agent_status_allowed(agent_claims) do
       assign(conn, :current_agent_claims, agent_claims)
     else
@@ -45,16 +44,16 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       })
   end
 
-  @spec verify_with_sidecar(Plug.Conn.t(), map()) :: :ok | {:error, map()}
+  @spec verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
   defp verify_with_sidecar(conn, normalized_headers) do
     if siwa_skip_http_verify?() do
-      :ok
+      normalize_agent_claims(normalized_headers)
     else
       do_verify_with_sidecar(conn, normalized_headers)
     end
   end
 
-  @spec do_verify_with_sidecar(Plug.Conn.t(), map()) :: :ok | {:error, map()}
+  @spec do_verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
   defp do_verify_with_sidecar(conn, normalized_headers) do
     with {:ok,
           %{
@@ -71,8 +70,16 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
              connect_options: [timeout: connect_timeout_ms],
              receive_timeout: receive_timeout_ms
            ) do
-        {:ok, %{status: 200, body: %{"ok" => true, "code" => "http_envelope_valid"}}} ->
-          :ok
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "ok" => true,
+             "code" => "http_envelope_valid",
+             "data" => %{"agent_claims" => claims}
+           }
+         }} ->
+          normalize_agent_claims(claims)
 
         {:ok, %{status: status, body: body}} when is_integer(status) ->
           {:error, sidecar_deny_meta(status, body)}
@@ -188,9 +195,9 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   end
 
-  @spec extract_agent_claims(map()) :: {:ok, map()} | {:error, map()}
-  defp extract_agent_claims(normalized_headers) do
-    with {:ok, required_headers} <- fetch_required_headers(normalized_headers),
+  @spec normalize_agent_claims(map()) :: {:ok, map()} | {:error, map()}
+  defp normalize_agent_claims(claims) do
+    with {:ok, required_headers} <- fetch_required_headers(claims),
          {:ok, wallet} <-
            validate_hex_address(
              required_headers["x-agent-wallet-address"],
@@ -211,16 +218,16 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
          "chain_id" => Integer.to_string(chain_id),
          "registry_address" => registry,
          "token_id" => Integer.to_string(token_id),
-         "label" => fetch_optional_header(normalized_headers, "x-agent-label")
+         "label" => fetch_optional_claim(claims, "label")
        }}
     end
   end
 
   @spec fetch_required_headers(map()) :: {:ok, map()} | {:error, map()}
-  defp fetch_required_headers(normalized_headers) do
+  defp fetch_required_headers(claims) do
     missing =
       Enum.filter(@required_agent_headers, fn header ->
-        case Map.get(normalized_headers, header) do
+        case claim_value(claims, header) do
           value when is_binary(value) -> String.trim(value) == ""
           _ -> true
         end
@@ -229,7 +236,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     if missing == [] do
       values =
         Map.new(@required_agent_headers, fn header ->
-          value = normalized_headers |> Map.fetch!(header) |> String.trim()
+          value = claims |> claim_value(header) |> String.trim()
           {header, value}
         end)
 
@@ -240,9 +247,9 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   end
 
-  @spec fetch_optional_header(map(), String.t()) :: String.t() | nil
-  defp fetch_optional_header(normalized_headers, key) do
-    case Map.get(normalized_headers, String.downcase(key)) do
+  @spec fetch_optional_claim(map(), String.t()) :: String.t() | nil
+  defp fetch_optional_claim(claims, key) do
+    case claims[key] || claims[String.downcase(key)] || claims[camelize_key(key)] do
       value when is_binary(value) ->
         case String.trim(value) do
           "" -> nil
@@ -253,6 +260,23 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
         nil
     end
   end
+
+  defp claim_value(claims, "x-agent-wallet-address"),
+    do: claims["x-agent-wallet-address"] || claims["wallet_address"] || claims["walletAddress"]
+
+  defp claim_value(claims, "x-agent-chain-id"),
+    do: claims["x-agent-chain-id"] || claims["chain_id"] || claims["chainId"]
+
+  defp claim_value(claims, "x-agent-registry-address"),
+    do:
+      claims["x-agent-registry-address"] || claims["registry_address"] ||
+        claims["registryAddress"]
+
+  defp claim_value(claims, "x-agent-token-id"),
+    do: claims["x-agent-token-id"] || claims["token_id"] || claims["tokenId"]
+
+  defp camelize_key("label"), do: "label"
+  defp camelize_key(key), do: key
 
   @spec validate_hex_address(String.t(), String.t()) :: {:ok, String.t()} | {:error, map()}
   defp validate_hex_address(value, header) do

@@ -47,7 +47,8 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :browser
 
-    live "/", HomeLive, :index
+    live "/", LandingLive, :index
+    live "/app", HomeLive, :index
     get "/auth/orcid/start", OrcidAuthController, :start
     get "/auth/orcid/callback", OrcidAuthController, :callback
     live "/human", Human.SeedLive, :index

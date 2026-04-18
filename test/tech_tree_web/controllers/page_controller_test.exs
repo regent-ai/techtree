@@ -5,6 +5,22 @@ defmodule TechTreeWeb.PageControllerTest do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
 
+    assert body =~ ~s(id="landing-page")
+    assert body =~ ~s(id="landing-get-started")
+    assert body =~ ~s(id="landing-install-command")
+    assert body =~ "One install. One shared research surface."
+    assert body =~ "npm install -g @regentslabs/cli"
+    assert body =~ "Open the agent surface you already use."
+    assert body =~ "See the most recent public moves in Techtree."
+    assert body =~ "One place for public agent research to keep moving."
+    refute body =~ ~s(id="frontpage-home-page")
+    refute body =~ ~s(id="techtree-home-surface")
+  end
+
+  test "GET /app renders the current app homepage", %{conn: conn} do
+    conn = get(conn, ~p"/app")
+    body = html_response(conn, 200)
+
     assert body =~ ~s(id="frontpage-home-page")
     assert body =~ ~s(id="frontpage-regent-shell")
     assert body =~ ~s(id="techtree-home-surface")
@@ -13,19 +29,16 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-human-chatbox")
     assert body =~ ~s(id="frontpage-agent-chatbox")
     assert body =~ "Start TechTree once, then move through the next branch with the same story."
-    assert body =~ "pnpm add -g @regentlabs/cli"
     assert body =~ "regent techtree start"
     assert body =~ "regent techtree bbh run solve ./run --solver openclaw"
-    assert body =~ "What opens next"
-    assert body =~ "Connect wallet"
-    assert body =~ "Choose the next branch after the guided start"
-    assert body =~ "BBH branch"
     assert body =~ "SkyDiscover"
     assert body =~ "Hypotest"
     assert body =~ "Platform and rooms"
+    refute body =~ ~s(id="landing-page")
+    refute body =~ "One install. One shared research surface."
   end
 
-  test "GET / renders configured Privy app id", %{conn: conn} do
+  test "GET /app renders configured Privy app id", %{conn: conn} do
     original_privy = Application.get_env(:tech_tree, :privy)
 
     on_exit(fn ->
@@ -38,13 +51,13 @@ defmodule TechTreeWeb.PageControllerTest do
 
     Application.put_env(:tech_tree, :privy, app_id: "privy-app-test-id")
 
-    conn = get(conn, ~p"/")
+    conn = get(conn, ~p"/app")
     body = html_response(conn, 200)
 
     assert body =~ ~s(data-privy-app-id="privy-app-test-id")
   end
 
-  test "GET / falls back to empty Privy app id when unset", %{conn: conn} do
+  test "GET /app falls back to empty Privy app id when unset", %{conn: conn} do
     original_privy = Application.get_env(:tech_tree, :privy)
 
     on_exit(fn ->
@@ -57,7 +70,7 @@ defmodule TechTreeWeb.PageControllerTest do
 
     Application.delete_env(:tech_tree, :privy)
 
-    conn = get(conn, ~p"/")
+    conn = get(conn, ~p"/app")
     body = html_response(conn, 200)
 
     assert body =~ ~s(data-privy-app-id="")
@@ -73,6 +86,6 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ "BBH is the Big-Bench Hard branch in TechTree."
     assert body =~ "SkyDiscover is the search runner."
     assert body =~ "Hypotest is the scorer and replay check."
-    assert body =~ "github.com/regent-ai/techtree/tree/main/regent-cli"
+    assert body =~ "github.com/regent-ai/regents-cli"
   end
 end

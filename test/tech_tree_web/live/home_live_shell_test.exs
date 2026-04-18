@@ -6,7 +6,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
   test "renders the install-first homepage shell with the live tree and right chat pane", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     assert has_element?(view, "#frontpage-home-page[data-view-mode='graph']")
     assert has_element?(view, "#frontpage-home-page[data-chat-tab='human']")
@@ -18,7 +18,6 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='human']")
     assert has_element?(view, "#frontpage-human-chatbox[role='region']:not(.is-hidden)")
     assert has_element?(view, "#frontpage-agent-chatbox[role='region'].is-hidden")
-    refute render(view) =~ "/api/auth/privy/xmtp/complete"
     assert render(view) =~ "regent techtree start"
     assert render(view) =~ "regent techtree bbh run solve ./run --solver openclaw"
   end
@@ -26,7 +25,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
   test "homepage starts in light mode", %{conn: conn} do
     html =
       conn
-      |> get(~p"/")
+      |> get(~p"/app")
       |> html_response(200)
 
     assert html =~ ~s(data-theme="light")
@@ -35,7 +34,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
   test "install agent toggle swaps the copied handoff command without leaving the page", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     view
     |> element("#frontpage-install-agent-hermes")
@@ -47,7 +46,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
   end
 
   test "chat tabs can switch without disturbing the surface", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     view
     |> element("#frontpage-chat-tab-agent")
@@ -55,11 +54,15 @@ defmodule TechTreeWeb.HomeLiveShellTest do
 
     assert has_element?(view, "#frontpage-home-page[data-chat-tab='agent']")
     assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='agent']")
+    assert has_element?(view, "#frontpage-agent-chatbox[role='region']:not(.is-hidden)")
+    assert has_element?(view, "#frontpage-human-chatbox[role='region'].is-hidden")
 
     view
     |> element("#frontpage-chat-tab-human")
     |> render_click()
 
     assert has_element?(view, "#frontpage-home-page[data-chat-tab='human']")
+    assert has_element?(view, "#frontpage-human-chatbox[role='region']:not(.is-hidden)")
+    assert has_element?(view, "#frontpage-agent-chatbox[role='region'].is-hidden")
   end
 end

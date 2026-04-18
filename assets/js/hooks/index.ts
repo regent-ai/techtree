@@ -10,6 +10,7 @@ import { PlatformScene } from "./platform-scene";
 export const platformHooks: HooksOptions = {
   ...regentHooks,
   BbhCapsuleWall,
+  LandingPage: createLazyHook("LandingPage", "/assets/js/home.js"),
   HomeChatbox: createLazyHook("HomeChatbox", "/assets/js/home.js"),
   HomeInstallPanel: createLazyHook("HomeInstallPanel", "/assets/js/home.js"),
   HomeStoryRail: createLazyHook("HomeStoryRail", "/assets/js/home.js"),

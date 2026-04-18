@@ -300,6 +300,33 @@ defmodule TechTreeWeb.HomePresenter do
 
   def frontpage_chatbox_stamp(_value), do: "-"
 
+  def referenced_node_ids(event) do
+    [
+      event.subject_node_id,
+      payload_value(event.payload, "node_id"),
+      payload_value(event.payload, "child_node_id")
+    ]
+    |> Enum.map(&normalize_node_id/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  def landing_activity_rows(events, agent_labels_by_id, nodes_by_id) do
+    Enum.map(events, fn event ->
+      subject_id = landing_subject_id(event)
+      subject_node = if subject_id, do: Map.get(nodes_by_id, subject_id)
+
+      %{
+        id: event.id,
+        time: frontpage_chatbox_stamp(event.inserted_at),
+        agent: Map.get(agent_labels_by_id, event.actor_ref, "Agent ##{event.actor_ref}"),
+        action: landing_action(event.event_type),
+        subject: landing_subject(event, subject_node),
+        href: if(subject_node, do: "/node/#{subject_id}", else: nil)
+      }
+    end)
+  end
+
   def normalize_agent_label(value, id) when is_binary(value) do
     case String.trim(value) do
       "" -> "Agent #{id}"
@@ -308,6 +335,77 @@ defmodule TechTreeWeb.HomePresenter do
   end
 
   def normalize_agent_label(_value, id), do: "Agent #{id}"
+
+  defp landing_action("node.created"), do: "Created a node"
+  defp landing_action("node.child_created"), do: "Added a child node"
+  defp landing_action("node.comment_created"), do: "Added a comment"
+  defp landing_action("node.starred"), do: "Starred a node"
+  defp landing_action("node.unstarred"), do: "Removed a star"
+  defp landing_action("economic.reward_earned"), do: "Earned a reward"
+
+  defp landing_action(event_type) when is_binary(event_type) do
+    event_type
+    |> String.replace(".", " ")
+    |> String.replace("_", " ")
+    |> String.split(" ", trim: true)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp landing_action(_event_type), do: "Took an action"
+
+  defp landing_subject(_event, %{title: title}) when is_binary(title) and title != "" do
+    title
+  end
+
+  defp landing_subject(%{payload: payload}, _subject_node) when is_map(payload) do
+    case payload_value(payload, "title") do
+      title when is_binary(title) and title != "" ->
+        title
+
+      _ ->
+        case payload_value(payload, "seed") do
+          seed when is_binary(seed) and seed != "" -> "#{seed} branch"
+          _ -> "TechTree"
+        end
+    end
+  end
+
+  defp landing_subject(_event, _subject_node), do: "TechTree"
+
+  defp landing_subject_id(%{event_type: "node.child_created", payload: payload})
+       when is_map(payload) do
+    normalize_node_id(
+      payload_value(payload, "child_node_id") || payload_value(payload, "node_id")
+    )
+  end
+
+  defp landing_subject_id(%{payload: payload, subject_node_id: subject_node_id})
+       when is_map(payload) do
+    normalize_node_id(payload_value(payload, "node_id") || subject_node_id)
+  end
+
+  defp landing_subject_id(%{subject_node_id: subject_node_id}),
+    do: normalize_node_id(subject_node_id)
+
+  defp payload_value(payload, key) do
+    Map.get(payload, key) || Map.get(payload, String.to_existing_atom(key))
+  rescue
+    ArgumentError -> Map.get(payload, key)
+  end
+
+  defp normalize_node_id(value) when is_integer(value) and value > 0, do: value
+
+  defp normalize_node_id(value) when is_binary(value) do
+    value
+    |> String.trim()
+    |> Integer.parse()
+    |> case do
+      {parsed, ""} when parsed > 0 -> parsed
+      _ -> nil
+    end
+  end
+
+  defp normalize_node_id(_value), do: nil
 
   def normalize_focus_query(nil), do: ""
 

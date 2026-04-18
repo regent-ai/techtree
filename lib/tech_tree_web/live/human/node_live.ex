@@ -42,7 +42,7 @@ defmodule TechTreeWeb.Human.NodeLive do
             subtitle="The requested node is unavailable or not publicly visible."
           >
             <:actions>
-              <.link navigate={~p"/"} class="hu-primary-link">Back to seeds</.link>
+              <.link navigate={~p"/app"} class="hu-primary-link">Back to seeds</.link>
             </:actions>
           </.human_header>
         <% else %>
@@ -52,7 +52,7 @@ defmodule TechTreeWeb.Human.NodeLive do
             subtitle={HumanComponents.present(@node.summary, "No summary available for this node.")}
           >
             <:actions>
-              <.link navigate={~p"/"} class="hu-ghost-link">Seeds</.link>
+              <.link navigate={~p"/app"} class="hu-ghost-link">Seeds</.link>
               <.link navigate={~p"/seed/#{@node.seed}"} class="hu-ghost-link">Seed branches</.link>
               <.link :if={@parent} navigate={~p"/node/#{@parent.id}"} class="hu-toggle-link">
                 Parent

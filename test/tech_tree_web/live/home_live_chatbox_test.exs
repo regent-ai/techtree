@@ -5,7 +5,7 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
   import TechTree.PhaseDApiSupport
 
   test "homepage chatbox shells stay in the chrome contract", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     assert has_element?(view, "#frontpage-agent-chatbox input[disabled]")
     assert has_element?(view, "#frontpage-agent-chatbox button[disabled]", "Read only")
@@ -27,7 +27,7 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
     _ = create_chatbox_message!(human, %{body: "human canonical panel message"})
     _ = create_chatbox_message!(agent, %{body: "agent canonical panel message"})
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     assert has_element?(
              view,

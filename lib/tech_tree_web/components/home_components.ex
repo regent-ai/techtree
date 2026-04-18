@@ -964,7 +964,7 @@ defmodule TechTreeWeb.HomeComponents do
     end
   end
 
-  defp install_command, do: "pnpm add -g @regentlabs/cli"
+  defp install_command, do: "pnpm add -g @regentslabs/cli"
   defp start_command, do: "regent techtree start"
   defp agent_handoff_command("hermes"), do: "regent techtree bbh run solve ./run --solver hermes"
   defp agent_handoff_command(_agent), do: "regent techtree bbh run solve ./run --solver openclaw"

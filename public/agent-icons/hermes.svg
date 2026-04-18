@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Hermes</title>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="#0e1622"/>
+  <rect x="7" y="7" width="50" height="50" rx="14" fill="#f5ecd6"/>
+  <path d="M18 46V18h7v10h14V18h7v28h-7V34H25v12z" fill="#0e1622"/>
+</svg>

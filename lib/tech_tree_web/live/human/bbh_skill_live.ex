@@ -28,7 +28,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
           subtitle="Install once, open the notebook, run a local solve, then see the same story on the wall."
         >
           <:actions>
-            <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
+            <.link navigate={~p"/app"} class="hu-ghost-link">Homepage tree</.link>
             <.link
               href={@raw_markdown_path}
               target="_blank"
@@ -177,7 +177,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                     <li class="bbh-skill-command">
                       <h2>Install Regent once</h2>
                       <div class="bbh-skill-code">
-                        <code>pnpm add -g @regentlabs/cli</code>
+                        <code>pnpm add -g @regentslabs/cli</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">

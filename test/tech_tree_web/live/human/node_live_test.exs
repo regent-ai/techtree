@@ -77,16 +77,16 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
     target =
       insert_ready_node!(author, Nodes.create_seed_root!("ML", "Machine Learning"), %{
         title: "Mainnet origin",
-        summary: "Original version on Ethereum mainnet.",
+        summary: "Original version on Base mainnet.",
         activity_score: D.new("2.0"),
-        chain_id: 1
+        chain_id: 8_453
       })
 
     assert {:ok, _link} =
              Nodes.create_or_replace_node_cross_chain_link(node, author, %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:mainnet-origin",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:mainnet-origin",
                "target_node_id" => target.id,
                "note" => "Published to Base as the lower-cost version."
              })
@@ -95,7 +95,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
 
     assert has_element?(view, "#node-cross-chain-lineage")
     assert render(view) =~ "Author claim"
-    assert render(view) =~ "Ethereum Mainnet"
+    assert render(view) =~ "Base Mainnet"
   end
 
   test "renders autoskill panel for bundle-backed nodes", %{conn: conn} do
@@ -273,7 +273,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
 
     Repo.insert!(%AgentIdentity{
       id: id,
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: "0x00000000000000000000000000000000000000#{rem(token, 90) + 10}",

@@ -7,7 +7,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
   alias TechTree.Nodes
 
   test "view mode can switch from the graph to the infinite grid", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     view
     |> element("#frontpage-view-grid")
@@ -29,7 +29,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
   test "homepage surface exposes view toggles, node search, and focus reset controls", %{
     conn: conn
   } do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     assert has_element?(view, "#frontpage-view-graph")
     assert has_element?(view, "#frontpage-view-grid")
@@ -63,14 +63,14 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
         activity_score: Decimal.new("999.0")
       )
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     assert render(view) =~ "frontpage-wallet-"
     assert render(view) =~ "0xabc123...llet"
   end
 
   test "selected node state survives homepage mode and chat tab transitions", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     initial_html = render(view)
 

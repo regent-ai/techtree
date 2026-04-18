@@ -29,7 +29,20 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
       metadata: %{"parent_coord_key" => "0:0"}
     })
 
-    {:ok, frontpage, _html} = live(conn, "/")
+    {:ok, landing, _html} = live(conn, "/")
+
+    assert has_element?(landing, "#landing-page")
+    assert has_element?(landing, "#landing-get-started", "Get Started")
+    assert render(landing) =~ "One install. One shared research surface."
+
+    app_redirect =
+      landing
+      |> element("#landing-get-started")
+      |> render_click()
+
+    assert {:error, {:live_redirect, %{to: "/app"}}} = app_redirect
+
+    {:ok, frontpage, _html} = follow_redirect(app_redirect, conn, "/app")
 
     assert has_element?(frontpage, "#frontpage-home-page[data-install-agent='openclaw']")
     assert has_element?(frontpage, "#frontpage-home-page[data-chat-tab='human']")
@@ -41,12 +54,29 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
     assert has_element?(frontpage, "#frontpage-home-page[data-view-mode='grid']")
     assert render(frontpage) =~ "Infinite seed lattice"
 
-    {:ok, platform_home, _html} = live(recycle(conn), "/platform")
+    platform_redirect =
+      frontpage
+      |> element("#frontpage-install-panel .fp-command-card-actions a[href='/platform']")
+      |> render_click()
+
+    assert {:error, {:live_redirect, %{to: "/platform"}}} = platform_redirect
+
+    {:ok, platform_home, _html} = follow_redirect(platform_redirect, conn, "/platform")
 
     assert render(platform_home) =~ "Regent Platform"
     assert render(platform_home) =~ "E2E Agent"
 
-    {:ok, explorer, _html} = live(recycle(conn), "/platform/explorer")
+    explorer_redirect =
+      platform_home
+      |> element(
+        "a[href='/platform/explorer']",
+        "Use Explorer when you need the current frontier layout and drilldown path."
+      )
+      |> render_click()
+
+    assert {:error, {:live_redirect, %{to: "/platform/explorer"}}} = explorer_redirect
+
+    {:ok, explorer, _html} = follow_redirect(explorer_redirect, conn, "/platform/explorer")
 
     explorer
     |> element("#platform-tile-0-0")
@@ -62,7 +92,14 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
     assert has_element?(explorer, "#platform-tile-1-0")
     refute has_element?(explorer, "#platform-tile-0-0")
 
-    {:ok, creator, _html} = live(recycle(conn), "/platform/creator")
+    creator_redirect =
+      explorer
+      |> element("a[href='/platform/creator']")
+      |> render_click()
+
+    assert {:error, {:live_redirect, %{to: "/platform/creator"}}} = creator_redirect
+
+    {:ok, creator, _html} = follow_redirect(creator_redirect, conn, "/platform/creator")
 
     creator
     |> element("button[phx-value-slug='e2e-agent']")
@@ -71,7 +108,7 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
     assert render(creator) =~ "E2E Agent"
     assert render(creator) =~ agent.owner_address
 
-    {:ok, agents, _html} = live(recycle(conn), "/platform/agents")
+    {:ok, agents, _html} = live(conn, "/platform/agents")
 
     html =
       agents

@@ -4,7 +4,7 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
   import Phoenix.LiveViewTest
 
   test "terrain selection stays active through mode and chat tab changes", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
     %{id: node_id} = first_scene_node(render(view))
 
     view
@@ -44,7 +44,7 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
   end
 
   test "node search drives focus into the terrain", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
     %{id: node_id, label: label} = second_scene_node(render(view))
 
     view
@@ -60,7 +60,7 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
   end
 
   test "scene back returns the graph terrain to overview", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
     %{id: node_id} = second_scene_node(render(view))
 
     render_hook(view, "select-node", %{"node_id" => node_id})

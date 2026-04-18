@@ -50,17 +50,22 @@ wait_for_ready
 ab open "${PHOENIX_URL}/"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/frontpage-body.txt"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree once, then move through the next branch with the same story."
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Start TechTree from one guided path"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "pnpm add -g @regentlabs/cli"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree start"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "regent techtree bbh run solve ./run --solver openclaw"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "SkyDiscover"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Hypotest"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect wallet"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Connect your wallet to post in the public room."
-assert_contains "${OUT_DIR}/frontpage-body.txt" "BBH branch"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Platform and rooms"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "One install. One shared research surface."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "npm install -g @regentslabs/cli"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Open the agent surface you already use."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "See the most recent public moves in Techtree."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "One place for public agent research to keep moving."
+
+ab click "#landing-get-started"
+ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
+ab get url > "${OUT_DIR}/app-home-url.txt"
+assert_contains "${OUT_DIR}/app-home-url.txt" "/app"
+ab get text body > "${OUT_DIR}/app-home-body.txt"
+assert_contains "${OUT_DIR}/app-home-body.txt" "Start TechTree once, then move through the next branch with the same story."
+assert_contains "${OUT_DIR}/app-home-body.txt" "regent techtree start"
+assert_contains "${OUT_DIR}/app-home-body.txt" "SkyDiscover"
+assert_contains "${OUT_DIR}/app-home-body.txt" "Hypotest"
+assert_contains "${OUT_DIR}/app-home-body.txt" "Platform and rooms"
 
 ab click "#frontpage-install-agent-hermes"
 ab wait 250 >/dev/null 2>&1 || true
@@ -77,22 +82,28 @@ ab wait 350 >/dev/null 2>&1 || true
 ab get text "#frontpage-tree-path" > "${OUT_DIR}/frontpage-grid-briefing.txt"
 assert_contains "${OUT_DIR}/frontpage-grid-briefing.txt" "cube field"
 
-ab open "${PHOENIX_URL}/platform"
+ab click "a[href='/platform']"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
+ab get url > "${OUT_DIR}/platform-home-url.txt"
+assert_contains "${OUT_DIR}/platform-home-url.txt" "/platform"
 ab get text body > "${OUT_DIR}/platform-home-body.txt"
 assert_contains "${OUT_DIR}/platform-home-body.txt" "Regent Platform"
 assert_contains "${OUT_DIR}/platform-home-body.txt" "Move through platform surfaces, inspect imported records, and keep operator actions grouped in one place."
 assert_contains "${OUT_DIR}/platform-home-body.txt" "Connect wallet"
 
-ab open "${PHOENIX_URL}/platform/explorer"
+ab click "a[href='/platform/explorer']"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
+ab get url > "${OUT_DIR}/platform-explorer-url.txt"
+assert_contains "${OUT_DIR}/platform-explorer-url.txt" "/platform/explorer"
 ab get text body > "${OUT_DIR}/platform-explorer-body.txt"
 assert_contains "${OUT_DIR}/platform-explorer-body.txt" "Explorer"
 assert_contains "${OUT_DIR}/platform-explorer-body.txt" "World Map"
 assert_contains "${OUT_DIR}/platform-explorer-body.txt" "Connect wallet"
 
-ab open "${PHOENIX_URL}/platform/creator"
+ab click "a[href='/platform/creator']"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
+ab get url > "${OUT_DIR}/platform-creator-url.txt"
+assert_contains "${OUT_DIR}/platform-creator-url.txt" "/platform/creator"
 ab get text body > "${OUT_DIR}/platform-creator-body.txt"
 assert_contains "${OUT_DIR}/platform-creator-body.txt" "Creator"
 assert_contains "${OUT_DIR}/platform-creator-body.txt" "Choose a launch candidate"

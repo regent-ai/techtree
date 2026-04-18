@@ -32,7 +32,7 @@ defmodule TechTreeWeb.Human.BbhSkillLiveTest do
 
     assert render(view) =~ "official boards fill in as reviewed runs clear replay"
 
-    assert render(view) =~ "pnpm add -g @regentlabs/cli"
+    assert render(view) =~ "pnpm add -g @regentslabs/cli"
     assert render(view) =~ "regent techtree start"
     assert render(view) =~ "regent techtree bbh run exec --lane climb"
     assert render(view) =~ "npx skills add marimo-team/marimo-pair"

@@ -18,6 +18,17 @@ defmodule TechTree.Activity do
     |> Repo.all()
   end
 
+  @spec list_public_agent_events(map()) :: [ActivityEvent.t()]
+  def list_public_agent_events(params) do
+    limit = parse_limit(params, 50)
+
+    ActivityEvent
+    |> where([event], event.actor_type == :agent)
+    |> order_by([event], desc: event.inserted_at, desc: event.id)
+    |> limit(^limit)
+    |> Repo.all()
+  end
+
   @spec list_public_events_for_node(integer() | String.t(), map()) :: [ActivityEvent.t()]
   def list_public_events_for_node(node_id, params \\ %{}) do
     normalized_node_id = normalize_id(node_id)

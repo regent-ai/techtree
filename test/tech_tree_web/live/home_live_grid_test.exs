@@ -20,7 +20,7 @@ defmodule TechTreeWeb.HomeLiveGridTest do
         title: "Grid Grandchild"
       )
 
-    {:ok, view, _html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/app")
 
     view
     |> element("#frontpage-view-grid")

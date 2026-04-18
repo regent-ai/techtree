@@ -67,7 +67,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
           subtitle="Follow the live BBH board by lane, keep one capsule pinned, and see which runs held up in replay."
         >
           <:actions>
-            <.link navigate={~p"/"} class="hu-ghost-link">Homepage tree</.link>
+            <.link navigate={~p"/app"} class="hu-ghost-link">Homepage tree</.link>
             <.link navigate={~p"/skills/techtree-bbh"} class="hu-ghost-link">BBH skill path</.link>
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>

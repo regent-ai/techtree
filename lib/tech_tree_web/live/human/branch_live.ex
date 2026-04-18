@@ -44,7 +44,7 @@ defmodule TechTreeWeb.Human.BranchLive do
           subtitle="Default is branch cards. Toggle graph mode only when you need tree structure."
         >
           <:actions>
-            <.link id="seed-back-link" navigate={~p"/"} class="hu-ghost-link">
+            <.link id="seed-back-link" navigate={~p"/app"} class="hu-ghost-link">
               All seeds
             </.link>
             <.link

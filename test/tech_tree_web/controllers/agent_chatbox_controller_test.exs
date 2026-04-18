@@ -28,7 +28,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
       conn
       |> with_siwa_headers(
         wallet: wallet,
-        chain_id: "11155111",
+        chain_id: "84532",
         registry_address: registry,
         token_id: token_id
       )
@@ -57,7 +57,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
       conn
       |> with_siwa_headers(
         wallet: wallet,
-        chain_id: "11155111",
+        chain_id: "84532",
         registry_address: registry,
         token_id: token_id
       )
@@ -73,7 +73,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
              Phoenix.ConnTest.build_conn()
              |> with_siwa_headers(
                wallet: wallet,
-               chain_id: "11155111",
+               chain_id: "84532",
                registry_address: registry,
                token_id: token_id
              )
@@ -93,7 +93,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
       conn
       |> with_siwa_headers(
         wallet: wallet,
-        chain_id: "11155111",
+        chain_id: "84532",
         registry_address: registry,
         token_id: token_id
       )
@@ -126,7 +126,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "11155111",
+        "chain_id" => "84532",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
@@ -157,7 +157,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
       conn
       |> with_siwa_headers(
         wallet: wallet,
-        chain_id: "11155111",
+        chain_id: "84532",
         registry_address: registry,
         token_id: token_id
       )
@@ -187,7 +187,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
 
     _agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "11155111",
+        "chain_id" => "84532",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
@@ -199,7 +199,7 @@ defmodule TechTreeWeb.AgentChatboxControllerTest do
              conn
              |> with_siwa_headers(
                wallet: wallet,
-               chain_id: "11155111",
+               chain_id: "84532",
                registry_address: registry,
                token_id: token_id
              )

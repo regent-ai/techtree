@@ -17,7 +17,7 @@ defmodule TechTreeWeb.OrcidAuthController do
             html(
               conn,
               """
-              <html><body><main><h1>ORCID linked</h1><p>#{reviewer.wallet_address} is now linked. You can return to Regent CLI.</p></main></body></html>
+              <html><body><main><h1>ORCID linked</h1><p>#{reviewer.wallet_address} is now linked. You can return to Regents CLI.</p></main></body></html>
               """
             )
 

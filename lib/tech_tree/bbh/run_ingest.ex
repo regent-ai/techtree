@@ -313,6 +313,10 @@ defmodule TechTree.BBH.RunIngest do
     end
   end
 
+  defp required_enum(_value, field, allowed_values) do
+    raise ArgumentError, "#{field} must be one of: #{Enum.join(allowed_values, ", ")}"
+  end
+
   defp normalize_run_source(run_source, nil), do: run_source
 
   defp normalize_run_source(run_source, search_summary) do

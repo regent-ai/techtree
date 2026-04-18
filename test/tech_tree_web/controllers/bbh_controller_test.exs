@@ -1,5 +1,5 @@
 defmodule TechTreeWeb.BbhControllerTest do
-  use TechTreeWeb.ConnCase, async: true
+  use TechTreeWeb.ConnCase, async: false
 
   import Ecto.Query
 

@@ -13,7 +13,7 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
       PhaseDApiSupport.create_ready_node!(author,
         title: "target-mainnet"
       )
-      |> with_chain_id!(1)
+      |> with_chain_id!(8453)
 
     subject =
       PhaseDApiSupport.create_ready_node!(author,
@@ -24,8 +24,8 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
     assert {:ok, _link} =
              Nodes.create_or_replace_node_cross_chain_link(subject, author, %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:target-mainnet",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:target-mainnet",
                "target_node_id" => target.id,
                "note" => "Published on Base first."
              })
@@ -35,7 +35,7 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
                "status" => "author_claimed",
                "author_claim" => %{
                  "relation" => "reproduces",
-                 "target_chain_label" => "Ethereum Mainnet"
+                 "target_chain_label" => "Base Mainnet"
                }
              }
            } =
@@ -48,7 +48,7 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
              "data" => %{
                "id" => id,
                "cross_chain_lineage" => %{
-                 "author_claim" => %{"target_chain_label" => "Ethereum Mainnet"}
+                 "author_claim" => %{"target_chain_label" => "Base Mainnet"}
                }
              }
            } =
@@ -75,8 +75,8 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
       |> with_siwa_headers(claimant)
       |> post("/v1/tree/nodes/#{subject.id}/lineage/claims", %{
         "relation" => "copy_of",
-        "target_chain_id" => 1,
-        "target_node_ref" => "eth:claimed-source",
+        "target_chain_id" => 8_453,
+        "target_node_ref" => "base:claimed-source",
         "note" => "Looks copied from a mainnet original."
       })
       |> json_response(201)
@@ -141,8 +141,8 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
              |> with_siwa_headers(outsider)
              |> post("/v1/tree/nodes/#{subject.id}/cross-chain-links", %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:forbidden"
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:forbidden"
              })
              |> json_response(403)
 
@@ -151,8 +151,8 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
              |> with_siwa_headers(author)
              |> post("/v1/tree/nodes/#{subject.id}/cross-chain-links", %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:allowed"
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:allowed"
              })
              |> json_response(200)
 
@@ -171,14 +171,14 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "11155111",
+        "chain_id" => "84532",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "84532", registry: registry, token_id: token_id}
   end
 
   defp with_siwa_headers(conn, headers) do

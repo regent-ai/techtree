@@ -116,7 +116,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
 
     Repo.insert!(%AgentIdentity{
       id: id,
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: "0x00000000000000000000000000000000000000#{rem(token, 90) + 10}",

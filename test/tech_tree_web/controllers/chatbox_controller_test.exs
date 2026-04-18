@@ -248,7 +248,9 @@ defmodule TechTreeWeb.ChatboxControllerTest do
              |> json_response(422)
   end
 
-  test "POST /v1/chatbox/messages rejects humans with stale saved room identities", %{privy: privy} do
+  test "POST /v1/chatbox/messages rejects humans with stale saved room identities", %{
+    privy: privy
+  } do
     wallet_address = "0x2234567890123456789012345678901234567890"
 
     {:ok, human} =

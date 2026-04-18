@@ -259,7 +259,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
              |> json_response(422)
   end
 
-  test "POST /v1/agent/bbh/runs rejects legacy score payloads and non-canonical status values",
+  test "POST /v1/agent/bbh/runs rejects malformed score and status payloads",
        %{conn: conn} do
     capsule = BBHFixtures.insert_capsule!(%{split: "climb", assignment_policy: "auto_or_select"})
 
@@ -290,5 +290,17 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
              |> json_response(422)
 
     assert status_message =~ "run_source.status must be one of"
+
+    malformed_status_payload =
+      BBHFixtures.run_submit_payload(capsule, %{normalized_score: 0.83, raw_score: 4.2})
+      |> put_in(["run_source", "status"], 1)
+
+    assert %{"error" => %{"code" => "bbh_run_invalid", "message" => malformed_status_message}} =
+             conn
+             |> with_siwa_headers([])
+             |> post("/v1/agent/bbh/runs", malformed_status_payload)
+             |> json_response(422)
+
+    assert malformed_status_message =~ "run_source.status must be one of"
   end
 end

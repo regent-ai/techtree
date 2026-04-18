@@ -53,7 +53,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
       Repo.one!(
         from(a in AgentIdentity,
           where:
-            a.wallet_address == ^wallet and a.chain_id == 11_155_111 and
+            a.wallet_address == ^wallet and a.chain_id == 84_532 and
               a.registry_address == ^registry,
           order_by: [desc: a.inserted_at],
           limit: 1
@@ -89,7 +89,7 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
     unique = System.unique_integer([:positive])
 
     wallet = Keyword.get(opts, :wallet, random_eth_address())
-    chain_id = Keyword.get(opts, :chain_id, "11155111")
+    chain_id = Keyword.get(opts, :chain_id, "84532")
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 

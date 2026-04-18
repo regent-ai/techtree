@@ -363,7 +363,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
 
   defp insert_agent!(label) do
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique_suffix()),
       "wallet_address" => random_eth_address(),

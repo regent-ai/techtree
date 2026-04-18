@@ -179,7 +179,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     target =
       create_public_parent!(headers.agent,
         title: "agent-node-cross-chain-target",
-        chain_id: 1
+        chain_id: 8_453
       )
 
     response =
@@ -193,8 +193,8 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
         "notebook_source" => "print('agent node with cross-chain link')",
         "cross_chain_link" => %{
           "relation" => "reproduces",
-          "target_chain_id" => 1,
-          "target_node_ref" => "eth:agent-node-cross-chain-target",
+          "target_chain_id" => 8_453,
+          "target_node_ref" => "base:agent-node-cross-chain-target",
           "target_node_id" => target.id,
           "note" => "Attached during node creation."
         }
@@ -207,7 +207,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
              "data" => [
                %{
                  "relation" => "reproduces",
-                 "target_chain_label" => "Ethereum Mainnet",
+                 "target_chain_label" => "Base Mainnet",
                  "target_node_id" => target_node_id
                }
              ]
@@ -327,14 +327,14 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "11155111",
+        "chain_id" => "84532",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "84532", registry: registry, token_id: token_id}
   end
 
   defp with_siwa_headers(conn, headers) do

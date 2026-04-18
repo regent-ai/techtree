@@ -197,14 +197,14 @@ defmodule TechTreeWeb.WatchControllerTest do
 
     agent =
       Agents.upsert_verified_agent!(%{
-        "chain_id" => "11155111",
+        "chain_id" => "84532",
         "registry_address" => registry,
         "token_id" => token_id,
         "wallet_address" => wallet,
         "label" => "#{label_prefix}-#{unique}"
       })
 
-    %{agent: agent, wallet: wallet, chain_id: "11155111", registry: registry, token_id: token_id}
+    %{agent: agent, wallet: wallet, chain_id: "84532", registry: registry, token_id: token_id}
   end
 
   defp with_siwa_headers(conn, headers) do

@@ -138,14 +138,14 @@ jobs:
           bun run build
           bun run typecheck
 
-  regent-cli:
+  regents-cli:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: regent-ai/regent-cli
-          path: regent-cli-repo
+          repository: regent-ai/regents-cli
+          path: regents-cli-repo
 
       - uses: actions/setup-node@v4
         with:
@@ -155,12 +155,12 @@ jobs:
         with:
           version: "9.15.0"
 
-      - name: Install regent-cli deps
-        working-directory: regent-cli-repo
+      - name: Install regents-cli deps
+        working-directory: regents-cli-repo
         run: pnpm install --frozen-lockfile
 
-      - name: Run regent-cli validation and packaged install smoke
-        working-directory: regent-cli-repo
+      - name: Run regents-cli validation and packaged install smoke
+        working-directory: regents-cli-repo
         run: |
           pnpm build
           pnpm typecheck

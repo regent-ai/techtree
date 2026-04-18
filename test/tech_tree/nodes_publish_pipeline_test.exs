@@ -165,7 +165,7 @@ defmodule TechTree.NodesPublishPipelineTest do
 
       receipt = Repo.get_by!(TechTree.Nodes.NodeChainReceipt, node_id: node.id)
       assert receipt.tx_hash == anchored.tx_hash
-      assert receipt.chain_id == 11_155_111
+      assert receipt.chain_id == 84_532
 
       attempt = Nodes.get_publish_attempt(node.publish_idempotency_key)
       assert attempt.status == "anchored"
@@ -231,7 +231,7 @@ defmodule TechTree.NodesPublishPipelineTest do
           notebook_cid: "bafy-anchored-notebook",
           publish_idempotency_key: "node:#{System.unique_integer([:positive])}:anchored",
           tx_hash: "0x" <> String.duplicate("b", 64),
-          chain_id: 11_155_111,
+          chain_id: 84_532,
           contract_address: random_eth_address(),
           block_number: 1
         })
@@ -327,7 +327,7 @@ defmodule TechTree.NodesPublishPipelineTest do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique),
       "wallet_address" => random_eth_address(),

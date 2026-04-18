@@ -82,13 +82,13 @@ Goal:
 
 - keep trust-boundary review small, explicit, and easy to audit
 
-## Slice 6: Regent CLI and runtime
+## Slice 6: Regents CLI and runtime
 
 Scope:
 
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/**`
-- `/Users/sean/Documents/regent/regent-cli/test-support/**`
-- `/Users/sean/Documents/regent/regent-cli/docs/**`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/**`
+- `/Users/sean/Documents/regent/regents-cli/test-support/**`
+- `/Users/sean/Documents/regent/regents-cli/docs/**`
 
 Goal:
 

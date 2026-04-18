@@ -2,9 +2,7 @@ defmodule TechTree.Chains do
   @moduledoc false
 
   @supported %{
-    1 => "Ethereum Mainnet",
     8453 => "Base Mainnet",
-    11_155_111 => "Ethereum Sepolia",
     84_532 => "Base Sepolia"
   }
 

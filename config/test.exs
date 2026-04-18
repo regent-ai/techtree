@@ -45,7 +45,7 @@ config :tech_tree, TechTree.P2P,
 
 # Keep SIWA verification bypass limited to tests to satisfy startup runtime guard.
 config :tech_tree, :siwa, skip_http_verify: true
-config :tech_tree, :ethereum, mode: :stub, chain_id: 11_155_111
+config :tech_tree, :ethereum, mode: :stub, chain_id: 84_532
 config :tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: true
 
 # We don't run a server during test. If one is required,

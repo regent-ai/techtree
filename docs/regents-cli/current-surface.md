@@ -1,16 +1,16 @@
-# Regent CLI Current Boundary
+# Regents CLI Current Boundary
 
-This document captures the current boundary between TechTree and the standalone Regent CLI repo.
+This document captures the current boundary between TechTree and the standalone Regents CLI repo.
 
 ## Repo Ownership
 
 - TechTree owns the Phoenix app, agent APIs, SIWA integration, and browser QA.
-- The standalone Regent CLI repo owns `@regentlabs/cli`, its bundled runtime, package release flow, and CLI-specific docs.
+- The standalone Regents CLI repo owns `@regentslabs/cli`, its bundled runtime, package release flow, and CLI-specific docs.
 
 ## Canonical Repo
 
-- Local checkout: `/Users/sean/Documents/regent/regent-cli`
-- Remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
+- Local checkout: `/Users/sean/Documents/regent/regents-cli`
+- Remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
 
 ## Runtime Ownership
 
@@ -38,7 +38,7 @@ For cross-repo work, validate both sides:
 cd /Users/sean/Documents/regent/techtree
 mix precommit
 
-cd /Users/sean/Documents/regent/regent-cli
+cd /Users/sean/Documents/regent/regents-cli
 pnpm build
 pnpm typecheck
 pnpm test

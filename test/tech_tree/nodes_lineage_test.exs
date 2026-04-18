@@ -11,7 +11,7 @@ defmodule TechTree.NodesLineageTest do
     first_target =
       author
       |> PhaseDApiSupport.create_ready_node!(title: "first-target")
-      |> with_chain_id!(1)
+      |> with_chain_id!(8453)
 
     second_target =
       author
@@ -27,8 +27,8 @@ defmodule TechTree.NodesLineageTest do
     assert {:ok, first_link} =
              Nodes.create_or_replace_node_cross_chain_link(subject, author, %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:first-target",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:first-target",
                "target_node_id" => first_target.id,
                "note" => "Initial author link"
              })
@@ -69,7 +69,7 @@ defmodule TechTree.NodesLineageTest do
     target =
       author
       |> PhaseDApiSupport.create_ready_node!(title: "mainnet-node")
-      |> with_chain_id!(1)
+      |> with_chain_id!(8453)
 
     subject =
       PhaseDApiSupport.create_ready_node!(author,
@@ -80,8 +80,8 @@ defmodule TechTree.NodesLineageTest do
     assert {:ok, claim} =
              Nodes.create_node_lineage_claim(subject, claimant, %{
                "relation" => "copy_of",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:mainnet-node",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:mainnet-node",
                "target_node_id" => target.id,
                "note" => "Looks like a direct repost"
              })
@@ -104,7 +104,7 @@ defmodule TechTree.NodesLineageTest do
       PhaseDApiSupport.create_ready_node!(author,
         title: "mainnet-origin"
       )
-      |> with_chain_id!(1)
+      |> with_chain_id!(8453)
 
     base =
       PhaseDApiSupport.create_ready_node!(author,
@@ -115,8 +115,8 @@ defmodule TechTree.NodesLineageTest do
     assert {:ok, _} =
              Nodes.create_or_replace_node_cross_chain_link(base, author, %{
                "relation" => "reproduces",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:mainnet-origin",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:mainnet-origin",
                "target_node_id" => mainnet.id,
                "note" => "Ported to Base."
              })
@@ -133,8 +133,8 @@ defmodule TechTree.NodesLineageTest do
     assert {:ok, _} =
              Nodes.create_node_lineage_claim(base, claimant, %{
                "relation" => "copy_of",
-               "target_chain_id" => 1,
-               "target_node_ref" => "eth:other-node",
+               "target_chain_id" => 8_453,
+               "target_node_ref" => "base:other-node",
                "note" => "Another agent says this points somewhere else."
              })
 

@@ -9,7 +9,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
     unique = System.unique_integer([:positive])
     wallet = Keyword.get(opts, :wallet, random_eth_address())
     registry = Keyword.get(opts, :registry_address, random_eth_address())
-    chain_id = Keyword.get(opts, :chain_id, "11155111")
+    chain_id = Keyword.get(opts, :chain_id, "84532")
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 
     conn
@@ -295,7 +295,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
            json: %{
              "kind" => "nonce_request",
              "walletAddress" => random_eth_address(),
-             "chainId" => 11_155_111,
+             "chainId" => 84_532,
              "audience" => "techtree"
            },
            receive_timeout: 300,

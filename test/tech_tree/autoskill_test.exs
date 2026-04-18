@@ -203,7 +203,7 @@ defmodule TechTree.AutoskillTest do
     wallet_suffix = String.pad_leading(Integer.to_string(rem(token, 999_999), 16), 40, "0")
 
     Repo.insert!(%AgentIdentity{
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: "0x#{wallet_suffix}",

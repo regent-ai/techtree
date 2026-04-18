@@ -81,7 +81,7 @@ defmodule TechTree.AgentInboxTest do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => "0x#{label_prefix}registry#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{label_prefix}wallet#{unique}",

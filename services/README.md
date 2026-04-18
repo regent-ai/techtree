@@ -59,7 +59,7 @@ HMAC algorithm: `sha256` using `SIWA_HMAC_SECRET`.
   "data": {
     "verified": true,
     "walletAddress": "0x1111111111111111111111111111111111111111",
-    "chainId": 11155111,
+    "chainId": 84532,
     "nonce": "4c4b657f5f3f2f019ad7862d9d4048ef",
     "keyId": "0x1111111111111111111111111111111111111111",
     "signatureScheme": "evm_personal_sign",
@@ -121,7 +121,7 @@ Success response contract:
   "data": {
     "verified": true,
     "walletAddress": "0x1111111111111111111111111111111111111111",
-    "chainId": 11155111,
+    "chainId": 84532,
     "keyId": "0x1111111111111111111111111111111111111111",
     "receiptExpiresAt": "2026-03-04T12:15:00.000Z",
     "requiredHeaders": [

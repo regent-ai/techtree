@@ -90,7 +90,7 @@ defmodule TechTree.PlatformFixtures do
         parent_name: "agent.ethereum.eth",
         address: unique_address(),
         payment_tx_hash: unique_hash(),
-        payment_chain_id: 11_155_111,
+        payment_chain_id: 84_532,
         price_wei: Decimal.new("100000000000000")
       })
 

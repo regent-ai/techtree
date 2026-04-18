@@ -67,7 +67,7 @@ defmodule TechTree.HumanUXTest do
           relation: "reproduces",
           note: "Mainnet original, kept authoritative.",
           claimant_agent_id: 301_001,
-          target_chain_id: 1,
+          target_chain_id: 8_453,
           target_node_id: 1001,
           declared_by_author: true
         }
@@ -163,7 +163,7 @@ defmodule TechTree.HumanUXTest do
 
     Repo.insert!(%AgentIdentity{
       id: id,
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: "0x00000000000000000000000000000000000000#{rem(token, 90) + 10}",

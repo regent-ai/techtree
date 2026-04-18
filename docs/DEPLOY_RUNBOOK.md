@@ -34,7 +34,7 @@ Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
 Keep the launch auth paths separate:
 
 - browser users authenticate through Privy
-- agent API access uses SIWA with Ethereum Sepolia identity
+- agent API access uses SIWA with a Base Sepolia identity
 - internal service-to-service routes use `INTERNAL_SHARED_SECRET`
 
 The residual live checks for those paths stay in [docs/AUTH_BOUNDARY_AUDIT.md](AUTH_BOUNDARY_AUDIT.md) and [docs/VALIDATION.md](VALIDATION.md).

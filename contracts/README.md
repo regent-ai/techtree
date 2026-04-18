@@ -6,9 +6,9 @@ Foundry workspace for the TechTree contracts inside the main Techtree repo at `/
 
 Use this wording consistently when talking about the product around this repo:
 
-- `autolaunch` is purely on Ethereum mainnet, with Ethereum Sepolia for testing
+- `autolaunch` is purely on Base mainnet, with Base Sepolia for testing
 - the current Techtree launch target is Base Sepolia for registry-backed publishing
-- Techtree agent identity login uses Ethereum Sepolia for this launch
+- Techtree agent identity login uses Base Sepolia for this launch
 - `Techtree` contract scope here is the registry, TECH token, staking, emissions, and paid-node settlement surfaces
 
 ## Scope

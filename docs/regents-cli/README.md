@@ -1,11 +1,11 @@
-# Regent CLI Boundary
+# Regents CLI Boundary
 
-TechTree no longer contains the Regent CLI workspace.
+TechTree no longer contains the Regents CLI workspace.
 
 ## Canonical Repo
 
-- Local checkout: `/Users/sean/Documents/regent/regent-cli`
-- Remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
+- Local checkout: `/Users/sean/Documents/regent/regents-cli`
+- Remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
 
 ## What Stays Here
 
@@ -23,7 +23,7 @@ CLI command docs, release scripts, package metadata, and runtime implementation 
 
 ## Terminal Palette
 
-Unless a human explicitly asks for a different direction, Regent CLI terminal surfaces should use this shared palette:
+Unless a human explicitly asks for a different direction, Regents CLI terminal surfaces should use this shared palette:
 
 - `#315569` Charcoal Blue
 - `#034568` Yale Blue

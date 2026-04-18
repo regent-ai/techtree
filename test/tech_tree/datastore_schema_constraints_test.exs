@@ -232,7 +232,7 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
 
     test "maps unique chain+registry+token conflicts" do
       attrs = %{
-        chain_id: 11_155_111,
+        chain_id: 84_532,
         registry_address: "0xregistry-dup",
         token_id: Decimal.new(42),
         wallet_address: "0xwallet-dup-a"
@@ -412,7 +412,7 @@ defmodule TechTree.DatastoreSchemaConstraintsTest do
 
   defp unique_agent_tuple(unique) do
     %{
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0xregistry#{unique}"
     }
   end

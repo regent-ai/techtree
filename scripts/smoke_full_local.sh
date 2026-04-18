@@ -27,14 +27,11 @@ resolve_chain_rpc_url() {
     84532)
       printf '%s\n' "${BASE_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
       ;;
-    11155111)
-      printf '%s\n' "${ETHEREUM_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
-      ;;
     31337)
       printf '%s\n' "${ANVIL_RPC_URL:-}"
       ;;
     *)
-      printf '%s\n' "${ETHEREUM_MAINNET_RPC_URL:-${ETHEREUM_RPC_URL:-}}"
+      printf '%s\n' "${BASE_MAINNET_RPC_URL:-${BASE_RPC_URL:-}}"
       ;;
   esac
 }

@@ -239,11 +239,8 @@ defmodule TechTree.NodeAccess.Verification do
           8_453 ->
             System.get_env("BASE_MAINNET_RPC_URL") || System.get_env("BASE_RPC_URL")
 
-          1 ->
-            System.get_env("ETHEREUM_MAINNET_RPC_URL") || System.get_env("ETHEREUM_RPC_URL")
-
-          11_155_111 ->
-            System.get_env("ETHEREUM_SEPOLIA_RPC_URL") || System.get_env("ANVIL_RPC_URL")
+          31_337 ->
+            System.get_env("ANVIL_RPC_URL")
 
           _ ->
             nil

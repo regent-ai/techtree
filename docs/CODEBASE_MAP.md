@@ -20,15 +20,15 @@ TechTree is a single repo with multiple execution surfaces. The root workflow ro
 
 ## Adjacent repo
 
-- `/Users/sean/Documents/regent/regent-cli`
-  - standalone Regent CLI repo for the published `@regentlabs/cli` package, its bundled local runtime, and CLI-specific release docs
-- remote: [regent-ai/regent-cli](https://github.com/regent-ai/regent-cli)
+- `/Users/sean/Documents/regent/regents-cli`
+  - standalone Regents CLI repo for the published `@regentslabs/cli` package, its bundled local runtime, and CLI-specific release docs
+- remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
 
 ## Routing guidance
 
 - Phoenix changes usually require `mix precommit`.
 - `services/` changes require Bun build and typecheck.
-- Regent CLI changes require running pnpm build, typecheck, and tests from `/Users/sean/Documents/regent/regent-cli`.
+- Regents CLI changes require running pnpm build, typecheck, and tests from `/Users/sean/Documents/regent/regents-cli`.
 - TechTree contract changes require explicit human assignment plus Foundry validation from `/Users/sean/Documents/regent/techtree/contracts`.
 - UI-visible changes should use the browser harness under `qa/`.
 

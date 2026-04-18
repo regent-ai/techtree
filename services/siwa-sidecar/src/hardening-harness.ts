@@ -70,7 +70,7 @@ const main = async (): Promise<void> => {
     "",
     `URI: ${uri}`,
     "Version: 1",
-    "Chain ID: 11155111",
+    "Chain ID: 84532",
     `Nonce: ${nonce}`,
     `Issued At: ${issuedAt}`,
   ].join("\n");
@@ -89,7 +89,7 @@ const main = async (): Promise<void> => {
   const receipt = issueReceiptToken(
     {
       walletAddress,
-      chainId: 11155111,
+      chainId: 84532,
       nonce,
       keyId,
       nowUnixSeconds,
@@ -128,7 +128,7 @@ const main = async (): Promise<void> => {
     "x-key-id": keyId,
     "x-timestamp": String(nowUnixSeconds),
     "x-agent-wallet-address": walletAddress,
-    "x-agent-chain-id": "11155111",
+    "x-agent-chain-id": "84532",
     "x-agent-registry-address": registryAddress,
     "x-agent-token-id": tokenId,
   };

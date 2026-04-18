@@ -7,7 +7,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 1. Read [WORKFLOW.md](WORKFLOW.md) for the active workflow contract.
 2. Read [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for repo routing.
 3. Read the policy docs that match the task:
-   - [docs/regent-cli/README.md](docs/regent-cli/README.md) when the task also touches the standalone Regent CLI repo
+   - [docs/regents-cli/README.md](docs/regents-cli/README.md) when the task also touches the standalone Regents CLI repo
    - [docs/AGENTS_BBH_UI.md](docs/AGENTS_BBH_UI.md) for BBH surface work
    - [docs/AUTH_BOUNDARY_AUDIT.md](docs/AUTH_BOUNDARY_AUDIT.md) for auth and trust-boundary work
    - [docs/SECURITY.md](docs/SECURITY.md)
@@ -16,46 +16,46 @@ This repository uses the root workflow as the canonical agent orchestration laye
 ## Product And Chain Story
 
 - The current launch target is the first public Base Sepolia Techtree release.
-- SIWA agent identity login uses Ethereum Sepolia for this launch.
+- SIWA agent identity login uses Base Sepolia for this launch.
 - Techtree publishing uses the Base Sepolia registry path for this launch.
-- `$TECH` lives on Ethereum mainnet.
-- TECH emissions start on Ethereum mainnet only.
+- `$TECH` lives on Base mainnet.
+- TECH emissions start on Base mainnet only.
 - Paid node unlocks use the Base Sepolia content settlement rail for this launch.
 - Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` chatbox rooms.
-- Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Ethereum Sepolia identity, and Ethereum mainnet TECH emissions are related but not interchangeable.
-- Keep Techtree chain language separate from Autolaunch chain language. Autolaunch is Ethereum-mainnet-first. Techtree spans Base and Ethereum concerns.
+- Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Base Sepolia identity, and Base mainnet TECH emissions are related but not interchangeable.
+- Keep Techtree chain language separate from Autolaunch chain language. Both products now use the Base family for contract-linked work, but they still have different operator stories.
 
 ## Core Rules
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
-- For API <-> backend functionality, treat the Regent CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regent-cli`, then update Techtree backend code to match.
-- When a concept or process changes, keep these surfaces aligned in the same pass: `README.md`, `AGENTS.md`, homepage/app copy, and the adjacent Regent CLI help and operator docs.
-- For most agent work, use Regent CLI as the normal entry path into Techtree:
-  1. run `regent techtree identities list --chain sepolia` or mint if needed
+- For API <-> backend functionality, treat the Regents CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regents-cli`, then update Techtree backend code to match.
+- When a concept or process changes, keep these surfaces aligned in the same pass: `README.md`, `AGENTS.md`, homepage/app copy, and the adjacent Regents CLI help and operator docs.
+- For most agent work, use Regents CLI as the normal entry path into Techtree:
+  1. run `regent techtree identities list --chain base-sepolia` or mint if needed
   2. run `regent auth siwa login --registry-address ... --token-id ...`
   3. run `regent doctor techtree`
   4. only then use protected Techtree commands such as `node create`, `comment add`, `inbox`, `opportunities`, `autoskill buy`, and `autoskill pull`
-- If an agent bypasses Regent CLI and calls the SIWA HTTP routes directly, it must send the current request shape only: snake_case fields with an explicit `chain_id`. Do not rely on the backend to invent a chain value.
+- If an agent bypasses Regents CLI and calls the SIWA HTTP routes directly, it must send the current request shape only: snake_case fields with an explicit `chain_id`. Do not rely on the backend to invent a chain value.
 - Agent registry and wallet addresses are stored in lowercase. Treat case variants as the same identity.
 - Contract file meanings:
   - `api-contract.openapiv3.yaml` is the source of truth for a product's HTTP backend contract, including routes, auth, request bodies, response shapes, and stable error envelopes.
   - `regent-services-contract.openapiv3.yaml` is the source of truth for shared HTTP backend contracts that are not owned by one product, such as `regent-staking`.
   - `cli-contract.yaml` is the source of truth for a product's shipped CLI surface, including command names, flags/args, auth mode, whether a command is HTTP-backed or local/runtime-backed, and which backend contract operation it is allowed to use.
 - The first files to check for API-contract work are:
-  - `/Users/sean/Documents/regent/regent-cli/docs/api-contract-workflow.md`
+  - `/Users/sean/Documents/regent/regents-cli/docs/api-contract-workflow.md`
   - `/Users/sean/Documents/regent/techtree/docs/api-contract.openapiv3.yaml`
   - `/Users/sean/Documents/regent/techtree/docs/cli-contract.yaml`
-  - `/Users/sean/Documents/regent/regent-cli/docs/regent-services-contract.openapiv3.yaml`
-  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
-  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
-- If work changes code in `/Users/sean/Documents/regent/techtree` or `/Users/sean/Documents/regent/regent-cli`, it is not done until validation has been run in the app, the CLI repo, and the local Techtree Foundry workspace. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regent-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/techtree/contracts`.
+  - `/Users/sean/Documents/regent/regents-cli/docs/regent-services-contract.openapiv3.yaml`
+  - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/contracts/api-ownership.ts`
+  - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/generated/techtree-openapi.ts`
+- If work changes code in `/Users/sean/Documents/regent/techtree` or `/Users/sean/Documents/regent/regents-cli`, it is not done until validation has been run in the app, the CLI repo, and the local Techtree Foundry workspace. Run `mix precommit` in `techtree`, `pnpm build`, `pnpm typecheck`, `pnpm test`, and `pnpm test:pack-smoke` in `regents-cli`, and `forge test --offline` from `/Users/sean/Documents/regent/techtree/contracts`.
 - Use `mix precommit` for Phoenix validation when touching app code.
 - Use `Req` for Elixir HTTP calls. Do not introduce `:httpoison`, `:tesla`, or `:httpc`.
 - Use Foundry for contract development and testing.
-- Regent CLI live transport flows are daemon-owned. Do not add direct CLI-to-Phoenix socket paths.
+- Regents CLI live transport flows are daemon-owned. Do not add direct CLI-to-Phoenix socket paths.
 - Prefer repository-local, versioned docs over off-repo context.
-- Regent CLI terminal UI work should use the shared CLI palette unless a human explicitly asks for a different one:
+- Regents CLI terminal UI work should use the shared CLI palette unless a human explicitly asks for a different one:
   - `#315569` Charcoal Blue
   - `#034568` Yale Blue
   - `#FBF4DE` Ivory Mist
@@ -98,7 +98,7 @@ For human-facing copy, keep the main loop readable in this order:
   - `core/schemas/techtree.bbh.*`
   - `environments/techtree-bbh-py/**`
   - `lib/tech_tree/bbh/**`
-  - `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/internal-runtime/workloads/bbh*.ts`
+  - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/internal-runtime/workloads/bbh*.ts`
 - The public site should describe BBH in plain language. Name SkyDiscover and Hypotest, explain what each one does, and keep the run loop readable from the homepage, the BBH guide, and the wall.
 
 ## Permanent Owner Map
@@ -162,29 +162,29 @@ Main risks:
 - Chain-language mistakes around Base versus Ethereum.
 - Staking and emission math changes that look small but break invariants.
 
-### 4. Regent CLI Local Setup + Packaging + CI/CD
+### 4. Regents CLI Local Setup + Packaging + CI/CD
 
 Hand work here when the task is mainly local setup, runtime bootstrapping, npm packaging, release flow, operator docs, CLI test coverage, or Techtree/Autolaunch command behavior in the CLI.
 
 Open these files first:
-- `/Users/sean/Documents/regent/regent-cli/README.md`
-- `/Users/sean/Documents/regent/regent-cli/package.json`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/package.json`
-- `/Users/sean/Documents/regent/regent-cli/docs/api-contract-workflow.md`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/contracts/api-ownership.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/techtree-openapi.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/autolaunch-openapi.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/generated/regent-services-openapi.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/index.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/commands/techtree-start.ts`
-- `/Users/sean/Documents/regent/regent-cli/packages/regent-cli/src/internal-runtime/runtime.ts`
-- `/Users/sean/Documents/regent/regent-cli/docs/autolaunch-cli.md`
-- `/Users/sean/Documents/regent/regent-cli/docs/techtree-api-contract.md`
-- `/Users/sean/Documents/regent/regent-cli/scripts/release-cli.sh`
-- `/Users/sean/Documents/regent/regent-cli/scripts/packed-install-smoke.sh`
+- `/Users/sean/Documents/regent/regents-cli/README.md`
+- `/Users/sean/Documents/regent/regents-cli/package.json`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/package.json`
+- `/Users/sean/Documents/regent/regents-cli/docs/api-contract-workflow.md`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/contracts/api-ownership.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/generated/techtree-openapi.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/generated/autolaunch-openapi.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/generated/regent-services-openapi.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/index.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/commands/techtree-start.ts`
+- `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/internal-runtime/runtime.ts`
+- `/Users/sean/Documents/regent/regents-cli/docs/autolaunch-cli.md`
+- `/Users/sean/Documents/regent/regents-cli/docs/techtree-api-contract.md`
+- `/Users/sean/Documents/regent/regents-cli/scripts/release-cli.sh`
+- `/Users/sean/Documents/regent/regents-cli/scripts/packed-install-smoke.sh`
 
 Main risks:
-- The shipped package is nested under `packages/regent-cli`, so repo-root changes can be misleading.
+- The shipped package is nested under `packages/regents-cli`, so repo-root changes can be misleading.
 - The CLI contract files are the source of truth for API <-> backend functionality, so backend work that skips them will drift immediately.
 - Release and CI wiring are easy to miss because some validation lives from the Techtree side.
 

@@ -82,15 +82,15 @@ Editable files:
 BBH notebook helper:
 
 ```bash
-cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree bbh notebook pair /path/to/bbh-workspace
+cd /Users/sean/Documents/regent/regents-cli
+pnpm --filter @regentslabs/cli exec regent techtree bbh notebook pair /path/to/bbh-workspace
 ```
 
 Autoskill notebook helper:
 
 ```bash
-cd /Users/sean/Documents/regent/regent-cli
-pnpm --filter @regentlabs/cli exec regent techtree autoskill notebook pair /path/to/autoskill-workspace
+cd /Users/sean/Documents/regent/regents-cli
+pnpm --filter @regentslabs/cli exec regent techtree autoskill notebook pair /path/to/autoskill-workspace
 ```
 
 Those helper commands:
@@ -124,7 +124,7 @@ Those agents are local notebook helpers in v1. They are not built into `regent t
 
 Typical local flow:
 
-1. scaffold the workspace with Regent CLI
+1. scaffold the workspace with Regents CLI
 2. open the notebook with `uvx marimo edit ...`
 3. start the ACP bridge for your chosen agent
 4. let the agent edit only the allowed workspace files
@@ -133,7 +133,7 @@ Typical local flow:
 
 ## Editing rules
 
-- never edit Techtree or Regent CLI source files from a workspace agent session
+- never edit Techtree or Regents CLI source files from a workspace agent session
 - never change secrets or local config
 - never claim success without checking the required output files
 - always report which files changed

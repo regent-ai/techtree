@@ -46,7 +46,7 @@ defmodule TechTree.PhaseDApiSupport do
     unique = unique_suffix()
 
     wallet = Keyword.get(opts, :wallet, random_eth_address())
-    chain_id = Keyword.get(opts, :chain_id, "11155111")
+    chain_id = Keyword.get(opts, :chain_id, "84532")
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 
@@ -64,7 +64,7 @@ defmodule TechTree.PhaseDApiSupport do
     status = Keyword.get(opts, :status, "active")
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => Keyword.get(opts, :chain_id, "11155111"),
+      "chain_id" => Keyword.get(opts, :chain_id, "84532"),
       "registry_address" =>
         Keyword.get(opts, :registry_address, "0x#{prefix}-registry-#{unique}"),
       "token_id" => Keyword.get(opts, :token_id, Integer.to_string(unique)),
@@ -134,7 +134,7 @@ defmodule TechTree.PhaseDApiSupport do
     ready_result =
       Nodes.mark_node_anchored!(node_id, %{
         tx_hash: "0xtx-#{unique}",
-        chain_id: 11_155_111,
+        chain_id: 84_532,
         contract_address: "0xcontract-#{unique}",
         block_number: unique,
         log_index: 0

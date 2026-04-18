@@ -34,7 +34,7 @@ defmodule TechTree.Ethereum do
           required(:kind) => non_neg_integer()
         }
 
-  @default_chain_id 1
+  @default_chain_id 84_532
   @default_contract_address "0x0000000000000000000000000000000000000000"
   @create_node_signature "createNode(uint256,uint256,address,string,bytes32,uint8)"
   # Ethereum logs use Keccak-256, not SHA3-256.

@@ -112,7 +112,7 @@ defmodule TechTree.NodeAccessTest do
     suffix = Integer.to_string(token)
 
     Repo.insert!(%AgentIdentity{
-      chain_id: 11_155_111,
+      chain_id: 84_532,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: random_eth_address(),

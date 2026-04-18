@@ -40,7 +40,7 @@ required_runtime_value = fn key, value, hint ->
 end
 
 validate_chain_id = fn chain_id ->
-  supported_chain_ids = ["31337", "84532", "8453", "11155111", "1"]
+  supported_chain_ids = ["31337", "84532", "8453"]
 
   normalized =
     cond do
@@ -188,14 +188,11 @@ existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
         "84532" ->
           env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
 
-        "11155111" ->
-          env_or_dotenv.("ETHEREUM_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
-
         "31337" ->
           env_or_dotenv.("ANVIL_RPC_URL", nil)
 
         _ ->
-          env_or_dotenv.("ETHEREUM_MAINNET_RPC_URL", env_or_dotenv.("ETHEREUM_RPC_URL", nil))
+          env_or_dotenv.("BASE_MAINNET_RPC_URL", env_or_dotenv.("BASE_RPC_URL", nil))
       end
 
     ethereum_writer_private_key =
@@ -203,17 +200,11 @@ existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
         "84532" ->
           env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
 
-        "11155111" ->
-          env_or_dotenv.("ETHEREUM_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
-
         "31337" ->
           env_or_dotenv.("ANVIL_PRIVATE_KEY", nil)
 
         _ ->
-          env_or_dotenv.(
-            "ETHEREUM_MAINNET_PRIVATE_KEY",
-            env_or_dotenv.("ETHEREUM_PRIVATE_KEY", nil)
-          )
+          env_or_dotenv.("BASE_MAINNET_PRIVATE_KEY", env_or_dotenv.("BASE_PRIVATE_KEY", nil))
       end
 
     registry_address =

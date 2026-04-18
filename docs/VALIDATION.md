@@ -6,7 +6,7 @@ Keep the launch split explicit all the way through:
 
 - browser auth uses Privy
 - browser auth also completes the wallet-backed XMTP room identity before a person joins the public room
-- agent auth uses SIWA with Ethereum Sepolia identity
+- agent auth uses SIWA with a Base Sepolia identity
 - Techtree publishing uses the Base Sepolia registry path
 - Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` chatboxes
 - paid node unlocks use Base Sepolia settlement with server-verified entitlement
@@ -24,10 +24,10 @@ bun run build
 bun run typecheck
 ```
 
-### Regent CLI
+### Regents CLI
 
 ```bash
-cd /Users/sean/Documents/regent/regent-cli
+cd /Users/sean/Documents/regent/regents-cli
 pnpm build
 pnpm typecheck
 pnpm test
@@ -50,7 +50,7 @@ Use [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](REGENT_CLI_LOCAL_AND_FLY_TESTING.
 1. full local app setup
 2. local smoke check
 3. Regent runtime boot
-4. Ethereum Sepolia identity check or mint
+4. Base Sepolia identity check or mint
 5. SIWA login
 6. Base Sepolia-backed node create
 7. comment add

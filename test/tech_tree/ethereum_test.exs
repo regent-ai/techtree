@@ -126,14 +126,14 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
 
     assert {:ok, receipt} = Ethereum.fetch_receipt("0x" <> String.duplicate("8", 64), nil)
     assert receipt.block_number == 42
-    assert receipt.chain_id == 11_155_111
+    assert receipt.chain_id == 84_532
     assert receipt.contract_address == registry
     assert receipt.log_index == 3
   end
@@ -181,7 +181,7 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
@@ -226,7 +226,7 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
@@ -267,7 +267,7 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
@@ -286,7 +286,7 @@ defmodule TechTree.EthereumTest do
       rpc_url: "http://127.0.0.1:8545",
       registry_address: registry,
       writer_private_key: "0x" <> String.duplicate("7", 64),
-      chain_id: 1,
+      chain_id: 8_453,
       rpc_client: fn _rpc_url, payload ->
         case payload["method"] do
           "eth_getTransactionReceipt" ->
@@ -308,12 +308,12 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
 
-    assert {:error, {:chain_id_mismatch, [configured: 1, resolved: 11_155_111]}} =
+    assert {:error, {:chain_id_mismatch, [configured: 8_453, resolved: 84_532]}} =
              Ethereum.fetch_receipt("0x" <> String.duplicate("3", 64), nil)
   end
 
@@ -361,7 +361,7 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
@@ -420,7 +420,7 @@ defmodule TechTree.EthereumTest do
              }}
 
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0xaa36a7"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => payload["id"], "result" => "0x14a34"}}
         end
       end
     )
@@ -435,7 +435,7 @@ defmodule TechTree.EthereumTest do
              })
 
     assert receipt.block_number == 42
-    assert receipt.chain_id == 11_155_111
+    assert receipt.chain_id == 84_532
     assert receipt.contract_address == registry
     assert receipt.log_index == 3
   end

@@ -59,7 +59,7 @@ defmodule TechTree.NodesSkillConstraintsTest do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "11155111",
+      "chain_id" => "84532",
       "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique),
       "wallet_address" => random_eth_address(),

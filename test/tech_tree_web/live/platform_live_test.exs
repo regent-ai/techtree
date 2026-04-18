@@ -111,6 +111,51 @@ defmodule TechTreeWeb.PlatformLiveTest do
     assert has_element?(reopened, "#platform-tile-1-0")
   end
 
+  test "explorer keeps a shared leaf path instead of collapsing it", %{conn: conn} do
+    explorer_tile_fixture(%{coord_key: "0:0", x: 0, y: 0, title: "Origin Tile"})
+
+    explorer_tile_fixture(%{
+      coord_key: "1:0",
+      x: 1,
+      y: 0,
+      title: "Branch Tile",
+      metadata: %{"parent_coord_key" => "0:0"}
+    })
+
+    explorer_tile_fixture(%{
+      coord_key: "2:0",
+      x: 2,
+      y: 0,
+      title: "Leaf Tile",
+      metadata: %{"parent_coord_key" => "1:0"}
+    })
+
+    {:ok, reopened, _html} = live(conn, "/platform/explorer?path=0:0,1:0&selected=2:0")
+
+    assert render(reopened) =~ "Leaf Tile"
+    assert has_element?(reopened, "#platform-explorer-return")
+    assert has_element?(reopened, "#platform-tile-2-0")
+    refute has_element?(reopened, "#platform-tile-1-0")
+  end
+
+  test "explorer trims a shared leaf path that would otherwise open an empty level", %{conn: conn} do
+    explorer_tile_fixture(%{coord_key: "0:0", x: 0, y: 0, title: "Origin Tile"})
+
+    explorer_tile_fixture(%{
+      coord_key: "1:0",
+      x: 1,
+      y: 0,
+      title: "Leaf Tile",
+      metadata: %{"parent_coord_key" => "0:0"}
+    })
+
+    {:ok, reopened, _html} = live(conn, "/platform/explorer?path=0:0,1:0")
+
+    assert render(reopened) =~ "Leaf Tile"
+    assert has_element?(reopened, "#platform-tile-1-0")
+    refute render(reopened) =~ "Select a tile"
+  end
+
   test "creator prepares a launch packet", %{conn: conn} do
     agent = agent_fixture(%{display_name: "Creator Agent", slug: "creator-agent"})
 

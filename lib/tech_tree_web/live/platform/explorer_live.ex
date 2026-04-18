@@ -213,12 +213,18 @@ defmodule TechTreeWeb.Platform.ExplorerLive do
     value
     |> String.split(",", trim: true)
     |> Enum.reduce([], fn coord_key, acc ->
+      visible_coord_keys =
+        snapshot
+        |> Platform.explorer_view_tiles(acc)
+        |> Enum.map(& &1.coord_key)
+
       next_path = acc ++ [coord_key]
 
-      if Platform.explorer_view_tiles(snapshot, next_path) == [] do
-        acc
-      else
+      if coord_key in visible_coord_keys and
+           Platform.explorer_view_tiles(snapshot, next_path) != [] do
         next_path
+      else
+        acc
       end
     end)
   end

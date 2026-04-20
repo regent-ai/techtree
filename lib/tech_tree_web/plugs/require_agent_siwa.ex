@@ -47,7 +47,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   @spec verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
   defp verify_with_sidecar(conn, normalized_headers) do
     if siwa_skip_http_verify?() do
-      normalize_agent_claims(normalized_headers)
+      normalize_request_agent_claims(normalized_headers)
     else
       do_verify_with_sidecar(conn, normalized_headers)
     end
@@ -61,6 +61,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
             connect_timeout_ms: connect_timeout_ms,
             receive_timeout_ms: receive_timeout_ms
           }} <- fetch_siwa_http_config(),
+         {:ok, _canonical_request_claims} <- normalize_request_agent_claims(normalized_headers),
          payload <- build_http_verify_payload(conn, normalized_headers),
          {:ok, payload_json} <- Jason.encode(payload) do
       case Req.post(
@@ -79,7 +80,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
              "data" => %{"agent_claims" => claims}
            }
          }} ->
-          normalize_agent_claims(claims)
+          normalize_sidecar_agent_claims(claims)
 
         {:ok, %{status: status, body: body}} when is_integer(status) ->
           {:error, sidecar_deny_meta(status, body)}
@@ -95,6 +96,9 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     else
       {:error, :missing_siwa_internal_url} ->
         {:error, %{reason: :missing_siwa_internal_url, source: :siwa_config}}
+
+      {:error, deny_meta} when is_map(deny_meta) ->
+        {:error, deny_meta}
 
       _ ->
         {:error, %{reason: :siwa_invalid_response, source: :sidecar_http}}
@@ -195,39 +199,83 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   end
 
-  @spec normalize_agent_claims(map()) :: {:ok, map()} | {:error, map()}
-  defp normalize_agent_claims(claims) do
-    with {:ok, required_headers} <- fetch_required_headers(claims),
+  @spec normalize_request_agent_claims(map()) :: {:ok, map()} | {:error, map()}
+  defp normalize_request_agent_claims(headers) do
+    with {:ok, required_headers} <-
+           fetch_required_values(headers, @required_agent_headers, :request_headers),
          {:ok, wallet} <-
            validate_hex_address(
              required_headers["x-agent-wallet-address"],
-             "x-agent-wallet-address"
+             "x-agent-wallet-address",
+             :request_headers
            ),
          {:ok, chain_id} <-
-           validate_positive_int(required_headers["x-agent-chain-id"], "x-agent-chain-id"),
+           validate_positive_int(
+             required_headers["x-agent-chain-id"],
+             "x-agent-chain-id",
+             :request_headers
+           ),
          {:ok, registry} <-
            validate_hex_address(
              required_headers["x-agent-registry-address"],
-             "x-agent-registry-address"
+             "x-agent-registry-address",
+             :request_headers
            ),
          {:ok, token_id} <-
-           validate_positive_int(required_headers["x-agent-token-id"], "x-agent-token-id") do
+           validate_positive_int(
+             required_headers["x-agent-token-id"],
+             "x-agent-token-id",
+             :request_headers
+           ) do
       {:ok,
        %{
          "wallet_address" => wallet,
          "chain_id" => Integer.to_string(chain_id),
          "registry_address" => registry,
          "token_id" => Integer.to_string(token_id),
-         "label" => fetch_optional_claim(claims, "label")
+         "label" => fetch_optional_value(headers, "x-agent-label")
        }}
     end
   end
 
-  @spec fetch_required_headers(map()) :: {:ok, map()} | {:error, map()}
-  defp fetch_required_headers(claims) do
+  @spec normalize_sidecar_agent_claims(map()) :: {:ok, map()} | {:error, map()}
+  defp normalize_sidecar_agent_claims(claims) do
+    required_claims = ["wallet_address", "chain_id", "registry_address", "token_id"]
+
+    with {:ok, required_claims} <-
+           fetch_required_values(claims, required_claims, :sidecar_claims),
+         {:ok, wallet} <-
+           validate_hex_address(
+             required_claims["wallet_address"],
+             "wallet_address",
+             :sidecar_claims
+           ),
+         {:ok, chain_id} <-
+           validate_positive_int(required_claims["chain_id"], "chain_id", :sidecar_claims),
+         {:ok, registry} <-
+           validate_hex_address(
+             required_claims["registry_address"],
+             "registry_address",
+             :sidecar_claims
+           ),
+         {:ok, token_id} <-
+           validate_positive_int(required_claims["token_id"], "token_id", :sidecar_claims) do
+      {:ok,
+       %{
+         "wallet_address" => wallet,
+         "chain_id" => Integer.to_string(chain_id),
+         "registry_address" => registry,
+         "token_id" => Integer.to_string(token_id),
+         "label" => fetch_optional_value(claims, "label")
+       }}
+    end
+  end
+
+  @spec fetch_required_values(map(), [String.t()], atom()) :: {:ok, map()} | {:error, map()}
+  defp fetch_required_values(claims, keys, source) do
     missing =
-      Enum.filter(@required_agent_headers, fn header ->
-        case claim_value(claims, header) do
+      Enum.filter(keys, fn key ->
+        case Map.get(claims, key) do
           value when is_binary(value) -> String.trim(value) == ""
           _ -> true
         end
@@ -235,21 +283,20 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
 
     if missing == [] do
       values =
-        Map.new(@required_agent_headers, fn header ->
-          value = claims |> claim_value(header) |> String.trim()
-          {header, value}
+        Map.new(keys, fn key ->
+          value = claims |> Map.fetch!(key) |> String.trim()
+          {key, value}
         end)
 
       {:ok, values}
     else
-      {:error,
-       %{reason: :missing_agent_headers, source: :request_headers, missing_headers: missing}}
+      {:error, %{reason: :missing_agent_headers, source: source, missing_headers: missing}}
     end
   end
 
-  @spec fetch_optional_claim(map(), String.t()) :: String.t() | nil
-  defp fetch_optional_claim(claims, key) do
-    case claims[key] || claims[String.downcase(key)] || claims[camelize_key(key)] do
+  @spec fetch_optional_value(map(), String.t()) :: String.t() | nil
+  defp fetch_optional_value(claims, key) do
+    case claims[key] do
       value when is_binary(value) ->
         case String.trim(value) do
           "" -> nil
@@ -261,42 +308,27 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   end
 
-  defp claim_value(claims, "x-agent-wallet-address"),
-    do: claims["x-agent-wallet-address"] || claims["wallet_address"] || claims["walletAddress"]
-
-  defp claim_value(claims, "x-agent-chain-id"),
-    do: claims["x-agent-chain-id"] || claims["chain_id"] || claims["chainId"]
-
-  defp claim_value(claims, "x-agent-registry-address"),
-    do:
-      claims["x-agent-registry-address"] || claims["registry_address"] ||
-        claims["registryAddress"]
-
-  defp claim_value(claims, "x-agent-token-id"),
-    do: claims["x-agent-token-id"] || claims["token_id"] || claims["tokenId"]
-
-  defp camelize_key("label"), do: "label"
-  defp camelize_key(key), do: key
-
-  @spec validate_hex_address(String.t(), String.t()) :: {:ok, String.t()} | {:error, map()}
-  defp validate_hex_address(value, header) do
+  @spec validate_hex_address(String.t(), String.t(), atom()) ::
+          {:ok, String.t()} | {:error, map()}
+  defp validate_hex_address(value, header, source) do
     if value =~ @hex_address_regex do
       {:ok, String.downcase(value)}
     else
-      {:error, %{reason: :invalid_agent_header, source: :request_headers, invalid_header: header}}
+      {:error, %{reason: :invalid_agent_header, source: source, invalid_header: header}}
     end
   end
 
-  @spec validate_positive_int(String.t(), String.t()) :: {:ok, integer()} | {:error, map()}
-  defp validate_positive_int(value, header) do
+  @spec validate_positive_int(String.t(), String.t(), atom()) ::
+          {:ok, integer()} | {:error, map()}
+  defp validate_positive_int(value, header, source) do
     if value =~ @positive_int_regex do
       {:ok, String.to_integer(value)}
     else
-      {:error, %{reason: :invalid_agent_header, source: :request_headers, invalid_header: header}}
+      {:error, %{reason: :invalid_agent_header, source: source, invalid_header: header}}
     end
   rescue
     _ ->
-      {:error, %{reason: :invalid_agent_header, source: :request_headers, invalid_header: header}}
+      {:error, %{reason: :invalid_agent_header, source: source, invalid_header: header}}
   end
 
   @spec downcase_headers([{binary(), binary()}]) :: map()

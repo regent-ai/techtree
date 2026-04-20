@@ -135,7 +135,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
                     %{reason: :sidecar_http_422, sidecar_status: 422, source: :sidecar_http}}
   end
 
-  test "denies request without required agent headers and skips sidecar call", %{conn: conn} do
+  test "denies request without required agent headers before the sidecar call", %{conn: conn} do
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
     on_exit(fn -> :telemetry.detach(telemetry_ref) end)
 
@@ -155,14 +155,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
 
-    assert %{
-             "headers" => headers,
-             "method" => "POST",
-             "path" => "/v1/tree/nodes"
-           } = SiwaSupport.sidecar_last_request()
-
-    assert headers["x-agent-wallet-address"]
-    assert headers["x-agent-registry-address"]
+    assert SiwaSupport.sidecar_last_request() == nil
 
     assert_receive {:siwa_deny, %{reason: :missing_agent_headers, source: :request_headers}}
   end

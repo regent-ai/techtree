@@ -69,7 +69,29 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
     assert render(view) =~ "0xabc123...llet"
   end
 
+  test "homepage graph keeps sparse live data without fabricated branches", %{conn: conn} do
+    _root = Nodes.create_seed_root!("ML", "Sparse live root")
+
+    {:ok, _view, html} = live(conn, ~p"/app")
+
+    assert Enum.sort(extract_graph_node_ids(html)) ==
+             Enum.sort(Enum.map(Nodes.list_public_seed_roots(), & &1.id))
+  end
+
   test "selected node state survives homepage mode and chat tab transitions", %{conn: conn} do
+    root = Nodes.create_seed_root!("ML", "Selected root")
+    agent = create_agent!("frontpage-select")
+
+    _child =
+      create_ready_node!(agent,
+        parent_id: root.id,
+        seed: "ML",
+        title: "selected child",
+        watcher_count: 144,
+        comment_count: 3,
+        activity_score: Decimal.new("100.0")
+      )
+
     {:ok, view, _html} = live(conn, ~p"/app")
 
     initial_html = render(view)

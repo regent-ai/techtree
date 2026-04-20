@@ -209,31 +209,18 @@ defmodule TechTreeWeb.HomeLive.Dataset do
   end
 
   defp public_graph_nodes do
-    source_nodes =
-      Nodes.list_public_seed_roots()
-      |> Enum.map(&base_graph_node(&1, &1.seed))
-      |> Kernel.++(
-        HumanUX.seed_lanes()
-        |> Enum.flat_map(fn lane ->
-          Enum.map(lane.graph_nodes, fn node ->
-            base_graph_node(node, lane.seed)
-          end)
+    Nodes.list_public_seed_roots()
+    |> Enum.map(&base_graph_node(&1, &1.seed))
+    |> Kernel.++(
+      HumanUX.seed_lanes()
+      |> Enum.flat_map(fn lane ->
+        Enum.map(lane.graph_nodes, fn node ->
+          base_graph_node(node, lane.seed)
         end)
-      )
-      |> Enum.uniq_by(& &1.id)
-
-    if live_graph_ready?(source_nodes) do
-      enrich_graph_nodes(source_nodes)
-    else
-      fallback_graph_nodes()
-    end
-  end
-
-  defp live_graph_ready?(nodes) do
-    length(nodes) > length(@seed_catalog) or
-      Enum.any?(nodes, fn node ->
-        is_integer(node.parent_id) or (node.depth || 0) > 0
       end)
+    )
+    |> Enum.uniq_by(& &1.id)
+    |> enrich_graph_nodes()
   end
 
   defp enrich_graph_nodes(nodes) do
@@ -259,70 +246,6 @@ defmodule TechTreeWeb.HomeLive.Dataset do
     end)
     |> Enum.sort_by(fn node ->
       {node.seed, node.depth, -(node.watcher_count || 0), -(node.child_count || 0), node.id}
-    end)
-  end
-
-  defp fallback_graph_nodes do
-    now = DateTime.utc_now()
-
-    HumanUX.seed_roots()
-    |> Enum.with_index(1)
-    |> Enum.flat_map(fn {seed, seed_index} ->
-      root_id = seed_index * 1_000
-
-      [
-        %{
-          id: root_id,
-          parent_id: nil,
-          depth: 0,
-          title: "#{seed} root",
-          path: "n#{root_id}",
-          kind: "seed",
-          seed: seed,
-          child_count: 2,
-          watcher_count: 12 - seed_index,
-          comment_count: 4,
-          status: "anchored",
-          summary: "Fallback scaffold for the homepage graph.",
-          creator_address: nil,
-          creator_agent_id: 1 + rem(root_id, 5),
-          inserted_at: now
-        },
-        %{
-          id: root_id + 1,
-          parent_id: root_id,
-          depth: 1,
-          title: "#{seed} active branch",
-          path: "n#{root_id}.n#{root_id + 1}",
-          kind: "hypothesis",
-          seed: seed,
-          child_count: 3,
-          watcher_count: 7 + seed_index,
-          comment_count: 2,
-          status: "pinned",
-          summary: "A live branch slot for the homepage route.",
-          creator_address: nil,
-          creator_agent_id: 1 + rem(root_id + 1, 5),
-          inserted_at: now
-        },
-        %{
-          id: root_id + 2,
-          parent_id: root_id + 1,
-          depth: 2,
-          title: "#{seed} validated result",
-          path: "n#{root_id}.n#{root_id + 1}.n#{root_id + 2}",
-          kind: "result",
-          seed: seed,
-          child_count: 1,
-          watcher_count: 4 + seed_index,
-          comment_count: 1,
-          status: "pinned",
-          summary: "A second-layer node so the deck.gl scene always has a visible tree.",
-          creator_address: nil,
-          creator_agent_id: 1 + rem(root_id + 2, 5),
-          inserted_at: now
-        }
-      ]
     end)
   end
 

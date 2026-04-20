@@ -25,18 +25,7 @@ defmodule TechTree.XmtpIdentity do
 
       {:error, :xmtp_identity_required} ->
         with {:ok, wallet_address} <- wallet_address(human) do
-          stored_inbox_id = normalized_inbox_id(human.xmtp_inbox_id)
-
-          case stored_inbox_id do
-            nil ->
-              create_signature_request(human, wallet_address)
-
-            _other ->
-              case clear_stale_inbox_id(human, stored_inbox_id) do
-                {:ok, cleared_human} -> create_signature_request(cleared_human, wallet_address)
-                {:error, reason} -> {:error, reason}
-              end
-          end
+          create_signature_request(human, wallet_address)
         end
 
       {:error, reason} ->
@@ -59,12 +48,14 @@ defmodule TechTree.XmtpIdentity do
     end
   end
 
-  @spec complete_identity(HumanUser.t(), map()) :: {:ok, HumanUser.t()} | {:error, term()}
-  def complete_identity(%HumanUser{} = human, attrs) when is_map(attrs) do
+  @spec complete_identity(HumanUser.t(), String.t(), map()) ::
+          {:ok, HumanUser.t()} | {:error, term()}
+  def complete_identity(%HumanUser{} = human, wallet_address, attrs)
+      when is_binary(wallet_address) and is_map(attrs) do
     client = %Client{runtime: @runtime_name, id: Map.get(attrs, "client_id")}
+    wallet_address = String.downcase(wallet_address)
 
-    with {:ok, wallet_address} <- wallet_address(human),
-         {:ok, expected_wallet_address} <- required_string(attrs, "wallet_address"),
+    with {:ok, expected_wallet_address} <- required_string(attrs, "wallet_address"),
          :ok <- ensure_wallet_match(wallet_address, expected_wallet_address),
          {:ok, client_id} <- required_string(attrs, "client_id"),
          {:ok, signature_request_id} <- required_string(attrs, "signature_request_id"),
@@ -77,7 +68,10 @@ defmodule TechTree.XmtpIdentity do
            ),
          :ok <- ensure_client_registered(%Client{client | id: client_id}),
          {:ok, updated_human} <-
-           Accounts.update_human(human, %{"xmtp_inbox_id" => derived_inbox_id(wallet_address)}) do
+           Accounts.update_human(human, %{
+             "wallet_address" => wallet_address,
+             "xmtp_inbox_id" => derived_inbox_id(wallet_address)
+           }) do
       {:ok, updated_human}
     end
   end
@@ -96,14 +90,6 @@ defmodule TechTree.XmtpIdentity do
           signature_request_id: challenge.signature_request_id,
           signature_text: challenge.signature_text
         }}}
-    end
-  end
-
-  defp clear_stale_inbox_id(human, stored_inbox_id) do
-    if present_string?(stored_inbox_id) do
-      Accounts.update_human(human, %{"xmtp_inbox_id" => nil})
-    else
-      {:ok, human}
     end
   end
 
@@ -157,8 +143,6 @@ defmodule TechTree.XmtpIdentity do
   end
 
   defp normalize_string(_value), do: nil
-
-  defp present_string?(value), do: normalize_string(value) != nil
 
   defp normalized_inbox_id(value), do: normalize_string(value)
 end

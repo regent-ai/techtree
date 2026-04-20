@@ -61,16 +61,24 @@ defmodule TechTreeWeb.AgentSessionController do
 
   defp current_session(conn) do
     case get_session(conn, @session_key) do
-      %{"expires_at" => expires_at} = session when is_binary(expires_at) ->
-        if DateTime.compare(DateTime.utc_now(), DateTime.from_iso8601(expires_at) |> elem(1)) ==
-             :lt do
-          {:ok, session}
-        else
-          :expired
-        end
-
       %{} = session ->
-        {:ok, session}
+        case Map.get(session, "expires_at") || Map.get(session, :expires_at) do
+          expires_at when is_binary(expires_at) ->
+            case DateTime.from_iso8601(expires_at) do
+              {:ok, parsed_expires_at, _offset} ->
+                if DateTime.compare(DateTime.utc_now(), parsed_expires_at) == :lt do
+                  {:ok, session}
+                else
+                  :expired
+                end
+
+              _ ->
+                :expired
+            end
+
+          _ ->
+            :expired
+        end
 
       _ ->
         :missing

@@ -1,76 +1,80 @@
-import type { PrivyLike, PrivyUser } from "./privy-wallet"
+import type { PrivyLike, PrivyUser } from "./privy-wallet";
 
 import {
   labelForUser,
   requireEthereumProvider,
   signWithConnectedWallet,
   walletForUser,
-} from "./privy-wallet"
+} from "./privy-wallet";
 
 type PrivyReadyXmtpState = {
-  status: "ready"
-  inbox_id: string
-  wallet_address: string | null
-}
+  status: "ready";
+  inbox_id: string;
+  wallet_address: string | null;
+};
 
 type PrivySignatureRequiredXmtpState = {
-  status: "signature_required"
-  inbox_id: null
-  wallet_address: string
-  client_id: string
-  signature_request_id: string
-  signature_text: string
-}
+  status: "signature_required";
+  inbox_id: null;
+  wallet_address: string;
+  client_id: string;
+  signature_request_id: string;
+  signature_text: string;
+};
 
 export type PrivySessionResponse = {
-  ok: true
+  ok: true;
   human: {
-    id: number
-    privy_user_id: string
-    wallet_address: string | null
-    display_name: string | null
-    role: string
-    xmtp_inbox_id: string | null
-  }
-  xmtp: PrivyReadyXmtpState | PrivySignatureRequiredXmtpState | null
-}
+    id: number;
+    privy_user_id: string;
+    wallet_address: string | null;
+    display_name: string | null;
+    role: string;
+    xmtp_inbox_id: string | null;
+  };
+  xmtp: PrivyReadyXmtpState | PrivySignatureRequiredXmtpState | null;
+};
 
 type SessionOptions = {
-  csrfToken: string
-  sessionUrl: string
-  completeUrl: string
-}
+  csrfToken: string;
+  sessionUrl: string;
+  completeUrl: string;
+  allowInteractiveCompletion?: boolean;
+};
 
 function csrfHeaders(csrfToken: string): Record<string, string> {
-  return csrfToken ? { "x-csrf-token": csrfToken } : {}
+  return csrfToken ? { "x-csrf-token": csrfToken } : {};
 }
 
 async function parseErrorMessage(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as {
-      error?: { message?: string; code?: string }
-      message?: string
-    }
+      error?: { message?: string; code?: string };
+      message?: string;
+    };
 
     return (
       payload.error?.message ||
       payload.message ||
       payload.error?.code ||
       `request failed (${response.status})`
-    )
+    );
   } catch {
-    return `request failed (${response.status})`
+    return `request failed (${response.status})`;
   }
 }
 
-async function fetchSessionJson<T>(input: string, init: RequestInit): Promise<T> {
-  const response = await fetch(input, init)
+async function fetchSessionJson<T>(
+  input: string,
+  init: RequestInit,
+): Promise<T> {
+  const response = await fetch(input, init);
 
   if (!response.ok) {
-    throw new Error(await parseErrorMessage(response))
+    throw new Error(await parseErrorMessage(response));
   }
 
-  return (await response.json()) as T
+  return (await response.json()) as T;
 }
 
 export async function syncPrivySession(
@@ -78,38 +82,45 @@ export async function syncPrivySession(
   user: PrivyUser,
   options: SessionOptions,
 ): Promise<PrivySessionResponse> {
-  const token = await privy.getAccessToken()
+  const token = await privy.getAccessToken();
   if (!token) {
-    throw new Error("Your sign-in token is missing. Try connecting again.")
+    throw new Error("Your sign-in token is missing. Try connecting again.");
   }
 
-  const walletAddress = walletForUser(user)
+  const walletAddress = walletForUser(user);
   if (!walletAddress) {
-    throw new Error("Connect a wallet before you continue.")
+    throw new Error("Connect a wallet before you continue.");
   }
 
-  const session = await fetchSessionJson<PrivySessionResponse>(options.sessionUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      authorization: `Bearer ${token}`,
-      ...csrfHeaders(options.csrfToken),
+  const session = await fetchSessionJson<PrivySessionResponse>(
+    options.sessionUrl,
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${token}`,
+        ...csrfHeaders(options.csrfToken),
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        display_name: labelForUser(user),
+        wallet_address: walletAddress,
+      }),
     },
-    credentials: "same-origin",
-    body: JSON.stringify({
-      display_name: labelForUser(user),
-      wallet_address: walletAddress,
-    }),
-  })
+  );
 
   if (session.xmtp?.status === "signature_required") {
-    const provider = await requireEthereumProvider()
+    if (!options.allowInteractiveCompletion) {
+      return session;
+    }
+
+    const provider = await requireEthereumProvider();
     const { signature } = await signWithConnectedWallet(
       provider,
       session.xmtp.signature_text,
       session.xmtp.wallet_address,
-    )
+    );
 
     return await fetchSessionJson<PrivySessionResponse>(options.completeUrl, {
       method: "POST",
@@ -125,10 +136,10 @@ export async function syncPrivySession(
         signature_request_id: session.xmtp.signature_request_id,
         signature,
       }),
-    })
+    });
   }
 
-  return session
+  return session;
 }
 
 export async function clearPrivySession(
@@ -142,5 +153,5 @@ export async function clearPrivySession(
       ...csrfHeaders(csrfToken),
     },
     credentials: "same-origin",
-  })
+  });
 }

@@ -70,6 +70,38 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
     assert xmtp_inbox_id == deterministic_inbox_id(wallet_address)
   end
 
+  test "uses the pending browser wallet when checking public-room readiness", %{privy: privy} do
+    ready_wallet = "0x2234567890123456789012345678901234567890"
+    pending_wallet = "0x3234567890123456789012345678901234567890"
+
+    {:ok, _room} =
+      TechTree.XMTPMirror.ensure_room(%{
+        room_key: "public-chatbox",
+        name: "Public Chat",
+        description: "Pending wallet coverage"
+      })
+
+    {:ok, human} =
+      Accounts.upsert_human_by_privy_id("privy-pending-wallet-user", %{
+        "display_name" => "Pending Wallet User",
+        "wallet_address" => ready_wallet,
+        "xmtp_inbox_id" => deterministic_inbox_id(ready_wallet)
+      })
+
+    token = privy_token("privy-pending-wallet-user", privy.app_id, privy.private_pem, 3600)
+
+    assert %{"data" => %{"state" => "setup_required"}} =
+             Phoenix.ConnTest.build_conn()
+             |> init_test_session(%{
+               privy_user_id: human.privy_user_id,
+               privy_pending_wallet_address: pending_wallet
+             })
+             |> put_req_header("accept", "application/json")
+             |> put_req_header("authorization", "Bearer #{token}")
+             |> get("/v1/chatbox/membership")
+             |> json_response(200)
+  end
+
   defp privy_token(privy_user_id, app_id, private_pem, exp_offset_seconds) do
     now = System.system_time(:second)
 

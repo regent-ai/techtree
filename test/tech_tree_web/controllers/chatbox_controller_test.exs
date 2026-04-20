@@ -226,6 +226,32 @@ defmodule TechTreeWeb.ChatboxControllerTest do
              |> json_response(422)
   end
 
+  test "POST /v1/chatbox/messages rejects posting while the browser wallet switch is still unfinished",
+       %{privy: privy} do
+    ready_wallet = "0x2234567890123456789012345678901234567890"
+    pending_wallet = "0x3234567890123456789012345678901234567890"
+
+    {:ok, human} =
+      TechTree.Accounts.upsert_human_by_privy_id("privy-chatbox-pending-wallet", %{
+        "display_name" => "Pending Wallet User",
+        "wallet_address" => ready_wallet,
+        "xmtp_inbox_id" => deterministic_inbox_id(ready_wallet)
+      })
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> init_test_session(%{
+        privy_user_id: human.privy_user_id,
+        privy_pending_wallet_address: pending_wallet
+      })
+      |> with_privy_bearer(human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_identity_required"}} =
+             conn
+             |> post("/v1/chatbox/messages", %{"body" => "should stay blocked"})
+             |> json_response(422)
+  end
+
   test "POST /v1/chatbox/messages/:id/reactions rejects humans without a stored room identity", %{
     privy: privy,
     human: human

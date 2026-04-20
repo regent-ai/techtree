@@ -26,24 +26,11 @@ defmodule TechTree.Accounts do
           {:ok, HumanUser.t()} | {:error, Ecto.Changeset.t()}
   def open_privy_session(privy_user_id, attrs) when is_binary(privy_user_id) and is_map(attrs) do
     human = Repo.get_by(HumanUser, privy_user_id: privy_user_id) || %HumanUser{}
-    attrs = normalize_wallet_attrs(attrs)
 
-    attrs =
-      case Map.get(attrs, "wallet_address") do
-        wallet_address when is_binary(wallet_address) and wallet_address != "" ->
-          current_wallet = normalize_wallet_address(human.wallet_address)
-
-          if current_wallet != nil and current_wallet == wallet_address do
-            attrs
-          else
-            Map.put(attrs, "xmtp_inbox_id", nil)
-          end
-
-        _ ->
-          attrs
-      end
-
-    HumanUser.changeset(human, Map.put(attrs, "privy_user_id", privy_user_id))
+    attrs
+    |> Map.take(["display_name"])
+    |> Map.put("privy_user_id", privy_user_id)
+    |> then(&HumanUser.changeset(human, &1))
     |> Repo.insert_or_update()
   end
 

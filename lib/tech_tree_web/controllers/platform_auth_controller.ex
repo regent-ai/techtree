@@ -8,6 +8,7 @@ defmodule TechTreeWeb.PlatformAuthController do
   alias TechTreeWeb.ApiError
 
   @wallet_address_regex ~r/^0x[0-9a-fA-F]{40}$/
+  @pending_wallet_session_key :privy_pending_wallet_address
 
   def csrf(conn, _params) do
     token = Plug.CSRFProtection.get_csrf_token()
@@ -18,11 +19,11 @@ defmodule TechTreeWeb.PlatformAuthController do
   end
 
   def show(conn, _params) do
-    case current_human(conn) do
-      nil ->
+    case current_session_human(conn) do
+      {conn, nil} ->
         json(conn, %{ok: true, human: nil, xmtp: nil})
 
-      human ->
+      {conn, human} ->
         json(conn, session_response(human))
     end
   end
@@ -33,10 +34,11 @@ defmodule TechTreeWeb.PlatformAuthController do
          :ok <- ensure_existing_human_allowed(Accounts.get_human_by_privy_id(privy_user_id)),
          {:ok, human} <- Accounts.open_privy_session(privy_user_id, attrs),
          :ok <- ensure_human_allowed(human),
-         {:ok, xmtp_result} <- XmtpIdentity.ensure_identity(human) do
+         session_human = human_with_wallet_address(human, Map.get(attrs, "wallet_address")),
+         {:ok, xmtp_result} <- XmtpIdentity.ensure_identity(session_human) do
       conn
-      |> write_session(privy_user_id)
-      |> json(session_response(human, xmtp_result))
+      |> write_session(privy_user_id, session_human.wallet_address)
+      |> json(session_response(session_human, xmtp_result))
     else
       {:error, :human_banned} ->
         conn
@@ -96,8 +98,11 @@ defmodule TechTreeWeb.PlatformAuthController do
   def complete_xmtp(conn, params) do
     with %{} = human <- current_human(conn),
          :ok <- ensure_human_allowed(human),
-         {:ok, updated_human} <- XmtpIdentity.complete_identity(human, params) do
-      json(conn, session_response(updated_human, {:ready, updated_human}))
+         {:ok, wallet_address} <- current_wallet_address(conn, human),
+         {:ok, updated_human} <- XmtpIdentity.complete_identity(human, wallet_address, params) do
+      conn
+      |> clear_pending_wallet_session()
+      |> json(session_response(updated_human, {:ready, updated_human}))
     else
       nil ->
         conn
@@ -148,10 +153,15 @@ defmodule TechTreeWeb.PlatformAuthController do
     preserved_session =
       conn
       |> get_session()
-      |> Map.drop([:privy_user_id, "privy_user_id"])
+      |> Map.drop([
+        :privy_user_id,
+        "privy_user_id",
+        @pending_wallet_session_key,
+        Atom.to_string(@pending_wallet_session_key)
+      ])
 
     conn
-    |> delete_session(:privy_user_id)
+    |> clear_privy_session()
     |> restore_session(preserved_session)
     |> json(%{ok: true})
   end
@@ -160,6 +170,19 @@ defmodule TechTreeWeb.PlatformAuthController do
     conn
     |> get_session(:privy_user_id)
     |> Accounts.get_human_by_privy_id()
+  end
+
+  defp current_session_human(conn) do
+    case current_human(conn) do
+      %{role: "banned"} ->
+        {clear_privy_session(conn), nil}
+
+      %{} = human ->
+        {conn, human_with_wallet_address(human, pending_wallet_address(conn))}
+
+      nil ->
+        {conn, nil}
+    end
   end
 
   defp verify_privy_user_id(conn) do
@@ -203,7 +226,7 @@ defmodule TechTreeWeb.PlatformAuthController do
     trimmed = String.trim(value)
 
     if Regex.match?(@wallet_address_regex, trimmed) do
-      trimmed
+      String.downcase(trimmed)
     else
       nil
     end
@@ -229,15 +252,29 @@ defmodule TechTreeWeb.PlatformAuthController do
   defp ensure_existing_human_allowed(%{role: "banned"}), do: {:error, :human_banned}
   defp ensure_existing_human_allowed(_human), do: :ok
 
-  defp write_session(conn, privy_user_id) do
+  defp write_session(conn, privy_user_id, wallet_address) do
     conn
     |> put_session(:privy_user_id, privy_user_id)
+    |> put_session(@pending_wallet_session_key, wallet_address)
   end
 
   defp restore_session(conn, session_values) do
     Enum.reduce(session_values, conn, fn {key, value}, acc ->
       put_session(acc, key, value)
     end)
+  end
+
+  defp clear_privy_session(conn) do
+    conn
+    |> delete_session(:privy_user_id)
+    |> delete_session("privy_user_id")
+    |> clear_pending_wallet_session()
+  end
+
+  defp clear_pending_wallet_session(conn) do
+    conn
+    |> delete_session(@pending_wallet_session_key)
+    |> delete_session(Atom.to_string(@pending_wallet_session_key))
   end
 
   defp session_response(human, xmtp_result \\ nil) do
@@ -324,6 +361,23 @@ defmodule TechTreeWeb.PlatformAuthController do
   end
 
   defp missing_field_code(key), do: "missing_" <> to_string(key)
+
+  defp pending_wallet_address(conn) do
+    normalize_wallet_address(get_session(conn, @pending_wallet_session_key))
+  end
+
+  defp current_wallet_address(conn, human) do
+    case pending_wallet_address(conn) || normalize_wallet_address(human.wallet_address) do
+      nil -> {:error, :wallet_address_required}
+      wallet_address -> {:ok, wallet_address}
+    end
+  end
+
+  defp human_with_wallet_address(human, nil), do: human
+
+  defp human_with_wallet_address(human, wallet_address) do
+    %{human | wallet_address: wallet_address}
+  end
 
   defp missing_field_message(key) do
     case key do

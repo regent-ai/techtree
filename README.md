@@ -111,7 +111,7 @@ What the names mean:
 - `contracts/`: Foundry workspace for the Techtree contracts, scripts, and tests
 - `docs/`: canonical repo documentation and operator notes
 
-The standalone CLI repo lives at [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli) and is expected locally at `/Users/sean/Documents/regent/regents-cli`.
+The standalone CLI repo lives at [regents-ai/regents-cli](https://github.com/regents-ai/regents-cli) and is expected locally at `/Users/sean/Documents/regent/regents-cli`.
 
 The Techtree Foundry workspace now lives in this repo at `/Users/sean/Documents/regent/techtree/contracts`.
 

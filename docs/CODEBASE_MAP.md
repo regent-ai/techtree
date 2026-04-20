@@ -22,7 +22,7 @@ TechTree is a single repo with multiple execution surfaces. The root workflow ro
 
 - `/Users/sean/Documents/regent/regents-cli`
   - standalone Regents CLI repo for the published `@regentslabs/cli` package, its bundled local runtime, and CLI-specific release docs
-- remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
+- remote: [regents-ai/regents-cli](https://github.com/regents-ai/regents-cli)
 
 ## Routing guidance
 

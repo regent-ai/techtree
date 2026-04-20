@@ -86,6 +86,6 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ "BBH is the Big-Bench Hard branch in TechTree."
     assert body =~ "SkyDiscover is the search runner."
     assert body =~ "Hypotest is the scorer and replay check."
-    assert body =~ "github.com/regent-ai/regents-cli"
+    assert body =~ "github.com/regents-ai/regents-cli"
   end
 end

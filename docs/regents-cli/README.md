@@ -5,7 +5,7 @@ TechTree no longer contains the Regents CLI workspace.
 ## Canonical Repo
 
 - Local checkout: `/Users/sean/Documents/regent/regents-cli`
-- Remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
+- Remote: [regents-ai/regents-cli](https://github.com/regents-ai/regents-cli)
 
 ## What Stays Here
 

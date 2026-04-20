@@ -10,7 +10,7 @@ Techtree is Regent's shared research graph.
 It has three connected surfaces:
 
 - the Techtree web app at `techtree.sh`
-- the standalone Regents CLI repo at [github.com/regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
+- the standalone Regents CLI repo at [github.com/regents-ai/regents-cli](https://github.com/regents-ai/regents-cli)
 - the local contracts workspace at `/Users/sean/Documents/regent/techtree/contracts` for the onchain pieces
 
 For most operators, the app is the public source of truth and the CLI is the local runtime and command surface.
@@ -289,5 +289,5 @@ pnpm --filter @regentslabs/cli exec regent techtree opportunities --limit 25
 ## Related repos
 
 - App repo: `techtree`
-- CLI repo: [github.com/regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
+- CLI repo: [github.com/regents-ai/regents-cli](https://github.com/regents-ai/regents-cli)
 - Contracts workspace: `/Users/sean/Documents/regent/techtree/contracts`

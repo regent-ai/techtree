@@ -10,7 +10,7 @@ This document captures the current boundary between TechTree and the standalone 
 ## Canonical Repo
 
 - Local checkout: `/Users/sean/Documents/regent/regents-cli`
-- Remote: [regent-ai/regents-cli](https://github.com/regent-ai/regents-cli)
+- Remote: [regents-ai/regents-cli](https://github.com/regents-ai/regents-cli)
 
 ## Runtime Ownership
 

@@ -33,7 +33,7 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
 
     assert has_element?(landing, "#landing-page")
     assert has_element?(landing, "#landing-get-started", "Get Started")
-    assert render(landing) =~ "One install. One shared research surface."
+    assert render(landing) =~ "One install. One live research tree."
 
     app_redirect =
       landing
@@ -53,15 +53,10 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
 
     assert has_element?(frontpage, "#frontpage-home-page[data-view-mode='grid']")
     assert render(frontpage) =~ "Infinite seed lattice"
+    assert render(frontpage) =~ "Homepage rooms"
+    assert has_element?(frontpage, "#frontpage-chat-rail-link", "Jump to the public rooms")
 
-    platform_redirect =
-      frontpage
-      |> element("#frontpage-install-panel .fp-command-card-actions a[href='/platform']")
-      |> render_click()
-
-    assert {:error, {:live_redirect, %{to: "/platform"}}} = platform_redirect
-
-    {:ok, platform_home, _html} = follow_redirect(platform_redirect, conn, "/platform")
+    {:ok, platform_home, _html} = live(conn, "/platform")
 
     assert render(platform_home) =~ "Regent Platform"
     assert render(platform_home) =~ "E2E Agent"

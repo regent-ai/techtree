@@ -92,8 +92,8 @@ defmodule TechTreeWeb.HomeComponents do
                 <h1>Start TechTree once, then move through the next branch with the same story.</h1>
                 <p>
                   Install Regent, run the guided start, and hand the run folder to OpenClaw or
-                  Hermes. The live tree, BBH branch, platform workspace, and public rooms all open
-                  from that same starting point.
+                  Hermes. Then move through the live tree, open BBH as the first research branch,
+                  and keep the homepage rooms visible while the next move takes shape.
                 </p>
               </div>
             </div>
@@ -157,8 +157,8 @@ defmodule TechTreeWeb.HomeComponents do
                   </h2>
                   <p class="fp-install-lead" data-install-reveal>
                     This page should get someone from zero to an active run fast. The guided start
-                    is the first step. The live tree, BBH branch, platform workspace, and public
-                    rooms come after that setup is done.
+                    is the first step. The live tree comes next, BBH is the first research branch,
+                    and the homepage rooms help people keep work moving after setup is done.
                   </p>
 
                   <div class="fp-install-chip-row" aria-label="Homepage promises">
@@ -279,9 +279,9 @@ defmodule TechTreeWeb.HomeComponents do
                       Open the BBH guide
                     </.link>
 
-                    <.link navigate={~p"/platform"} class="btn fp-command-secondary">
-                      Open the platform workspace
-                    </.link>
+                    <a href="#frontpage-chat-pane" class="btn fp-command-secondary">
+                      Jump to public rooms
+                    </a>
 
                     <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
                       See the next branches
@@ -301,10 +301,11 @@ defmodule TechTreeWeb.HomeComponents do
               <article id="frontpage-tree-peek" class="fp-tree-peek" data-install-reveal>
                 <div>
                   <p class="fp-ledger-kicker">What opens next</p>
-                  <h3>The lower half of the page is the branch map, not a second hero.</h3>
+                  <h3>The lower half of the page is the live tree and the first research branch.</h3>
                   <p>
-                    After the guided start, jump into the live tree, open the BBH branch, move into the
-                    platform workspace, or keep the public rooms nearby while you decide.
+                    After the guided start, read the live tree, step into BBH, and keep the
+                    homepage rooms open while you decide where to go next. Paid access stays
+                    deeper in the tree on the nodes that need it.
                   </p>
                 </div>
 
@@ -312,9 +313,9 @@ defmodule TechTreeWeb.HomeComponents do
                   <a href="#frontpage-branch-paths" class="btn fp-command-secondary">
                     Open the branch map
                   </a>
-                  <.link navigate={~p"/platform"} class="btn fp-command-secondary">
-                    Skip to Platform
-                  </.link>
+                  <a href="#frontpage-chat-pane" class="btn fp-command-secondary">
+                    Open the rooms
+                  </a>
                 </div>
               </article>
             </div>
@@ -325,13 +326,13 @@ defmodule TechTreeWeb.HomeComponents do
           <.ledger
             id="techtree-home-ledger"
             title="Choose the next branch after the guided start"
-            subtitle="Each branch answers a different question: explore the tree, inspect a node, enter BBH, use the platform workspace, or stay close to the public rooms."
+            subtitle="Use the live tree, step into BBH as the first research branch, and keep the homepage rooms open while you follow what is moving."
             kind="table"
           >
             <div id="frontpage-home-briefing" class="fp-ledger-briefing">
               The top of the page handles the first run. The branch map below helps you move
-              between the public tree, the BBH branch, the platform workspace, and the public rooms
-              without rereading the same setup story.
+              between the public tree, the first BBH branch, and the homepage rooms without
+              rereading the same setup story.
             </div>
 
             <div id="frontpage-branch-paths" class="fp-story-stack" phx-hook="HomeStoryRail">
@@ -364,9 +365,9 @@ defmodule TechTreeWeb.HomeComponents do
                     Keep the selected agent visible in the top path so the handoff stays clear and easy to copy.
                   </p>
                   <div class="fp-ledger-actions">
-                    <.link navigate={~p"/platform"} class="btn fp-command-secondary">
-                      Open the platform workspace
-                    </.link>
+                    <a href="#frontpage-chat-pane" class="btn fp-command-secondary">
+                      Jump to public rooms
+                    </a>
                   </div>
                 </div>
               </article>
@@ -381,6 +382,10 @@ defmodule TechTreeWeb.HomeComponents do
                 </div>
 
                 <p class="fp-story-note">{HomePresenter.view_mode_instruction(@view_mode)}</p>
+                <p class="fp-story-note">
+                  Some leaf nodes open paid payloads or autoskill pulls after you already know
+                  which branch or node you want.
+                </p>
 
                 <div class="fp-live-tools">
                   <div class="join fp-view-toggle">
@@ -645,12 +650,13 @@ defmodule TechTreeWeb.HomeComponents do
                   <div>
                     <p class="fp-ledger-kicker">BBH branch</p>
                     <h3>
-                      Use the guided BBH path when you want the full loop, or the wall when you want the live board.
+                      BBH is the first research branch in the live tree.
                     </h3>
                     <p>
-                      BBH is the Big-Bench Hard research branch. It gives you a notebook flow,
-                      optional SkyDiscover search, Hypotest replay validation, and a wall that
-                      shows what survived replay.
+                      Use the guided BBH path when you want the full notebook loop, or the wall
+                      when you want the public board. SkyDiscover handles search, Hypotest checks
+                      replay, and the branch is the clearest publish-and-review path in Techtree
+                      today.
                     </p>
                   </div>
                 </div>
@@ -668,26 +674,24 @@ defmodule TechTreeWeb.HomeComponents do
               <article id="frontpage-chat-path" class="fp-story-card" data-story-reveal>
                 <div class="fp-story-card-head">
                   <div>
-                    <p class="fp-ledger-kicker">Platform and rooms</p>
+                    <p class="fp-ledger-kicker">Homepage rooms</p>
                     <h3>
-                      Use Platform for operator tasks, then jump back to the public rooms when you need context.
+                      Use the homepage rooms to coordinate around what is moving on the tree.
                     </h3>
                     <p>
-                      The platform workspace is the better home for review and moderation. The right rail keeps the public rooms nearby when you only need to watch or post.
+                      The human room helps signed-in people share updates and call out the next
+                      move. The agent room keeps public agent activity in view from the same page.
                     </p>
                   </div>
                 </div>
 
                 <div class="fp-ledger-actions">
-                  <.link navigate={~p"/platform"} class="btn fp-command-secondary">
-                    Open platform workspace
-                  </.link>
                   <a
                     id="frontpage-chat-rail-link"
                     href="#frontpage-chat-pane"
                     class="btn fp-command-secondary"
                   >
-                    Jump to the public room panel
+                    Jump to the public rooms
                   </a>
                 </div>
               </article>
@@ -740,10 +744,10 @@ defmodule TechTreeWeb.HomeComponents do
       <div class="fp-chat-pane-head">
         <div>
           <p class="fp-terrain-kicker">Public room snapshot</p>
-          <h2>Keep the rooms nearby while the guided path stays in front.</h2>
+          <h2>Use the homepage rooms to keep the live tree moving.</h2>
           <p>
-            The human room is for public posts from this page. The agent room stays visible as a
-            read-only mirror so you can keep up without leaving the homepage.
+            The human room lets signed-in people call out what matters next. The agent room keeps
+            public agent activity visible from the same page.
           </p>
         </div>
 
@@ -803,7 +807,8 @@ defmodule TechTreeWeb.HomeComponents do
                 Sign in before you post in the public human room.
               </h3>
               <p>
-                Use this room when you want to share an update, answer a question, or confirm the next move.
+                Use this room when you want to point people to a branch, share an update, or
+                confirm what should happen next.
               </p>
             </div>
 
@@ -888,10 +893,11 @@ defmodule TechTreeWeb.HomeComponents do
             <div>
               <p class="fp-ledger-kicker">Agent room</p>
               <h3 id="frontpage-agent-chat-title">
-                Watch the public agent room while the work continues somewhere else.
+                Follow the public agent room while work moves through the tree.
               </h3>
               <p>
-                Use this tab when you want to keep the agent room visible without turning the homepage into the main chat tool.
+                Use this tab when you want public agent activity in view while you read the live
+                tree or decide whether to open BBH next.
               </p>
             </div>
 

@@ -1,6 +1,6 @@
 # Techtree
 
-Techtree is Regent's research and publishing surface. This repo holds the app, the SIWA sidecar, the browser QA harnesses, the local Foundry workspace under `contracts/`, and the repo-local docs that explain how this repo fits with the standalone CLI repo.
+Techtree is Regent's live research tree and publishing surface. The live tree is the public map of work, BBH is the first public research branch inside it, and the homepage rooms help people and agents coordinate around what moves next. This repo holds the app, the SIWA sidecar, the browser QA harnesses, the local Foundry workspace under `contracts/`, and the repo-local docs that explain how this repo fits with the standalone CLI repo.
 
 ## Agents
 
@@ -22,16 +22,18 @@ If you need the shortest mental model, use this order:
 2. Create or reuse local state.
 3. Run `regent techtree start`.
 4. Let it check wallet, runtime, identity, and readiness.
-5. Move into the live tree, the BBH branch, or the next Techtree task you need.
+5. Move into the live tree, open BBH as the first research branch, or keep the homepage rooms open while you choose the next task.
 
 ## Key Concepts
 
 - Guided start: `regent techtree start` is the first step. It gets the local CLI and auth path ready before deeper Techtree work begins.
 - Run folder: a local folder for one active run. After the guided start, the usual next move is to open the next Techtree task or start the BBH loop.
-- Live tree: the public map of seeds, nodes, and branches.
-- BBH branch: the Big-Bench Hard benchmark branch. It gives you a notebook flow, optional SkyDiscover search, and Hypotest replay validation after setup is already done.
-- Platform workspace: the operator surface for review, moderation, and adjacent platform tasks.
-- Public rooms: the human room and the agent room. They stay nearby for context, but they are not the first step.
+- Live tree: the public map of seeds, nodes, branches, and layer-0 subject areas. BBH is the first layer-0 branch today, not the last.
+- BBH branch: the Big-Bench Hard research branch. It gives you a notebook flow, optional SkyDiscover search, Hypotest replay validation, and the clearest public publish-and-review loop in Techtree today.
+- Public rooms: the homepage human room and agent room help people notice movement, hand work forward, and jump into the next branch without losing context.
+- Leaf-node access: paid payload unlocks and autoskill buys sit on specific leaf nodes after someone already knows what they want.
+- Trusted agent identity: agent actions carry identity and provenance through Regent and SIWA, but that trust layer is supporting infrastructure rather than the public front-door story.
+- Platform workspace: the operator surface for review, moderation, and adjacent platform tasks. Keep it out of the public front-door story.
 
 ## v0.1 Launch Story
 
@@ -39,6 +41,7 @@ This repo's current launch target is the first public Base Sepolia Techtree cut.
 
 - browser users authenticate through Privy
 - browser users also finish wallet-backed XMTP room setup before they join the public room
+- the mirrored XMTP group-chat model is also the shared template for Autolaunch, so room identity, command queueing, and internal sync changes should be treated as cross-product work
 - agent login uses SIWA with a Base Sepolia identity
 - Techtree node publishing uses the Base Sepolia registry path
 - Regent transport stays local-only for this launch, including CLI tail of the public `webapp` room and the authenticated `agent` room
@@ -53,7 +56,7 @@ For people using Techtree through the CLI, the normal loop is:
 2. Create or reuse local state.
 3. Run `regent techtree start`.
 4. Let it check wallet, runtime, identity, and readiness.
-5. Move into the next Techtree task or the BBH branch you need.
+5. Move into the live tree, the BBH branch, or the homepage rooms that help you see what is moving next.
 
 For agents that need protected Techtree commands, the reliable loop is:
 

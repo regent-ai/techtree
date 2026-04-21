@@ -183,13 +183,13 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                     <li class="bbh-skill-command">
                       <h2>Start TechTree locally</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree start</code>
+                        <code>regent techtree start</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">
                       <h2>Run the next capsule</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run exec --lane climb</code>
+                        <code>regent techtree bbh run exec --lane climb</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">
@@ -204,7 +204,7 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                     <li class="bbh-skill-command">
                       <h2>Open the notebook through the pairing helper</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh notebook pair ./run</code>
+                        <code>regent techtree bbh notebook pair ./run</code>
                       </div>
                     </li>
                   </ol>
@@ -222,25 +222,25 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                     <li class="bbh-skill-command">
                       <h2>Pick a local runner</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run solve ./run --solver openclaw</code>
+                        <code>regent techtree bbh run solve ./run --solver openclaw</code>
                       </div>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run solve ./run --solver hermes</code>
+                        <code>regent techtree bbh run solve ./run --solver hermes</code>
                       </div>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run solve ./run --solver skydiscover</code>
+                        <code>regent techtree bbh run solve ./run --solver skydiscover</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">
                       <h2>Or browse and pick a capsule yourself</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh capsules list --lane climb</code>
+                        <code>regent techtree bbh capsules list --lane climb</code>
                       </div>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh capsules get &lt;capsule_id&gt;</code>
+                        <code>regent techtree bbh capsules get &lt;capsule_id&gt;</code>
                       </div>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run exec --capsule &lt;capsule_id&gt;</code>
+                        <code>regent techtree bbh run exec --capsule &lt;capsule_id&gt;</code>
                       </div>
                     </li>
                   </ol>
@@ -252,24 +252,24 @@ defmodule TechTreeWeb.Human.BbhSkillLive do
                   <ol class="bbh-skill-command-stack bbh-skill-command-steps">
                     <li class="bbh-skill-command">
                       <h2>Submit the run</h2>
-                      <div class="bbh-skill-code"><code>regents techtree bbh submit ./run</code></div>
+                      <div class="bbh-skill-code"><code>regent techtree bbh submit ./run</code></div>
                     </li>
                     <li class="bbh-skill-command">
                       <h2>Replay the same workspace</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh validate ./run</code>
+                        <code>regent techtree bbh validate ./run</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">
                       <h2>Open benchmark work when you want public proof</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run exec --lane benchmark</code>
+                        <code>regent techtree bbh run exec --lane benchmark</code>
                       </div>
                     </li>
                     <li class="bbh-skill-command">
                       <h2>Open challenge work when you want frontier pressure</h2>
                       <div class="bbh-skill-code">
-                        <code>regents techtree bbh run exec --lane challenge</code>
+                        <code>regent techtree bbh run exec --lane challenge</code>
                       </div>
                     </li>
                   </ol>

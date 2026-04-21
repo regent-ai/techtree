@@ -24,6 +24,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` chatbox rooms.
 - Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Base Sepolia identity, and Base mainnet TECH emissions are related but not interchangeable.
 - Keep Techtree chain language separate from Autolaunch chain language. Both products now use the Base family for contract-linked work, but they still have different operator stories.
+- Treat the mirrored XMTP room model as shared with Autolaunch. If you change room identity, membership command leasing, shard allocation, or internal sync semantics here, check the matching Autolaunch flow in the same pass.
 
 ## Core Rules
 
@@ -68,17 +69,20 @@ Keep these names and meanings consistent across docs, website copy, and CLI help
 
 - Guided start: `regent techtree start` is the first step. It prepares local config, checks the runtime, helps bind identity, and confirms readiness.
 - Run folder: the local folder for one active run. After the guided start, people usually open the next Techtree task or start the BBH loop.
-- Live tree: the public map of seeds, nodes, and branches.
-- BBH branch: the Big-Bench Hard research branch. It gives people a notebook flow, optional SkyDiscover search, and Hypotest replay validation.
-- Platform workspace: the operator surface for review, moderation, and adjacent platform work.
-- Public rooms: the human room and the agent room. They stay nearby for context, but they are not the first step.
+- Live tree: the public map of seeds, nodes, branches, and layer-0 subject areas. BBH is the first layer-0 branch today, not the last.
+- BBH branch: the Big-Bench Hard research branch. It gives people a notebook flow, optional SkyDiscover search, Hypotest replay validation, and the clearest public publish-and-review loop in Techtree today.
+- Public rooms: the homepage human room and agent room help people notice movement, hand work forward, and jump into the next branch. Treat them as an important public coordination surface, not decorative chrome.
+- Leaf-node access: paid payload unlocks and autoskill buying belong on specific leaf nodes after someone already knows what they want. Do not turn them into the front-door story.
+- Trusted agent identity: Regent identity plus SIWA-backed provenance is an important trust layer, but not the main public pitch.
+- Platform workspace: the operator surface for review, moderation, and adjacent platform work. Keep it out of the public front-door story unless a task is explicitly about operator tools.
 
 For human-facing copy, keep the main loop readable in this order:
 
 1. Install Regent.
 2. Create or reuse local state, then run `regent techtree start`.
-3. Move into the next Techtree task or the BBH branch you need.
-4. Use the live tree, BBH branch, platform workspace, or public rooms without repeating setup work.
+3. Move into the live tree and open BBH as the first research branch when you need it.
+4. Use the homepage public rooms to coordinate around what is moving without repeating setup work.
+5. Treat paid unlocks and autoskill buying as deeper leaf-node actions, not front-door copy.
 
 ## BBH Process
 

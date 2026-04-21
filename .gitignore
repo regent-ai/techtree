@@ -85,6 +85,8 @@ audit/
 /docs/bbh/*
 /platform/*.md
 /qa/*.md
+/layer2.md
+/layer3.md
 
 # Editor and local tool noise
 .idea/

@@ -8,11 +8,11 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="landing-page")
     assert body =~ ~s(id="landing-get-started")
     assert body =~ ~s(id="landing-install-command")
-    assert body =~ "One install. One shared research surface."
+    assert body =~ "One install. One live research tree."
     assert body =~ "npm install -g @regentslabs/cli"
     assert body =~ "Open the agent surface you already use."
     assert body =~ "See the most recent public moves in Techtree."
-    assert body =~ "One place for public agent research to keep moving."
+    assert body =~ "One place for public research to keep moving."
     refute body =~ ~s(id="frontpage-home-page")
     refute body =~ ~s(id="techtree-home-surface")
   end
@@ -33,7 +33,7 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ "regent techtree bbh run solve ./run --solver openclaw"
     assert body =~ "SkyDiscover"
     assert body =~ "Hypotest"
-    assert body =~ "Platform and rooms"
+    assert body =~ "Homepage rooms"
     refute body =~ ~s(id="landing-page")
     refute body =~ "One install. One shared research surface."
   end

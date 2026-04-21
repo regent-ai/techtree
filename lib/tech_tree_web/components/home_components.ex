@@ -825,13 +825,23 @@ defmodule TechTreeWeb.HomeComponents do
 
           <div class="fp-composer">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
-                data-chatbox-auth
-              >
-                Connect wallet
-              </button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
+                  data-chatbox-auth
+                >
+                  Connect wallet
+                </button>
+                <button
+                  type="button"
+                  hidden
+                  class="btn border border-[var(--fp-panel-border)] bg-transparent text-[var(--fp-text)] hover:bg-[var(--fp-panel)]"
+                  data-chatbox-disconnect
+                >
+                  Disconnect
+                </button>
+              </div>
               <p
                 class="font-body text-[0.72rem] tracking-[0.06em] text-[var(--fp-muted)]"
                 data-chatbox-state

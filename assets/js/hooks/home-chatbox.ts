@@ -166,6 +166,9 @@ export const HomeChatbox: Hook = {
     const authButton = root.querySelector<HTMLButtonElement>(
       "[data-chatbox-auth]",
     );
+    const disconnectButton = root.querySelector<HTMLButtonElement>(
+      "[data-chatbox-disconnect]",
+    );
     const sendButton = root.querySelector<HTMLButtonElement>(
       "[data-chatbox-send]",
     );
@@ -186,7 +189,14 @@ export const HomeChatbox: Hook = {
         .querySelector<HTMLMetaElement>("meta[name='csrf-token']")
         ?.content?.trim() || "";
 
-    if (!authButton || !sendButton || !input || !state || !transportBadge) {
+    if (
+      !authButton ||
+      !disconnectButton ||
+      !sendButton ||
+      !input ||
+      !state ||
+      !transportBadge
+    ) {
       return;
     }
 
@@ -259,6 +269,8 @@ export const HomeChatbox: Hook = {
           ? "Finish setup"
           : `Disconnect ${labelForUser(currentUser)}`
         : "Connect wallet";
+      disconnectButton.disabled = privy == null || sending;
+      disconnectButton.hidden = !(connected && (needsRoomSetup || !roomReady));
 
       input.disabled = privy == null || !connected || !roomReady || sending;
       sendButton.disabled =
@@ -388,11 +400,14 @@ export const HomeChatbox: Hook = {
         setState(
           "Disconnected. Connect your wallet to post in the public room.",
         );
-        syncComposerState();
-      } catch {
+      } catch (error) {
+        console.error("Home chatbox logout failed", error);
         currentUser = null;
         roomReady = false;
         needsRoomSetup = false;
+        setState(error instanceof Error ? error.message : "Disconnect failed.");
+      } finally {
+        syncComposerState();
       }
     };
 
@@ -533,6 +548,7 @@ export const HomeChatbox: Hook = {
 
     const handleInput = () => syncComposerState();
     const handleAuthClick = () => void toggleAuth();
+    const handleDisconnectClick = () => void disconnect();
     const handleSendClick = () => void sendMessage();
     const handleInputKeydown = (event: KeyboardEvent) => {
       if (event.key !== "Enter" || event.shiftKey) return;
@@ -543,6 +559,7 @@ export const HomeChatbox: Hook = {
     input.addEventListener("input", handleInput);
     input.addEventListener("keydown", handleInputKeydown);
     authButton.addEventListener("click", handleAuthClick);
+    disconnectButton.addEventListener("click", handleDisconnectClick);
     sendButton.addEventListener("click", handleSendClick);
 
     if ("addEventListener" in motionQuery) {
@@ -589,6 +606,7 @@ export const HomeChatbox: Hook = {
       input.removeEventListener("input", handleInput);
       input.removeEventListener("keydown", handleInputKeydown);
       authButton.removeEventListener("click", handleAuthClick);
+      disconnectButton.removeEventListener("click", handleDisconnectClick);
       sendButton.removeEventListener("click", handleSendClick);
       if ("removeEventListener" in motionQuery) {
         motionQuery.removeEventListener("change", syncMotionPreference);

@@ -29,6 +29,9 @@ export const PlatformAuth: Hook = {
     const toggle = root.querySelector<HTMLButtonElement>(
       "[data-platform-auth-action='toggle']",
     );
+    const disconnectButton = root.querySelector<HTMLButtonElement>(
+      "[data-platform-auth-action='disconnect']",
+    );
     const state = root.querySelector<HTMLElement>("[data-platform-auth-state]");
     const appId = root.dataset.privyAppId?.trim() || "";
     const csrfToken =
@@ -36,7 +39,7 @@ export const PlatformAuth: Hook = {
         .querySelector<HTMLMetaElement>("meta[name='csrf-token']")
         ?.content?.trim() || "";
 
-    if (!toggle || !state) {
+    if (!toggle || !disconnectButton || !state) {
       return;
     }
 
@@ -71,6 +74,7 @@ export const PlatformAuth: Hook = {
     const syncControls = () => {
       if (!root._platformAuthMounted) return;
       toggle.disabled = busy || privy == null;
+      disconnectButton.disabled = busy || privy == null;
       toggle.textContent = busy
         ? "Working..."
         : currentUser?.id
@@ -78,6 +82,10 @@ export const PlatformAuth: Hook = {
             ? "Finish setup"
             : `Disconnect ${labelForUser(currentUser)}`
           : "Connect wallet";
+      disconnectButton.classList.toggle(
+        "hidden",
+        !(currentUser?.id && (needsWorkspaceSetup || !workspaceReady)),
+      );
     };
 
     const applySessionState = (session: PrivySessionResponse) => {
@@ -231,7 +239,12 @@ export const PlatformAuth: Hook = {
       await beginLogin();
     };
 
+    const onDisconnect = async () => {
+      await disconnect();
+    };
+
     toggle.addEventListener("click", onToggle);
+    disconnectButton.addEventListener("click", onDisconnect);
 
     root._platformAuthCleanup = () => {
       root._platformAuthMounted = false;
@@ -240,6 +253,7 @@ export const PlatformAuth: Hook = {
       );
       root._platformAuthAbortControllers?.clear();
       toggle.removeEventListener("click", onToggle);
+      disconnectButton.removeEventListener("click", onDisconnect);
     };
 
     void (async () => {

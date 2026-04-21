@@ -47,6 +47,13 @@ defmodule TechTreeWeb.PlatformComponents do
               >
                 Connect wallet
               </button>
+              <button
+                type="button"
+                data-platform-auth-action="disconnect"
+                class="hidden rounded-full border border-white/16 px-4 py-2 text-sm text-white/82 transition hover:bg-white/10"
+              >
+                Disconnect
+              </button>
               <span data-platform-auth-state class="text-xs uppercase tracking-[0.18em] text-white/56">
                 Idle
               </span>

@@ -11,6 +11,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     chain_id = Keyword.get(opts, :chain_id, "84532")
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
+    receipt_audience = Keyword.get(opts, :receipt_audience, "techtree")
 
     conn
     |> put_req_header("accept", "application/json")
@@ -18,6 +19,10 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
     |> put_req_header("x-agent-chain-id", chain_id)
     |> put_req_header("x-agent-registry-address", registry)
     |> put_req_header("x-agent-token-id", token_id)
+    |> put_req_header(
+      "x-siwa-receipt",
+      receipt_token(wallet, chain_id, registry, token_id, receipt_audience)
+    )
   end
 
   @spec attach_siwa_deny_handler() :: String.t()
@@ -105,8 +110,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
 
     Application.put_env(:tech_tree, :siwa,
       internal_url: sidecar_url,
-      shared_secret: shared_secret,
-      skip_http_verify: false
+      shared_secret: shared_secret
     )
 
     original_siwa_cfg
@@ -236,6 +240,42 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
 
   defp normalize_stub_state(status) when is_integer(status),
     do: %{status: status, last_request: nil}
+
+  defp receipt_token(wallet, chain_id, registry, token_id, audience) do
+    secret =
+      Application.get_env(:tech_tree, :siwa, [])
+      |> Keyword.fetch!(:shared_secret)
+
+    now = DateTime.utc_now() |> DateTime.to_unix()
+
+    header =
+      %{"alg" => "HS256", "typ" => "JWT"}
+      |> Jason.encode!()
+      |> Base.url_encode64(padding: false)
+
+    payload =
+      %{
+        "typ" => "siwa_receipt",
+        "jti" => Ecto.UUID.generate(),
+        "sub" => wallet,
+        "aud" => audience,
+        "iat" => now,
+        "exp" => now + 600,
+        "chainId" => String.to_integer(chain_id),
+        "nonce" => "nonce-#{System.unique_integer([:positive])}",
+        "keyId" => wallet,
+        "registryAddress" => registry,
+        "tokenId" => token_id
+      }
+      |> Jason.encode!()
+      |> Base.url_encode64(padding: false)
+
+    signature =
+      :crypto.mac(:hmac, :sha256, secret, "#{header}.#{payload}")
+      |> Base.url_encode64(padding: false)
+
+    "#{header}.#{payload}.#{signature}"
+  end
 
   defp start_external_siwa_sidecar!(node_executable, sidecar_port, shared_secret, opts) do
     server_path = Path.join(File.cwd!(), "services/siwa-sidecar/dist/server.js")

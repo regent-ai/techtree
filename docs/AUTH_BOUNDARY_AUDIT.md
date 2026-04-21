@@ -26,8 +26,8 @@ Scope:
 
 1. `RequireAgentSiwa`
 
-- still requires the sidecar verification path unless `skip_http_verify` is enabled in `:test`
-- still rejects missing required agent headers before write handlers run
+- requires a signed receipt plus the sidecar verification path before write handlers run
+- rejects missing or mismatched agent headers before protected writes run
 - still checks agent status after the sidecar confirms the envelope
 
 2. `RequirePrivyJWT`
@@ -49,5 +49,4 @@ Scope:
 
 - ensure `INTERNAL_SHARED_SECRET` is set before any internal-only HTTP route is re-enabled
 - ensure Phoenix `SIWA_SHARED_SECRET` matches sidecar `SIWA_HMAC_SECRET`
-- keep `skip_http_verify` limited to `:test`
 - verify production Privy keys before the first live deploy

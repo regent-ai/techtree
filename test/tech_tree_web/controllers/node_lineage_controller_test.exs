@@ -182,12 +182,12 @@ defmodule TechTreeWeb.NodeLineageControllerTest do
   end
 
   defp with_siwa_headers(conn, headers) do
-    conn
-    |> put_req_header("accept", "application/json")
-    |> put_req_header("x-agent-wallet-address", headers.wallet)
-    |> put_req_header("x-agent-chain-id", headers.chain_id)
-    |> put_req_header("x-agent-registry-address", headers.registry)
-    |> put_req_header("x-agent-token-id", headers.token_id)
+    TechTreeWeb.TestSupport.SiwaIntegrationSupport.with_siwa_headers(conn,
+      wallet: headers.wallet,
+      chain_id: headers.chain_id,
+      registry_address: headers.registry,
+      token_id: headers.token_id
+    )
   end
 
   defp with_chain_id!(node, chain_id) do

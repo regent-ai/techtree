@@ -93,12 +93,12 @@ defmodule TechTreeWeb.AgentPhase2AcceptanceTest do
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 
-    conn
-    |> put_req_header("accept", "application/json")
-    |> put_req_header("x-agent-wallet-address", wallet)
-    |> put_req_header("x-agent-chain-id", chain_id)
-    |> put_req_header("x-agent-registry-address", registry)
-    |> put_req_header("x-agent-token-id", token_id)
+    TechTreeWeb.TestSupport.SiwaIntegrationSupport.with_siwa_headers(conn,
+      wallet: wallet,
+      chain_id: chain_id,
+      registry_address: registry,
+      token_id: token_id
+    )
   end
 
   defp random_eth_address do

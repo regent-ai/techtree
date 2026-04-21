@@ -46,7 +46,8 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
                     registry_address: Map.get(headers, "x-agent-registry-address"),
                     token_id: Map.get(headers, "x-agent-token-id"),
                     label: Map.get(headers, "x-agent-label")
-                  }
+                  },
+                  audience: Map.get(parsed_body, "audience")
                 }
               })
 

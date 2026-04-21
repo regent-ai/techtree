@@ -6,6 +6,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
 
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Repo
+  alias TechTree.SiwaReceipt
   alias TechTreeWeb.ApiError
 
   @http_verify_path "/v1/agent/siwa/http-verify"
@@ -20,6 +21,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   ]
   @hex_address_regex ~r/^0x[0-9a-fA-F]{40}$/
   @positive_int_regex ~r/^[1-9][0-9]*$/
+  @audience "techtree"
 
   @spec init(keyword()) :: keyword()
   def init(opts), do: opts
@@ -28,29 +30,19 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   def call(conn, _opts) do
     normalized_headers = downcase_headers(conn.req_headers)
 
-    with {:ok, agent_claims} <- verify_with_sidecar(conn, normalized_headers),
+    with :ok <- verify_receipt_audience(normalized_headers),
+         {:ok, agent_claims} <- verify_with_sidecar(conn, normalized_headers),
          :ok <- ensure_agent_status_allowed(agent_claims) do
       assign(conn, :current_agent_claims, agent_claims)
     else
-      {:error, deny_meta} -> unauthorized(conn, deny_meta)
-      _ -> unauthorized(conn, %{reason: :siwa_auth_denied})
+      {:error, deny_meta} when is_map(deny_meta) -> render_auth_result(conn, deny_meta)
+      _ -> render_auth_result(conn, %{reason: :siwa_auth_denied})
     end
-  rescue
-    error ->
-      unauthorized(conn, %{
-        reason: :siwa_exception,
-        source: :exception,
-        error: exception_name(error)
-      })
   end
 
   @spec verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
   defp verify_with_sidecar(conn, normalized_headers) do
-    if siwa_skip_http_verify?() do
-      normalize_request_agent_claims(normalized_headers)
-    else
-      do_verify_with_sidecar(conn, normalized_headers)
-    end
+    do_verify_with_sidecar(conn, normalized_headers)
   end
 
   @spec do_verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
@@ -127,12 +119,6 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   rescue
     _ -> :unknown_transport_error
-  end
-
-  @spec siwa_skip_http_verify?() :: boolean()
-  defp siwa_skip_http_verify? do
-    siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
-    Keyword.get(siwa_cfg, :skip_http_verify, false) == true
   end
 
   @spec fetch_siwa_http_config() ::
@@ -355,13 +341,36 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       %AgentIdentity{} ->
         {:error, %{reason: :agent_banned, source: :agent_status}}
     end
-  rescue
-    _ ->
-      {:error, %{reason: :agent_status_lookup_failed, source: :agent_status}}
   end
 
-  @spec unauthorized(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  defp unauthorized(conn, deny_meta) do
+  defp verify_receipt_audience(headers) do
+    case fetch_shared_secret() do
+      {:ok, secret} ->
+        case SiwaReceipt.verify_request_headers(headers, audience: @audience, secret: secret) do
+          {:ok, _claims} -> :ok
+          {:error, reason} -> {:error, %{reason: reason, source: :receipt}}
+        end
+
+      {:error, reason} ->
+        {:error, %{reason: reason, source: :siwa_config}}
+    end
+  end
+
+  defp fetch_shared_secret do
+    case Application.get_env(:tech_tree, :siwa, []) |> Keyword.get(:shared_secret) do
+      secret when is_binary(secret) ->
+        case String.trim(secret) do
+          "" -> {:error, :missing_siwa_shared_secret}
+          trimmed -> {:ok, trimmed}
+        end
+
+      _ ->
+        {:error, :missing_siwa_shared_secret}
+    end
+  end
+
+  @spec render_auth_result(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  defp render_auth_result(conn, deny_meta) do
     emit_deny_metadata(conn, deny_meta)
 
     case Map.get(deny_meta, :reason) do
@@ -369,6 +378,23 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
         ApiError.render_halted(conn, :forbidden, %{
           code: "agent_banned",
           message: "Agent is banned"
+        })
+
+      reason
+      when reason in [
+             :sidecar_request_failed,
+             :siwa_invalid_response,
+             :agent_status_lookup_failed
+           ] ->
+        ApiError.render_halted(conn, :service_unavailable, %{
+          code: "siwa_unavailable",
+          message: "Agent sign-in is temporarily unavailable"
+        })
+
+      :missing_siwa_internal_url ->
+        ApiError.render_halted(conn, :internal_server_error, %{
+          code: "siwa_unavailable",
+          message: "Agent sign-in is temporarily unavailable"
         })
 
       _ ->
@@ -410,12 +436,4 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   defp maybe_put(metadata, _key, nil), do: metadata
   defp maybe_put(metadata, _key, []), do: metadata
   defp maybe_put(metadata, key, value), do: Map.put(metadata, key, value)
-
-  @spec exception_name(Exception.t()) :: atom()
-  defp exception_name(error) do
-    case error do
-      %{__struct__: module} when is_atom(module) -> module
-      _ -> :unknown_exception
-    end
-  end
 end

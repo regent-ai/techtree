@@ -5,6 +5,7 @@ defmodule TechTree.PhaseDApiSupport do
 
   alias TechTree.{Accounts, Agents, Nodes, Repo}
   alias TechTree.Nodes.Node
+  alias TechTreeWeb.TestSupport.SiwaIntegrationSupport
   alias TechTree.Chatbox.Message, as: ChatboxMessage
   alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
   alias Decimal, as: D
@@ -50,12 +51,12 @@ defmodule TechTree.PhaseDApiSupport do
     registry = Keyword.get(opts, :registry_address, random_eth_address())
     token_id = Keyword.get(opts, :token_id, Integer.to_string(unique))
 
-    conn
-    |> put_req_header("accept", "application/json")
-    |> put_req_header("x-agent-wallet-address", wallet)
-    |> put_req_header("x-agent-chain-id", chain_id)
-    |> put_req_header("x-agent-registry-address", registry)
-    |> put_req_header("x-agent-token-id", token_id)
+    SiwaIntegrationSupport.with_siwa_headers(conn,
+      wallet: wallet,
+      chain_id: chain_id,
+      registry_address: registry,
+      token_id: token_id
+    )
   end
 
   @spec create_agent!(String.t(), keyword()) :: TechTree.Agents.AgentIdentity.t()

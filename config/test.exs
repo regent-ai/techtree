@@ -43,8 +43,10 @@ config :tech_tree, TechTree.P2P,
   enabled: false,
   identity_path: Path.expand("../tmp/p2p-identity-test.json", __DIR__)
 
-# Keep SIWA verification bypass limited to tests to satisfy startup runtime guard.
-config :tech_tree, :siwa, skip_http_verify: true
+config :tech_tree, :siwa,
+  internal_url: "http://127.0.0.1:0",
+  shared_secret: "techtree-test-shared-secret"
+
 config :tech_tree, :ethereum, mode: :stub, chain_id: 84_532
 config :tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: true
 

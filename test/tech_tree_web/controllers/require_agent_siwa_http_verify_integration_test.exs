@@ -10,27 +10,8 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
   setup_all do
     original_siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
-    sidecar_port = SiwaSupport.available_port()
-
-    start_supervised!(%{
-      id: TechTreeWeb.TestSupport.SiwaSidecarState,
-      start:
-        {Agent, :start_link,
-         [
-           fn -> %{status: 200, last_request: nil} end,
-           [name: TechTreeWeb.TestSupport.SiwaSidecarState]
-         ]}
-    })
-
-    start_supervised!(
-      {Bandit,
-       plug: TechTreeWeb.TestSupport.SiwaSidecarStub, ip: {127, 0, 0, 1}, port: sidecar_port}
-    )
-
-    Application.put_env(:tech_tree, :siwa,
-      internal_url: "http://127.0.0.1:#{sidecar_port}",
-      skip_http_verify: false
-    )
+    siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
+    Application.put_env(:tech_tree, :siwa, siwa_cfg)
 
     on_exit(fn -> Application.put_env(:tech_tree, :siwa, original_siwa_cfg) end)
 
@@ -135,16 +116,25 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
                     %{reason: :sidecar_http_422, sidecar_status: 422, source: :sidecar_http}}
   end
 
-  test "denies request without required agent headers before the sidecar call", %{conn: conn} do
+  test "denies request when the signed receipt no longer matches the request headers", %{
+    conn: conn
+  } do
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
     on_exit(fn -> :telemetry.detach(telemetry_ref) end)
+
+    wallet = SiwaSupport.random_eth_address()
+    registry = SiwaSupport.random_eth_address()
 
     conn =
       conn
       |> put_req_header("accept", "application/json")
-      |> put_req_header("x-agent-wallet-address", SiwaSupport.random_eth_address())
+      |> put_req_header("x-agent-wallet-address", wallet)
       |> put_req_header("x-agent-chain-id", "84532")
-      |> put_req_header("x-agent-registry-address", SiwaSupport.random_eth_address())
+      |> put_req_header("x-agent-registry-address", registry)
+      |> put_req_header(
+        "x-siwa-receipt",
+        receipt_token(wallet, "84532", registry, "101", "techtree")
+      )
       |> post("/v1/tree/nodes", %{
         "seed" => "ML",
         "kind" => "hypothesis",
@@ -157,7 +147,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert SiwaSupport.sidecar_last_request() == nil
 
-    assert_receive {:siwa_deny, %{reason: :missing_agent_headers, source: :request_headers}}
+    assert_receive {:siwa_deny, %{reason: :receipt_binding_mismatch, source: :receipt}}
   end
 
   test "denies request when sidecar is unavailable and emits transport metadata", %{conn: conn} do
@@ -168,7 +158,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     Application.put_env(:tech_tree, :siwa,
       internal_url: "http://127.0.0.1:1",
-      skip_http_verify: false
+      shared_secret: Keyword.fetch!(original_siwa_cfg, :shared_secret)
     )
 
     on_exit(fn -> Application.put_env(:tech_tree, :siwa, original_siwa_cfg) end)
@@ -184,7 +174,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
         "notebook_source" => "print('ok')"
       })
 
-    assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
+    assert %{"error" => %{"code" => "siwa_unavailable"}} = json_response(conn, 503)
 
     assert_receive {:siwa_deny, %{reason: :sidecar_request_failed, source: :sidecar_http}}
   end
@@ -284,5 +274,41 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       })
 
     assert %{"error" => %{"code" => "agent_banned"}} = json_response(conn, 403)
+  end
+
+  defp receipt_token(wallet, chain_id, registry, token_id, audience) do
+    secret =
+      Application.get_env(:tech_tree, :siwa, [])
+      |> Keyword.fetch!(:shared_secret)
+
+    now = DateTime.utc_now() |> DateTime.to_unix()
+
+    header =
+      %{"alg" => "HS256", "typ" => "JWT"}
+      |> Jason.encode!()
+      |> Base.url_encode64(padding: false)
+
+    payload =
+      %{
+        "typ" => "siwa_receipt",
+        "jti" => Ecto.UUID.generate(),
+        "sub" => wallet,
+        "aud" => audience,
+        "iat" => now,
+        "exp" => now + 600,
+        "chainId" => String.to_integer(chain_id),
+        "nonce" => "nonce-#{System.unique_integer([:positive])}",
+        "keyId" => wallet,
+        "registryAddress" => registry,
+        "tokenId" => token_id
+      }
+      |> Jason.encode!()
+      |> Base.url_encode64(padding: false)
+
+    signature =
+      :crypto.mac(:hmac, :sha256, secret, "#{header}.#{payload}")
+      |> Base.url_encode64(padding: false)
+
+    "#{header}.#{payload}.#{signature}"
   end
 end

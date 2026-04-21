@@ -34,15 +34,8 @@ defmodule TechTree.Application do
   @doc false
   @spec validate_siwa_runtime_config!(atom(), keyword() | term()) :: :ok
   def validate_siwa_runtime_config!(runtime_env, siwa_cfg) when is_list(siwa_cfg) do
-    skip_http_verify? = Keyword.get(siwa_cfg, :skip_http_verify, false) == true
     internal_url = Keyword.get(siwa_cfg, :internal_url)
     shared_secret = Keyword.get(siwa_cfg, :shared_secret)
-
-    if skip_http_verify? and runtime_env != :test do
-      raise """
-      invalid SIWA configuration: :siwa, skip_http_verify may only be enabled in :test.
-      """
-    end
 
     if runtime_env == :prod do
       unless is_binary(internal_url) and String.trim(internal_url) != "" do

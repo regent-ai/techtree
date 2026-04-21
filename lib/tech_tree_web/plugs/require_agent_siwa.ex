@@ -59,7 +59,10 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       case Req.post(
              url: "#{internal_url}#{@http_verify_path}",
              body: payload_json,
-             headers: [{"content-type", "application/json"}],
+             headers: [
+               {"content-type", "application/json"},
+               {"x-siwa-audience", @audience}
+             ],
              connect_options: [timeout: connect_timeout_ms],
              receive_timeout: receive_timeout_ms
            ) do
@@ -173,14 +176,13 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   @spec build_http_verify_payload(Plug.Conn.t(), map()) :: map()
   defp build_http_verify_payload(conn, normalized_headers) do
     base_payload = %{
-      "kind" => "http_verify_request",
       "method" => conn.method,
       "path" => conn.request_path,
       "headers" => normalized_headers
     }
 
-    case Map.get(normalized_headers, "content-digest") do
-      value when is_binary(value) and value != "" -> Map.put(base_payload, "body_digest", value)
+    case conn.assigns[:raw_body] do
+      value when is_binary(value) -> Map.put(base_payload, "body", value)
       _ -> base_payload
     end
   end
@@ -226,26 +228,22 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
 
   @spec normalize_sidecar_agent_claims(map()) :: {:ok, map()} | {:error, map()}
   defp normalize_sidecar_agent_claims(claims) do
-    required_claims = ["wallet_address", "chain_id", "registry_address", "token_id"]
-
-    with {:ok, required_claims} <-
-           fetch_required_values(claims, required_claims, :sidecar_claims),
+    with {:ok, wallet_value} <-
+           fetch_required_value(claims, "wallet_address", :sidecar_claims),
+         {:ok, chain_id_value} <-
+           fetch_required_value(claims, "chain_id", :sidecar_claims),
+         {:ok, registry_value} <-
+           fetch_required_value(claims, "registry_address", :sidecar_claims),
+         {:ok, token_id_value} <-
+           fetch_required_value(claims, "token_id", :sidecar_claims),
          {:ok, wallet} <-
-           validate_hex_address(
-             required_claims["wallet_address"],
-             "wallet_address",
-             :sidecar_claims
-           ),
+           validate_hex_address(wallet_value, "wallet_address", :sidecar_claims),
          {:ok, chain_id} <-
-           validate_positive_int(required_claims["chain_id"], "chain_id", :sidecar_claims),
+           validate_positive_int(chain_id_value, "chain_id", :sidecar_claims),
          {:ok, registry} <-
-           validate_hex_address(
-             required_claims["registry_address"],
-             "registry_address",
-             :sidecar_claims
-           ),
+           validate_hex_address(registry_value, "registry_address", :sidecar_claims),
          {:ok, token_id} <-
-           validate_positive_int(required_claims["token_id"], "token_id", :sidecar_claims) do
+           validate_positive_int(token_id_value, "token_id", :sidecar_claims) do
       {:ok,
        %{
          "wallet_address" => wallet,
@@ -277,6 +275,26 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       {:ok, values}
     else
       {:error, %{reason: :missing_agent_headers, source: source, missing_headers: missing}}
+    end
+  end
+
+  @spec fetch_required_value(map(), String.t(), atom()) :: {:ok, String.t()} | {:error, map()}
+  defp fetch_required_value(claims, key, source) do
+    case claims[key] do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" ->
+            {:error, %{reason: :missing_agent_headers, source: source, missing_headers: [key]}}
+
+          trimmed ->
+            {:ok, trimmed}
+        end
+
+      value when is_integer(value) ->
+        {:ok, Integer.to_string(value)}
+
+      _ ->
+        {:error, %{reason: :missing_agent_headers, source: source, missing_headers: [key]}}
     end
   end
 
@@ -341,6 +359,9 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       %AgentIdentity{} ->
         {:error, %{reason: :agent_banned, source: :agent_status}}
     end
+  rescue
+    _ ->
+      {:error, %{reason: :agent_status_lookup_failed, source: :agent_status}}
   end
 
   defp verify_receipt_audience(headers) do

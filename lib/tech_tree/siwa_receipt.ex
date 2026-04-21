@@ -23,14 +23,12 @@ defmodule TechTree.SiwaReceipt do
     now_unix_seconds =
       opts
       |> Keyword.get(:now, DateTime.utc_now())
-      |> DateTime.to_unix()
+      |> DateTime.to_unix(:millisecond)
 
-    with [header_segment, payload_segment, signature_segment] <- String.split(token, "."),
-         :ok <- verify_signature(header_segment, payload_segment, signature_segment, secret),
-         {:ok, header_json} <- decode_segment(header_segment),
-         {:ok, payload_json} <- decode_segment(payload_segment),
-         :ok <- validate_header(header_json),
-         {:ok, claims} <- validate_claims(payload_json),
+    with [encoded_body, mac] <- String.split(token, ".", parts: 2),
+         :ok <- verify_signature(encoded_body, mac, secret),
+         {:ok, claims} <- decode_segment(encoded_body),
+         {:ok, claims} <- validate_claims(claims),
          :ok <- ensure_not_expired(claims, now_unix_seconds) do
       {:ok, claims}
     else
@@ -47,12 +45,13 @@ defmodule TechTree.SiwaReceipt do
     end
   end
 
-  defp verify_signature(header_segment, payload_segment, signature_segment, secret) do
+  defp verify_signature(encoded_body, mac, secret) do
     expected_signature =
-      :crypto.mac(:hmac, :sha256, secret, "#{header_segment}.#{payload_segment}")
+      :crypto.mac(:hmac, :sha256, secret, encoded_body)
       |> Base.url_encode64(padding: false)
 
-    if Plug.Crypto.secure_compare(signature_segment, expected_signature) do
+    if byte_size(mac) == byte_size(expected_signature) and
+         Plug.Crypto.secure_compare(mac, expected_signature) do
       :ok
     else
       {:error, :receipt_invalid}
@@ -68,9 +67,6 @@ defmodule TechTree.SiwaReceipt do
     end
   end
 
-  defp validate_header(%{"alg" => "HS256", "typ" => "JWT"}), do: :ok
-  defp validate_header(_header), do: {:error, :receipt_invalid}
-
   defp validate_claims(
          %{
            "typ" => "siwa_receipt",
@@ -78,11 +74,11 @@ defmodule TechTree.SiwaReceipt do
            "aud" => aud,
            "iat" => iat,
            "exp" => exp,
-           "chainId" => chain_id,
+           "chain_id" => chain_id,
            "nonce" => nonce,
-           "keyId" => key_id,
-           "registryAddress" => registry_address,
-           "tokenId" => token_id
+           "key_id" => key_id,
+           "registry_address" => registry_address,
+           "token_id" => token_id
          } = claims
        )
        when is_binary(sub) and is_binary(aud) and is_integer(iat) and is_integer(exp) and
@@ -102,8 +98,8 @@ defmodule TechTree.SiwaReceipt do
 
   defp validate_claims(_claims), do: {:error, :receipt_invalid}
 
-  defp ensure_not_expired(%{"exp" => exp}, now_unix_seconds) when now_unix_seconds <= exp, do: :ok
-  defp ensure_not_expired(_claims, _now_unix_seconds), do: {:error, :receipt_expired}
+  defp ensure_not_expired(%{"exp" => exp}, now_unix_ms) when now_unix_ms <= exp, do: :ok
+  defp ensure_not_expired(_claims, _now_unix_ms), do: {:error, :receipt_expired}
 
   defp ensure_audience(%{"aud" => audience}, expected_audience)
        when audience == expected_audience,
@@ -117,9 +113,9 @@ defmodule TechTree.SiwaReceipt do
          {:ok, registry_address} <- fetch_header(headers, "x-agent-registry-address"),
          {:ok, token_id} <- fetch_header(headers, "x-agent-token-id"),
          true <- String.downcase(wallet_address) == String.downcase(claims["sub"]),
-         true <- chain_id == Integer.to_string(claims["chainId"]),
-         true <- String.downcase(registry_address) == String.downcase(claims["registryAddress"]),
-         true <- token_id == claims["tokenId"] do
+         true <- chain_id == Integer.to_string(claims["chain_id"]),
+         true <- String.downcase(registry_address) == String.downcase(claims["registry_address"]),
+         true <- token_id == claims["token_id"] do
       :ok
     else
       _ -> {:error, :receipt_binding_mismatch}

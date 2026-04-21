@@ -85,7 +85,11 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
     assert response["session"]["registry_address"] == registry
     assert response["session"]["token_id"] == token_id
 
-    assert %{"headers" => headers, "path" => "/api/auth/agent/session"} =
+    assert %{
+             "headers" => headers,
+             "path" => "/api/auth/agent/session",
+             "_siwa_audience" => "techtree"
+           } =
              SiwaSupport.sidecar_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet

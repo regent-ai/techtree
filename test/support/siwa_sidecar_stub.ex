@@ -11,10 +11,11 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
     case {conn.method, conn.request_path} do
       {"POST", "/v1/agent/siwa/http-verify"} ->
         {:ok, raw_body, conn} = read_body(conn)
+        audience = conn |> get_req_header("x-siwa-audience") |> List.first()
 
         parsed_body =
           case Jason.decode(raw_body) do
-            {:ok, decoded} -> decoded
+            {:ok, decoded} -> Map.put(decoded, "_siwa_audience", audience)
             _ -> %{"raw_body" => raw_body}
           end
 
@@ -42,7 +43,7 @@ defmodule TechTreeWeb.TestSupport.SiwaSidecarStub do
                 data: %{
                   agent_claims: %{
                     wallet_address: Map.get(headers, "x-agent-wallet-address"),
-                    chain_id: Map.get(headers, "x-agent-chain-id"),
+                    chain_id: String.to_integer(Map.get(headers, "x-agent-chain-id", "0")),
                     registry_address: Map.get(headers, "x-agent-registry-address"),
                     token_id: Map.get(headers, "x-agent-token-id"),
                     label: Map.get(headers, "x-agent-label")

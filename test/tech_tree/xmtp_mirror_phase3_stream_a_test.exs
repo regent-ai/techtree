@@ -137,6 +137,53 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
              )
   end
 
+  test "lease_next_command only leases one pending command across concurrent workers" do
+    room = create_canonical_room!()
+    human = create_human!("lease-race")
+    command = insert_membership_command!(room, human, "add_member", "pending")
+    command_id = command.id
+
+    task_one = Task.async(fn -> XMTPMirror.lease_next_command(@canonical_room_key) end)
+    task_two = Task.async(fn -> XMTPMirror.lease_next_command(@canonical_room_key) end)
+
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), task_one.pid)
+    Ecto.Adapters.SQL.Sandbox.allow(Repo, self(), task_two.pid)
+
+    leased_results = [Task.await(task_one), Task.await(task_two)]
+
+    assert Enum.count(leased_results, &match?(%XmtpMembershipCommand{id: ^command_id}, &1)) == 1
+    assert Enum.count(leased_results, &is_nil/1) == 1
+    assert Repo.get!(XmtpMembershipCommand, command.id).status == "processing"
+  end
+
+  test "heartbeat enqueues a fresh stale-member removal after an earlier removal already finished" do
+    room = create_canonical_room!()
+    live_human = create_human!("live-repeat")
+    stale_human = create_human!("stale-repeat")
+
+    insert_membership_command!(room, live_human, "add_member", "done")
+    insert_membership_command!(room, stale_human, "remove_member", "done")
+    insert_membership_command!(room, stale_human, "add_member", "done")
+    insert_stale_presence!(room, stale_human)
+
+    assert {:ok, %{eviction_enqueued: 1}} = XMTPMirror.heartbeat_presence(live_human)
+
+    remove_commands =
+      XmtpMembershipCommand
+      |> where(
+        [command],
+        command.room_id == ^room.id and command.human_user_id == ^stale_human.id and
+          command.op == "remove_member"
+      )
+      |> order_by([command], asc: command.inserted_at, asc: command.id)
+      |> Repo.all()
+
+    assert length(remove_commands) == 2
+    assert Enum.at(remove_commands, 0).status == "done"
+    assert Enum.at(remove_commands, 1).status == "pending"
+    assert Enum.at(remove_commands, 1).xmtp_inbox_id == stale_human.xmtp_inbox_id
+  end
+
   test "membership_for reflects room presence and latest command state" do
     human = create_human!("membership")
 

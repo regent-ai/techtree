@@ -441,6 +441,7 @@ defmodule TechTree.XMTPMirror do
     XmtpMembershipCommand
     |> where([c], c.room_id == ^room_id and c.status == "pending")
     |> order_by([c], asc: c.inserted_at, asc: c.id)
+    |> lock("FOR UPDATE SKIP LOCKED")
     |> limit(1)
   end
 
@@ -504,7 +505,8 @@ defmodule TechTree.XMTPMirror do
       |> where(
         [c],
         c.room_id == ^room.id and c.human_user_id == ^presence.human_user_id and
-          c.xmtp_inbox_id == ^presence.xmtp_inbox_id and c.op == "remove_member"
+          c.xmtp_inbox_id == ^presence.xmtp_inbox_id and c.op == "remove_member" and
+          c.status in ["pending", "processing"]
       )
       |> limit(1)
       |> Repo.one()

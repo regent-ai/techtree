@@ -5,11 +5,12 @@ defmodule TechTreeWeb.Human.NodeLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.HumanUX
-  alias TechTreeWeb.HumanComponents
+  alias TechTree.PublicSite
+  alias TechTreeWeb.{HumanComponents, PublicSiteComponents}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    socket = assign(socket, :view, :branch)
+    socket = socket |> assign(:view, :branch) |> assign(:ios_app_url, PublicSite.ios_app_url())
 
     {:ok,
      case HumanUX.node_page(id) do
@@ -28,45 +29,49 @@ defmodule TechTreeWeb.Human.NodeLive do
     ~H"""
     <Layouts.flash_group flash={@flash} />
     <main
-      id="human-node-page"
+      id="tree-node-page"
       class="hu-page"
-      phx-hook="HumanMotion"
+      phx-hook="PublicSiteMotion"
       data-motion-scope="node"
       data-motion-view={Atom.to_string(@view)}
     >
       <div class="hu-shell">
+        <PublicSiteComponents.public_topbar current={:tree} ios_app_url={@ios_app_url} />
+
         <%= if @not_found? do %>
           <.human_header
-            kicker="Node"
-            title="Node not found"
+            kicker="Branch detail"
+            title="Branch not found"
             subtitle="The requested node is unavailable or not publicly visible."
           >
             <:actions>
-              <.link navigate={~p"/app"} class="hu-primary-link">Back to seeds</.link>
+              <.link navigate={~p"/tree"} class="hu-primary-link">Back to tree</.link>
             </:actions>
           </.human_header>
         <% else %>
           <.human_header
-            kicker={@node.seed}
+            kicker="Branch detail"
             title={@node.title}
             subtitle={HumanComponents.present(@node.summary, "No summary available for this node.")}
           >
             <:actions>
-              <.link navigate={~p"/app"} class="hu-ghost-link">Seeds</.link>
-              <.link navigate={~p"/seed/#{@node.seed}"} class="hu-ghost-link">Seed branches</.link>
-              <.link :if={@parent} navigate={~p"/node/#{@parent.id}"} class="hu-toggle-link">
+              <.link navigate={~p"/tree"} class="hu-ghost-link">Tree</.link>
+              <.link navigate={~p"/tree/seed/#{@node.seed}"} class="hu-ghost-link">
+                Seed branches
+              </.link>
+              <.link :if={@parent} navigate={~p"/tree/node/#{@parent.id}"} class="hu-toggle-link">
                 Parent
               </.link>
               <.link
                 id="node-branch-toggle"
-                patch={~p"/node/#{@node.id}"}
+                patch={~p"/tree/node/#{@node.id}"}
                 class={HumanComponents.toggle_class(@view == :branch)}
               >
                 Branch
               </.link>
               <.link
                 id="node-graph-toggle"
-                patch={~p"/node/#{@node.id}?view=graph"}
+                patch={~p"/tree/node/#{@node.id}?view=graph"}
                 class={HumanComponents.toggle_class(@view == :graph)}
               >
                 Graph
@@ -96,7 +101,7 @@ defmodule TechTreeWeb.Human.NodeLive do
                     style={"--hu-depth: #{graph_node.depth}"}
                     data-motion="graph-node"
                   >
-                    <.link navigate={~p"/node/#{graph_node.id}"} class="hu-graph-link">
+                    <.link navigate={~p"/tree/node/#{graph_node.id}"} class="hu-graph-link">
                       <span class="hu-graph-kind">{graph_node.position}</span>
                       <span class="hu-graph-title">{graph_node.title}</span>
                       <span class="hu-graph-meta">{HumanComponents.kind(graph_node.kind)}</span>
@@ -166,7 +171,7 @@ defmodule TechTreeWeb.Human.NodeLive do
             <%= if @parent do %>
               <p class="hu-seed-summary">
                 Parent:
-                <.link navigate={~p"/node/#{@parent.id}"} class="hu-inline-link">
+                <.link navigate={~p"/tree/node/#{@parent.id}"} class="hu-inline-link">
                   {@parent.title}
                 </.link>
               </p>
@@ -178,7 +183,7 @@ defmodule TechTreeWeb.Human.NodeLive do
               <ol class="hu-inline-list">
                 <%= for ancestor <- @lineage do %>
                   <li id={"lineage-node-#{ancestor.id}"}>
-                    <.link navigate={~p"/node/#{ancestor.id}"} class="hu-inline-link">
+                    <.link navigate={~p"/tree/node/#{ancestor.id}"} class="hu-inline-link">
                       {ancestor.title}
                     </.link>
                   </li>
@@ -192,7 +197,7 @@ defmodule TechTreeWeb.Human.NodeLive do
               <ul class="hu-list">
                 <%= for child <- @children do %>
                   <li id={"child-node-#{child.id}"}>
-                    <.link navigate={~p"/node/#{child.id}"} class="hu-list-link">
+                    <.link navigate={~p"/tree/node/#{child.id}"} class="hu-list-link">
                       <span>{child.title}</span>
                       <span class="hu-list-meta">{HumanComponents.kind(child.kind)}</span>
                     </.link>
@@ -346,7 +351,7 @@ defmodule TechTreeWeb.Human.NodeLive do
               <ul class="hu-list">
                 <%= for rel <- @related do %>
                   <li id={"related-node-#{rel.dst_id}-#{rel.ordinal}"}>
-                    <.link navigate={~p"/node/#{rel.dst_id}"} class="hu-list-link">
+                    <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="hu-list-link">
                       <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
                       <span class="hu-list-meta">{rel.tag}</span>
                     </.link>
@@ -388,7 +393,7 @@ defmodule TechTreeWeb.Human.NodeLive do
               <ul class="hu-list">
                 <%= for rel <- links do %>
                   <li id={"provenance-node-#{rel.dst_id}-#{rel.ordinal}"}>
-                    <.link navigate={~p"/node/#{rel.dst_id}"} class="hu-list-link">
+                    <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="hu-list-link">
                       <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
                       <span class="hu-list-meta">{rel.tag}</span>
                     </.link>

@@ -275,7 +275,7 @@ defmodule TechTreeWeb.HomeComponents do
                       Copy {String.capitalize(@install_agent)} line
                     </button>
 
-                    <.link navigate={~p"/skills/techtree-bbh"} class="btn fp-command-secondary">
+                    <.link navigate={~p"/learn/bbh-train"} class="btn fp-command-secondary">
                       Open the BBH guide
                     </.link>
 
@@ -596,14 +596,16 @@ defmodule TechTreeWeb.HomeComponents do
                     </button>
 
                     <.link
-                      navigate={~p"/node/#{@detail_node.id}"}
+                      navigate={~p"/tree/node/#{@detail_node.id}"}
                       class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
                     >
                       Open node page
                     </.link>
 
                     <.link
-                      navigate={~p"/seed/#{HomePresenter.selected_seed(@seed_catalog, @detail_node)}"}
+                      navigate={
+                        ~p"/tree/seed/#{HomePresenter.selected_seed(@seed_catalog, @detail_node)}"
+                      }
                       class="btn btn-sm border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
                     >
                       Open seed branch
@@ -662,10 +664,10 @@ defmodule TechTreeWeb.HomeComponents do
                 </div>
 
                 <div class="fp-ledger-actions">
-                  <.link navigate={~p"/skills/techtree-bbh"} class="btn fp-command-secondary">
+                  <.link navigate={~p"/learn/bbh-train"} class="btn fp-command-secondary">
                     BBH guided path
                   </.link>
-                  <.link navigate={~p"/bbh"} class="btn fp-command-secondary">
+                  <.link navigate={~p"/bbh/wall"} class="btn fp-command-secondary">
                     BBH wall
                   </.link>
                 </div>

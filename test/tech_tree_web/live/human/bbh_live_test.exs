@@ -29,12 +29,12 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
       raw_score: 3.3
     })
 
-    {:ok, view, _html} = live(conn, ~p"/bbh")
+    {:ok, view, _html} = live(conn, ~p"/bbh/wall")
 
     assert has_element?(view, "#bbh-leaderboard-page")
     assert render(view) =~ "Wall board"
-    assert render(view) =~ "Homepage tree"
-    assert render(view) =~ "BBH skill path"
+    assert render(view) =~ "BBH home"
+    assert render(view) =~ "BBH guide"
     assert has_element?(view, "#bbh-capsule-wall")
     assert has_element?(view, "#bbh-wall-feed")
     assert has_element?(view, "#bbh-wall-drilldown")
@@ -78,7 +78,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
         raw_score: 3.8
       })
 
-    {:ok, view, _html} = live(conn, ~p"/bbh")
+    {:ok, view, _html} = live(conn, ~p"/bbh/wall")
 
     assert has_element?(view, "#bbh-lane-challenge")
     assert has_element?(view, "#bbh-capsule-#{seeded_capsule.capsule_id}")
@@ -109,10 +109,10 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
         raw_score: 4.55
       })
 
-    {:ok, view, _html} = live(conn, ~p"/bbh")
+    {:ok, view, _html} = live(conn, ~p"/bbh/wall")
 
     render_click(element(view, "#bbh-capsule-#{second_capsule.capsule_id}"))
-    assert_patch(view, ~p"/bbh?#{[focus: second_capsule.capsule_id]}")
+    assert_patch(view, ~p"/bbh/wall?#{[focus: second_capsule.capsule_id]}")
 
     assert has_element?(view, "#bbh-drilldown-#{second_capsule.capsule_id}")
     assert render(view) =~ "Capsule Two"
@@ -123,7 +123,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     refute has_element?(view, "#bbh-drilldown-#{first_capsule.capsule_id}")
 
     {:ok, refreshed_view, _html} =
-      live(conn, ~p"/bbh?#{[focus: second_capsule.capsule_id]}")
+      live(conn, ~p"/bbh/wall?#{[focus: second_capsule.capsule_id]}")
 
     assert has_element?(refreshed_view, "#bbh-drilldown-#{second_capsule.capsule_id}")
     refute has_element?(refreshed_view, "#bbh-drilldown-#{first_capsule.capsule_id}")

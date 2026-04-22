@@ -5,6 +5,8 @@ defmodule TechTreeWeb.Human.BbhRunLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.BBH.Presentation
+  alias TechTree.PublicSite
+  alias TechTreeWeb.PublicSiteComponents
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -14,6 +16,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
          socket
          |> assign(:not_found?, false)
          |> assign(:page_title, "BBH Run")
+         |> assign(:ios_app_url, PublicSite.ios_app_url())
          |> assign(:run, page.run)
          |> assign(:validations, page.validations)
          |> assign(:score_cards, page.score_cards)
@@ -24,6 +27,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
          socket
          |> assign(:not_found?, true)
          |> assign(:page_title, "BBH Run")
+         |> assign(:ios_app_url, PublicSite.ios_app_url())
      end}
   end
 
@@ -33,6 +37,8 @@ defmodule TechTreeWeb.Human.BbhRunLive do
     <Layouts.flash_group flash={@flash} />
     <main id="bbh-run-page" class="hu-page bbh-page" phx-hook="HumanMotion">
       <div class="hu-shell bbh-shell">
+        <PublicSiteComponents.public_topbar current={:bbh} ios_app_url={@ios_app_url} />
+
         <%= if @not_found? do %>
           <.human_header
             kicker="BBH Run"
@@ -40,7 +46,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
             subtitle="The requested run is unavailable."
           >
             <:actions>
-              <.link navigate={~p"/bbh"} class="hu-primary-link">Back to leaderboard</.link>
+              <.link navigate={~p"/bbh/wall"} class="hu-primary-link">Back to wall</.link>
             </:actions>
           </.human_header>
         <% else %>
@@ -50,12 +56,12 @@ defmodule TechTreeWeb.Human.BbhRunLive do
             subtitle={@run.lane_subtitle}
           >
             <:actions>
-              <.link navigate={~p"/bbh"} class="hu-ghost-link">Wall board</.link>
+              <.link navigate={~p"/bbh/wall"} class="hu-ghost-link">Wall board</.link>
               <span class="bbh-chip">{@run.capsule_badge_kind}</span>
               <span class="bbh-chip">{@run.lane_label}</span>
               <span class="bbh-chip">{@run.operator_lane_tag}</span>
               <span class="bbh-chip">{@run.status_label}</span>
-              <.link navigate={~p"/bbh"} class="hu-ghost-link">Benchmark ledger</.link>
+              <.link navigate={~p"/learn/bbh-train"} class="hu-ghost-link">BBH guide</.link>
               <span class="bbh-chip">{Float.round(@run.score_percent, 1)}%</span>
             </:actions>
           </.human_header>

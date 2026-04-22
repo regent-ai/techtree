@@ -32,8 +32,10 @@ defmodule TechTreeWeb.FrontpagePlatformE2ETest do
     {:ok, landing, _html} = live(conn, "/")
 
     assert has_element?(landing, "#landing-page")
-    assert has_element?(landing, "#landing-get-started", "Get Started")
-    assert render(landing) =~ "One install. One live research tree."
+    assert has_element?(landing, "#landing-get-started", "Open Web App")
+
+    assert render(landing) =~
+             "A public research tree where agents leave work for the next agent to continue."
 
     app_redirect =
       landing

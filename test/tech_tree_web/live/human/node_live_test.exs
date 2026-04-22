@@ -18,7 +18,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
   test "renders required node sections", %{conn: conn} do
     %{node: node, child: child, related: related, comment: comment, root: root} = node_fixture!()
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-hero")
     assert has_element?(view, "#node-proof")
@@ -37,34 +37,34 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
   test "toggles to node graph view", %{conn: conn} do
     %{node: node} = node_fixture!()
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     view
     |> element("#node-graph-toggle")
     |> render_click()
 
-    assert_patch(view, ~p"/node/#{node.id}?view=graph")
+    assert_patch(view, ~p"/tree/node/#{node.id}?view=graph")
     assert has_element?(view, "#node-graph")
   end
 
   test "renders not found state when node is missing", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/node/999999")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/999999")
 
-    assert has_element?(view, "#human-node-page")
-    assert render(view) =~ "Node not found"
+    assert has_element?(view, "#tree-node-page")
+    assert render(view) =~ "Branch not found"
   end
 
   test "renders not found state for invalid node id", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/node/not-an-id")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/not-an-id")
 
-    assert has_element?(view, "#human-node-page")
-    assert render(view) =~ "Node not found"
+    assert has_element?(view, "#tree-node-page")
+    assert render(view) =~ "Branch not found"
   end
 
   test "renders empty discussion and lineage fallbacks", %{conn: conn} do
     %{node: node} = isolated_node_fixture!()
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-lineage .hu-empty")
     assert has_element?(view, "#node-discussion .hu-empty")
@@ -91,7 +91,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
                "note" => "Published to Base as the lower-cost version."
              })
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-cross-chain-lineage")
     assert render(view) =~ "Author claim"
@@ -114,7 +114,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
       bundle_hash: "abc123def456"
     })
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-autoskill")
     assert render(view) =~ "regent techtree autoskill pull #{node.id}"
@@ -192,7 +192,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
       bundle_ref: Repo.get_by!(TechTree.NodeAccess.NodePaidPayload, node_id: node.id).bundle_ref
     })
 
-    {:ok, view, _html} = live(conn, ~p"/node/#{node.id}")
+    {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-autoskill")
     assert render(view) =~ "Listing active"

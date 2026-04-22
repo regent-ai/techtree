@@ -255,8 +255,8 @@ defmodule TechTreeWeb.PlatformComponents do
   def workspace_links do
     [
       %{href: "/", label: "Public home", copy: "Return to the guided front door."},
-      %{href: "/human", label: "Seed map", copy: "Open the human-facing tree routes."},
-      %{href: "/skills/techtree-bbh", label: "BBH guide", copy: "Jump into the guided BBH lane."}
+      %{href: "/tree", label: "Explore tree", copy: "Open the public tree routes."},
+      %{href: "/learn/bbh-train", label: "BBH guide", copy: "Jump into the guided BBH path."}
     ]
   end
 

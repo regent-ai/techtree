@@ -48,15 +48,21 @@ defmodule TechTreeWeb.Router do
     pipe_through :browser
 
     live "/", LandingLive, :index
+    live "/start", Public.StartLive, :index
+    live "/tree", Human.SeedLive, :index
+    live "/tree/seed/:seed", Human.BranchLive, :show
+    live "/tree/node/:id", Human.NodeLive, :show
+    live "/activity", Public.ActivityLive, :index
+    live "/notebooks", Public.NotebooksLive, :index
+    live "/chat", Public.ChatLive, :index
+    live "/learn", Public.LearnLive, :index
+    live "/learn/:topic", Public.LearnLive, :show
+    live "/bbh", Public.BbhHomeLive, :index
+    live "/bbh/wall", Human.BbhLeaderboardLive, :index
+    live "/bbh/runs/:id", Human.BbhRunLive, :show
     live "/app", HomeLive, :index
     get "/auth/orcid/start", OrcidAuthController, :start
     get "/auth/orcid/callback", OrcidAuthController, :callback
-    live "/human", Human.SeedLive, :index
-    live "/bbh", Human.BbhLeaderboardLive, :index
-    live "/bbh/runs/:id", Human.BbhRunLive, :show
-    live "/skills/techtree-bbh", Human.BbhSkillLive, :show
-    live "/seed/:seed", Human.BranchLive, :show
-    live "/node/:id", Human.NodeLive, :show
   end
 
   scope "/platform", TechTreeWeb.Platform do

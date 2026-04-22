@@ -5,12 +5,14 @@ import { HomeChatbox } from "./hooks/home-chatbox";
 import { HomeInstallPanel } from "./hooks/home-install-panel";
 import { HomeStoryRail } from "./hooks/home-story-rail";
 import { registerLazyHooks } from "./hooks/lazy";
+import { PublicSiteMotion } from "./hooks/public-site-motion";
 
 const homeHooks: HooksOptions = {
   LandingPage,
   HomeChatbox,
   HomeInstallPanel,
   HomeStoryRail,
+  PublicSiteMotion,
 };
 
 registerLazyHooks(homeHooks);

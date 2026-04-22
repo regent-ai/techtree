@@ -5,14 +5,19 @@ defmodule TechTreeWeb.Human.SeedLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.HumanUX
-  alias TechTreeWeb.HumanComponents
+  alias TechTree.Nodes
+  alias TechTree.PublicSite
+  alias TechTreeWeb.{HumanComponents, PublicSiteComponents}
 
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:page_title, "Human Branches")
+     |> assign(:page_title, "Explore Tree")
+     |> assign(:ios_app_url, PublicSite.ios_app_url())
      |> assign(:seed_lanes, HumanUX.seed_lanes())
+     |> assign(:recent_nodes, Nodes.list_recent_public_nodes(%{"limit" => "6"}))
+     |> assign(:popular_nodes, Nodes.list_public_nodes(%{"limit" => "6"}))
      |> assign(:view, :branch)}
   end
 
@@ -26,29 +31,31 @@ defmodule TechTreeWeb.Human.SeedLive do
     ~H"""
     <Layouts.flash_group flash={@flash} />
     <main
-      id="human-seed-page"
+      id="tree-page"
       class="hu-page"
-      phx-hook="HumanMotion"
+      phx-hook="PublicSiteMotion"
       data-motion-scope="seed"
       data-motion-view={Atom.to_string(@view)}
     >
       <div class="hu-shell">
+        <PublicSiteComponents.public_topbar current={:tree} ios_app_url={@ios_app_url} />
+
         <.human_header
-          kicker="Human UX"
-          title="Branch-first navigation"
-          subtitle="Default to branch lanes. Toggle graph only when you need a tree scan."
+          kicker="Explore Tree"
+          title="Browse the live research tree"
+          subtitle="See what agents are building, which branches are growing, and where the next useful work is happening."
         >
           <:actions>
             <.link
-              id="home-branch-toggle"
-              patch={~p"/human"}
+              id="tree-branch-toggle"
+              patch={~p"/tree"}
               class={HumanComponents.toggle_class(@view == :branch)}
             >
               Branch
             </.link>
             <.link
-              id="home-graph-toggle"
-              patch={~p"/human?view=graph"}
+              id="tree-graph-toggle"
+              patch={~p"/tree?view=graph"}
               class={HumanComponents.toggle_class(@view == :graph)}
             >
               Graph
@@ -77,7 +84,7 @@ defmodule TechTreeWeb.Human.SeedLive do
                           style={"--hu-depth: #{node.depth}"}
                           data-motion="graph-node"
                         >
-                          <.link navigate={~p"/node/#{node.id}"} class="hu-graph-link">
+                          <.link navigate={~p"/tree/node/#{node.id}"} class="hu-graph-link">
                             <span class="hu-graph-kind">{HumanComponents.kind(node.kind)}</span>
                             <span class="hu-graph-title">{node.title}</span>
                           </.link>
@@ -111,7 +118,7 @@ defmodule TechTreeWeb.Human.SeedLive do
                       <%= for node <- Enum.take(lane.branches, 4) do %>
                         <li id={"seed-lane-node-#{lane.seed}-#{node.id}"}>
                           <div class="hu-list-link hu-list-link-stack">
-                            <.link navigate={~p"/node/#{node.id}"} class="hu-inline-link">
+                            <.link navigate={~p"/tree/node/#{node.id}"} class="hu-inline-link">
                               {node.title}
                             </.link>
                             <span class="hu-list-meta">{HumanComponents.kind(node.kind)}</span>
@@ -142,7 +149,7 @@ defmodule TechTreeWeb.Human.SeedLive do
                     </ul>
                   <% end %>
 
-                  <.link navigate={~p"/seed/#{lane.seed}"} class="hu-primary-link">
+                  <.link navigate={~p"/tree/seed/#{lane.seed}"} class="hu-primary-link">
                     Open {lane.seed}
                   </.link>
                 </article>
@@ -150,6 +157,32 @@ defmodule TechTreeWeb.Human.SeedLive do
             </div>
           </.human_section>
         <% end %>
+
+        <.human_section id="tree-recent-nodes" title="Recent nodes">
+          <ul class="hu-list">
+            <%= for node <- @recent_nodes do %>
+              <li id={"tree-recent-node-#{node.id}"}>
+                <.link navigate={~p"/tree/node/#{node.id}"} class="hu-list-link">
+                  <span>{node.title}</span>
+                  <span class="hu-list-meta">{node.seed}</span>
+                </.link>
+              </li>
+            <% end %>
+          </ul>
+        </.human_section>
+
+        <.human_section id="tree-popular-nodes" title="Popular nodes">
+          <ul class="hu-list">
+            <%= for node <- @popular_nodes do %>
+              <li id={"tree-popular-node-#{node.id}"}>
+                <.link navigate={~p"/tree/node/#{node.id}"} class="hu-list-link">
+                  <span>{node.title}</span>
+                  <span class="hu-list-meta">{node.watcher_count} watchers</span>
+                </.link>
+              </li>
+            <% end %>
+          </ul>
+        </.human_section>
       </div>
     </main>
     """

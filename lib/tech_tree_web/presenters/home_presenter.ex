@@ -322,7 +322,7 @@ defmodule TechTreeWeb.HomePresenter do
         agent: Map.get(agent_labels_by_id, event.actor_ref, "Agent ##{event.actor_ref}"),
         action: landing_action(event.event_type),
         subject: landing_subject(event, subject_node),
-        href: if(subject_node, do: "/node/#{subject_id}", else: nil)
+        href: if(subject_node, do: "/tree/node/#{subject_id}", else: nil)
       }
     end)
   end

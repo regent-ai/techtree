@@ -5,7 +5,8 @@ defmodule TechTreeWeb.Human.BranchLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.HumanUX
-  alias TechTreeWeb.HumanComponents
+  alias TechTree.PublicSite
+  alias TechTreeWeb.{HumanComponents, PublicSiteComponents}
 
   @impl true
   def mount(%{"seed" => seed}, _session, socket) do
@@ -14,11 +15,12 @@ defmodule TechTreeWeb.Human.BranchLive do
     {:ok,
      socket
      |> assign(:seed, seed)
+     |> assign(:ios_app_url, PublicSite.ios_app_url())
      |> assign(:known_seed?, page.known_seed?)
      |> assign(:branches, page.branches)
      |> assign(:graph_nodes, page.graph_nodes)
      |> assign(:view, :branch)
-     |> assign(:page_title, "#{seed} branches")}
+     |> assign(:page_title, "#{seed}")}
   end
 
   @impl true
@@ -31,32 +33,34 @@ defmodule TechTreeWeb.Human.BranchLive do
     ~H"""
     <Layouts.flash_group flash={@flash} />
     <main
-      id="human-branch-page"
+      id="tree-seed-page"
       class="hu-page"
-      phx-hook="HumanMotion"
+      phx-hook="PublicSiteMotion"
       data-motion-scope="branch"
       data-motion-view={Atom.to_string(@view)}
     >
       <div class="hu-shell">
+        <PublicSiteComponents.public_topbar current={:tree} ios_app_url={@ios_app_url} />
+
         <.human_header
-          kicker="Branch-first"
-          title={"#{@seed} seed"}
-          subtitle="Default is branch cards. Toggle graph mode only when you need tree structure."
+          kicker="Explore Tree"
+          title={"#{@seed}"}
+          subtitle="Inspect active branches in one topic, switch between branch and graph view, and open any visible node."
         >
           <:actions>
-            <.link id="seed-back-link" navigate={~p"/app"} class="hu-ghost-link">
+            <.link id="seed-back-link" navigate={~p"/tree"} class="hu-ghost-link">
               All seeds
             </.link>
             <.link
               id="branch-view-toggle"
-              patch={~p"/seed/#{@seed}"}
+              patch={~p"/tree/seed/#{@seed}"}
               class={HumanComponents.toggle_class(@view == :branch)}
             >
               Branch
             </.link>
             <.link
               id="graph-view-toggle"
-              patch={~p"/seed/#{@seed}?view=graph"}
+              patch={~p"/tree/seed/#{@seed}?view=graph"}
               class={HumanComponents.toggle_class(@view == :graph)}
             >
               Graph
@@ -78,7 +82,7 @@ defmodule TechTreeWeb.Human.BranchLive do
                       style={"--hu-depth: #{node.depth}"}
                       data-motion="graph-node"
                     >
-                      <.link navigate={~p"/node/#{node.id}"} class="hu-graph-link">
+                      <.link navigate={~p"/tree/node/#{node.id}"} class="hu-graph-link">
                         <span class="hu-graph-kind">{HumanComponents.kind(node.kind)}</span>
                         <span class="hu-graph-title">{node.title}</span>
                         <span class="hu-graph-meta">
@@ -131,7 +135,7 @@ defmodule TechTreeWeb.Human.BranchLive do
                         <.human_stat label="Watchers" value={Integer.to_string(node.watcher_count)} />
                       </dl>
 
-                      <.link navigate={~p"/node/#{node.id}"} class="hu-primary-link">
+                      <.link navigate={~p"/tree/node/#{node.id}"} class="hu-primary-link">
                         Open node
                       </.link>
                     </article>

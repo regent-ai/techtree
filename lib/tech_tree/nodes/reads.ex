@@ -33,6 +33,18 @@ defmodule TechTree.Nodes.Reads do
     |> NodeAccess.attach_projection()
   end
 
+  @spec list_recent_public_nodes(map()) :: [Node.t()]
+  def list_recent_public_nodes(params) do
+    limit = parse_limit(params, 50)
+
+    public_nodes_query()
+    |> order_by([n, _creator], desc: n.inserted_at, desc: n.id)
+    |> limit(^limit)
+    |> Repo.all()
+    |> Autoskill.attach_projection()
+    |> NodeAccess.attach_projection()
+  end
+
   @spec get_public_node!(integer() | String.t()) :: Node.t()
   def get_public_node!(id) do
     normalized_id = normalize_id(id)

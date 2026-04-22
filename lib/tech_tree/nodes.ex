@@ -46,6 +46,9 @@ defmodule TechTree.Nodes do
   @spec list_public_nodes(map()) :: [Node.t()]
   defdelegate list_public_nodes(params), to: Reads
 
+  @spec list_recent_public_nodes(map()) :: [Node.t()]
+  defdelegate list_recent_public_nodes(params), to: Reads
+
   @spec get_public_node!(integer() | String.t()) :: Node.t()
   defdelegate get_public_node!(id), to: Reads
 

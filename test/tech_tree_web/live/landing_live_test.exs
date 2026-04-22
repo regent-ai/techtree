@@ -39,9 +39,9 @@ defmodule TechTreeWeb.LandingLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#landing-activity-row-1", "Landing entry 11")
-    assert has_element?(view, "#landing-activity-row-10", "Landing entry 02")
-    refute has_element?(view, "#landing-activity-row-11")
+    assert has_element?(view, "#landing-activity-table-row-1", "Landing entry 11")
+    assert has_element?(view, "#landing-activity-table-row-10", "Landing entry 02")
+    refute has_element?(view, "#landing-activity-table-row-11")
     refute render(view) =~ "Landing entry 01"
     refute render(view) =~ human.display_name
   end
@@ -73,17 +73,17 @@ defmodule TechTreeWeb.LandingLiveTest do
 
     assert has_element?(
              view,
-             "#landing-activity-row-1 a[href='/node/#{child.id}']",
+             "#landing-activity-table-row-1 a[href='/tree/node/#{child.id}']",
              "Resolved child"
            )
 
     assert has_element?(
              view,
-             "#landing-activity-row-2 .tt-landing-table-subject",
+             "#landing-activity-table-row-2 .tt-public-table-link",
              "Archived note"
            )
 
-    refute has_element?(view, "#landing-activity-row-2 a[href='/node/999999']")
+    refute has_element?(view, "#landing-activity-table-row-2 a[href='/tree/node/999999']")
   end
 
   test "landing page shows a plain empty state when no agent actions are visible", %{conn: conn} do
@@ -91,8 +91,8 @@ defmodule TechTreeWeb.LandingLiveTest do
 
     assert has_element?(
              view,
-             ".tt-landing-empty-state",
-             "No agent actions are visible yet. The next public move will appear here."
+             ".tt-public-empty-state",
+             "No public activity is visible yet. The next visible move will appear here."
            )
   end
 end

@@ -14,9 +14,9 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
   alias TechTree.Repo
 
   test "defaults to branch-first lanes", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/human")
+    {:ok, view, _html} = live(conn, ~p"/tree")
 
-    assert has_element?(view, "#human-seed-page")
+    assert has_element?(view, "#tree-page")
     assert has_element?(view, "#seed-branch-overview")
     refute has_element?(view, "#seed-graph-overview")
 
@@ -26,13 +26,13 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
   end
 
   test "toggles to graph view", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/human")
+    {:ok, view, _html} = live(conn, ~p"/tree")
 
     view
-    |> element("#home-graph-toggle")
+    |> element("#tree-graph-toggle")
     |> render_click()
 
-    assert_patch(view, "/human?view=graph")
+    assert_patch(view, "/tree?view=graph")
     assert has_element?(view, "#seed-graph-overview")
     refute has_element?(view, "#seed-branch-overview")
   end
@@ -42,15 +42,15 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
     Repo.delete_all(Comment)
     Repo.delete_all(Node)
 
-    {:ok, view, _html} = live(conn, ~p"/human")
+    {:ok, view, _html} = live(conn, ~p"/tree")
 
     assert has_element?(view, "#seed-branch-overview .hu-empty")
 
     view
-    |> element("#home-graph-toggle")
+    |> element("#tree-graph-toggle")
     |> render_click()
 
-    assert_patch(view, "/human?view=graph")
+    assert_patch(view, "/tree?view=graph")
     assert has_element?(view, "#seed-graph-overview .hu-empty")
   end
 
@@ -70,7 +70,7 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
       bundle_hash: "hashseed"
     })
 
-    {:ok, view, _html} = live(conn, ~p"/human")
+    {:ok, view, _html} = live(conn, ~p"/tree")
 
     assert render(view) =~ "Autoskill"
     assert render(view) =~ "Public free"

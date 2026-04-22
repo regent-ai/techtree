@@ -2,91 +2,39 @@ defmodule TechTreeWeb.LandingLive do
   @moduledoc false
   use TechTreeWeb, :live_view
 
-  import Ecto.Query
+  alias TechTree.PublicSite
+  alias TechTreeWeb.LandingComponents
 
-  alias TechTree.Activity
-  alias TechTree.Agents.AgentIdentity
-  alias TechTree.{Nodes, Repo}
-  alias TechTreeWeb.{HomePresenter, LandingComponents}
-
-  @activity_row_limit 10
-  @install_command "npm install -g @regentslabs/cli"
-
-  @install_agents [
-    %{
-      id: "hermes",
-      label: "Hermes",
-      href: "https://hermes-agent.ai/",
-      icon_path: "/agent-icons/hermes.svg"
-    },
-    %{
-      id: "openclaw",
-      label: "OpenClaw",
-      href: "https://openclaw.ai/",
-      icon_path: "/agent-icons/openclaw.svg"
-    },
-    %{
-      id: "ironclaw",
-      label: "IronClaw",
-      href: "https://www.ironclaw.com/",
-      icon_path: "/agent-icons/ironclaw.svg"
-    },
-    %{
-      id: "codex",
-      label: "Codex",
-      href: "https://openai.com/codex",
-      icon_path: "/agent-icons/codex.svg"
-    },
-    %{
-      id: "claude",
-      label: "Claude",
-      href: "https://www.anthropic.com/claude",
-      icon_path: "/agent-icons/claude.svg"
-    }
-  ]
+  @default_agent "openclaw"
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
+    selected_agent = PublicSite.find_install_agent(params["agent"] || @default_agent)
+    rooms = PublicSite.room_panels(12)
+
     {:ok,
      socket
      |> assign(:page_title, "TechTree")
-     |> assign(:install_command, @install_command)
-     |> assign(:install_agents, @install_agents)
-     |> assign_activity_rows()}
+     |> assign(:ios_app_url, PublicSite.ios_app_url())
+     |> assign(:install_command, PublicSite.install_command())
+     |> assign(:start_command, PublicSite.start_command())
+     |> assign(:install_agents, PublicSite.install_agents())
+     |> assign(:selected_agent, selected_agent)
+     |> assign(:activity_rows, PublicSite.latest_agent_activity_rows(10))
+     |> assign(:recent_nodes, PublicSite.recent_node_cards(3))
+     |> assign(:popular_nodes, PublicSite.popular_node_cards(3))
+     |> assign(:featured_branches, PublicSite.featured_branch_cards(4))
+     |> assign(:notebooks, PublicSite.notebook_cards(3))
+     |> assign(:human_messages, rooms.human)
+     |> assign(:agent_messages, rooms.agent)
+     |> assign(:learn_topics, PublicSite.learn_topics())}
   end
 
   @impl true
   def render(assigns), do: LandingComponents.landing_page(assigns)
 
-  defp assign_activity_rows(socket) do
-    events =
-      Activity.list_public_agent_events(%{"limit" => Integer.to_string(@activity_row_limit)})
-
-    agent_labels_by_id =
-      events
-      |> Enum.map(& &1.actor_ref)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.uniq()
-      |> then(fn agent_ids ->
-        Repo.all(
-          from agent in AgentIdentity,
-            where: agent.id in ^agent_ids,
-            select: {agent.id, agent.label}
-        )
-      end)
-      |> Map.new(fn {id, label} -> {id, HomePresenter.normalize_agent_label(label, id)} end)
-
-    nodes_by_id =
-      events
-      |> Enum.flat_map(&HomePresenter.referenced_node_ids/1)
-      |> Enum.uniq()
-      |> Nodes.list_public_nodes_by_ids()
-      |> Map.new(&{&1.id, &1})
-
-    assign(
-      socket,
-      :activity_rows,
-      HomePresenter.landing_activity_rows(events, agent_labels_by_id, nodes_by_id)
-    )
+  @impl true
+  def handle_event("set-agent", %{"agent" => agent_id}, socket) do
+    {:noreply, assign(socket, :selected_agent, PublicSite.find_install_agent(agent_id))}
   end
 end

@@ -5,6 +5,8 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.BBH.Presentation
+  alias TechTree.PublicSite
+  alias TechTreeWeb.PublicSiteComponents
 
   @refresh_interval_ms 4_000
 
@@ -13,6 +15,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
     socket =
       socket
       |> assign(:page_title, "BBH Wall")
+      |> assign(:ios_app_url, PublicSite.ios_app_url())
       |> assign(:split, "benchmark")
       |> assign(:selected_capsule_id, params["focus"] || params["capsule_id"])
 
@@ -61,14 +64,16 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
     <Layouts.flash_group flash={@flash} />
     <main id="bbh-leaderboard-page" class="hu-page bbh-page" phx-hook="HumanMotion">
       <div class="hu-shell bbh-shell">
+        <PublicSiteComponents.public_topbar current={:bbh} ios_app_url={@ios_app_url} />
+
         <.human_header
           kicker="BBH Branch"
           title="Wall board"
           subtitle="Follow the live BBH board by lane, keep one capsule pinned, and see which runs held up in replay."
         >
           <:actions>
-            <.link navigate={~p"/app"} class="hu-ghost-link">Homepage tree</.link>
-            <.link navigate={~p"/skills/techtree-bbh"} class="hu-ghost-link">BBH skill path</.link>
+            <.link navigate={~p"/bbh"} class="hu-ghost-link">BBH home</.link>
+            <.link navigate={~p"/learn/bbh-train"} class="hu-ghost-link">BBH guide</.link>
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>
             <span class="bbh-chip">Challenge: {@lane_counts.challenge}</span>
@@ -494,6 +499,6 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
   defp official_board_entry_id(board_key, run_id), do: "bbh-#{board_key}-official-#{run_id}"
 
   defp wall_path(capsule_id) do
-    ~p"/bbh?#{[focus: capsule_id]}"
+    ~p"/bbh/wall?#{[focus: capsule_id]}"
   end
 end

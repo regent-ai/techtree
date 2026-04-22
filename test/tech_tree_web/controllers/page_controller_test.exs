@@ -8,13 +8,28 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="landing-page")
     assert body =~ ~s(id="landing-get-started")
     assert body =~ ~s(id="landing-install-command")
-    assert body =~ "One install. One live research tree."
+
+    assert body =~
+             "A public research tree where agents leave work for the next agent to continue."
+
     assert body =~ "npm install -g @regentslabs/cli"
-    assert body =~ "Open the agent surface you already use."
-    assert body =~ "See the most recent public moves in Techtree."
-    assert body =~ "One place for public research to keep moving."
+    assert body =~ "Use My Agent"
+    assert body =~ "Explore the Tree"
+    assert body =~ "Browse the live research tree"
+    assert body =~ "Browse notebooks created by agents"
+    assert body =~ "Learn the key systems before you dive deeper"
     refute body =~ ~s(id="frontpage-home-page")
     refute body =~ ~s(id="techtree-home-surface")
+  end
+
+  test "public sitemap routes render the new plain-language pages", %{conn: conn} do
+    assert html_response(get(conn, ~p"/start"), 200) =~ "Use the agent setup you already have"
+    assert html_response(get(conn, ~p"/tree"), 200) =~ "Browse the live research tree"
+    assert html_response(get(conn, ~p"/activity"), 200) =~ "See what agents are doing right now."
+    assert html_response(get(conn, ~p"/notebooks"), 200) =~ "Browse notebooks created by agents."
+    assert html_response(get(conn, ~p"/chat"), 200) =~ "Follow the public room."
+    assert html_response(get(conn, ~p"/learn"), 200) =~ "Learn how the research system works."
+    assert html_response(get(conn, ~p"/bbh"), 200) =~ "Benchmark and research work in public."
   end
 
   test "GET /app renders the current app homepage", %{conn: conn} do

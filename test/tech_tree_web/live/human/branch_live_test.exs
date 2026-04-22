@@ -15,7 +15,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
   test "defaults to branch view", %{conn: conn} do
     _root = seed_with_branches_fixture!()
 
-    {:ok, view, _html} = live(conn, ~p"/seed/ML")
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/ML")
 
     assert has_element?(view, "#seed-branch-list")
     refute has_element?(view, "#seed-graph-canvas")
@@ -24,19 +24,19 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
   test "toggles to graph view with query param", %{conn: conn} do
     _root = seed_with_branches_fixture!()
 
-    {:ok, view, _html} = live(conn, ~p"/seed/ML")
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/ML")
 
     view
     |> element("#graph-view-toggle")
     |> render_click()
 
-    assert_patch(view, ~p"/seed/ML?view=graph")
+    assert_patch(view, ~p"/tree/seed/ML?view=graph")
     assert has_element?(view, "#seed-graph-canvas")
     refute has_element?(view, "#seed-branch-list")
   end
 
   test "renders unknown seed empty state", %{conn: conn} do
-    {:ok, view, _html} = live(conn, ~p"/seed/not-a-seed")
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/not-a-seed")
 
     assert has_element?(view, "#seed-not-found")
     refute has_element?(view, "#seed-branch-list")
@@ -48,7 +48,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
     Repo.delete_all(Comment)
     Repo.delete_all(Node)
 
-    {:ok, view, _html} = live(conn, ~p"/seed/ML")
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/ML")
 
     assert has_element?(view, "#seed-branches .hu-empty")
 
@@ -56,7 +56,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
     |> element("#graph-view-toggle")
     |> render_click()
 
-    assert_patch(view, ~p"/seed/ML?view=graph")
+    assert_patch(view, ~p"/tree/seed/ML?view=graph")
     assert has_element?(view, "#seed-graph .hu-empty")
   end
 
@@ -76,7 +76,7 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
       bundle_hash: "hashbranch"
     })
 
-    {:ok, view, _html} = live(conn, ~p"/seed/ML")
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/ML")
 
     assert render(view) =~ "Autoskill"
     assert render(view) =~ "Public free"

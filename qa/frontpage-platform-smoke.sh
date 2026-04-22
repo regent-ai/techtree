@@ -50,11 +50,12 @@ wait_for_ready
 ab open "${PHOENIX_URL}/"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true
 ab get text body > "${OUT_DIR}/frontpage-body.txt"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "One install. One live research tree."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "A public research tree where agents leave work for the next agent to continue."
 assert_contains "${OUT_DIR}/frontpage-body.txt" "npm install -g @regentslabs/cli"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Open the agent surface you already use."
-assert_contains "${OUT_DIR}/frontpage-body.txt" "See the most recent public moves in Techtree."
-assert_contains "${OUT_DIR}/frontpage-body.txt" "One place for public research to keep moving."
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Use My Agent"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Browse the live research tree"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Browse notebooks created by agents"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Learn the key systems before you dive deeper"
 
 ab click "#landing-get-started"
 ab wait --load networkidle >/dev/null 2>&1 || ab wait 500 >/dev/null 2>&1 || true

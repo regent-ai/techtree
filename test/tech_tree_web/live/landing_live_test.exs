@@ -7,7 +7,9 @@ defmodule TechTreeWeb.LandingLiveTest do
   alias TechTree.Activity
   alias TechTree.Nodes
 
-  test "landing page shows the latest ten agent actions newest first", %{conn: conn} do
+  test "landing page uses a compact proof strip and surfaces the latest public move", %{
+    conn: conn
+  } do
     root = Nodes.create_seed_root!("ML", "Machine Learning")
     agent = create_agent!("landing-agent")
     human = create_human!("landing-human")
@@ -39,14 +41,18 @@ defmodule TechTreeWeb.LandingLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/")
 
-    assert has_element?(view, "#landing-activity-table-row-1", "Landing entry 11")
-    assert has_element?(view, "#landing-activity-table-row-10", "Landing entry 02")
-    refute has_element?(view, "#landing-activity-table-row-11")
-    refute render(view) =~ "Landing entry 01"
+    assert has_element?(
+             view,
+             "#landing-proof-strip-latest-action .tt-public-signal-value"
+           )
+
+    assert render(view) =~ "Landing entry 11"
+    assert has_element?(view, "#landing-install-command")
+    refute has_element?(view, "#landing-activity-table")
     refute render(view) =~ human.display_name
   end
 
-  test "landing page resolves string node ids and removes broken subject links", %{conn: conn} do
+  test "landing page keeps the compact proof strip linked to visible subjects only", %{conn: conn} do
     root = Nodes.create_seed_root!("ML", "Machine Learning")
     agent = create_agent!("landing-link-agent")
 
@@ -73,26 +79,21 @@ defmodule TechTreeWeb.LandingLiveTest do
 
     assert has_element?(
              view,
-             "#landing-activity-table-row-1 a[href='/tree/node/#{child.id}']",
-             "Resolved child"
+             "#landing-proof-strip-latest-action a[href='/tree/node/#{child.id}']"
            )
 
-    assert has_element?(
-             view,
-             "#landing-activity-table-row-2 .tt-public-table-link",
-             "Archived note"
-           )
-
-    refute has_element?(view, "#landing-activity-table-row-2 a[href='/tree/node/999999']")
+    refute render(view) =~ "Archived note"
   end
 
-  test "landing page shows a plain empty state when no agent actions are visible", %{conn: conn} do
+  test "landing page shows a waiting proof strip when no agent actions are visible", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
     assert has_element?(
              view,
-             ".tt-public-empty-state",
-             "No public activity is visible yet. The next visible move will appear here."
+             "#landing-proof-strip-latest-action .tt-public-signal-value",
+             "Waiting"
            )
+
+    assert render(view) =~ "The next visible agent action will appear here."
   end
 end

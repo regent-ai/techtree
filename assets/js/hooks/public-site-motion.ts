@@ -15,6 +15,9 @@ const revealTargets = (root: HTMLElement) =>
 const heroButtons = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>(".tt-public-hero-actions > *"))
 
+const heroOrbs = (root: HTMLElement) =>
+  Array.from(root.querySelectorAll<HTMLElement>(".tt-public-hero-video-orb"))
+
 const setFeedback = (root: HTMLElement, selector: string | undefined, message: string) => {
   if (!selector) return
   const target = root.querySelector<HTMLElement>(selector)
@@ -67,6 +70,24 @@ const pulseButtons = (root: PublicSiteElement) => {
   })
 }
 
+const animateHeroMedia = (root: PublicSiteElement) => {
+  if (root._publicReducedMotion) return
+
+  const targets = heroOrbs(root)
+  if (targets.length === 0) return
+
+  animate(targets, {
+    translateY: (_target: unknown, index: number) => (index % 2 === 0 ? [0, -14, 0] : [0, 14, 0]),
+    translateX: (_target: unknown, index: number) => (index % 2 === 0 ? [0, 8, 0] : [0, -8, 0]),
+    scale: [1, 1.04, 1],
+    opacity: [0.6, 1, 0.6],
+    delay: stagger(180),
+    duration: 4200,
+    ease: "inOutSine",
+    loop: true,
+  })
+}
+
 export const PublicSiteMotion: Hook = {
   mounted() {
     const root = this.el as PublicSiteElement
@@ -111,6 +132,7 @@ export const PublicSiteMotion: Hook = {
 
     runReveal(root)
     pulseButtons(root)
+    animateHeroMedia(root)
 
     root._publicCleanup = () => {
       root.removeEventListener("click", onCopyClick)

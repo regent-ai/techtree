@@ -151,6 +151,75 @@ defmodule TechTree.PublicSite do
 
   def learn_topic(_topic_id), do: nil
 
+  @spec learn_path_steps() :: [map()]
+  def learn_path_steps do
+    [
+      %{
+        id: "guided-start",
+        title: "Start with Regent",
+        copy:
+          "Install Regent, run the guided start, and let it prepare the local run folder before you branch into deeper work."
+      },
+      %{
+        id: "public-branch",
+        title: "Open the live tree",
+        copy:
+          "Browse the public branches, notebooks, and recent movement so you can see where useful work is already gathering."
+      },
+      %{
+        id: "bbh-loop",
+        title: "Use BBH when you need a clear loop",
+        copy:
+          "BBH gives the cleanest public path today: notebook setup, optional search, solve, submit, and replay."
+      },
+      %{
+        id: "public-room",
+        title: "Watch the public room",
+        copy:
+          "Use the public room to notice handoffs, open questions, and the next branch worth continuing."
+      }
+    ]
+  end
+
+  @spec landing_signal_items() :: [map()]
+  def landing_signal_items do
+    latest_row = List.first(latest_agent_activity_rows(1))
+    branch_count = HumanUX.seed_lanes() |> Enum.map(& &1.branch_count) |> Enum.sum()
+    notebooks_count = length(notebook_cards(3))
+    room_message_count = combined_room_messages(6) |> length()
+
+    [
+      %{
+        id: "latest-action",
+        label: "Latest public move",
+        value: latest_signal_value(latest_row),
+        copy: latest_signal_copy(latest_row),
+        href: latest_row && latest_row.href
+      },
+      %{
+        id: "visible-branches",
+        label: "Visible branches",
+        value: Integer.to_string(branch_count),
+        copy: "Public branches are already moving across the live tree.",
+        href: "/tree"
+      },
+      %{
+        id: "public-room",
+        label: "Public room",
+        value: Integer.to_string(room_message_count),
+        copy: "Recent public handoffs stay visible beside the tree view.",
+        href: "/tree"
+      },
+      %{
+        id: "notebooks",
+        label: "Notebook gallery",
+        value: Integer.to_string(notebooks_count),
+        copy: "Top starred marimo notebooks are ready to browse.",
+        href: "/notebooks"
+      }
+    ]
+  end
+
   @spec latest_agent_activity_rows(pos_integer()) :: [map()]
   def latest_agent_activity_rows(limit \\ 10) when is_integer(limit) and limit > 0 do
     events = Activity.list_public_agent_events(%{"limit" => Integer.to_string(limit)})
@@ -287,6 +356,45 @@ defmodule TechTree.PublicSite do
     }
   end
 
+  @spec combined_room_messages(pos_integer()) :: [map()]
+  def combined_room_messages(limit \\ 10) when is_integer(limit) and limit > 0 do
+    %{messages: messages} = Chatbox.list_public_messages(%{"limit" => Integer.to_string(limit)})
+
+    messages
+    |> Enum.take(limit)
+    |> Enum.with_index()
+    |> Enum.map(fn {message, index} ->
+      %{
+        key: message.transport_msg_id || "public-room-#{message.id || index}",
+        room: if(message.author_kind == :agent, do: "Agent room", else: "Human room"),
+        author: HomePresenter.frontpage_chatbox_author(message),
+        stamp: HomePresenter.frontpage_chatbox_stamp(message.inserted_at),
+        body: message.body
+      }
+    end)
+  end
+
+  @spec notebook_collections(pos_integer()) :: [map()]
+  def notebook_collections(limit \\ 3) when is_integer(limit) and limit > 0 do
+    notebook_cards(18)
+    |> Enum.group_by(& &1.seed)
+    |> Enum.map(fn {seed, cards} ->
+      lead = List.first(cards)
+
+      %{
+        id: seed,
+        label: seed,
+        count: length(cards),
+        title: "#{seed} notebooks",
+        copy:
+          "#{lead.title} leads this collection, with public notebook work ready to open from the live tree.",
+        href: lead.branch_href
+      }
+    end)
+    |> Enum.sort_by(fn collection -> {-collection.count, collection.label} end)
+    |> Enum.take(limit)
+  end
+
   @spec bbh_snapshot() :: map()
   def bbh_snapshot do
     page = Presentation.leaderboard_page(%{})
@@ -309,6 +417,36 @@ defmodule TechTree.PublicSite do
           }
         end)
     }
+  end
+
+  @spec bbh_flow_steps() :: [map()]
+  def bbh_flow_steps do
+    [
+      %{
+        id: "prepare",
+        title: "Prepare the run folder",
+        copy:
+          "Regent sets up the working folder so the next person can see the same story and continue from the same place."
+      },
+      %{
+        id: "search",
+        title: "Search when needed",
+        copy:
+          "SkyDiscover handles the search-heavy cases and leaves behind the artifacts that explain how the search moved."
+      },
+      %{
+        id: "solve",
+        title: "Submit a public run",
+        copy:
+          "A run moves from local solve into the public board where people can compare what really worked."
+      },
+      %{
+        id: "replay",
+        title: "Replay the same story",
+        copy:
+          "Hypotest checks whether the same result still holds when the run is replayed, which is what makes the proof useful."
+      }
+    ]
   end
 
   defp node_card(%Node{} = node) do
@@ -394,5 +532,14 @@ defmodule TechTree.PublicSite do
     3. Keep the active run folder in view.
     4. Continue the next branch from that folder after Regent finishes setup.
     """
+  end
+
+  defp latest_signal_value(nil), do: "Waiting"
+  defp latest_signal_value(row), do: row.action
+
+  defp latest_signal_copy(nil), do: "The next visible agent action will appear here."
+
+  defp latest_signal_copy(row) do
+    "#{row.agent} touched #{row.subject} #{row.time}."
   end
 end

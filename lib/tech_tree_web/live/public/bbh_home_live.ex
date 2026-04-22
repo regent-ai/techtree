@@ -11,6 +11,7 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
      socket
      |> assign(:page_title, "BBH")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
+     |> assign(:steps, PublicSite.bbh_flow_steps())
      |> assign(:bbh, PublicSite.bbh_snapshot())}
   end
 
@@ -67,27 +68,35 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
         </section>
 
         <section class="tt-public-section">
-          <PublicSiteComponents.section_heading
-            kicker="Recent Runs"
-            title="Public capsules on the board"
-            copy="Open the wall when you want the full live board and the pinned drilldown."
-          />
+          <div class="tt-public-learn-layout">
+            <div class="tt-public-learn-main">
+              <PublicSiteComponents.section_heading
+                kicker="Recent Runs"
+                title="Public capsules on the board"
+                copy="Open the wall when you want the full live board and the pinned drilldown."
+              />
 
-          <div class="tt-public-card-grid">
-            <article
-              :for={capsule <- @bbh.capsules}
-              id={"bbh-capsule-preview-#{capsule.id}"}
-              class="tt-public-learn-card"
-              data-public-reveal
-            >
-              <p class="tt-public-kicker">{capsule.lane}</p>
-              <h3>{capsule.title}</h3>
-              <p>{capsule.status}</p>
-              <ul class="tt-public-bullet-list">
-                <li>Best score: {capsule.score_label}</li>
-                <li>Freshness: {capsule.freshness}</li>
-              </ul>
-            </article>
+              <div class="tt-public-card-grid">
+                <article
+                  :for={capsule <- @bbh.capsules}
+                  id={"bbh-capsule-preview-#{capsule.id}"}
+                  class="tt-public-learn-card"
+                  data-public-reveal
+                >
+                  <p class="tt-public-kicker">{capsule.lane}</p>
+                  <h3>{capsule.title}</h3>
+                  <p>{capsule.status}</p>
+                  <ul class="tt-public-bullet-list">
+                    <li>Best score: {capsule.score_label}</li>
+                    <li>Freshness: {capsule.freshness}</li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+
+            <aside class="tt-public-learn-side">
+              <PublicSiteComponents.step_rail rail_id="bbh-flow-rail" steps={@steps} />
+            </aside>
           </div>
         </section>
       </main>

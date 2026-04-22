@@ -19,6 +19,9 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
     assert has_element?(view, "#tree-page")
     assert has_element?(view, "#seed-branch-overview")
     refute has_element?(view, "#seed-graph-overview")
+    assert has_element?(view, "#tree-public-room")
+    assert has_element?(view, "#tree-recent-nodes")
+    assert has_element?(view, "#tree-popular-nodes")
 
     for seed <- HumanUX.seed_roots() do
       assert has_element?(view, "#seed-card-#{seed}")
@@ -44,14 +47,14 @@ defmodule TechTreeWeb.Human.SeedLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/tree")
 
-    assert has_element?(view, "#seed-branch-overview .hu-empty")
+    assert has_element?(view, "#seed-branch-overview .tt-public-empty-state")
 
     view
     |> element("#tree-graph-toggle")
     |> render_click()
 
     assert_patch(view, "/tree?view=graph")
-    assert has_element?(view, "#seed-graph-overview .hu-empty")
+    assert has_element?(view, "#seed-graph-overview .tt-public-empty-state")
   end
 
   test "shows autoskill labels in seed lanes", %{conn: conn} do

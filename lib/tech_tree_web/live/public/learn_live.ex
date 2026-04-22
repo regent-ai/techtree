@@ -11,6 +11,7 @@ defmodule TechTreeWeb.Public.LearnLive do
      socket
      |> assign(:page_title, "Research Systems")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
+     |> assign(:steps, PublicSite.learn_path_steps())
      |> assign(:topic, nil)
      |> assign(:topics, PublicSite.learn_topics())}
   end
@@ -35,7 +36,7 @@ defmodule TechTreeWeb.Public.LearnLive do
       <PublicSiteComponents.public_topbar current={:learn} ios_app_url={@ios_app_url} />
 
       <main class="tt-public-main">
-        <section class="tt-public-hero">
+        <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Research Systems</p>
             <h1>Learn how the research system works.</h1>
@@ -47,10 +48,16 @@ defmodule TechTreeWeb.Public.LearnLive do
           </div>
         </section>
 
-        <section class="tt-public-section">
-          <div class="tt-public-card-grid">
-            <PublicSiteComponents.learn_card :for={topic <- @topics} topic={topic} />
+        <section class="tt-public-learn-layout">
+          <div class="tt-public-learn-main">
+            <div class="tt-public-card-grid">
+              <PublicSiteComponents.learn_card :for={topic <- @topics} topic={topic} />
+            </div>
           </div>
+
+          <aside class="tt-public-learn-side">
+            <PublicSiteComponents.step_rail rail_id="learn-process-rail" steps={@steps} />
+          </aside>
         </section>
       </main>
     </div>
@@ -64,7 +71,7 @@ defmodule TechTreeWeb.Public.LearnLive do
       <PublicSiteComponents.public_topbar current={:learn} ios_app_url={@ios_app_url} />
 
       <main class="tt-public-main">
-        <section class="tt-public-hero">
+        <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">{@topic.label}</p>
             <h1>{@topic.title}</h1>

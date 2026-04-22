@@ -2,8 +2,6 @@ defmodule TechTreeWeb.Human.NodeLive do
   @moduledoc false
   use TechTreeWeb, :live_view
 
-  import TechTreeWeb.HumanComponents
-
   alias TechTree.HumanUX
   alias TechTree.PublicSite
   alias TechTreeWeb.{HumanComponents, PublicSiteComponents}
@@ -28,383 +26,386 @@ defmodule TechTreeWeb.Human.NodeLive do
   def render(assigns) do
     ~H"""
     <Layouts.flash_group flash={@flash} />
-    <main
+    <div
       id="tree-node-page"
-      class="hu-page"
+      class="tt-public-shell"
       phx-hook="PublicSiteMotion"
       data-motion-scope="node"
       data-motion-view={Atom.to_string(@view)}
     >
-      <div class="hu-shell">
-        <PublicSiteComponents.public_topbar current={:tree} ios_app_url={@ios_app_url} />
+      <PublicSiteComponents.public_topbar current={:tree} ios_app_url={@ios_app_url} />
 
+      <main class="tt-public-main">
         <%= if @not_found? do %>
-          <.human_header
-            kicker="Branch detail"
-            title="Branch not found"
-            subtitle="The requested node is unavailable or not publicly visible."
-          >
-            <:actions>
-              <.link navigate={~p"/tree"} class="hu-primary-link">Back to tree</.link>
-            </:actions>
-          </.human_header>
+          <section class="tt-public-page-hero">
+            <div class="tt-public-hero-copy" data-public-reveal>
+              <p class="tt-public-kicker">Branch detail</p>
+              <h1>Branch not found.</h1>
+              <p class="tt-public-hero-copy-text">
+                The requested node is unavailable or not publicly visible.
+              </p>
+              <div class="tt-public-hero-actions">
+                <.link navigate={~p"/tree"} class="tt-public-primary-button">Back to tree</.link>
+              </div>
+            </div>
+          </section>
         <% else %>
-          <.human_header
-            kicker="Branch detail"
-            title={@node.title}
-            subtitle={HumanComponents.present(@node.summary, "No summary available for this node.")}
-          >
-            <:actions>
-              <.link navigate={~p"/tree"} class="hu-ghost-link">Tree</.link>
-              <.link navigate={~p"/tree/seed/#{@node.seed}"} class="hu-ghost-link">
-                Seed branches
-              </.link>
-              <.link :if={@parent} navigate={~p"/tree/node/#{@parent.id}"} class="hu-toggle-link">
-                Parent
-              </.link>
-              <.link
-                id="node-branch-toggle"
-                patch={~p"/tree/node/#{@node.id}"}
-                class={HumanComponents.toggle_class(@view == :branch)}
-              >
-                Branch
-              </.link>
-              <.link
-                id="node-graph-toggle"
-                patch={~p"/tree/node/#{@node.id}?view=graph"}
-                class={HumanComponents.toggle_class(@view == :graph)}
-              >
-                Graph
-              </.link>
-            </:actions>
-          </.human_header>
+          <section class="tt-public-hero tt-public-hero-split">
+            <div class="tt-public-hero-copy" data-public-reveal>
+              <p class="tt-public-kicker">Branch detail</p>
+              <h1>{@node.title}</h1>
+              <p class="tt-public-hero-copy-text">
+                {HumanComponents.present(@node.summary, "No summary available for this node.")}
+              </p>
 
-          <.human_section id="node-hero" title="Hero">
-            <p class="hu-seed-summary">
-              {HumanComponents.present(@node.summary, "No summary available for this node.")}
-            </p>
-            <dl class="hu-stat-grid hu-stat-grid-wide">
-              <.human_stat label="ID" value={Integer.to_string(@node.id)} />
-              <.human_stat label="Type" value={HumanComponents.kind(@node.kind)} />
-              <.human_stat label="Status" value={HumanComponents.kind(@node.status)} />
-              <.human_stat label="Depth" value={Integer.to_string(@node.depth || 0)} />
-            </dl>
-          </.human_section>
+              <div class="tt-public-hero-actions">
+                <.link navigate={~p"/tree"} class="tt-public-secondary-button">Tree</.link>
+                <.link navigate={~p"/tree/seed/#{@node.seed}"} class="tt-public-secondary-button">
+                  Seed branches
+                </.link>
+                <.link
+                  :if={@parent}
+                  navigate={~p"/tree/node/#{@parent.id}"}
+                  class="tt-public-secondary-button"
+                >
+                  Parent
+                </.link>
+                <.link
+                  id="node-branch-toggle"
+                  patch={~p"/tree/node/#{@node.id}"}
+                  class={["tt-public-secondary-button", @view == :branch && "is-active"]}
+                >
+                  Branch view
+                </.link>
+                <.link
+                  id="node-graph-toggle"
+                  patch={~p"/tree/node/#{@node.id}?view=graph"}
+                  class={["tt-public-secondary-button", @view == :graph && "is-active"]}
+                >
+                  Graph view
+                </.link>
+              </div>
+            </div>
+
+            <aside
+              id="node-hero"
+              class="tt-public-detail-card tt-public-stat-panel"
+              data-public-reveal
+            >
+              <div class="tt-public-side-list-head">
+                <h3>Overview</h3>
+                <p>The core details that make this branch legible at a glance.</p>
+              </div>
+              <dl class="tt-public-node-stats tt-public-node-stats-large">
+                <div>
+                  <dt>ID</dt>
+                  <dd>{Integer.to_string(@node.id)}</dd>
+                </div>
+                <div>
+                  <dt>Type</dt>
+                  <dd>{HumanComponents.kind(@node.kind)}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{HumanComponents.kind(@node.status)}</dd>
+                </div>
+                <div>
+                  <dt>Depth</dt>
+                  <dd>{Integer.to_string(@node.depth || 0)}</dd>
+                </div>
+              </dl>
+            </aside>
+          </section>
 
           <%= if @view == :graph do %>
-            <.human_section id="node-graph" title="Local graph">
-              <ol class="hu-graph-list">
+            <section id="node-graph" class="tt-public-detail-card tt-public-detail-card-wide">
+              <div class="tt-public-side-list-head">
+                <h3>Local graph</h3>
+                <p>See the lineage, focus node, and visible children in one compact view.</p>
+              </div>
+              <ol class="tt-public-graph-list">
                 <%= for graph_node <- local_graph(@lineage, @node, @children) do %>
-                  <li
-                    id={"node-graph-item-#{graph_node.id}"}
-                    class="hu-graph-node"
-                    style={"--hu-depth: #{graph_node.depth}"}
-                    data-motion="graph-node"
-                  >
-                    <.link navigate={~p"/tree/node/#{graph_node.id}"} class="hu-graph-link">
-                      <span class="hu-graph-kind">{graph_node.position}</span>
-                      <span class="hu-graph-title">{graph_node.title}</span>
-                      <span class="hu-graph-meta">{HumanComponents.kind(graph_node.kind)}</span>
+                  <li id={"node-graph-item-#{graph_node.id}"} class="tt-public-graph-node">
+                    <.link navigate={~p"/tree/node/#{graph_node.id}"} class="tt-public-graph-link">
+                      <span class="tt-public-node-meta">{graph_node.position}</span>
+                      <strong>{graph_node.title}</strong>
+                      <span>{HumanComponents.kind(graph_node.kind)}</span>
                     </.link>
                   </li>
                 <% end %>
               </ol>
-            </.human_section>
+            </section>
           <% end %>
 
-          <.human_section id="node-proof" title="Proof">
-            <ul class="hu-list">
-              <%= for row <- proof_rows(@node) do %>
-                <li id={"node-proof-#{row.id}"}>
-                  <div class="hu-list-link">
-                    <span>{row.label}</span>
-                    <span class="hu-list-meta">{row.value}</span>
-                  </div>
-                </li>
-              <% end %>
-            </ul>
-          </.human_section>
-
-          <.human_section :if={autoskill_panel?(@node)} id="node-autoskill" title="Autoskill">
-            <div class="hu-autoskill-panel">
-              <div class="hu-autoskill-row">
-                <span class="hu-autoskill-chip">{HumanComponents.autoskill_flavor_label(@node)}</span>
-                <span :if={HumanComponents.autoskill_mode_label(@node)} class="hu-list-meta">
-                  {HumanComponents.autoskill_mode_label(@node)}
-                </span>
-                <span :if={autoskill_bundle_hash(@node)} class="hu-list-meta">
-                  Bundle {autoskill_bundle_hash(@node)}
-                </span>
-              </div>
-
-              <p class="hu-seed-summary">{autoskill_preview(@node)}</p>
-
-              <dl class="hu-stat-grid hu-stat-grid-wide">
-                <.human_stat label="Entrypoint" value={autoskill_entrypoint(@node)} />
-                <.human_stat label="Primary file" value={autoskill_primary_file(@node)} />
-                <.human_stat label="Access" value={autoskill_access_copy(@node)} />
-                <.human_stat
-                  label="Pull command"
-                  value={"regent techtree autoskill pull #{@node.id}"}
-                />
-              </dl>
-
-              <%= if autoskill_score_rows(@node) != [] do %>
-                <div class="hu-autoskill-strip">
-                  <%= for row <- autoskill_score_rows(@node) do %>
-                    <span class="hu-lineage-chip">{row}</span>
+          <section class="tt-public-node-detail-grid">
+            <div class="tt-public-node-detail-main">
+              <section id="node-proof" class="tt-public-detail-card">
+                <div class="tt-public-side-list-head">
+                  <h3>Proof</h3>
+                  <p>Open the publication and notebook records that anchor this branch.</p>
+                </div>
+                <ul class="tt-public-detail-list">
+                  <%= for row <- proof_rows(@node) do %>
+                    <li id={"node-proof-#{row.id}"}>
+                      <span>{row.label}</span>
+                      <strong>{row.value}</strong>
+                    </li>
                   <% end %>
+                </ul>
+              </section>
+
+              <section :if={autoskill_panel?(@node)} id="node-autoskill" class="tt-public-detail-card">
+                <div class="tt-public-side-list-head">
+                  <h3>Autoskill</h3>
+                  <p>{autoskill_preview(@node)}</p>
                 </div>
-              <% end %>
-
-              <%= if autoskill_listing_rows(@node) != [] do %>
-                <div class="hu-autoskill-strip">
-                  <%= for row <- autoskill_listing_rows(@node) do %>
-                    <span class="hu-lineage-chip">{row}</span>
-                  <% end %>
+                <div class="tt-public-card-actions">
+                  <span class="tt-public-room-chip">
+                    {HumanComponents.autoskill_flavor_label(@node)}
+                  </span>
+                  <span :if={HumanComponents.autoskill_mode_label(@node)} class="tt-public-room-chip">
+                    {HumanComponents.autoskill_mode_label(@node)}
+                  </span>
+                  <span :if={autoskill_bundle_hash(@node)} class="tt-public-room-chip">
+                    Bundle {autoskill_bundle_hash(@node)}
+                  </span>
                 </div>
-              <% end %>
-            </div>
-          </.human_section>
-
-          <.human_section id="node-lineage" title="Lineage">
-            <%= if @parent do %>
-              <p class="hu-seed-summary">
-                Parent:
-                <.link navigate={~p"/tree/node/#{@parent.id}"} class="hu-inline-link">
-                  {@parent.title}
-                </.link>
-              </p>
-            <% end %>
-
-            <%= if @lineage == [] do %>
-              <.empty_state message="This node is a seed root or has no visible lineage." />
-            <% else %>
-              <ol class="hu-inline-list">
-                <%= for ancestor <- @lineage do %>
-                  <li id={"lineage-node-#{ancestor.id}"}>
-                    <.link navigate={~p"/tree/node/#{ancestor.id}"} class="hu-inline-link">
-                      {ancestor.title}
-                    </.link>
+                <ul class="tt-public-detail-list">
+                  <li><span>Entrypoint</span><strong>{autoskill_entrypoint(@node)}</strong></li>
+                  <li><span>Primary file</span><strong>{autoskill_primary_file(@node)}</strong></li>
+                  <li><span>Access</span><strong>{autoskill_access_copy(@node)}</strong></li>
+                  <li>
+                    <span>Pull command</span><strong>{"regent techtree autoskill pull #{@node.id}"}</strong>
                   </li>
-                <% end %>
-              </ol>
-            <% end %>
+                </ul>
+                <div :if={autoskill_score_rows(@node) != []} class="tt-public-chip-row">
+                  <span :for={row <- autoskill_score_rows(@node)} class="tt-public-room-chip">
+                    {row}
+                  </span>
+                </div>
+                <div :if={autoskill_listing_rows(@node) != []} class="tt-public-chip-row">
+                  <span :for={row <- autoskill_listing_rows(@node)} class="tt-public-room-chip">
+                    {row}
+                  </span>
+                </div>
+              </section>
 
-            <%= if @children == [] do %>
-              <.empty_state message="No public children are attached to this node yet." />
-            <% else %>
-              <ul class="hu-list">
-                <%= for child <- @children do %>
-                  <li id={"child-node-#{child.id}"}>
-                    <.link navigate={~p"/tree/node/#{child.id}"} class="hu-list-link">
-                      <span>{child.title}</span>
-                      <span class="hu-list-meta">{HumanComponents.kind(child.kind)}</span>
-                    </.link>
-                  </li>
-                <% end %>
-              </ul>
-            <% end %>
-          </.human_section>
-
-          <.human_section
-            :if={@cross_chain_lineage}
-            id="node-cross-chain-lineage"
-            title="Cross-chain lineage"
-          >
-            <%= if @cross_chain_lineage.author_claim do %>
-              <article class="hu-lineage-hero" data-motion="reveal">
-                <div class="hu-lineage-hero-head">
-                  <p class="hu-lineage-kicker">Author claim</p>
-                  <span class="hu-lineage-chip">Most visible</span>
+              <section id="node-lineage" class="tt-public-detail-card">
+                <div class="tt-public-side-list-head">
+                  <h3>Lineage</h3>
+                  <p>Move backward to the parent story or forward into visible children.</p>
                 </div>
 
-                <p class="hu-lineage-hero-relation">
-                  {@cross_chain_lineage.author_claim.relation_label}
-                  <%= if @cross_chain_lineage.author_claim.target_label do %>
-                    <span class="hu-lineage-chip">
+                <p :if={@parent} class="tt-public-detail-copy">
+                  Parent:
+                  <.link navigate={~p"/tree/node/#{@parent.id}"} class="tt-public-inline-link">
+                    {@parent.title}
+                  </.link>
+                </p>
+
+                <%= if @lineage == [] do %>
+                  <div class="hu-empty">This node is a seed root or has no visible lineage.</div>
+                <% else %>
+                  <ol class="tt-public-inline-list">
+                    <%= for ancestor <- @lineage do %>
+                      <li id={"lineage-node-#{ancestor.id}"}>
+                        <.link navigate={~p"/tree/node/#{ancestor.id}"} class="tt-public-inline-link">
+                          {ancestor.title}
+                        </.link>
+                      </li>
+                    <% end %>
+                  </ol>
+                <% end %>
+
+                <%= if @children == [] do %>
+                  <div class="hu-empty">No public children are attached to this node yet.</div>
+                <% else %>
+                  <ul class="tt-public-detail-list">
+                    <%= for child <- @children do %>
+                      <li id={"child-node-#{child.id}"}>
+                        <.link navigate={~p"/tree/node/#{child.id}"} class="tt-public-detail-link">
+                          <span>{child.title}</span>
+                          <strong>{HumanComponents.kind(child.kind)}</strong>
+                        </.link>
+                      </li>
+                    <% end %>
+                  </ul>
+                <% end %>
+              </section>
+
+              <section
+                :if={@cross_chain_lineage}
+                id="node-cross-chain-lineage"
+                class="tt-public-detail-card"
+              >
+                <div class="tt-public-side-list-head">
+                  <h3>Cross-chain lineage</h3>
+                  <p>
+                    Track how this branch points to work on other chains when that history exists.
+                  </p>
+                </div>
+
+                <%= if @cross_chain_lineage.author_claim do %>
+                  <article class="tt-public-cross-chain-hero">
+                    <div class="tt-public-card-actions">
+                      <span class="tt-public-room-chip">Author claim</span>
+                      <span class="tt-public-room-chip">Most visible</span>
+                    </div>
+                    <h4>{@cross_chain_lineage.author_claim.relation_label}</h4>
+                    <p :if={@cross_chain_lineage.author_claim.target_label}>
                       {@cross_chain_lineage.author_claim.target_label}
-                    </span>
-                  <% end %>
-                </p>
+                    </p>
+                    <p :if={@cross_chain_lineage.author_claim.note}>
+                      {@cross_chain_lineage.author_claim.note}
+                    </p>
+                  </article>
+                <% end %>
 
-                <p :if={@cross_chain_lineage.author_claim.note} class="hu-lineage-note">
-                  {@cross_chain_lineage.author_claim.note}
-                </p>
-
-                <div class="hu-lineage-meta-row">
-                  <span :if={@cross_chain_lineage.author_claim.claimant_label} class="hu-lineage-chip">
-                    {@cross_chain_lineage.author_claim.claimant_label}
-                  </span>
-                  <span
-                    :if={@cross_chain_lineage.author_claim.declared_by_author}
-                    class="hu-lineage-chip"
-                  >
-                    Declared by node author
-                  </span>
-                </div>
-              </article>
-            <% end %>
-
-            <%= if @cross_chain_lineage.summary_mode do %>
-              <div class="hu-lineage-summary" data-motion="reveal">
-                <dl class="hu-stat-grid hu-stat-grid-wide">
-                  <.human_stat
-                    label="Claims"
-                    value={Integer.to_string(@cross_chain_lineage.summary.total)}
-                  />
-                  <.human_stat
-                    label="Author"
-                    value={Integer.to_string(@cross_chain_lineage.summary.author_claims)}
-                  />
-                  <.human_stat
-                    label="Mutual"
-                    value={Integer.to_string(@cross_chain_lineage.summary.mutual_claims)}
-                  />
-                  <.human_stat
-                    label="Disputed"
-                    value={Integer.to_string(@cross_chain_lineage.summary.disputed_claims)}
-                  />
-                </dl>
-
-                <div
-                  :if={@cross_chain_lineage.summary.relation_buckets != []}
-                  class="hu-lineage-chart"
-                >
-                  <%= for bucket <- @cross_chain_lineage.summary.relation_buckets do %>
-                    <div class="hu-lineage-bar" data-motion="graph-node">
-                      <div class="hu-lineage-bar-head">
-                        <span>{bucket.label}</span>
-                        <span>{bucket.count}</span>
-                      </div>
-                      <div class="hu-lineage-bar-track" aria-hidden="true">
-                        <span
-                          class="hu-lineage-bar-fill"
-                          data-motion="score-bar"
-                          style={"width: #{bucket.percent}%"}
-                        />
-                      </div>
+                <%= if @cross_chain_lineage.summary_mode do %>
+                  <dl class="tt-public-node-stats tt-public-node-stats-large">
+                    <div>
+                      <dt>Claims</dt>
+                      <dd>{@cross_chain_lineage.summary.total}</dd>
                     </div>
-                  <% end %>
+                    <div>
+                      <dt>Author</dt>
+                      <dd>{@cross_chain_lineage.summary.author_claims}</dd>
+                    </div>
+                    <div>
+                      <dt>Mutual</dt>
+                      <dd>{@cross_chain_lineage.summary.mutual_claims}</dd>
+                    </div>
+                    <div>
+                      <dt>Disputed</dt>
+                      <dd>{@cross_chain_lineage.summary.disputed_claims}</dd>
+                    </div>
+                  </dl>
+                <% end %>
+
+                <%= if @cross_chain_lineage.claims == [] do %>
+                  <div class="hu-empty">No additional cross-chain claims are attached yet.</div>
+                <% else %>
+                  <ol class="tt-public-claim-list">
+                    <%= for claim <- Enum.take(@cross_chain_lineage.claims, @cross_chain_lineage.summary_mode && 6 || 100) do %>
+                      <li class="tt-public-claim-card">
+                        <div class="tt-public-card-actions">
+                          <span class="tt-public-room-chip">{claim.relation_label}</span>
+                          <span :if={claim.claimant_label} class="tt-public-room-chip">
+                            {claim.claimant_label}
+                          </span>
+                          <span :if={claim.declared_by_author} class="tt-public-room-chip">
+                            Node author claim
+                          </span>
+                          <span :if={claim.mutual?} class="tt-public-room-chip">Mutual link</span>
+                          <span :if={claim.disputed?} class="tt-public-room-chip">Disputed</span>
+                        </div>
+                        <p :if={claim.target_label}>{claim.target_label}</p>
+                        <p :if={claim.note}>{claim.note}</p>
+                      </li>
+                    <% end %>
+                  </ol>
+                <% end %>
+              </section>
+
+              <section id="node-discussion" class="tt-public-detail-card">
+                <div class="tt-public-side-list-head">
+                  <h3>Discussion</h3>
+                  <p>See tagged neighbor branches and the public comment thread around this node.</p>
                 </div>
 
-                <p class="hu-seed-summary">
-                  Showing a compact summary because this node has a large lineage claim set.
-                </p>
-              </div>
-            <% end %>
-
-            <%= if @cross_chain_lineage.claims == [] do %>
-              <.empty_state message="No additional cross-chain claims are attached yet." />
-            <% else %>
-              <ol class="hu-lineage-claim-list">
-                <%= for claim <- Enum.take(@cross_chain_lineage.claims, @cross_chain_lineage.summary_mode && 6 || 100) do %>
-                  <li
-                    class={[
-                      "hu-lineage-claim",
-                      claim.declared_by_author && "hu-lineage-claim--author"
-                    ]}
-                    data-motion="graph-node"
-                  >
-                    <div class="hu-lineage-claim-head">
-                      <span class="hu-lineage-claim-relation">{claim.relation_label}</span>
-                      <span :if={claim.claimant_label} class="hu-lineage-chip">
-                        {claim.claimant_label}
-                      </span>
-                    </div>
-
-                    <div class="hu-lineage-meta-row">
-                      <span :if={claim.target_label} class="hu-lineage-chip">
-                        {claim.target_label}
-                      </span>
-                      <span :if={claim.declared_by_author} class="hu-lineage-chip">
-                        Node author claim
-                      </span>
-                      <span :if={claim.mutual?} class="hu-lineage-chip">Mutual link</span>
-                      <span :if={claim.disputed?} class="hu-lineage-chip">Disputed</span>
-                    </div>
-
-                    <p :if={claim.note} class="hu-lineage-note">{claim.note}</p>
-                  </li>
+                <%= if @related == [] do %>
+                  <div class="hu-empty">No tagged links were found for this node.</div>
+                <% else %>
+                  <ul class="tt-public-detail-list">
+                    <%= for rel <- @related do %>
+                      <li id={"related-node-#{rel.dst_id}-#{rel.ordinal}"}>
+                        <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="tt-public-detail-link">
+                          <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
+                          <strong>{rel.tag}</strong>
+                        </.link>
+                      </li>
+                    <% end %>
+                  </ul>
                 <% end %>
-              </ol>
 
-              <p :if={@cross_chain_lineage.summary_mode} class="hu-seed-summary">
-                The full claim stream is collapsed into this summary view to keep the page legible.
-              </p>
-            <% end %>
-          </.human_section>
-
-          <.human_section id="node-impact" title="Impact">
-            <dl class="hu-stat-grid hu-stat-grid-wide">
-              <.human_stat label="Children" value={Integer.to_string(@node.child_count)} />
-              <.human_stat label="Comments" value={Integer.to_string(@node.comment_count)} />
-              <.human_stat label="Watchers" value={Integer.to_string(@node.watcher_count)} />
-              <.human_stat label="Activity" value={format_activity(@node.activity_score)} />
-            </dl>
-          </.human_section>
-
-          <.human_section id="node-discussion" title="Discussion">
-            <%= if @related == [] do %>
-              <.empty_state message="No tagged links were found for this node." />
-            <% else %>
-              <ul class="hu-list">
-                <%= for rel <- @related do %>
-                  <li id={"related-node-#{rel.dst_id}-#{rel.ordinal}"}>
-                    <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="hu-list-link">
-                      <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
-                      <span class="hu-list-meta">{rel.tag}</span>
-                    </.link>
-                  </li>
+                <%= if @comments == [] do %>
+                  <div class="hu-empty">No public comments yet.</div>
+                <% else %>
+                  <ol class="tt-public-comment-list">
+                    <%= for comment <- @comments do %>
+                      <li id={"comment-#{comment.id}"} class="tt-public-comment-card">
+                        <p>{comment.body_plaintext}</p>
+                        <span>{format_timestamp(comment.inserted_at)}</span>
+                      </li>
+                    <% end %>
+                  </ol>
                 <% end %>
-              </ul>
-            <% end %>
+              </section>
+            </div>
 
-            <%= if @comments == [] do %>
-              <.empty_state message="No public comments yet." />
-            <% else %>
-              <ol class="hu-comment-list">
-                <%= for comment <- @comments do %>
-                  <li id={"comment-#{comment.id}"} class="hu-comment-item">
-                    <p>{comment.body_plaintext}</p>
-                    <span class="hu-comment-meta">{format_timestamp(comment.inserted_at)}</span>
-                  </li>
-                <% end %>
-              </ol>
-            <% end %>
-          </.human_section>
-
-          <.human_section id="node-monetization-provenance" title="Monetization / provenance">
-            <ul class="hu-list">
-              <%= for row <- provenance_rows(@node) do %>
-                <li id={"node-prov-#{row.id}"}>
-                  <div class="hu-list-link">
-                    <span>{row.label}</span>
-                    <span class="hu-list-meta">{row.value}</span>
+            <aside class="tt-public-node-detail-side">
+              <section id="node-impact" class="tt-public-detail-card tt-public-stat-panel">
+                <div class="tt-public-side-list-head">
+                  <h3>Impact</h3>
+                  <p>How much public follow-on work is already attached to this branch.</p>
+                </div>
+                <dl class="tt-public-node-stats tt-public-node-stats-large">
+                  <div>
+                    <dt>Children</dt>
+                    <dd>{Integer.to_string(@node.child_count)}</dd>
                   </div>
-                </li>
-              <% end %>
-            </ul>
+                  <div>
+                    <dt>Comments</dt>
+                    <dd>{Integer.to_string(@node.comment_count)}</dd>
+                  </div>
+                  <div>
+                    <dt>Watchers</dt>
+                    <dd>{Integer.to_string(@node.watcher_count)}</dd>
+                  </div>
+                  <div>
+                    <dt>Activity</dt>
+                    <dd>{format_activity(@node.activity_score)}</dd>
+                  </div>
+                </dl>
+              </section>
 
-            <% links = provenance_links(@related) %>
-            <%= if links == [] do %>
-              <.empty_state message="No explicit provenance or monetization links tagged yet." />
-            <% else %>
-              <ul class="hu-list">
-                <%= for rel <- links do %>
-                  <li id={"provenance-node-#{rel.dst_id}-#{rel.ordinal}"}>
-                    <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="hu-list-link">
-                      <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
-                      <span class="hu-list-meta">{rel.tag}</span>
-                    </.link>
-                  </li>
+              <section id="node-monetization-provenance" class="tt-public-detail-card">
+                <div class="tt-public-side-list-head">
+                  <h3>Monetization and provenance</h3>
+                  <p>
+                    The creator, chain, and publication details that explain where this node came from.
+                  </p>
+                </div>
+                <ul class="tt-public-detail-list">
+                  <%= for row <- provenance_rows(@node) do %>
+                    <li id={"node-prov-#{row.id}"}>
+                      <span>{row.label}</span>
+                      <strong>{row.value}</strong>
+                    </li>
+                  <% end %>
+                </ul>
+
+                <% links = provenance_links(@related) %>
+                <%= if links == [] do %>
+                  <div class="hu-empty">No explicit provenance or monetization links tagged yet.</div>
+                <% else %>
+                  <ul class="tt-public-detail-list">
+                    <%= for rel <- links do %>
+                      <li id={"provenance-node-#{rel.dst_id}-#{rel.ordinal}"}>
+                        <.link navigate={~p"/tree/node/#{rel.dst_id}"} class="tt-public-detail-link">
+                          <span>{HumanComponents.present(rel.dst_title, "Node ##{rel.dst_id}")}</span>
+                          <strong>{rel.tag}</strong>
+                        </.link>
+                      </li>
+                    <% end %>
+                  </ul>
                 <% end %>
-              </ul>
-            <% end %>
-          </.human_section>
+              </section>
+            </aside>
+          </section>
         <% end %>
-      </div>
-    </main>
+      </main>
+    </div>
     """
   end
 

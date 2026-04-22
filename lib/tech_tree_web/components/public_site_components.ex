@@ -61,6 +61,151 @@ defmodule TechTreeWeb.PublicSiteComponents do
     """
   end
 
+  attr :items, :list, required: true
+  attr :strip_id, :string, default: "public-signal-strip"
+
+  def signal_strip(assigns) do
+    ~H"""
+    <div id={@strip_id} class="tt-public-signal-strip" data-public-reveal>
+      <article
+        :for={item <- @items}
+        id={"#{@strip_id}-#{item.id}"}
+        class="tt-public-signal-card"
+      >
+        <p class="tt-public-signal-label">{item.label}</p>
+        <%= if item.href do %>
+          <.link navigate={item.href} class="tt-public-signal-value">{item.value}</.link>
+        <% else %>
+          <p class="tt-public-signal-value">{item.value}</p>
+        <% end %>
+        <p class="tt-public-signal-copy">{item.copy}</p>
+      </article>
+    </div>
+    """
+  end
+
+  attr :messages, :list, required: true
+  attr :panel_id, :string, required: true
+  attr :title, :string, required: true
+  attr :copy, :string, required: true
+
+  def live_room_panel(assigns) do
+    ~H"""
+    <section id={@panel_id} class="tt-public-room-shell" data-public-reveal>
+      <div class="tt-public-room-head">
+        <div>
+          <h3>{@title}</h3>
+          <p>{@copy}</p>
+        </div>
+        <span class="tt-public-room-count">{length(@messages)} recent</span>
+      </div>
+
+      <%= if @messages == [] do %>
+        <div class="tt-public-empty-state">The public room is quiet right now.</div>
+      <% else %>
+        <div class="tt-public-room-feed">
+          <article
+            :for={message <- @messages}
+            id={"#{@panel_id}-#{message.key}"}
+            class="tt-public-room-entry"
+          >
+            <div class="tt-public-room-entry-top">
+              <div class="tt-public-room-entry-copy">
+                <strong>{message.author}</strong>
+                <span class="tt-public-room-chip">{message.room}</span>
+              </div>
+              <span>{message.stamp}</span>
+            </div>
+            <p>{message.body}</p>
+          </article>
+        </div>
+      <% end %>
+    </section>
+    """
+  end
+
+  attr :messages, :list, required: true
+  attr :title, :string, required: true
+  attr :copy, :string, required: true
+  attr :room_id, :string, required: true
+
+  def room_panel(assigns) do
+    assigns = assign(assigns, :panel_id, assigns.room_id)
+    live_room_panel(assigns)
+  end
+
+  attr :steps, :list, required: true
+  attr :rail_id, :string, default: "public-step-rail"
+
+  def step_rail(assigns) do
+    ~H"""
+    <ol id={@rail_id} class="tt-public-step-rail" data-public-reveal>
+      <li :for={step <- @steps} id={"#{@rail_id}-#{step.id}"} class="tt-public-step-card">
+        <span class="tt-public-step-index">{step_index(@steps, step.id)}</span>
+        <div>
+          <h3>{step.title}</h3>
+          <p>{step.copy}</p>
+        </div>
+      </li>
+    </ol>
+    """
+  end
+
+  attr :collections, :list, required: true
+  attr :strip_id, :string, default: "notebook-collections"
+
+  def collection_strip(assigns) do
+    ~H"""
+    <div id={@strip_id} class="tt-public-collection-strip" data-public-reveal>
+      <article
+        :for={collection <- @collections}
+        id={"#{@strip_id}-#{collection.id}"}
+        class="tt-public-collection-card"
+      >
+        <p class="tt-public-kicker">{collection.label}</p>
+        <h3>{collection.title}</h3>
+        <p>{collection.copy}</p>
+        <div class="tt-public-card-actions">
+          <span class="tt-public-room-chip">{collection.count} visible</span>
+          <.link navigate={collection.href} class="tt-public-card-link is-secondary">
+            Open branch
+          </.link>
+        </div>
+      </article>
+    </div>
+    """
+  end
+
+  attr :items, :list, required: true
+  attr :list_id, :string, required: true
+  attr :title, :string, required: true
+
+  def compact_link_list(assigns) do
+    ~H"""
+    <section id={@list_id} class="tt-public-side-list" data-public-reveal>
+      <div class="tt-public-side-list-head">
+        <h3>{@title}</h3>
+      </div>
+
+      <%= if @items == [] do %>
+        <div class="tt-public-empty-state">Nothing public is visible here yet.</div>
+      <% else %>
+        <ul class="tt-public-side-list-items">
+          <li :for={item <- @items} id={"#{@list_id}-#{item.id}"}>
+            <.link navigate={item.href} class="tt-public-side-link">
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.summary}</p>
+              </div>
+              <span>{item.meta}</span>
+            </.link>
+          </li>
+        </ul>
+      <% end %>
+    </section>
+    """
+  end
+
   attr :card, :map, required: true
   attr :dom_prefix, :string, default: "node-card"
 
@@ -109,10 +254,19 @@ defmodule TechTreeWeb.PublicSiteComponents do
 
   def notebook_card(assigns) do
     ~H"""
-    <article id={"#{@dom_prefix}-#{@card.id}"} class="tt-public-node-card" data-public-reveal>
-      <div class="tt-public-node-card-head">
+    <article
+      id={"#{@dom_prefix}-#{@card.id}"}
+      class="tt-public-node-card tt-public-notebook-card"
+      data-public-reveal
+    >
+      <div class="tt-public-notebook-preview" aria-hidden="true">
         <span class="tt-public-seed-chip">{@card.seed}</span>
-        <span class="tt-public-node-meta">{@card.creator}</span>
+        <span class="tt-public-node-meta">{@card.primary_file}</span>
+      </div>
+
+      <div class="tt-public-node-card-head">
+        <span class="tt-public-room-chip">{@card.creator}</span>
+        <span class="tt-public-node-meta">{@card.age}</span>
       </div>
 
       <h3>{@card.title}</h3>
@@ -129,11 +283,11 @@ defmodule TechTreeWeb.PublicSiteComponents do
         </div>
         <div>
           <dt>Notebook</dt>
-          <dd>{@card.primary_file}</dd>
+          <dd>{@card.marimo_entrypoint || "session.marimo.py"}</dd>
         </div>
         <div>
-          <dt>Age</dt>
-          <dd>{@card.age}</dd>
+          <dt>Open from</dt>
+          <dd>Branch detail</dd>
         </div>
       </dl>
 
@@ -187,43 +341,6 @@ defmodule TechTreeWeb.PublicSiteComponents do
     """
   end
 
-  attr :messages, :list, required: true
-  attr :title, :string, required: true
-  attr :copy, :string, required: true
-  attr :room_id, :string, required: true
-
-  def room_panel(assigns) do
-    ~H"""
-    <section id={@room_id} class="tt-public-room-panel" data-public-reveal>
-      <div class="tt-public-room-head">
-        <div>
-          <h3>{@title}</h3>
-          <p>{@copy}</p>
-        </div>
-        <span class="tt-public-room-count">{length(@messages)} recent</span>
-      </div>
-
-      <%= if @messages == [] do %>
-        <div class="tt-public-empty-state">This room is quiet right now.</div>
-      <% else %>
-        <div class="tt-public-room-feed">
-          <article
-            :for={message <- @messages}
-            id={"#{@room_id}-#{message.key}"}
-            class="tt-public-room-entry"
-          >
-            <div class="tt-public-room-entry-top">
-              <strong>{message.author}</strong>
-              <span>{message.stamp}</span>
-            </div>
-            <p>{message.body}</p>
-          </article>
-        </div>
-      <% end %>
-    </section>
-    """
-  end
-
   attr :topic, :map, required: true
 
   def learn_card(assigns) do
@@ -259,4 +376,13 @@ defmodule TechTreeWeb.PublicSiteComponents do
   defp display_seed("Skills"), do: "Skills"
   defp display_seed("Evals"), do: "Evals"
   defp display_seed(seed), do: seed
+
+  defp step_index(steps, step_id) do
+    steps
+    |> Enum.find_index(&(&1.id == step_id))
+    |> case do
+      nil -> "00"
+      index -> (index + 1) |> Integer.to_string() |> String.pad_leading(2, "0")
+    end
+  end
 end

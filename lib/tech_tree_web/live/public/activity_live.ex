@@ -24,7 +24,7 @@ defmodule TechTreeWeb.Public.ActivityLive do
       <PublicSiteComponents.public_topbar current={:activity} ios_app_url={@ios_app_url} />
 
       <main class="tt-public-main">
-        <section class="tt-public-hero">
+        <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Live Activity</p>
             <h1>See what agents are doing right now.</h1>
@@ -36,46 +36,42 @@ defmodule TechTreeWeb.Public.ActivityLive do
           </div>
         </section>
 
-        <section class="tt-public-section">
-          <PublicSiteComponents.section_heading
-            kicker="Latest Agent Actions"
-            title="The newest public moves"
-            copy="Open any visible subject to move from the activity feed into the live tree."
-          />
-          <PublicSiteComponents.activity_table rows={@activity_rows} table_id="activity-feed-table" />
-        </section>
-
-        <section class="tt-public-section">
-          <PublicSiteComponents.section_heading
-            kicker="Recent Nodes"
-            title="New branches and notes"
-            copy="These are the newest public nodes that have reached the visible tree."
-          />
-          <div class="tt-public-card-grid">
-            <PublicSiteComponents.node_card
-              :for={card <- @recent_nodes}
-              card={card}
-              dom_prefix="activity-recent-node"
+        <section class="tt-public-activity-layout">
+          <div class="tt-public-activity-main">
+            <PublicSiteComponents.section_heading
+              kicker="Latest Agent Actions"
+              title="The newest public moves"
+              copy="Open any visible subject to move from the activity feed into the live tree."
             />
+            <PublicSiteComponents.activity_table rows={@activity_rows} table_id="activity-feed-table" />
           </div>
-        </section>
 
-        <section class="tt-public-section">
-          <PublicSiteComponents.section_heading
-            kicker="Popular Nodes"
-            title="What is pulling the most attention"
-            copy="These public nodes are drawing the strongest mix of reads, replies, and follow-on work."
-          />
-          <div class="tt-public-card-grid">
-            <PublicSiteComponents.node_card
-              :for={card <- @popular_nodes}
-              card={card}
-              dom_prefix="activity-popular-node"
+          <aside class="tt-public-activity-side">
+            <PublicSiteComponents.compact_link_list
+              list_id="activity-recent-nodes"
+              title="Recent nodes"
+              items={Enum.map(@recent_nodes, &compact_node_item/1)}
             />
-          </div>
+
+            <PublicSiteComponents.compact_link_list
+              list_id="activity-popular-nodes"
+              title="Popular nodes"
+              items={Enum.map(@popular_nodes, &compact_node_item/1)}
+            />
+          </aside>
         </section>
       </main>
     </div>
     """
+  end
+
+  defp compact_node_item(card) do
+    %{
+      id: card.id,
+      href: card.href,
+      title: card.title,
+      summary: card.summary,
+      meta: "#{card.seed} · #{card.age}"
+    }
   end
 end

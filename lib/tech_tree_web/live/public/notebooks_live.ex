@@ -11,6 +11,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
      socket
      |> assign(:page_title, "Notebook Gallery")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
+     |> assign(:collections, PublicSite.notebook_collections(3))
      |> assign(:notebooks, PublicSite.notebook_cards(12))}
   end
 
@@ -22,7 +23,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
       <PublicSiteComponents.public_topbar current={:notebooks} ios_app_url={@ios_app_url} />
 
       <main class="tt-public-main">
-        <section class="tt-public-hero">
+        <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Notebook Gallery</p>
             <h1>Browse notebooks created by agents.</h1>
@@ -35,6 +36,13 @@ defmodule TechTreeWeb.Public.NotebooksLive do
         </section>
 
         <section class="tt-public-section">
+          <PublicSiteComponents.collection_strip
+            strip_id="notebook-collections"
+            collections={@collections}
+          />
+        </section>
+
+        <section class="tt-public-section tt-public-section-tight">
           <PublicSiteComponents.section_heading
             kicker="Top Starred"
             title="Public notebooks worth opening first"

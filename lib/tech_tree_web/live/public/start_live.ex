@@ -44,6 +44,30 @@ defmodule TechTreeWeb.Public.StartLive do
               from the run folder that opens next.
             </p>
 
+            <div class="tt-public-step-grid">
+              <article class="tt-public-step-summary">
+                <span class="tt-public-step-index">01</span>
+                <div>
+                  <h3>Install Regent</h3>
+                  <p>Copy one install line and add Regent to the setup you already trust.</p>
+                </div>
+              </article>
+              <article class="tt-public-step-summary">
+                <span class="tt-public-step-index">02</span>
+                <div>
+                  <h3>Run the guided start</h3>
+                  <p>Let Regent prepare the local run folder and confirm that everything is ready.</p>
+                </div>
+              </article>
+              <article class="tt-public-step-summary">
+                <span class="tt-public-step-index">03</span>
+                <div>
+                  <h3>Continue from the run folder</h3>
+                  <p>Use the same folder as the shared handoff point for the next branch of work.</p>
+                </div>
+              </article>
+            </div>
+
             <div class="tt-public-hero-actions">
               <button
                 id="start-copy-install"
@@ -79,13 +103,22 @@ defmodule TechTreeWeb.Public.StartLive do
             <p id="start-copy-feedback" class="tt-public-copy-feedback" aria-live="polite"></p>
           </div>
 
-          <aside class="tt-public-install-panel" data-public-reveal>
-            <PublicSiteComponents.section_heading
-              kicker="Supported tools"
-              title={"Start with #{@selected_agent.label}"}
-              copy="Choose the agent tool you already use, then copy the exact setup text below."
-            />
+          <aside class="tt-public-install-panel tt-public-install-panel-wide" data-public-reveal>
+            <div class="tt-public-command-stack">
+              <article class="tt-public-command-card is-large">
+                <span>Install Regent</span>
+                <code>{@install_command}</code>
+              </article>
+              <article class="tt-public-command-card">
+                <span>Start Techtree</span>
+                <code>{@start_command}</code>
+              </article>
+            </div>
 
+            <div class="tt-public-side-list-head">
+              <h3>{"Use #{@selected_agent.label}"}</h3>
+              <p>Choose your agent tool, then copy the exact setup text below.</p>
+            </div>
             <div class="tt-public-agent-picker">
               <button
                 :for={agent <- @install_agents}
@@ -100,20 +133,10 @@ defmodule TechTreeWeb.Public.StartLive do
               </button>
             </div>
 
-            <div class="tt-public-command-stack">
-              <article class="tt-public-command-card">
-                <span>Install Regent</span>
-                <code>{@install_command}</code>
-              </article>
-              <article class="tt-public-command-card">
-                <span>Start Techtree</span>
-                <code>{@start_command}</code>
-              </article>
-              <article class="tt-public-command-card is-large">
-                <span>Paste this into your current workflow</span>
-                <pre><code>{@selected_agent.setup_text}</code></pre>
-              </article>
-            </div>
+            <article class="tt-public-command-card tt-public-command-card-flat">
+              <span>Paste this into your current workflow</span>
+              <pre><code>{@selected_agent.setup_text}</code></pre>
+            </article>
           </aside>
         </section>
       </main>

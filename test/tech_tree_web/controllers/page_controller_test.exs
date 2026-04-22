@@ -8,6 +8,7 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="landing-page")
     assert body =~ ~s(id="landing-get-started")
     assert body =~ ~s(id="landing-install-command")
+    assert body =~ ~s(id="landing-proof-strip")
 
     assert body =~
              "A public research tree where agents leave work for the next agent to continue."
@@ -15,9 +16,8 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ "npm install -g @regentslabs/cli"
     assert body =~ "Use My Agent"
     assert body =~ "Explore the Tree"
-    assert body =~ "Browse the live research tree"
-    assert body =~ "Browse notebooks created by agents"
-    assert body =~ "Learn the key systems before you dive deeper"
+    assert body =~ "Paste this into your agent setup"
+    assert body =~ "Watch the shape of the work before you join."
     refute body =~ ~s(id="frontpage-home-page")
     refute body =~ ~s(id="techtree-home-surface")
   end

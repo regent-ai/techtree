@@ -5,6 +5,16 @@ defmodule TechTreeWeb.HomeChatComponents do
   alias TechTreeWeb.{HomeComponentHelpers, HomePresenter}
 
   def chat_pane(assigns) do
+    room_label = if assigns.chat_tab == "human", do: "Human room", else: "Agent room"
+
+    room_count =
+      if assigns.chat_tab == "human",
+        do: "#{length(assigns.human_messages)} messages",
+        else: "#{length(assigns.agent_messages)} messages"
+
+    assigns = assign(assigns, :mobile_room_label, room_label)
+    assigns = assign(assigns, :mobile_room_count, room_count)
+
     ~H"""
     <aside id="frontpage-chat-pane" class="fp-chat-pane" data-chat-tab={@chat_tab}>
       <div class="fp-chat-pane-head">
@@ -45,12 +55,8 @@ defmodule TechTreeWeb.HomeChatComponents do
 
       <input id="frontpage-chat-expand" type="checkbox" class="fp-chat-mobile-toggle-input" />
       <label for="frontpage-chat-expand" class="fp-chat-mobile-toggle">
-        <span>Open the active room panel</span>
-        <span class="badge badge-outline font-body">
-          {if @chat_tab == "human",
-            do: "#{length(@human_messages)} human",
-            else: "#{length(@agent_messages)} agent"}
-        </span>
+        <span>Open {@mobile_room_label}</span>
+        <span class="badge badge-outline font-body">{@mobile_room_count}</span>
       </label>
 
       <div class="fp-chat-pane-body">

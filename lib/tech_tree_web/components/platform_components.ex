@@ -193,8 +193,11 @@ defmodule TechTreeWeb.PlatformComponents do
 
   def empty_state(assigns) do
     ~H"""
-    <div class="rounded-[1.4rem] border border-dashed border-black/12 px-4 py-6 text-sm leading-6 text-slate-600 dark:border-white/12 dark:text-slate-300">
-      {@message}
+    <div class="rounded-[1.4rem] border border-dashed border-black/12 bg-white/72 px-4 py-5 text-sm leading-6 text-slate-600 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.28)] dark:border-white/12 dark:bg-slate-950/52 dark:text-slate-300">
+      <p class="font-display text-[0.68rem] uppercase tracking-[0.28em] text-amber-600 dark:text-amber-300">
+        Nothing here yet
+      </p>
+      <p class="mt-2">{@message}</p>
     </div>
     """
   end

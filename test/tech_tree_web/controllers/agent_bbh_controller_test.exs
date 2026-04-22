@@ -121,7 +121,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
     assert get_in(run.run_source, ["paths", "search_summary_path"]) ==
              "outputs/skydiscover/search_summary.json"
 
-    assert length(get_in(run.run_source, ["artifact_manifest"]) || []) > 0
+    refute Enum.empty?(get_in(run.run_source, ["artifact_manifest"]) || [])
     assert get_in(run.run_source, ["evaluator", "dataset_ref"]) == "hypotest://bbh/climb"
   end
 

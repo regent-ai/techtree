@@ -245,12 +245,10 @@ defmodule TechTree.BBHFixtures do
       existing
     else
       details =
-        conflicts
-        |> Enum.map(fn {field, requested} ->
+        Enum.map_join(conflicts, ", ", fn {field, requested} ->
           existing_value = Map.get(existing, field)
           "#{field}=#{inspect(requested)} (existing #{inspect(existing_value)})"
         end)
-        |> Enum.join(", ")
 
       raise """
       conflicting genome fixture for normalized_bundle_hash #{existing.normalized_bundle_hash}: #{details}

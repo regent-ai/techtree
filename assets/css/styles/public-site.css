@@ -33,11 +33,11 @@
 .tt-public-topbar {
   width: min(1200px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 24px 0 14px;
+  padding: 26px 0 16px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 20px;
-  align-items: center;
+  align-items: start;
 }
 
 .tt-public-brand {
@@ -99,8 +99,9 @@
 .tt-public-nav {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  max-width: 760px;
+  gap: 8px;
 }
 
 .tt-public-topbar-actions,
@@ -130,7 +131,8 @@
   background: color-mix(in srgb, var(--color-bg) 84%, white);
   color: var(--color-fg);
   text-decoration: none;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
+  will-change: transform;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -146,8 +148,18 @@
 .tt-public-secondary-button:hover,
 .tt-public-card-link:hover,
 .tt-public-agent-pill:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: 0 20px 32px -28px color-mix(in srgb, var(--color-fg) 24%, transparent);
+}
+
+.tt-public-nav-link:active,
+.tt-public-app-link:active,
+.tt-public-ios-link:active,
+.tt-public-primary-button:active,
+.tt-public-secondary-button:active,
+.tt-public-card-link:active,
+.tt-public-agent-pill:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .tt-public-nav-link.is-active,
@@ -156,6 +168,7 @@
   background: var(--color-bg-primary);
   border-color: color-mix(in srgb, var(--color-bg-primary) 76%, transparent);
   color: var(--color-fg-on-primary);
+  box-shadow: 0 18px 34px -28px color-mix(in srgb, var(--color-bg-primary) 42%, transparent);
 }
 
 .tt-public-secondary-button.is-active {
@@ -216,10 +229,11 @@
 
 .tt-public-hero-copy h1 {
   margin: 0;
-  max-width: 12ch;
+  max-width: 13ch;
   font-size: clamp(3rem, 6vw, 5.3rem);
-  line-height: 0.94;
+  line-height: 0.92;
   letter-spacing: -0.05em;
+  text-wrap: balance;
 }
 
 .tt-public-hero-copy-text,
@@ -286,6 +300,11 @@
 .tt-public-copy-feedback {
   min-height: 1.25rem;
   margin: 0;
+  width: fit-content;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--color-bg-primary) 14%, var(--color-bg-secondary));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg) 76%, white);
   color: var(--color-fg-primary);
   font-size: 0.85rem;
 }
@@ -394,9 +413,9 @@
 .tt-public-hero-video-copy {
   position: relative;
   z-index: 1;
-  max-width: 320px;
+  max-width: 350px;
   margin-top: auto;
-  padding-top: 240px;
+  padding-top: 192px;
 }
 
 .tt-public-hero-video-copy h2 {
@@ -404,6 +423,10 @@
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1.03;
   letter-spacing: -0.04em;
+}
+
+.tt-public-hero-video-copy p {
+  max-width: 30ch;
 }
 
 .tt-public-section {
@@ -440,12 +463,27 @@
   gap: 8px;
 }
 
+.tt-public-signal-card:first-child {
+  border-color: color-mix(in srgb, var(--color-bg-primary) 28%, var(--color-bg-secondary));
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg-primary) 10%, white) 0%,
+      color-mix(in srgb, var(--color-bg) 86%, white) 100%
+    );
+}
+
 .tt-public-signal-value {
   margin: 0;
   font-size: 1.4rem;
   line-height: 1.05;
   color: var(--color-fg-primary);
   text-decoration: none;
+}
+
+.tt-public-signal-card:first-child .tt-public-signal-value {
+  font-size: 1.75rem;
+  line-height: 0.96;
 }
 
 .tt-public-step-grid {
@@ -542,10 +580,22 @@
   gap: 10px;
 }
 
+.tt-public-agent-pill {
+  min-height: 56px;
+  padding: 0 18px;
+  justify-content: flex-start;
+}
+
+.tt-public-agent-pill img {
+  width: 32px;
+  height: 32px;
+}
+
 .tt-public-agent-pill.is-active {
   background: color-mix(in srgb, var(--color-bg-primary) 12%, white);
-  border-color: color-mix(in srgb, var(--color-bg-primary) 30%, var(--color-bg-secondary));
+  border-color: color-mix(in srgb, var(--color-bg-primary) 36%, var(--color-bg-secondary));
   color: var(--color-fg-primary);
+  box-shadow: 0 18px 34px -28px color-mix(in srgb, var(--color-bg-primary) 30%, transparent);
 }
 
 .tt-public-card-grid,
@@ -573,6 +623,37 @@
   padding: 20px;
   display: grid;
   gap: 14px;
+}
+
+.tt-public-side-list {
+  background: color-mix(in srgb, var(--color-bg) 88%, white);
+}
+
+.tt-public-room-shell {
+  background: color-mix(in srgb, var(--color-bg) 90%, white);
+}
+
+.tt-public-node-card,
+.tt-public-learn-card,
+.tt-public-collection-card {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg) 90%, white) 0%,
+      color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-alt)) 100%
+    );
+}
+
+.tt-public-node-card {
+  border-color: color-mix(in srgb, var(--color-bg-primary) 18%, var(--color-bg-secondary));
+}
+
+.tt-public-learn-card {
+  border-color: color-mix(in srgb, var(--color-bg-primary) 14%, var(--color-bg-secondary));
+}
+
+.tt-public-collection-card {
+  border-color: color-mix(in srgb, var(--color-bg-primary) 12%, var(--color-bg-secondary));
 }
 
 .tt-public-notebook-preview {
@@ -737,6 +818,11 @@
   text-decoration: none;
 }
 
+.tt-public-side-link {
+  background: color-mix(in srgb, var(--color-bg) 66%, white);
+  border: 1px solid color-mix(in srgb, var(--color-bg-primary) 10%, var(--color-bg-secondary));
+}
+
 .tt-public-tree-node-link strong,
 .tt-public-side-link strong,
 .tt-public-graph-link strong {
@@ -768,6 +854,10 @@
   background: color-mix(in srgb, var(--color-bg) 72%, white);
 }
 
+.tt-public-room-entry:nth-child(odd) {
+  background: color-mix(in srgb, var(--color-bg) 64%, white);
+}
+
 .tt-public-room-entry-copy {
   display: flex;
   flex-wrap: wrap;
@@ -787,6 +877,8 @@
 
 .tt-public-table-shell {
   padding: 10px 0 0;
+  overflow: hidden;
+  border-radius: 28px;
 }
 
 .tt-public-table {
@@ -804,10 +896,25 @@
 
 .tt-public-table thead th {
   border-top: none;
+  background: color-mix(in srgb, var(--color-bg) 90%, white);
   color: var(--color-fg-muted);
   font-size: 0.76rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+}
+
+.tt-public-table tbody tr {
+  transition:
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.tt-public-table tbody tr:nth-child(odd) {
+  background: color-mix(in srgb, var(--color-bg) 64%, white);
+}
+
+.tt-public-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-bg-primary) 6%, white);
 }
 
 .tt-public-table-link,
@@ -816,12 +923,40 @@
   text-decoration: none;
 }
 
+.tt-public-table-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tt-public-card-link:active,
+.tt-public-side-link:active,
+.tt-public-table-link:active,
+.tt-public-inline-link:active {
+  transform: scale(0.98);
+}
+
 .tt-public-empty-state,
 .hu-empty {
-  padding: 18px;
+  position: relative;
+  padding: 18px 18px 18px 50px;
   border-radius: 18px;
+  border: 1px dashed color-mix(in srgb, var(--color-bg-primary) 20%, var(--color-bg-secondary));
   background: color-mix(in srgb, var(--color-bg) 74%, white);
   color: var(--color-fg-muted);
+}
+
+.tt-public-empty-state::before,
+.hu-empty::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 20px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-bg-primary) 18%, white);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-bg-primary) 8%, transparent);
 }
 
 .tt-public-node-detail-grid {
@@ -908,6 +1043,10 @@
     justify-content: flex-start;
   }
 
+  .tt-public-topbar-actions {
+    flex-wrap: wrap;
+  }
+
   .tt-public-hero-stage,
   .tt-public-hero-split,
   .tt-public-activity-layout,
@@ -941,6 +1080,10 @@
 
   .tt-public-command-bar {
     grid-template-columns: 1fr;
+  }
+
+  .tt-public-copy-feedback {
+    width: fit-content;
   }
 
   .tt-public-signal-strip,

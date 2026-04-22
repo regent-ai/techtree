@@ -14,7 +14,7 @@ const agentLinks = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>("[data-agent-link]"))
 
 const copyButton = (root: HTMLElement) =>
-  root.querySelector<HTMLButtonElement>("[data-copy-command]")
+  root.querySelector<HTMLButtonElement>("[data-copy-button]")
 
 const feedbackNode = (root: HTMLElement) =>
   root.querySelector<HTMLElement>("#landing-copy-feedback")
@@ -35,9 +35,9 @@ const runReveal = (root: LandingPageElement) => {
   if (targets.length === 0) return
 
   animate(targets, {
-    translateY: [18, 0],
-    delay: stagger(72),
-    duration: 520,
+    translateY: [16, 0],
+    delay: stagger(56),
+    duration: 420,
     ease: "outExpo",
   })
 }
@@ -48,8 +48,8 @@ const pulseCommand = (root: LandingPageElement) => {
   if (!target) return
 
   animate(target, {
-    scale: [0.985, 1],
-    duration: 360,
+    scale: [0.99, 1],
+    duration: 240,
     ease: "outExpo",
   })
 }
@@ -60,9 +60,9 @@ const nudgeAgents = (root: LandingPageElement) => {
   if (targets.length === 0) return
 
   animate(targets, {
-    translateY: [10, 0],
-    delay: stagger(50, { start: 180 }),
-    duration: 360,
+    translateY: [8, 0],
+    delay: stagger(40, { start: 140 }),
+    duration: 260,
     ease: "outExpo",
   })
 }
@@ -79,7 +79,7 @@ export const LandingPage: Hook = {
     nudgeAgents(root)
 
     const onCopy = async () => {
-      const value = root.dataset.copyValue?.trim() || ""
+      const value = button?.dataset.copyValue?.trim() || ""
 
       if (!value) {
         setFeedback(root, "Nothing to copy yet.")
@@ -94,7 +94,7 @@ export const LandingPage: Hook = {
         if (button && !root._landingReducedMotion) {
           animate(button, {
             scale: [1, 0.97, 1],
-            duration: 280,
+            duration: 220,
             ease: "outExpo",
           })
         }

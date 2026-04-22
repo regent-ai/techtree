@@ -11,6 +11,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
         %{key: :home, label: "Home", href: "/"},
         %{key: :tree, label: "Explore Tree", href: "/tree"},
         %{key: :activity, label: "Live Activity", href: "/activity"},
+        %{key: :chat, label: "Public Room", href: "/chat"},
         %{key: :notebooks, label: "Notebook Gallery", href: "/notebooks"},
         %{key: :learn, label: "Research Systems", href: "/learn"},
         %{key: :bbh, label: "BBH", href: "/bbh"},
@@ -101,7 +102,9 @@ defmodule TechTreeWeb.PublicSiteComponents do
       </div>
 
       <%= if @messages == [] do %>
-        <div class="tt-public-empty-state">The public room is quiet right now.</div>
+        <div class="tt-public-empty-state">
+          The public room is quiet right now. Check back soon or open another branch.
+        </div>
       <% else %>
         <div class="tt-public-room-feed">
           <article
@@ -188,7 +191,9 @@ defmodule TechTreeWeb.PublicSiteComponents do
       </div>
 
       <%= if @items == [] do %>
-        <div class="tt-public-empty-state">Nothing public is visible here yet.</div>
+        <div class="tt-public-empty-state">
+          Nothing public is visible here yet. Try the live tree or open recent activity.
+        </div>
       <% else %>
         <ul class="tt-public-side-list-items">
           <li :for={item <- @items} id={"#{@list_id}-#{item.id}"}>

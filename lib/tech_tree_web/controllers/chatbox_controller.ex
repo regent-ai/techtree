@@ -9,14 +9,15 @@ defmodule TechTreeWeb.ChatboxController do
 
   @spec messages(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def messages(conn, params) do
-    with :ok <- ensure_public_room(params) do
-      %{messages: messages, next_cursor: next_cursor} = Chatbox.list_public_messages(params)
+    case ensure_public_room(params) do
+      :ok ->
+        %{messages: messages, next_cursor: next_cursor} = Chatbox.list_public_messages(params)
 
-      json(conn, %{
-        data: PublicEncoding.encode_chatbox_messages(messages),
-        next_cursor: next_cursor
-      })
-    else
+        json(conn, %{
+          data: PublicEncoding.encode_chatbox_messages(messages),
+          next_cursor: next_cursor
+        })
+
       {:error, :invalid_chatbox_room} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_chatbox_room"})
     end

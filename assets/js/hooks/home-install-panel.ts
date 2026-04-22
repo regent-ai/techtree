@@ -132,7 +132,6 @@ export const HomeInstallPanel: Hook = {
       root._homeInstallCopyValue = nextValue
       pulseCommand(root)
       setFeedback(root, "")
-      runReveal(root, true)
     }
   },
 

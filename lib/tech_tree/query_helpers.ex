@@ -8,15 +8,10 @@ defmodule TechTree.QueryHelpers do
 
   @spec parse_limit(map(), pos_integer()) :: pos_integer()
   def parse_limit(params, fallback) do
-    case Map.get(params, "limit") do
-      nil -> fallback
-      value when is_integer(value) and value > 0 -> min(value, 200)
-      value when is_integer(value) -> fallback
-      value when is_binary(value) -> value |> String.to_integer() |> clamp_limit(fallback)
-      _ -> fallback
+    case parse_positive_integer(Map.get(params, "limit")) do
+      {:ok, value} -> min(value, 200)
+      :error -> fallback
     end
-  rescue
-    _ -> fallback
   end
 
   @spec normalize_id(integer() | String.t()) :: integer()
@@ -25,18 +20,9 @@ defmodule TechTree.QueryHelpers do
 
   @spec parse_cursor(map()) :: integer() | nil
   def parse_cursor(params) do
-    case Map.get(params, "cursor") do
-      value when is_integer(value) and value > 0 ->
-        value
-
-      value when is_binary(value) ->
-        case Integer.parse(String.trim(value)) do
-          {cursor, ""} when cursor > 0 -> cursor
-          _ -> nil
-        end
-
-      _ ->
-        nil
+    case parse_positive_integer(Map.get(params, "cursor")) do
+      {:ok, value} -> value
+      :error -> nil
     end
   end
 
@@ -55,7 +41,15 @@ defmodule TechTree.QueryHelpers do
     |> select([n], n.id)
   end
 
-  @spec clamp_limit(integer(), pos_integer()) :: pos_integer()
-  defp clamp_limit(value, fallback) when value <= 0, do: fallback
-  defp clamp_limit(value, _fallback), do: min(value, 200)
+  @spec parse_positive_integer(term()) :: {:ok, pos_integer()} | :error
+  defp parse_positive_integer(value) when is_integer(value) and value > 0, do: {:ok, value}
+
+  defp parse_positive_integer(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {parsed, ""} when parsed > 0 -> {:ok, parsed}
+      _ -> :error
+    end
+  end
+
+  defp parse_positive_integer(_value), do: :error
 end

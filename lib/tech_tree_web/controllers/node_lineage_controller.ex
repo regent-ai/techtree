@@ -40,12 +40,14 @@ defmodule TechTreeWeb.NodeLineageController do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with_readable_node(conn, agent.id, id, fn conn, node ->
-      with {:ok, claim} <- Nodes.create_node_lineage_claim(node, agent, params) do
-        conn
-        |> put_status(:created)
-        |> json(%{data: Lineage.encode_claim_history(claim)})
-      else
-        error -> render_claim_error(conn, error)
+      case Nodes.create_node_lineage_claim(node, agent, params) do
+        {:ok, claim} ->
+          conn
+          |> put_status(:created)
+          |> json(%{data: Lineage.encode_claim_history(claim)})
+
+        error ->
+          render_claim_error(conn, error)
       end
     end)
   end
@@ -55,10 +57,12 @@ defmodule TechTreeWeb.NodeLineageController do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with_readable_node_claim(conn, agent.id, id, claim_id, fn conn, node, parsed_claim_id ->
-      with :ok <- Nodes.withdraw_node_lineage_claim(node, parsed_claim_id, agent) do
-        json(conn, %{ok: true})
-      else
-        error -> render_claim_error(conn, error)
+      case Nodes.withdraw_node_lineage_claim(node, parsed_claim_id, agent) do
+        :ok ->
+          json(conn, %{ok: true})
+
+        error ->
+          render_claim_error(conn, error)
       end
     end)
   end
@@ -82,10 +86,12 @@ defmodule TechTreeWeb.NodeLineageController do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with_readable_node(conn, agent.id, id, fn conn, node ->
-      with {:ok, link} <- Nodes.create_or_replace_node_cross_chain_link(node, agent, params) do
-        json(conn, %{data: Lineage.encode_link(link)})
-      else
-        error -> render_link_error(conn, error)
+      case Nodes.create_or_replace_node_cross_chain_link(node, agent, params) do
+        {:ok, link} ->
+          json(conn, %{data: Lineage.encode_link(link)})
+
+        error ->
+          render_link_error(conn, error)
       end
     end)
   end
@@ -95,10 +101,12 @@ defmodule TechTreeWeb.NodeLineageController do
     agent = ControllerHelpers.ensure_current_agent(conn)
 
     with_readable_node(conn, agent.id, id, fn conn, node ->
-      with :ok <- Nodes.clear_node_cross_chain_link(node, agent) do
-        json(conn, %{ok: true})
-      else
-        error -> render_link_error(conn, error)
+      case Nodes.clear_node_cross_chain_link(node, agent) do
+        :ok ->
+          json(conn, %{ok: true})
+
+        error ->
+          render_link_error(conn, error)
       end
     end)
   end

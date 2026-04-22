@@ -20,9 +20,10 @@ defmodule TechTreeWeb.Plugs.RequirePrivyJWT do
          {:ok, %{privy_user_id: privy_user_id}} <- Privy.verify_token(token),
          :ok <- ensure_existing_human_allowed(Accounts.get_human_by_privy_id(privy_user_id)),
          {:ok, human} <- Accounts.upsert_human_by_privy_id(privy_user_id, %{}),
-         :ok <- ensure_human_allowed(human),
-         human = overlay_pending_wallet(conn, privy_user_id, human) do
-      assign(conn, :current_human, human)
+         :ok <- ensure_human_allowed(human) do
+      human
+      |> overlay_pending_wallet(conn, privy_user_id)
+      |> then(&assign(conn, :current_human, &1))
     else
       {:error, :human_banned} -> forbidden(conn)
       _ -> unauthorized(conn)
@@ -64,7 +65,7 @@ defmodule TechTreeWeb.Plugs.RequirePrivyJWT do
   defp ensure_existing_human_allowed(%{role: "banned"}), do: {:error, :human_banned}
   defp ensure_existing_human_allowed(_human), do: :ok
 
-  defp overlay_pending_wallet(conn, privy_user_id, human) do
+  defp overlay_pending_wallet(human, conn, privy_user_id) do
     if get_session(conn, :privy_user_id) == privy_user_id do
       case normalize_wallet_address(get_session(conn, @pending_wallet_session_key)) do
         nil -> human

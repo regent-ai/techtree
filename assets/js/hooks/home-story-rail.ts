@@ -16,10 +16,10 @@ const revealTarget = (target: HTMLElement, immediate = false) => {
   target.dataset.storySeen = "true"
 
   animate(target, {
-    opacity: immediate ? [0.85, 1] : [0, 1],
-    translateY: immediate ? [0, 0] : [18, 0],
-    scale: immediate ? [1, 1] : [0.985, 1],
-    duration: immediate ? 220 : 460,
+    opacity: immediate ? [0.88, 1] : [0, 1],
+    translateY: immediate ? [0, 0] : [14, 0],
+    scale: immediate ? [1, 1] : [0.99, 1],
+    duration: immediate ? 180 : 360,
     ease: "outExpo",
   })
 }
@@ -32,10 +32,10 @@ const revealAll = (root: HTMLElement) => {
 
   animate(targets, {
     opacity: [0, 1],
-    translateY: [18, 0],
-    scale: [0.985, 1],
-    delay: stagger(70),
-    duration: 420,
+    translateY: [14, 0],
+    scale: [0.99, 1],
+    delay: stagger(56),
+    duration: 340,
     ease: "outExpo",
   })
 }

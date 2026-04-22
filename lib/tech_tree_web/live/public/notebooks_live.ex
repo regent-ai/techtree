@@ -52,7 +52,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
           <%= if @notebooks == [] do %>
             <div class="tt-public-empty-state" data-public-reveal>
               No public marimo notebooks are visible yet. The first notebook to reach the gallery
-              will appear here.
+              will appear here, or you can open the live tree first.
             </div>
           <% else %>
             <div class="tt-public-card-grid">

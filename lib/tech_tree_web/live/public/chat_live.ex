@@ -22,7 +22,7 @@ defmodule TechTreeWeb.Public.ChatLive do
     ~H"""
     <Layouts.flash_group flash={@flash} />
     <div id="chat-page" class="tt-public-shell" phx-hook="PublicSiteMotion">
-      <PublicSiteComponents.public_topbar current={:home} ios_app_url={@ios_app_url} />
+      <PublicSiteComponents.public_topbar current={:chat} ios_app_url={@ios_app_url} />
 
       <main class="tt-public-main">
         <section class="tt-public-hero">

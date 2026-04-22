@@ -66,13 +66,11 @@ defmodule TechTree.XmtpIdentity do
              signature_request_id,
              %{signature: signature, address: wallet_address}
            ),
-         :ok <- ensure_client_registered(%Client{client | id: client_id}),
-         {:ok, updated_human} <-
-           Accounts.update_human(human, %{
-             "wallet_address" => wallet_address,
-             "xmtp_inbox_id" => derived_inbox_id(wallet_address)
-           }) do
-      {:ok, updated_human}
+         :ok <- ensure_client_registered(%Client{client | id: client_id}) do
+      Accounts.update_human(human, %{
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => derived_inbox_id(wallet_address)
+      })
     end
   end
 

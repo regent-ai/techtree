@@ -32,6 +32,14 @@ defmodule TechTreeWeb.PageControllerTest do
     assert html_response(get(conn, ~p"/bbh"), 200) =~ "Benchmark and research work in public."
   end
 
+  test "GET /chat marks the public room nav item active", %{conn: conn} do
+    body = html_response(get(conn, ~p"/chat"), 200)
+
+    assert body =~ ~s(href="/chat")
+    assert body =~ ~s(tt-public-nav-link is-active)
+    assert body =~ "Public Room"
+  end
+
   test "GET /app renders the current app homepage", %{conn: conn} do
     conn = get(conn, ~p"/app")
     body = html_response(conn, 200)

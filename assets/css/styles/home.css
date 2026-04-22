@@ -369,7 +369,7 @@ html[data-theme="dark"] .fp-tree-peek {
 
 .fp-install-copy h2 {
   margin: 0.7rem 0 0;
-  max-width: 13ch;
+  max-width: 12.5ch;
   font-size: clamp(2.1rem, 4vw, 3.5rem);
   line-height: 0.94;
   text-wrap: balance;
@@ -387,6 +387,10 @@ html[data-theme="dark"] .fp-tree-peek {
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 1.35rem;
+  border-color: color-mix(in srgb, var(--fp-panel-border) 88%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--fp-panel) 98%, transparent), color-mix(in srgb, var(--fp-stage) 90%, transparent)),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--fp-accent) 10%, transparent), transparent 42%);
 }
 
 .fp-proof-stack {
@@ -403,6 +407,11 @@ html[data-theme="dark"] .fp-tree-peek {
   border-radius: 1rem;
   border: 1px solid color-mix(in srgb, var(--fp-panel-border) 82%, transparent);
   background: color-mix(in srgb, var(--fp-panel) 94%, transparent);
+}
+
+.fp-proof-item:first-child {
+  border-color: color-mix(in srgb, var(--fp-accent) 26%, var(--fp-panel-border));
+  background: color-mix(in srgb, var(--fp-accent-soft) 68%, var(--fp-panel));
 }
 
 .fp-proof-step {
@@ -478,6 +487,10 @@ html[data-theme="dark"] .fp-tree-peek {
   gap: 0.9rem;
   padding: 1rem 1.1rem;
   border-radius: 1.35rem;
+  border-color: color-mix(in srgb, var(--fp-accent) 18%, var(--fp-panel-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--fp-panel) 98%, transparent), color-mix(in srgb, var(--fp-stage) 90%, transparent)),
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--fp-accent) 12%, transparent), transparent 44%);
 }
 
 .fp-command-card {
@@ -499,6 +512,8 @@ html[data-theme="dark"] .fp-tree-peek {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--fp-panel) 98%, transparent), color-mix(in srgb, var(--fp-stage) 90%, transparent)),
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--fp-accent) 16%, transparent), transparent 38%);
+  border-color: color-mix(in srgb, var(--fp-accent) 24%, var(--fp-panel-border));
+  box-shadow: 0 20px 58px -42px color-mix(in srgb, var(--fp-accent) 34%, transparent);
 }
 
 .fp-command-card-topline,
@@ -587,6 +602,11 @@ html[data-theme="dark"] .fp-command-card-code {
 .fp-install-feedback {
   min-height: 1.05rem;
   margin: 0;
+  width: fit-content;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--fp-panel-border) 88%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fp-panel) 92%, transparent);
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -644,6 +664,11 @@ html[data-theme="dark"] .fp-chat-pane {
   font-size: 0.8rem;
   line-height: 1.5;
   cursor: pointer;
+}
+
+.fp-chat-mobile-toggle span:first-child {
+  font-family: var(--tt-font-title);
+  letter-spacing: 0.02em;
 }
 
 #frontpage-branch-paths {
@@ -717,6 +742,8 @@ html[data-theme="dark"] .fp-chat-pane {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--fp-panel) 98%, transparent), color-mix(in srgb, var(--fp-stage) 90%, transparent)),
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--fp-accent) 18%, transparent), transparent 42%);
+  border-color: color-mix(in srgb, var(--fp-accent) 20%, var(--fp-panel-border));
+  box-shadow: 0 24px 64px -48px color-mix(in srgb, var(--fp-accent) 28%, transparent);
 }
 
 .fp-story-card-head {
@@ -743,6 +770,35 @@ html[data-theme="dark"] .fp-chat-pane {
 .fp-story-note {
   margin: 0;
   color: var(--fp-muted);
+}
+
+.fp-story-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fp-story-table th,
+.fp-story-table td {
+  padding: 0.8rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--fp-panel-border) 72%, transparent);
+}
+
+.fp-story-table tr:first-child th,
+.fp-story-table tr:first-child td {
+  border-top: none;
+}
+
+.fp-story-table th {
+  color: var(--fp-muted);
+  font-family: var(--tt-font-title);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.fp-story-table td {
+  text-align: right;
 }
 
 .fp-live-tools {

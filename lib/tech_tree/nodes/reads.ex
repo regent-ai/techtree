@@ -7,6 +7,7 @@ defmodule TechTree.Nodes.Reads do
   alias TechTree.Agents.AgentIdentity
   alias TechTree.NodeAccess
   alias TechTree.Nodes.{Lineage, Node, NodeTagEdge}
+  alias TechTree.QueryHelpers
   alias TechTree.Repo
 
   @semver_core_regex "^[0-9]+\\.[0-9]+\\.[0-9]+$"
@@ -23,7 +24,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_public_nodes(map()) :: [Node.t()]
   def list_public_nodes(params) do
-    limit = parse_limit(params, 50)
+    limit = QueryHelpers.parse_limit(params, 50)
 
     public_nodes_query()
     |> order_by([n, _creator], desc: n.activity_score, desc: n.inserted_at)
@@ -35,7 +36,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_recent_public_nodes(map()) :: [Node.t()]
   def list_recent_public_nodes(params) do
-    limit = parse_limit(params, 50)
+    limit = QueryHelpers.parse_limit(params, 50)
 
     public_nodes_query()
     |> order_by([n, _creator], desc: n.inserted_at, desc: n.id)
@@ -47,7 +48,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec get_public_node!(integer() | String.t()) :: Node.t()
   def get_public_node!(id) do
-    normalized_id = normalize_id(id)
+    normalized_id = QueryHelpers.normalize_id(id)
 
     tag_edges_query =
       NodeTagEdge
@@ -66,7 +67,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec get_readable_node_for_agent!(integer(), integer() | String.t()) :: Node.t()
   def get_readable_node_for_agent!(agent_id, id) when is_integer(agent_id) and agent_id > 0 do
-    normalized_id = normalize_id(id)
+    normalized_id = QueryHelpers.normalize_id(id)
 
     tag_edges_query =
       NodeTagEdge
@@ -85,8 +86,8 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_public_children(integer() | String.t(), map()) :: [Node.t()]
   def list_public_children(id, params) do
-    parent_id = normalize_id(id)
-    limit = parse_limit(params, 100)
+    parent_id = QueryHelpers.normalize_id(id)
+    limit = QueryHelpers.parse_limit(params, 100)
 
     public_nodes_query()
     |> where([n, _creator], n.parent_id == ^parent_id)
@@ -100,8 +101,8 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_readable_children(integer(), integer() | String.t(), map()) :: [Node.t()]
   def list_readable_children(agent_id, id, params) when is_integer(agent_id) and agent_id > 0 do
-    parent_id = normalize_id(id)
-    limit = parse_limit(params, 100)
+    parent_id = QueryHelpers.normalize_id(id)
+    limit = QueryHelpers.parse_limit(params, 100)
 
     readable_nodes_query(agent_id)
     |> where([n, _creator], n.parent_id == ^parent_id)
@@ -114,7 +115,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_tagged_edges(integer() | String.t()) :: [NodeTagEdge.t()]
   def list_tagged_edges(id) do
-    node_id = normalize_id(id)
+    node_id = QueryHelpers.normalize_id(id)
 
     NodeTagEdge
     |> where([e], e.src_node_id == ^node_id)
@@ -126,7 +127,7 @@ defmodule TechTree.Nodes.Reads do
 
   @spec list_hot_nodes(String.t(), map()) :: [Node.t()]
   def list_hot_nodes(seed, params) do
-    limit = parse_limit(params, 25)
+    limit = QueryHelpers.parse_limit(params, 25)
 
     public_nodes_query()
     |> where([n, _creator], n.seed == ^seed)
@@ -142,7 +143,7 @@ defmodule TechTree.Nodes.Reads do
     normalized_ids =
       ids
       |> Enum.reduce([], fn
-        id, acc when is_integer(id) or is_binary(id) -> [normalize_id(id) | acc]
+        id, acc when is_integer(id) or is_binary(id) -> [QueryHelpers.normalize_id(id) | acc]
         _id, acc -> acc
       end)
       |> Enum.uniq()
@@ -216,28 +217,8 @@ defmodule TechTree.Nodes.Reads do
     |> select([n, _creator], n.id)
   end
 
-  @spec parse_limit(map(), pos_integer()) :: pos_integer()
-  def parse_limit(params, default) when is_map(params) do
-    params
-    |> Map.get("limit", default)
-    |> case do
-      value when is_integer(value) and value > 0 ->
-        value
-
-      value when is_binary(value) ->
-        case Integer.parse(value) do
-          {parsed, ""} when parsed > 0 -> parsed
-          _ -> default
-        end
-
-      _ ->
-        default
-    end
-  end
-
   @spec normalize_id(integer() | String.t()) :: integer()
-  def normalize_id(value) when is_integer(value), do: value
-  def normalize_id(value) when is_binary(value), do: String.to_integer(value)
+  def normalize_id(value), do: QueryHelpers.normalize_id(value)
 
   defp public_skill_nodes_query do
     public_nodes_query()

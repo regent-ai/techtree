@@ -48,9 +48,9 @@ const runReveal = (root: PublicSiteElement) => {
 
   animate(targets, {
     opacity: [0, 1],
-    translateY: [18, 0],
-    delay: stagger(70),
-    duration: 540,
+    translateY: [16, 0],
+    delay: stagger(56),
+    duration: 420,
     ease: "outExpo",
   })
 }
@@ -62,10 +62,10 @@ const pulseButtons = (root: PublicSiteElement) => {
   if (targets.length === 0) return
 
   animate(targets, {
-    translateY: [8, 0],
+    translateY: [6, 0],
     opacity: [0, 1],
-    delay: stagger(50, { start: 120 }),
-    duration: 300,
+    delay: stagger(40, { start: 100 }),
+    duration: 240,
     ease: "outExpo",
   })
 }
@@ -77,12 +77,12 @@ const animateHeroMedia = (root: PublicSiteElement) => {
   if (targets.length === 0) return
 
   animate(targets, {
-    translateY: (_target: unknown, index: number) => (index % 2 === 0 ? [0, -14, 0] : [0, 14, 0]),
-    translateX: (_target: unknown, index: number) => (index % 2 === 0 ? [0, 8, 0] : [0, -8, 0]),
-    scale: [1, 1.04, 1],
+    translateY: (_target: unknown, index: number) => (index % 2 === 0 ? [0, -10, 0] : [0, 10, 0]),
+    translateX: (_target: unknown, index: number) => (index % 2 === 0 ? [0, 6, 0] : [0, -6, 0]),
+    scale: [1, 1.03, 1],
     opacity: [0.6, 1, 0.6],
-    delay: stagger(180),
-    duration: 4200,
+    delay: stagger(150),
+    duration: 3600,
     ease: "inOutSine",
     loop: true,
   })

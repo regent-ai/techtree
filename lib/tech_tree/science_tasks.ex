@@ -67,6 +67,61 @@ defmodule TechTree.ScienceTasks do
     |> Repo.preload(node: :creator_agent)
   end
 
+  @spec public_index_page(map()) ::
+          {:ok, map()} | {:error, :science_task_invalid_stage, %{redirect_href: String.t()}}
+  def public_index_page(params \\ %{}) when is_map(params) do
+    stage_filter = blank_to_nil(params["stage"])
+    domain_filter = blank_to_nil(params["science_domain"])
+    field_filter = blank_to_nil(params["science_field"])
+
+    case normalize_stage(stage_filter) do
+      {:ok, normalized_stage_filter} ->
+        tasks =
+          params
+          |> Map.put("stage", normalized_stage_filter)
+          |> Map.put("science_domain", domain_filter)
+          |> Map.put("science_field", field_filter)
+          |> list_public_tasks()
+
+        cards = Enum.map(tasks, &public_index_task_card/1)
+        stage_names = stage_names()
+
+        {:ok,
+         %{
+           tasks: cards,
+           tasks_by_stage: Enum.group_by(cards, & &1.stage),
+           stage_filter: normalized_stage_filter,
+           domain_filter: domain_filter,
+           field_filter: field_filter,
+           domains: cards |> Enum.map(& &1.science_domain) |> Enum.uniq() |> Enum.sort(),
+           fields: cards |> Enum.map(& &1.science_field) |> Enum.uniq() |> Enum.sort(),
+           counts: stage_counts(cards),
+           stage_names: stage_names,
+           visible_stages: visible_stages(normalized_stage_filter, stage_names)
+         }}
+
+      {:error, :science_task_invalid_stage} ->
+        {:error, :science_task_invalid_stage,
+         %{
+           redirect_href: public_index_href(nil, domain_filter, field_filter)
+         }}
+    end
+  end
+
+  @spec public_index_href(String.t() | nil, String.t() | nil, String.t() | nil) :: String.t()
+  def public_index_href(stage, science_domain, science_field) do
+    query =
+      []
+      |> maybe_put_query("stage", stage)
+      |> maybe_put_query("science_domain", science_domain)
+      |> maybe_put_query("science_field", science_field)
+
+    case query do
+      [] -> "/science-tasks"
+      entries -> "/science-tasks?" <> URI.encode_query(entries)
+    end
+  end
+
   @spec get_public_task(integer() | String.t()) ::
           {:ok, ScienceTask.t()} | {:error, :science_task_invalid_id | :science_task_not_found}
   def get_public_task(node_id) do
@@ -282,6 +337,36 @@ defmodule TechTree.ScienceTasks do
     ScienceTask.workflow_states()
     |> Enum.map(&Atom.to_string/1)
   end
+
+  @spec stage_label(String.t()) :: String.t()
+  def stage_label("authoring"), do: "Authoring"
+  def stage_label("checklist_fix"), do: "Checklist fix"
+  def stage_label("evidence_ready"), do: "Evidence ready"
+  def stage_label("submitted"), do: "Submitted"
+  def stage_label("review_fix"), do: "Review fix"
+  def stage_label("merge_ready"), do: "Merge ready"
+  def stage_label(stage), do: stage
+
+  @spec normalize_stage(String.t() | nil) ::
+          {:ok, String.t() | nil} | {:error, :science_task_invalid_stage}
+  def normalize_stage(nil), do: {:ok, nil}
+
+  def normalize_stage(value) when is_binary(value) do
+    trimmed = String.trim(value)
+
+    cond do
+      trimmed == "" ->
+        {:ok, nil}
+
+      trimmed in stage_names() ->
+        {:ok, trimmed}
+
+      true ->
+        {:error, :science_task_invalid_stage}
+    end
+  end
+
+  def normalize_stage(_value), do: {:error, :science_task_invalid_stage}
 
   @spec checklist_keys() :: [String.t()]
   def checklist_keys, do: @checklist_keys
@@ -854,6 +939,43 @@ defmodule TechTree.ScienceTasks do
   defp current_files_match_latest_evidence?(task) do
     is_binary(task.evidence_packet_hash) and task.evidence_packet_hash == task.packet_hash
   end
+
+  defp public_index_task_card(%ScienceTask{} = task) do
+    %{
+      node_id: task.node_id,
+      title: task.node.title,
+      science_domain: task.science_domain,
+      science_field: task.science_field,
+      task_slug: task.task_slug,
+      stage: Atom.to_string(task.workflow_state),
+      evidence_label:
+        if(current_files_match_latest_evidence?(task),
+          do: "proof matches files",
+          else: "proof needs refresh"
+        )
+    }
+  end
+
+  defp stage_counts(tasks) do
+    Enum.reduce(tasks, %{}, fn task, acc ->
+      Map.update(acc, task.stage, 1, &(&1 + 1))
+    end)
+  end
+
+  defp visible_stages(nil, stage_names), do: stage_names
+  defp visible_stages(stage, _stage_names), do: [stage]
+
+  defp blank_to_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp blank_to_nil(_value), do: nil
+
+  defp maybe_put_query(query, _key, nil), do: query
+  defp maybe_put_query(query, key, value), do: [{key, value} | query]
 
   defp packet_hash(packet_files) do
     packet_files

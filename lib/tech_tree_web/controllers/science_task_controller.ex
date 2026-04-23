@@ -5,12 +5,17 @@ defmodule TechTreeWeb.ScienceTaskController do
   alias TechTreeWeb.ApiError
 
   def index(conn, params) do
-    tasks =
-      params
-      |> ScienceTasks.list_public_tasks()
-      |> Enum.map(&ScienceTasks.encode_summary/1)
+    with {:ok, _stage} <- ScienceTasks.normalize_stage(params["stage"]) do
+      tasks =
+        params
+        |> ScienceTasks.list_public_tasks()
+        |> Enum.map(&ScienceTasks.encode_summary/1)
 
-    json(conn, %{data: tasks})
+      json(conn, %{data: tasks})
+    else
+      {:error, :science_task_invalid_stage} ->
+        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_science_task_stage"})
+    end
   end
 
   def show(conn, %{"id" => id}) do

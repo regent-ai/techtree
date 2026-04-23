@@ -101,7 +101,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Export path</strong>
+                          <strong>Stored location</strong>
                           <p>{@task.export_target_path}</p>
                         </div>
                       </div>
@@ -109,7 +109,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Packet hash</strong>
+                          <strong>Task fingerprint</strong>
                           <p>{@task.packet_hash}</p>
                         </div>
                       </div>
@@ -117,9 +117,9 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Evidence hash</strong>
+                          <strong>Proof fingerprint</strong>
                           <p>
-                            {present(@task.evidence_packet_hash, "No evidence hash recorded yet.")}
+                            {present(@task.evidence_packet_hash, "No proof fingerprint recorded yet.")}
                           </p>
                         </div>
                       </div>
@@ -154,15 +154,15 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <span class="tt-public-seed-chip">Evidence</span>
                     <span class="tt-public-room-chip">
                       {if @task.current_files_match_latest_evidence,
-                        do: "current",
-                        else: "out of date"}
+                        do: "matches files",
+                        else: "needs refresh"}
                     </span>
                   </div>
                   <ul class="tt-public-side-list-items">
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Oracle command</strong>
+                          <strong>Baseline check</strong>
                           <p>{evidence_line(@task.oracle_run, "command")}</p>
                         </div>
                       </div>
@@ -170,7 +170,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Oracle result</strong>
+                          <strong>Baseline result</strong>
                           <p>{evidence_line(@task.oracle_run, "summary")}</p>
                         </div>
                       </div>
@@ -178,7 +178,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Frontier command</strong>
+                          <strong>Frontier attempt</strong>
                           <p>{evidence_line(@task.frontier_run, "command")}</p>
                         </div>
                       </div>
@@ -213,8 +213,8 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                     <li>
                       <div class="tt-public-side-link">
                         <div>
-                          <strong>Harbor PR</strong>
-                          <p>{present(@task.harbor_pr_url, "No Harbor PR recorded yet.")}</p>
+                          <strong>Review link</strong>
+                          <p>{present(@task.harbor_pr_url, "No review link recorded yet.")}</p>
                         </div>
                       </div>
                     </li>
@@ -262,12 +262,12 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
               <section id="science-task-packet" class="tt-public-side-list" data-public-reveal>
                 <div class="tt-public-side-list-head">
                   <h3>Task packet</h3>
-                  <p>These are the exact files stored for export and review.</p>
+                  <p>These files show what reviewers and future operators can inspect.</p>
                 </div>
 
                 <%= if @task.packet_files == %{} do %>
                   <div class="tt-public-empty-state">
-                    No packet files are stored for this task yet.
+                    No task files are stored for this task yet.
                   </div>
                 <% else %>
                   <div class="tt-public-room-feed">
@@ -307,7 +307,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Structured output</strong>
+                      <strong>Answer format</strong>
                       <p>{present_shape(@task.structured_output_shape)}</p>
                     </div>
                   </div>
@@ -315,15 +315,17 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Threshold rationale</strong>
-                      <p>{present(@task.threshold_rationale, "No threshold rationale recorded.")}</p>
+                      <strong>Scoring threshold</strong>
+                      <p>
+                        {present(@task.threshold_rationale, "No scoring threshold note recorded.")}
+                      </p>
                     </div>
                   </div>
                 </li>
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Anti-cheat notes</strong>
+                      <strong>Answer protection</strong>
                       <p>{@task.anti_cheat_notes}</p>
                     </div>
                   </div>
@@ -331,7 +333,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Reproducibility notes</strong>
+                      <strong>Repeatability notes</strong>
                       <p>{@task.reproducibility_notes}</p>
                     </div>
                   </div>
@@ -339,7 +341,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Dependency pinning</strong>
+                      <strong>Version notes</strong>
                       <p>{@task.dependency_pinning_status}</p>
                     </div>
                   </div>
@@ -347,7 +349,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
                 <li>
                   <div class="tt-public-side-link">
                     <div>
-                      <strong>Canary status</strong>
+                      <strong>Hidden-answer check</strong>
                       <p>{@task.canary_status}</p>
                     </div>
                   </div>
@@ -366,13 +368,16 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
   defp present(value, _fallback), do: value
 
   defp file_body(%{"encoding" => "utf8", "content" => content}), do: content
-  defp file_body(%{"encoding" => "base64"}), do: "Binary file stored as base64."
+
+  defp file_body(%{"encoding" => "base64"}),
+    do: "Binary file is available as an encoded attachment."
+
   defp file_body(_file), do: "File content unavailable."
 
   defp evidence_line(nil, _key), do: "Not recorded yet."
   defp evidence_line(run, key), do: present(run[key], "Not recorded yet.")
 
-  defp present_shape(nil), do: "No structured output shape recorded."
+  defp present_shape(nil), do: "No answer format recorded."
   defp present_shape(shape), do: Jason.encode!(shape)
 
   defp present_datetime(nil), do: "Not recorded yet."

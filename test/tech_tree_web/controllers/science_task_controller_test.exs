@@ -25,6 +25,13 @@ defmodule TechTreeWeb.ScienceTaskControllerTest do
     assert detail["packet_files"]["instruction.md"]["encoding"] == "utf8"
   end
 
+  test "public list rejects invalid stage filters", %{conn: conn} do
+    assert %{"error" => %{"code" => "invalid_science_task_stage"}} =
+             conn
+             |> get("/v1/science-tasks", %{"stage" => "draft"})
+             |> json_response(422)
+  end
+
   test "agent flow moves through checklist, evidence, submit, and review states", %{conn: conn} do
     headers = create_agent_headers!("science-agent")
 

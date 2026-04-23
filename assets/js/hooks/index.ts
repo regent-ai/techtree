@@ -1,6 +1,6 @@
 import type { HooksOptions } from "phoenix_live_view";
 
-import { hooks as regentHooks } from "../../../../packages/regent_ui/assets/js/regent";
+import { hooks as regentHooks } from "../../../../design-system/regent_ui/assets/js/regent";
 import { BbhCapsuleWall } from "./bbh-capsule-wall";
 import { createLazyHook } from "./lazy";
 import { HumanMotion } from "./human-motion";

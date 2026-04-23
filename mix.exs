@@ -70,7 +70,7 @@ defmodule TechTree.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:regent_ui, path: "../packages/regent_ui"},
+      {:regent_ui, path: "../design-system/regent_ui"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:lazy_html, ">= 0.1.0", only: :test},
@@ -104,7 +104,7 @@ defmodule TechTree.MixProject do
   end
 
   defp sync_regent_assets(_args) do
-    source = Path.expand("../packages/regent_ui/priv/static/regent", __DIR__)
+    source = Path.expand("../design-system/regent_ui/priv/static/regent", __DIR__)
     destination = Path.expand("priv/static/regent", __DIR__)
 
     File.rm_rf!(destination)

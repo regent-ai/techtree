@@ -16,6 +16,6 @@
     "js/**/*.ts",
     "js/**/*.d.ts",
     "vendor/**/*.d.ts",
-    "../../packages/regent_ui/assets/js/**/*"
+    "../../design-system/regent_ui/assets/js/**/*"
   ]
 }

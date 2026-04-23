@@ -5,7 +5,7 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
-import { installHeerich } from "../../../packages/regent_ui/assets/js/regent"
+import { installHeerich } from "../../../design-system/regent_ui/assets/js/regent"
 import { platformHooks } from "./hooks/index"
 
 const csrfToken = (document.querySelector("meta[name='csrf-token']") as HTMLMetaElement | null)?.content

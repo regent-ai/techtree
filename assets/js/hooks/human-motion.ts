@@ -3,7 +3,7 @@ import type { Hook, HookContext } from "phoenix_live_view"
 import {
   prefersReducedMotion,
   revealSequence,
-} from "../../../../packages/regent_ui/assets/js/regent_motion"
+} from "../../../../design-system/regent_ui/assets/js/regent_motion"
 
 function revealImmediately(targets: HTMLElement[]) {
   targets.forEach((target) => {

@@ -3,6 +3,27 @@ defmodule TechTreeWeb.HomePresenter do
 
   alias TechTree.Chatbox.Message
 
+  def home_graph_assigns(graph) do
+    agent_focus_options = agent_focus_options(graph.graph_nodes)
+
+    Map.merge(graph, %{
+      agent_focus_options: agent_focus_options,
+      graph_meta: graph_meta(graph.graph_nodes, graph.graph_edges),
+      agent_labels_by_id: agent_labels_by_id(graph.graph_nodes),
+      graph_agent_query: "",
+      graph_agent_matches: matching_agent_focus_options(agent_focus_options, ""),
+      node_query: "",
+      node_matches: [],
+      selected_node_id: graph.selected_node && graph.selected_node.id,
+      node_focus_target_id: nil,
+      selected_agent_id: nil,
+      subtree_root_id: nil,
+      subtree_mode: nil,
+      show_null_results?: false,
+      filter_to_null_results?: false
+    })
+  end
+
   def graph_meta(graph_nodes, graph_edges) do
     %{
       node_count: length(graph_nodes),

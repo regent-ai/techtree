@@ -32,7 +32,7 @@ defmodule TechTreeWeb.PlatformComponents do
             id="platform-auth-panel"
             phx-hook="PlatformAuth"
             data-privy-app-id={Map.get(@client_config, :privy_app_id, "")}
-            data-lazy-fallback-message="Browser auth controls are unavailable right now. Reload the page or verify the Privy app settings."
+            data-lazy-fallback-message="Wallet controls are unavailable right now. Reload the page or check the wallet settings."
             class="rounded-[1.35rem] border border-black/8 bg-black px-4 py-4 text-white dark:border-white/10 dark:bg-slate-900"
           >
             <p class="text-[0.68rem] uppercase tracking-[0.26em] text-amber-300">Wallet first</p>
@@ -61,7 +61,7 @@ defmodule TechTreeWeb.PlatformComponents do
           </div>
 
           <p class="text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Move through platform surfaces, inspect imported records, and keep operator actions grouped in one place.
+            Move through platform previews, inspect imported records, and keep operator actions grouped in one place.
           </p>
 
           <nav class="grid gap-2" aria-label="Platform navigation">
@@ -258,7 +258,7 @@ defmodule TechTreeWeb.PlatformComponents do
   def workspace_links do
     [
       %{href: "/", label: "Public home", copy: "Return to the guided front door."},
-      %{href: "/tree", label: "Explore tree", copy: "Open the public tree routes."},
+      %{href: "/tree", label: "Explore tree", copy: "Open the public tree."},
       %{href: "/learn/bbh-train", label: "BBH guide", copy: "Jump into the guided BBH path."}
     ]
   end

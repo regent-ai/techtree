@@ -2,8 +2,8 @@ defmodule TechTreeWeb.HomeLive do
   @moduledoc false
   use TechTreeWeb, :live_view
 
-  alias TechTree.Chatbox
-  alias TechTreeWeb.HomeLive.{Dataset, State}
+  alias TechTree.{Chatbox, HomeGraph}
+  alias TechTreeWeb.HomeLive.State
   alias TechTreeWeb.{HomeComponents, HomePresenter, HomeRegentScene}
 
   @dev_dataset_toggle? Application.compile_env(:tech_tree, :dev_routes, false)
@@ -263,7 +263,10 @@ defmodule TechTreeWeb.HomeLive do
 
   defp assign_dataset(socket, requested_mode) do
     socket
-    |> assign(Dataset.build(requested_mode, @dev_dataset_toggle?))
+    |> assign(
+      HomeGraph.build(requested_mode, @dev_dataset_toggle?)
+      |> HomePresenter.home_graph_assigns()
+    )
     |> assign_grid_modal(nil)
     |> assign_grid_view([])
     |> sync_regent_scene()

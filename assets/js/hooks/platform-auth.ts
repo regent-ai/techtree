@@ -1,6 +1,6 @@
 import type { Hook } from "phoenix_live_view";
 
-import { animate } from "../../vendor/anime.esm.js";
+import { animate } from "animejs";
 import { LocalStorage, Privy } from "../../vendor/privy-core.esm.js";
 import {
   clearPrivySession,

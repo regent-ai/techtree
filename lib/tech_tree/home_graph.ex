@@ -1,4 +1,4 @@
-defmodule TechTreeWeb.HomeLive.Dataset do
+defmodule TechTree.HomeGraph do
   @moduledoc false
 
   import Ecto.Query, only: [where: 3, select: 3]
@@ -6,7 +6,6 @@ defmodule TechTreeWeb.HomeLive.Dataset do
   alias Decimal, as: D
   alias TechTree.Agents.AgentIdentity
   alias TechTree.{HumanUX, Nodes, Repo}
-  alias TechTreeWeb.HomePresenter
 
   @fixture_creator_addresses [
     "0x1111111111111111111111111111111111111111",
@@ -44,30 +43,14 @@ defmodule TechTreeWeb.HomeLive.Dataset do
     seed_catalog = seed_catalog(graph_nodes)
     graph_nodes = layout_graph_nodes(graph_nodes, seed_catalog)
     graph_edges = graph_edges(graph_nodes)
-    graph_meta = HomePresenter.graph_meta(graph_nodes, graph_edges)
     selected_node = default_selected_node(graph_nodes)
-    agent_focus_options = HomePresenter.agent_focus_options(graph_nodes)
 
     %{
-      agent_focus_options: agent_focus_options,
       data_mode: data_mode,
       graph_nodes: graph_nodes,
       graph_edges: graph_edges,
-      graph_meta: graph_meta,
       seed_catalog: seed_catalog,
-      agent_labels_by_id: HomePresenter.agent_labels_by_id(graph_nodes),
-      graph_agent_query: "",
-      graph_agent_matches: HomePresenter.matching_agent_focus_options(agent_focus_options, ""),
-      node_query: "",
-      node_matches: [],
-      selected_node_id: selected_node && selected_node.id,
       selected_node: selected_node,
-      node_focus_target_id: nil,
-      selected_agent_id: nil,
-      subtree_root_id: nil,
-      subtree_mode: nil,
-      show_null_results?: false,
-      filter_to_null_results?: false,
       graph_node_index: Map.new(graph_nodes, &{&1.id, &1}),
       graph_children_by_parent: graph_children_by_parent(graph_nodes)
     }
@@ -132,12 +115,11 @@ defmodule TechTreeWeb.HomeLive.Dataset do
               parent_id: root.id,
               depth: 1,
               path: "#{root.path}.n#{child_id}",
-              title:
-                "#{HomePresenter.display_seed_label(root.seed, @seed_catalog)} branch #{child_index}",
+              title: "#{display_seed_label(root.seed, @seed_catalog)} branch #{child_index}",
               seed: root.seed,
               kind: kind,
               summary:
-                "Fixture child #{child_index} under #{HomePresenter.display_seed_label(root.seed, @seed_catalog)} from #{HomePresenter.short_creator_address(fixture_creator_address(child_id))}.",
+                "Fixture child #{child_index} under #{display_seed_label(root.seed, @seed_catalog)} from #{short_creator_address(fixture_creator_address(child_id))}.",
               creator_address: fixture_creator_address(child_id),
               watcher_count: 8 + root_index + child_index,
               comment_count: 2 + rem(child_index, 3)
@@ -261,7 +243,7 @@ defmodule TechTreeWeb.HomeLive.Dataset do
         path: if(detail, do: detail.path, else: node[:path]),
         comment_count: if(detail, do: detail.comment_count || 0, else: 0),
         status: if(detail, do: Atom.to_string(detail.status || :pinned), else: "pinned"),
-        summary: if(detail, do: HomePresenter.trim_summary(detail.summary), else: nil),
+        summary: if(detail, do: trim_summary(detail.summary), else: nil),
         creator_agent_id: if(detail, do: detail.creator_agent_id, else: node[:creator_agent_id]),
         inserted_at:
           if(detail, do: graph_timestamp(detail.inserted_at), else: node[:inserted_at]),
@@ -300,7 +282,7 @@ defmodule TechTreeWeb.HomeLive.Dataset do
       creator_agent_id: Map.get(node, :creator_agent_id),
       creator_address: nil,
       status: normalize_status(Map.get(node, :status)),
-      summary: HomePresenter.trim_summary(Map.get(node, :summary)),
+      summary: trim_summary(Map.get(node, :summary)),
       inserted_at: graph_timestamp(Map.get(node, :inserted_at))
     }
   end
@@ -348,7 +330,7 @@ defmodule TechTreeWeb.HomeLive.Dataset do
         {id,
          %{
            id: id,
-           label: HomePresenter.normalize_agent_label(label, id),
+           label: normalize_agent_label(label, id),
            wallet_address: wallet_address
          }}
       end)
@@ -435,6 +417,54 @@ defmodule TechTreeWeb.HomeLive.Dataset do
   defp normalize_status(nil), do: "pinned"
   defp normalize_status(value) when is_atom(value), do: Atom.to_string(value)
   defp normalize_status(value) when is_binary(value), do: value
+
+  defp normalize_agent_label(value, id) when is_binary(value) do
+    case String.trim(value) do
+      "" -> "Agent #{id}"
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_agent_label(_value, id), do: "Agent #{id}"
+
+  defp trim_summary(nil), do: nil
+
+  defp trim_summary(summary) when is_binary(summary) do
+    summary
+    |> String.trim()
+    |> case do
+      "" ->
+        nil
+
+      trimmed ->
+        if String.length(trimmed) > 180 do
+          String.slice(trimmed, 0, 177) <> "..."
+        else
+          trimmed
+        end
+    end
+  end
+
+  defp display_seed_label(seed, seed_catalog), do: seed_label(seed_catalog, seed) || seed
+
+  defp seed_label(seed_catalog, seed) when is_binary(seed) do
+    case Enum.find(seed_catalog, &(&1.seed == seed)) do
+      %{label: label} -> label
+      _ -> nil
+    end
+  end
+
+  defp seed_label(_seed_catalog, _seed), do: nil
+
+  defp short_creator_address(nil), do: nil
+
+  defp short_creator_address(address) when is_binary(address) do
+    if String.length(address) > 12 do
+      String.slice(address, 0, 8) <> "..." <> String.slice(address, -4, 4)
+    else
+      address
+    end
+  end
 
   defp result_status_for(%{kind: "null_result"}), do: "null"
   defp result_status_for(%{status: "failed_anchor"}), do: "failed"

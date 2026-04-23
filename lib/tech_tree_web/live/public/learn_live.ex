@@ -18,10 +18,12 @@ defmodule TechTreeWeb.Public.LearnLive do
 
   @impl true
   def handle_params(%{"topic" => topic_id}, _uri, socket) do
+    topic = PublicSite.learn_topic(topic_id)
+
     {:noreply,
      socket
-     |> assign(:topic, PublicSite.learn_topic(topic_id))
-     |> assign(:page_title, topic_title(PublicSite.learn_topic(topic_id)))}
+     |> assign(:topic, topic)
+     |> assign(:page_title, topic_title(topic))}
   end
 
   def handle_params(_params, _uri, socket) do
@@ -41,9 +43,8 @@ defmodule TechTreeWeb.Public.LearnLive do
             <p class="tt-public-kicker">Research Systems</p>
             <h1>Learn how the research system works.</h1>
             <p class="tt-public-hero-copy-text">
-              Understand the main components without needing internal jargon first. Open the
-              system that matches what you want to do next, then jump into the live route when you
-              are ready.
+              Choose the path that matches what you want to do next, then open the public work
+              when you are ready.
             </p>
           </div>
         </section>

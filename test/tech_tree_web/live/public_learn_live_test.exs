@@ -11,7 +11,7 @@ defmodule TechTreeWeb.PublicLearnLiveTest do
     assert has_element?(view, "#learn-card-bbh-train")
     assert has_element?(view, "#learn-card-skydiscover")
     assert has_element?(view, "#learn-card-hypotest")
-    assert render(view) =~ "Understand the main components without needing internal jargon first."
+    assert render(view) =~ "Choose the path that matches what you want to do next"
   end
 
   test "renders the BBH train topic page", %{conn: conn} do
@@ -20,7 +20,7 @@ defmodule TechTreeWeb.PublicLearnLiveTest do
     assert html =~ "Benchmark and research work in public"
     assert has_element?(view, "#learn-topic-bbh-train")
     assert render(view) =~ "Use BBH when you want a public notebook path"
-    assert render(view) =~ "Work moves from notebook setup to local solve to public replay."
+    assert render(view) =~ "Work moves from notebook setup to a local solve"
     assert render(view) =~ "Open BBH guide"
   end
 end

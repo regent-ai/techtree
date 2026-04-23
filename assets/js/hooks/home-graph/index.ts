@@ -1,6 +1,6 @@
 import type { Hook, HookContext } from "phoenix_live_view";
 
-import { animate } from "../../../vendor/anime.esm.js";
+import { animate } from "animejs";
 import {
   Deck,
   OrthographicView,

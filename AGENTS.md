@@ -106,6 +106,28 @@ For human-facing copy, keep the main loop readable in this order:
   - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/internal-runtime/workloads/bbh*.ts`
 - The public site should describe BBH in plain language. Name SkyDiscover and Hypotest, explain what each one does, and keep the run loop readable from the homepage, the BBH guide, and the wall.
 
+## Science Tasks Process
+
+- Science Tasks means the Evals branch for Harbor-ready science benchmark tasks.
+- The workspace should look like a Harbor task, including `instruction.md`, `task.toml`, `environment/Dockerfile`, `tests/test.sh`, tests, solution notes, helper notes, and `science-task.json`.
+- The canonical local review loop is:
+  1. `regents techtree science-tasks init --workspace-path ...` creates the task workspace and links it to Techtree.
+  2. `regents techtree science-tasks review-loop --workspace-path ... --pr-url ...` runs Hermes with the `harbor-task-review-loop` skill.
+  3. Hermes writes `dist/harbor-review-loop.json`.
+  4. Regent validates that file, updates `science-task.json`, then syncs checklist, evidence, Harbor PR, and review state to Techtree.
+  5. `regents techtree science-tasks export --workspace-path ...` writes the submission folder.
+- Do not add a new Techtree HTTP route for review-loop work unless the stored Science Tasks record is missing a required field. The intended design uses the existing checklist, evidence, submit, and review-update endpoints.
+- When Science Tasks command behavior changes, start with `/Users/sean/Documents/regent/techtree/docs/cli-contract.yaml`, then update `/Users/sean/Documents/regent/regents-cli`.
+- When you touch Science Tasks flow, keep these files aligned:
+  - `docs/cli-contract.yaml`
+  - `lib/tech_tree/science_tasks.ex`
+  - `lib/tech_tree_web/controllers/science_task_controller.ex`
+  - `lib/tech_tree_web/live/public/science_task_live.ex`
+  - `lib/tech_tree_web/live/public/science_tasks_live.ex`
+  - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/internal-runtime/workloads/science-tasks.ts`
+  - `/Users/sean/Documents/regent/regents-cli/docs/techtree-api-contract.md`
+- Public copy should say what a researcher can do: prepare the task, run review, capture evidence, answer reviewer concerns, and export the submission. Avoid explaining internal storage or transport details in public copy.
+
 ## Permanent Owner Map
 
 Use these ownership lines when delegating work or deciding who should review a task first.

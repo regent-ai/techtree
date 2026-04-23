@@ -34,6 +34,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
           :for={item <- @nav_items}
           navigate={item.href}
           class={["tt-public-nav-link", @current == item.key && "is-active"]}
+          aria-current={if(@current == item.key, do: "page", else: false)}
         >
           {item.label}
         </.link>
@@ -112,6 +113,8 @@ defmodule TechTreeWeb.PublicSiteComponents do
             :for={message <- @messages}
             id={"#{@panel_id}-#{message.key}"}
             class="tt-public-room-entry"
+            data-public-live-item={"#{@panel_id}-#{message.key}"}
+            data-public-live-revision={message.key}
           >
             <div class="tt-public-room-entry-top">
               <div class="tt-public-room-entry-copy">
@@ -198,7 +201,12 @@ defmodule TechTreeWeb.PublicSiteComponents do
       <% else %>
         <ul class="tt-public-side-list-items">
           <li :for={item <- @items} id={"#{@list_id}-#{item.id}"}>
-            <.link navigate={item.href} class="tt-public-side-link">
+            <.link
+              navigate={item.href}
+              class="tt-public-side-link"
+              data-public-live-item={"#{@list_id}-#{item.id}"}
+              data-public-live-revision={item.meta}
+            >
               <div>
                 <strong>{item.title}</strong>
                 <p>{item.summary}</p>
@@ -328,7 +336,12 @@ defmodule TechTreeWeb.PublicSiteComponents do
             </tr>
           </thead>
           <tbody>
-            <tr :for={{row, index} <- Enum.with_index(@rows, 1)} id={"#{@table_id}-row-#{index}"}>
+            <tr
+              :for={{row, index} <- Enum.with_index(@rows, 1)}
+              id={"#{@table_id}-row-#{row.id || index}"}
+              data-public-live-item={"#{@table_id}-row-#{row.id || index}"}
+              data-public-live-revision={row.id || index}
+            >
               <td>{row.time}</td>
               <td>{row.agent}</td>
               <td>{row.action}</td>
@@ -344,6 +357,98 @@ defmodule TechTreeWeb.PublicSiteComponents do
         </table>
       <% end %>
     </div>
+    """
+  end
+
+  attr :rows, :any, required: true
+  attr :empty?, :boolean, default: false
+  attr :table_id, :string, default: "public-activity-table"
+
+  def activity_stream_table(assigns) do
+    ~H"""
+    <div class="tt-public-table-shell" data-public-reveal>
+      <%= if @empty? do %>
+        <div class="tt-public-empty-state">
+          No public activity is visible yet. The next visible move will appear here.
+        </div>
+      <% else %>
+        <table id={@table_id} class="tt-public-table">
+          <thead>
+            <tr>
+              <th scope="col">Time</th>
+              <th scope="col">Agent</th>
+              <th scope="col">Action</th>
+              <th scope="col">Subject</th>
+            </tr>
+          </thead>
+          <tbody id={"#{@table_id}-body"} phx-update="stream">
+            <tr
+              :for={{dom_id, row} <- @rows}
+              id={dom_id}
+              data-public-live-item={dom_id}
+              data-public-live-revision={row.id}
+            >
+              <td>{row.time}</td>
+              <td>{row.agent}</td>
+              <td>{row.action}</td>
+              <td>
+                <%= if row.href do %>
+                  <.link navigate={row.href} class="tt-public-table-link">{row.subject}</.link>
+                <% else %>
+                  <span class="tt-public-table-link">{row.subject}</span>
+                <% end %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :messages, :any, required: true
+  attr :message_count, :integer, required: true
+  attr :empty?, :boolean, default: false
+  attr :panel_id, :string, required: true
+  attr :title, :string, required: true
+  attr :copy, :string, required: true
+
+  def live_room_stream_panel(assigns) do
+    ~H"""
+    <section id={@panel_id} class="tt-public-room-shell" data-public-reveal>
+      <div class="tt-public-room-head">
+        <div>
+          <h3>{@title}</h3>
+          <p>{@copy}</p>
+        </div>
+        <span class="tt-public-room-count">{@message_count} recent</span>
+      </div>
+
+      <%= if @empty? do %>
+        <div class="tt-public-empty-state">
+          The public room is quiet right now. The next visible message will appear here.
+        </div>
+      <% else %>
+        <div id={"#{@panel_id}-feed"} class="tt-public-room-feed" phx-update="stream">
+          <article
+            :for={{dom_id, message} <- @messages}
+            id={dom_id}
+            class="tt-public-room-entry"
+            data-public-live-item={dom_id}
+            data-public-live-revision={message.key}
+          >
+            <div class="tt-public-room-entry-top">
+              <div class="tt-public-room-entry-copy">
+                <strong>{message.author}</strong>
+                <span class="tt-public-room-chip">{message.room}</span>
+              </div>
+              <span>{message.stamp}</span>
+            </div>
+            <p>{message.body}</p>
+          </article>
+        </div>
+      <% end %>
+    </section>
     """
   end
 

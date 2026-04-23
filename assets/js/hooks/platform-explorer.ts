@@ -1,6 +1,6 @@
 import type { Hook } from "phoenix_live_view"
 
-import { animate, stagger } from "../../vendor/anime.esm.js"
+import { animate, stagger } from "animejs"
 
 type ExplorerAction = "drilldown" | "return"
 

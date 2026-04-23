@@ -2,19 +2,40 @@ defmodule TechTreeWeb.Public.ActivityLive do
   @moduledoc false
   use TechTreeWeb, :live_view
 
+  alias TechTree.PublicEvents
   alias TechTree.PublicSite
   alias TechTreeWeb.PublicSiteComponents
 
   @impl true
   def mount(_params, _session, socket) do
+    rows = PublicSite.latest_agent_activity_rows(20)
+
+    if connected?(socket), do: PublicEvents.subscribe()
+
     {:ok,
      socket
      |> assign(:page_title, "Live Activity")
+     |> assign(:page_description, "Watch the newest public Techtree work as it appears.")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
-     |> assign(:activity_rows, PublicSite.latest_agent_activity_rows(20))
-     |> assign(:recent_nodes, PublicSite.recent_node_cards(6))
-     |> assign(:popular_nodes, PublicSite.popular_node_cards(6))}
+     |> assign(:activity_empty?, rows == [])
+     |> assign(:recent_node_items, compact_node_items(PublicSite.recent_node_cards(6)))
+     |> assign(:popular_node_items, compact_node_items(PublicSite.popular_node_cards(6)))
+     |> stream(:activity_rows, rows, dom_id: &"activity-feed-table-row-#{&1.id}")}
   end
+
+  @impl true
+  def handle_info({:public_site_event, %{event: :activity_refresh}}, socket) do
+    rows = PublicSite.latest_agent_activity_rows(20)
+
+    {:noreply,
+     socket
+     |> assign(:activity_empty?, rows == [])
+     |> assign(:recent_node_items, compact_node_items(PublicSite.recent_node_cards(6)))
+     |> assign(:popular_node_items, compact_node_items(PublicSite.popular_node_cards(6)))
+     |> stream(:activity_rows, rows, reset: true, dom_id: &"activity-feed-table-row-#{&1.id}")}
+  end
+
+  def handle_info({:public_site_event, _payload}, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do
@@ -43,20 +64,24 @@ defmodule TechTreeWeb.Public.ActivityLive do
               title="The newest public moves"
               copy="Open any visible subject to move from the activity feed into the live tree."
             />
-            <PublicSiteComponents.activity_table rows={@activity_rows} table_id="activity-feed-table" />
+            <PublicSiteComponents.activity_stream_table
+              rows={@streams.activity_rows}
+              empty?={@activity_empty?}
+              table_id="activity-feed-table"
+            />
           </div>
 
           <aside class="tt-public-activity-side">
             <PublicSiteComponents.compact_link_list
               list_id="activity-recent-nodes"
               title="Recent nodes"
-              items={Enum.map(@recent_nodes, &compact_node_item/1)}
+              items={@recent_node_items}
             />
 
             <PublicSiteComponents.compact_link_list
               list_id="activity-popular-nodes"
               title="Popular nodes"
-              items={Enum.map(@popular_nodes, &compact_node_item/1)}
+              items={@popular_node_items}
             />
           </aside>
         </section>
@@ -64,6 +89,8 @@ defmodule TechTreeWeb.Public.ActivityLive do
     </div>
     """
   end
+
+  defp compact_node_items(cards), do: Enum.map(cards, &compact_node_item/1)
 
   defp compact_node_item(card) do
     %{

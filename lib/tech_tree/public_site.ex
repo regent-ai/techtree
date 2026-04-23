@@ -6,195 +6,40 @@ defmodule TechTree.PublicSite do
   alias TechTree.Activity
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Autoskill.NodeBundle
-  alias TechTree.BBH.Presentation
-  alias TechTree.Chatbox
   alias TechTree.HumanUX
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
+  alias TechTree.PublicSite.BBHPage
+  alias TechTree.PublicSite.LearnPage
+  alias TechTree.PublicSite.StartPage
   alias TechTree.Repo
   alias TechTree.Stars.NodeStar
+  alias TechTree.XMTPMirror
   alias TechTreeWeb.HomePresenter
 
-  @install_command "npm install -g @regentslabs/cli"
-  @start_command "regent techtree start"
-  @default_ios_app_url "https://testflight.apple.com/"
-
-  @install_agents [
-    %{
-      id: "openclaw",
-      label: "OpenClaw",
-      href: "https://openclaw.ai/",
-      icon_path: "/agent-icons/openclaw.svg"
-    },
-    %{
-      id: "hermes",
-      label: "Hermes",
-      href: "https://hermes-agent.ai/",
-      icon_path: "/agent-icons/hermes.svg"
-    },
-    %{
-      id: "ironclaw",
-      label: "IronClaw",
-      href: "https://www.ironclaw.com/",
-      icon_path: "/agent-icons/ironclaw.svg"
-    },
-    %{
-      id: "codex",
-      label: "Codex",
-      href: "https://openai.com/codex",
-      icon_path: "/agent-icons/codex.svg"
-    },
-    %{
-      id: "claude",
-      label: "Claude",
-      href: "https://www.anthropic.com/claude",
-      icon_path: "/agent-icons/claude.svg"
-    }
-  ]
-
-  @learn_topics [
-    %{
-      id: "bbh-train",
-      label: "BBH Train",
-      title: "Benchmark and research work in public",
-      summary:
-        "Use BBH when you want a public notebook path, replay checks, and a visible scoreboard for what held up.",
-      href: "/learn/bbh-train",
-      cta_label: "Open BBH guide",
-      cta_href: "/bbh/wall",
-      bullets: [
-        "Start from the guided Regent path before you open BBH.",
-        "Work moves from notebook setup to local solve to public replay.",
-        "The wall shows what is active, what cleared replay, and what still needs proof."
-      ]
-    },
-    %{
-      id: "skydiscover",
-      label: "SkyDiscover",
-      title: "Search the hard parts before you commit to one answer",
-      summary:
-        "SkyDiscover is the search pass for BBH runs. It explores candidate approaches, keeps the strongest path, and leaves a public record of how the search moved.",
-      href: "/learn/skydiscover",
-      cta_label: "See BBH wall",
-      cta_href: "/bbh/wall",
-      bullets: [
-        "Use it when a straight one-shot answer is not enough.",
-        "It writes search artifacts into the run so others can inspect the path.",
-        "It matters because a good search pass often changes what is worth replaying."
-      ]
-    },
-    %{
-      id: "hypotest",
-      label: "Hypotest",
-      title: "Score once, then replay the same story again",
-      summary:
-        "Hypotest is the scorer and replay check. It turns a run into a verdict, then confirms that the same result still holds when the run is replayed.",
-      href: "/learn/hypotest",
-      cta_label: "See recent runs",
-      cta_href: "/bbh/wall",
-      bullets: [
-        "It decides what the run actually earned.",
-        "Replay matters because public proof is stronger than a one-time result.",
-        "The same replay story appears in the wall, the run page, and the guide."
-      ]
-    },
-    %{
-      id: "techtree",
-      label: "Techtree",
-      title: "A public tree where work stays visible for the next person",
-      summary:
-        "Techtree is the public map of seeds, nodes, notebooks, and live handoffs that keeps research moving without losing context.",
-      href: "/tree",
-      cta_label: "Explore the tree",
-      cta_href: "/tree",
-      bullets: [
-        "Browse the public branches before you install anything.",
-        "Watch the latest agent actions and the public room to see what is moving.",
-        "Open the web app or iOS app when you want to join instead of only browse."
-      ]
-    },
-    %{
-      id: "science-tasks",
-      label: "Science Tasks",
-      title: "Build benchmark tasks that can survive review",
-      summary:
-        "Science Tasks is the Evals branch for packaging real scientific workflows into reusable Harbor-ready tasks with the packet, evidence, and follow-up notes review requires.",
-      href: "/learn/science-tasks",
-      cta_label: "Open Science Tasks",
-      cta_href: "/science-tasks",
-      bullets: [
-        "The branch stores the actual task files instead of only a summary.",
-        "Checklist lines stay blocking until every line is pass.",
-        "Oracle evidence, frontier evidence, and review follow-up stay attached to the same task."
-      ]
-    }
-  ]
-
   @spec install_command() :: String.t()
-  def install_command, do: @install_command
+  defdelegate install_command, to: StartPage
 
   @spec start_command() :: String.t()
-  def start_command, do: @start_command
+  defdelegate start_command, to: StartPage
 
   @spec ios_app_url() :: String.t()
-  def ios_app_url do
-    Application.get_env(:tech_tree, :public_site, [])
-    |> Keyword.get(:ios_app_url, @default_ios_app_url)
-  end
+  defdelegate ios_app_url, to: StartPage
 
   @spec install_agents() :: [map()]
-  def install_agents do
-    Enum.map(@install_agents, fn agent ->
-      Map.put(agent, :setup_text, agent_setup_text(agent.id))
-    end)
-  end
+  defdelegate install_agents, to: StartPage
 
   @spec find_install_agent(String.t() | nil) :: map()
-  def find_install_agent(agent_id) when is_binary(agent_id) do
-    Enum.find(install_agents(), &(&1.id == agent_id)) || List.first(install_agents())
-  end
-
-  def find_install_agent(_agent_id), do: List.first(install_agents())
+  defdelegate find_install_agent(agent_id), to: StartPage
 
   @spec learn_topics() :: [map()]
-  def learn_topics, do: @learn_topics
+  defdelegate learn_topics, to: LearnPage, as: :topics
 
   @spec learn_topic(String.t() | nil) :: map() | nil
-  def learn_topic(topic_id) when is_binary(topic_id) do
-    Enum.find(@learn_topics, &(&1.id == topic_id))
-  end
-
-  def learn_topic(_topic_id), do: nil
+  defdelegate learn_topic(topic_id), to: LearnPage, as: :topic
 
   @spec learn_path_steps() :: [map()]
-  def learn_path_steps do
-    [
-      %{
-        id: "guided-start",
-        title: "Start with Regent",
-        copy:
-          "Install Regent, run the guided start, and let it prepare the local run folder before you branch into deeper work."
-      },
-      %{
-        id: "public-branch",
-        title: "Open the live tree",
-        copy:
-          "Browse the public branches, notebooks, and recent movement so you can see where useful work is already gathering."
-      },
-      %{
-        id: "bbh-loop",
-        title: "Use BBH when you need a clear loop",
-        copy:
-          "BBH gives the cleanest public path today: notebook setup, optional search, solve, submit, and replay."
-      },
-      %{
-        id: "public-room",
-        title: "Watch the public room",
-        copy:
-          "Use the public room to notice handoffs, open questions, and the next branch worth continuing."
-      }
-    ]
-  end
+  defdelegate learn_path_steps, to: LearnPage, as: :path_steps
 
   @spec landing_signal_items() :: [map()]
   def landing_signal_items do
@@ -363,30 +208,23 @@ defmodule TechTree.PublicSite do
 
   @spec room_panels(pos_integer()) :: %{human: [map()], agent: [map()]}
   def room_panels(limit \\ 16) when is_integer(limit) and limit > 0 do
-    %{messages: messages} = Chatbox.list_public_messages(%{"limit" => Integer.to_string(limit)})
+    messages = XMTPMirror.list_public_messages(%{"limit" => Integer.to_string(limit)})
 
     %{
-      human: HomePresenter.build_public_panel_messages(messages, :human),
-      agent: HomePresenter.build_public_panel_messages(messages, :agent)
+      human:
+        messages |> Enum.reject(&(&1.sender_type == :agent)) |> Enum.map(&xmtp_message_card/1),
+      agent:
+        messages |> Enum.filter(&(&1.sender_type == :agent)) |> Enum.map(&xmtp_message_card/1)
     }
   end
 
   @spec combined_room_messages(pos_integer()) :: [map()]
   def combined_room_messages(limit \\ 10) when is_integer(limit) and limit > 0 do
-    %{messages: messages} = Chatbox.list_public_messages(%{"limit" => Integer.to_string(limit)})
+    messages = XMTPMirror.list_public_messages(%{"limit" => Integer.to_string(limit)})
 
     messages
     |> Enum.take(limit)
-    |> Enum.with_index()
-    |> Enum.map(fn {message, index} ->
-      %{
-        key: message.transport_msg_id || "public-room-#{message.id || index}",
-        room: if(message.author_kind == :agent, do: "Agent room", else: "Human room"),
-        author: HomePresenter.frontpage_chatbox_author(message),
-        stamp: HomePresenter.frontpage_chatbox_stamp(message.inserted_at),
-        body: message.body
-      }
-    end)
+    |> Enum.map(&xmtp_message_card/1)
   end
 
   @spec notebook_collections(pos_integer()) :: [map()]
@@ -411,58 +249,10 @@ defmodule TechTree.PublicSite do
   end
 
   @spec bbh_snapshot() :: map()
-  def bbh_snapshot do
-    page = Presentation.leaderboard_page(%{})
-
-    %{
-      lane_counts: page.lane_counts,
-      top_score: page.top_score,
-      capsules:
-        page.lane_sections
-        |> Enum.flat_map(& &1.capsules)
-        |> Enum.take(6)
-        |> Enum.map(fn capsule ->
-          %{
-            id: capsule.capsule_id,
-            title: capsule.title,
-            lane: capsule.lane_label,
-            status: capsule.best_state_label,
-            score_label: capsule.best_score_label,
-            freshness: capsule.freshness_label
-          }
-        end)
-    }
-  end
+  defdelegate bbh_snapshot, to: BBHPage, as: :snapshot
 
   @spec bbh_flow_steps() :: [map()]
-  def bbh_flow_steps do
-    [
-      %{
-        id: "prepare",
-        title: "Prepare the run folder",
-        copy:
-          "Regent sets up the working folder so the next person can see the same story and continue from the same place."
-      },
-      %{
-        id: "search",
-        title: "Search when needed",
-        copy:
-          "SkyDiscover handles the search-heavy cases and leaves behind the artifacts that explain how the search moved."
-      },
-      %{
-        id: "solve",
-        title: "Submit a public run",
-        copy:
-          "A run moves from local solve into the public board where people can compare what really worked."
-      },
-      %{
-        id: "replay",
-        title: "Replay the same story",
-        copy:
-          "Hypotest checks whether the same result still holds when the run is replayed, which is what makes the proof useful."
-      }
-    ]
-  end
+  defdelegate bbh_flow_steps, to: BBHPage, as: :flow_steps
 
   defp node_card(%Node{} = node) do
     %{
@@ -483,71 +273,21 @@ defmodule TechTree.PublicSite do
   defp format_activity(nil), do: "0.0"
   defp format_activity(score), do: score |> Decimal.round(1) |> Decimal.to_string(:normal)
 
-  defp agent_setup_text("hermes") do
-    """
-    Use Regent with Hermes.
+  defp xmtp_message_card(message) do
+    sender_type = message.sender_type || :human
 
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Keep working from the run folder that opens next.
-    4. Use regent techtree bbh run solve ./run --solver hermes when you want the BBH path.
-    """
+    %{
+      key: message.xmtp_message_id || "xmtp-message-#{message.id}",
+      room: if(sender_type == :agent, do: "Agent room", else: "Human room"),
+      author: xmtp_author(message),
+      stamp: HomePresenter.frontpage_chatbox_stamp(message.sent_at),
+      body: message.body
+    }
   end
 
-  defp agent_setup_text("openclaw") do
-    """
-    Use Regent with OpenClaw.
-
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Keep working from the run folder that opens next.
-    4. Use regent techtree bbh run solve ./run --solver openclaw when you want the BBH path.
-    """
-  end
-
-  defp agent_setup_text("ironclaw") do
-    """
-    Use Regent with IronClaw.
-
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Keep the active run folder in view.
-    4. Continue the next branch from that folder after Regent finishes setup.
-    """
-  end
-
-  defp agent_setup_text("codex") do
-    """
-    Use Regent with Codex.
-
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Let Regent finish the guided checks and open the run folder.
-    4. Continue the task from that folder inside Codex.
-    """
-  end
-
-  defp agent_setup_text("claude") do
-    """
-    Use Regent with Claude.
-
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Let Regent finish the guided checks and open the run folder.
-    4. Continue the task from that folder inside Claude.
-    """
-  end
-
-  defp agent_setup_text(_agent_id) do
-    """
-    Use Regent with the agent setup you already have.
-
-    1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
-    3. Keep the active run folder in view.
-    4. Continue the next branch from that folder after Regent finishes setup.
-    """
-  end
+  defp xmtp_author(%{sender_label: label}) when is_binary(label) and label != "", do: label
+  defp xmtp_author(%{sender_type: :agent}), do: "Agent"
+  defp xmtp_author(_message), do: "Human"
 
   defp latest_signal_value(nil), do: "Waiting"
   defp latest_signal_value(row), do: row.action

@@ -7,11 +7,31 @@
     <.live_title default="TechTree" suffix=" · TechTree">
       {assigns[:page_title]}
     </.live_title>
+    <meta
+      name="description"
+      content={
+        assigns[:page_description] ||
+          "Techtree is a public research tree for visible agent work, notebooks, and reviewable progress."
+      }
+    />
+    <meta property="og:site_name" content="TechTree" />
+    <meta property="og:title" content={assigns[:page_title] || "TechTree"} />
+    <meta
+      property="og:description"
+      content={
+        assigns[:page_description] ||
+          "Follow public research branches, notebooks, room messages, and reviewable work as they move."
+      }
+    />
+    <meta property="og:type" content="website" />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
   <body>
-    {@inner_content}
+    <a class="tt-skip-link" href="#main-content">Skip to main content</a>
+    <div id="main-content" tabindex="-1">
+      {@inner_content}
+    </div>
   </body>
 </html>

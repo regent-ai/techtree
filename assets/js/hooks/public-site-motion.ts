@@ -1,11 +1,19 @@
-import type { Hook } from "phoenix_live_view"
+import type { Hook, HookContext } from "phoenix_live_view"
 
-import { animate, stagger } from "../../vendor/anime.esm.js"
+import { animate, stagger } from "animejs"
 
 interface PublicSiteElement extends HTMLElement {
   _publicCleanup?: () => void
+  _publicHeroMediaMotion?: { cancel: () => unknown }
   _publicReducedMotion?: boolean
+  _publicLiveItems?: Map<string, string>
+  _publicLiveRects?: Map<string, DOMRect>
 }
+
+type PublicSiteMotionHook = HookContext &
+  Hook & {
+    el: PublicSiteElement
+  }
 
 const revealTargets = (root: HTMLElement) =>
   Array.from(
@@ -17,6 +25,26 @@ const heroButtons = (root: HTMLElement) =>
 
 const heroOrbs = (root: HTMLElement) =>
   Array.from(root.querySelectorAll<HTMLElement>(".tt-public-hero-video-orb"))
+
+const liveItems = (root: HTMLElement) =>
+  Array.from(root.querySelectorAll<HTMLElement>("[data-public-live-item]"))
+
+const liveItemKey = (target: HTMLElement) =>
+  target.dataset.publicLiveItem || target.id || target.dataset.messageKey || ""
+
+const liveItemRevision = (target: HTMLElement) =>
+  target.dataset.publicLiveRevision || target.textContent?.trim() || ""
+
+const liveItemRects = (root: HTMLElement) => {
+  const rects = new Map<string, DOMRect>()
+
+  liveItems(root).forEach((target) => {
+    const key = liveItemKey(target)
+    if (key) rects.set(key, target.getBoundingClientRect())
+  })
+
+  return rects
+}
 
 const setFeedback = (root: HTMLElement, selector: string | undefined, message: string) => {
   if (!selector) return
@@ -55,6 +83,78 @@ const runReveal = (root: PublicSiteElement) => {
   })
 }
 
+const rememberLiveItems = (root: PublicSiteElement) => {
+  const current = new Map<string, string>()
+
+  liveItems(root).forEach((target) => {
+    const key = liveItemKey(target)
+    if (key) current.set(key, liveItemRevision(target))
+  })
+
+  root._publicLiveItems = current
+}
+
+const runLiveItemMotion = (root: PublicSiteElement) => {
+  const previousItems = root._publicLiveItems || new Map<string, string>()
+  const previousRects = root._publicLiveRects || new Map<string, DOMRect>()
+  const nextItems = new Map<string, string>()
+
+  liveItems(root).forEach((target) => {
+    const key = liveItemKey(target)
+    if (!key) return
+
+    const revision = liveItemRevision(target)
+    const previousRevision = previousItems.get(key)
+    const previousRect = previousRects.get(key)
+    const nextRect = target.getBoundingClientRect()
+
+    nextItems.set(key, revision)
+
+    if (root._publicReducedMotion) {
+      target.style.transform = "none"
+      target.style.opacity = "1"
+      return
+    }
+
+    if (!previousItems.has(key)) {
+      animate(target, {
+        opacity: [0, 1],
+        translateY: [12, 0],
+        scale: [0.985, 1],
+        duration: 360,
+        ease: "outExpo",
+      })
+
+      return
+    }
+
+    if (previousRect) {
+      const deltaX = previousRect.left - nextRect.left
+      const deltaY = previousRect.top - nextRect.top
+
+      if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+        animate(target, {
+          translateX: [deltaX, 0],
+          translateY: [deltaY, 0],
+          duration: 420,
+          ease: "outExpo",
+        })
+      }
+    }
+
+    if (previousRevision !== revision) {
+      animate(target, {
+        scale: [1, 1.012, 1],
+        duration: 320,
+        ease: "outCubic",
+      })
+    }
+  })
+
+  root._publicLiveItems = nextItems
+  root._publicLiveRects = liveItemRects(root)
+}
+
 const pulseButtons = (root: PublicSiteElement) => {
   if (root._publicReducedMotion) return
 
@@ -72,11 +172,12 @@ const pulseButtons = (root: PublicSiteElement) => {
 
 const animateHeroMedia = (root: PublicSiteElement) => {
   if (root._publicReducedMotion) return
+  if (root._publicHeroMediaMotion) return
 
   const targets = heroOrbs(root)
   if (targets.length === 0) return
 
-  animate(targets, {
+  root._publicHeroMediaMotion = animate(targets, {
     translateY: (_target: unknown, index: number) => (index % 2 === 0 ? [0, -10, 0] : [0, 10, 0]),
     translateX: (_target: unknown, index: number) => (index % 2 === 0 ? [0, 6, 0] : [0, -6, 0]),
     scale: [1, 1.03, 1],
@@ -85,11 +186,21 @@ const animateHeroMedia = (root: PublicSiteElement) => {
     duration: 3600,
     ease: "inOutSine",
     loop: true,
+  }) as { cancel: () => unknown }
+}
+
+const stopHeroMedia = (root: PublicSiteElement) => {
+  root._publicHeroMediaMotion?.cancel()
+  delete root._publicHeroMediaMotion
+
+  heroOrbs(root).forEach((target) => {
+    target.style.transform = ""
+    target.style.opacity = ""
   })
 }
 
-export const PublicSiteMotion: Hook = {
-  mounted() {
+export const PublicSiteMotion = {
+  mounted(this: PublicSiteMotionHook) {
     const root = this.el as PublicSiteElement
     const media = window.matchMedia("(prefers-reduced-motion: reduce)")
     root._publicReducedMotion = media.matches
@@ -124,6 +235,12 @@ export const PublicSiteMotion: Hook = {
 
     const onMotionChange = () => {
       root._publicReducedMotion = media.matches
+      if (root._publicReducedMotion) {
+        stopHeroMedia(root)
+      } else {
+        animateHeroMedia(root)
+      }
+
       runReveal(root)
     }
 
@@ -133,20 +250,29 @@ export const PublicSiteMotion: Hook = {
     runReveal(root)
     pulseButtons(root)
     animateHeroMedia(root)
+    rememberLiveItems(root)
+    root._publicLiveRects = liveItemRects(root)
 
     root._publicCleanup = () => {
       root.removeEventListener("click", onCopyClick)
       media.removeEventListener("change", onMotionChange)
+      stopHeroMedia(root)
     }
   },
 
-  updated() {
+  updated(this: PublicSiteMotionHook) {
     const root = this.el as PublicSiteElement
     runReveal(root)
+    runLiveItemMotion(root)
   },
 
-  destroyed() {
+  beforeUpdate(this: PublicSiteMotionHook) {
+    const root = this.el as PublicSiteElement
+    root._publicLiveRects = liveItemRects(root)
+  },
+
+  destroyed(this: PublicSiteMotionHook) {
     const root = this.el as PublicSiteElement
     root._publicCleanup?.()
   },
-}
+} as Hook & { beforeUpdate(this: PublicSiteMotionHook): void }

@@ -26,7 +26,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
         route_key={@route_key}
         title="Regent Platform"
         kicker="Platform"
-        subtitle="Start here when you need operator tools, imported records, and account-linked actions in one workspace."
+        subtitle="Start here when you need a preview of operator tools, imported records, and account-linked actions in one workspace."
         client_config={@client_config}
       >
         <section
@@ -113,19 +113,19 @@ defmodule TechTreeWeb.Platform.HomeLive do
             <.stat_card
               label="Agents"
               value={Integer.to_string(@snapshot.counts.agents)}
-              copy="Imported hosted and indexed agent records."
+              copy="Imported agent records available in this workspace."
               tone="signal"
             />
             <.stat_card
               label="Tiles"
               value={Integer.to_string(@snapshot.counts.tiles)}
-              copy="Frontier tiles ready to browse."
+              copy="Frontier tiles available when records have been imported."
               tone="ocean"
             />
             <.stat_card
               label="Names"
               value={Integer.to_string(@snapshot.counts.names)}
-              copy="Name claims ready to review."
+              copy="Name claims available when records have been imported."
             />
             <.stat_card
               label="Wallet"
@@ -168,7 +168,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
           <.surface_card
             eyebrow="Ops"
             title="Workspace checks"
-            copy="Use this area to confirm service status, then jump into the route that matches the next job."
+            copy="Use this area to check what is available in this workspace, then jump into the route that matches the next job."
           >
             <div class="grid gap-3 sm:grid-cols-2">
               <div class="rounded-[1.4rem] border border-black/8 bg-white/68 px-4 py-4 dark:border-white/10 dark:bg-white/5">
@@ -189,7 +189,7 @@ defmodule TechTreeWeb.Platform.HomeLive do
                 </p>
                 <p class="mt-3 text-2xl leading-none">public</p>
                 <p class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                  Public chat is available through the main room and relay path.
+                  Public chat can be reviewed from the main room when messages are present.
                 </p>
               </div>
             </div>

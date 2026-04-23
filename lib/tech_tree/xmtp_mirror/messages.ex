@@ -4,6 +4,7 @@ defmodule TechTree.XMTPMirror.Messages do
   import Ecto.Query
 
   alias TechTree.Accounts.HumanUser
+  alias TechTree.PublicEvents
   alias TechTree.QueryHelpers
   alias TechTree.Repo
   alias TechTree.XMTPMirror.Membership
@@ -28,6 +29,7 @@ defmodule TechTree.XMTPMirror.Messages do
       |> Repo.insert()
       |> case do
         {:ok, %XmtpMessage{} = message} ->
+          maybe_broadcast_public_message(message, room)
           {:ok, message}
 
         {:error, %Ecto.Changeset{errors: [xmtp_message_id: {"has already been taken", _}]}} ->
@@ -145,4 +147,10 @@ defmodule TechTree.XMTPMirror.Messages do
   end
 
   defp normalize_sent_at(_value), do: DateTime.utc_now()
+
+  defp maybe_broadcast_public_message(%XmtpMessage{} = message, room) do
+    if Rooms.public_room?(room) do
+      PublicEvents.broadcast_xmtp_room_message(message, room.room_key)
+    end
+  end
 end

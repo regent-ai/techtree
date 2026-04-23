@@ -228,11 +228,7 @@ defmodule TechTree.Watches do
 
   @spec dragonfly_command([String.t() | integer()]) :: {:ok, term()} | {:error, term()}
   defp dragonfly_command(command) do
-    Redix.command(:dragonfly, command)
-  rescue
-    error -> {:error, error}
-  catch
-    :exit, reason -> {:error, reason}
+    TechTree.Dragonfly.command(command)
   end
 
   @spec online_sessions_key(integer()) :: String.t()

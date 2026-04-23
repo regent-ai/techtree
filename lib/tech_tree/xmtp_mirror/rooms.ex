@@ -15,6 +15,15 @@ defmodule TechTree.XMTPMirror.Rooms do
   @spec canonical_room_key() :: String.t()
   def canonical_room_key, do: @canonical_room_key
 
+  @spec public_room?(XmtpRoom.t() | nil) :: boolean()
+  def public_room?(%XmtpRoom{room_key: @canonical_room_key}), do: true
+
+  def public_room?(%XmtpRoom{room_key: room_key}) when is_binary(room_key) do
+    String.starts_with?(room_key, "#{@canonical_room_key}-shard-")
+  end
+
+  def public_room?(_room), do: false
+
   @spec default_capacity() :: pos_integer()
   def default_capacity, do: @default_capacity
 

@@ -2,6 +2,7 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   use TechTree.DataCase, async: false
 
   alias TechTree.Accounts
+  alias TechTree.PublicEvents
   alias TechTree.Repo
   alias TechTree.XMTPMirror
   alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage, XmtpPresence}
@@ -41,6 +42,55 @@ defmodule TechTree.XMTPMirrorPhase3Test do
       |> Repo.aggregate(:count, :id)
 
     assert count == 1
+  end
+
+  test "ingest_message broadcasts once for a newly saved public room message" do
+    {:ok, room} =
+      XMTPMirror.ensure_room(%{
+        room_key: "public-chatbox",
+        xmtp_group_id: "xmtp-public-chatbox-broadcast",
+        name: "Public Chatbox",
+        status: "active"
+      })
+
+    :ok = PublicEvents.subscribe()
+
+    attrs = message_attrs(room, "public-broadcast-msg")
+
+    assert {:ok, first} = XMTPMirror.ingest_message(attrs)
+
+    assert_receive {:public_site_event,
+                    %{event: :xmtp_room_message, room_key: "public-chatbox", message: message}}
+
+    assert message.id == first.id
+
+    assert {:ok, second} = XMTPMirror.ingest_message(attrs)
+    assert second.id == first.id
+
+    refute_receive {:public_site_event, %{event: :xmtp_room_message}}, 100
+
+    count =
+      XmtpMessage
+      |> where([m], m.xmtp_message_id == "public-broadcast-msg")
+      |> Repo.aggregate(:count, :id)
+
+    assert count == 1
+  end
+
+  test "ingest_message does not broadcast private room messages to public listeners" do
+    {:ok, room} =
+      XMTPMirror.ensure_room(%{
+        room_key: "team-room",
+        xmtp_group_id: "xmtp-team-room",
+        name: "Team Room",
+        status: "active"
+      })
+
+    :ok = PublicEvents.subscribe()
+
+    assert {:ok, _message} = XMTPMirror.ingest_message(message_attrs(room, "private-msg"))
+
+    refute_receive {:public_site_event, %{event: :xmtp_room_message}}, 100
   end
 
   test "leasing and processing command path is idempotent for one pending command" do
@@ -214,5 +264,22 @@ defmodule TechTree.XMTPMirrorPhase3Test do
       status: "done"
     })
     |> Repo.insert!()
+  end
+
+  defp message_attrs(room, xmtp_message_id) do
+    sender_wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
+
+    %{
+      room_id: room.id,
+      xmtp_message_id: xmtp_message_id,
+      sender_inbox_id: TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+      sender_wallet_address: sender_wallet_address,
+      sender_label: "sender",
+      sender_type: :human,
+      body: "hello world",
+      sent_at: DateTime.utc_now(),
+      raw_payload: %{"kind" => "message"},
+      moderation_state: "visible"
+    }
   end
 end

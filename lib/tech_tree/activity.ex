@@ -7,6 +7,7 @@ defmodule TechTree.Activity do
   alias TechTree.Repo
   alias TechTree.Activity.ActivityEvent
   alias TechTree.Nodes.Node
+  alias TechTree.PublicEvents
 
   @spec list_public_events(map()) :: [ActivityEvent.t()]
   def list_public_events(params) do
@@ -88,6 +89,7 @@ defmodule TechTree.Activity do
       payload: payload
     })
     |> Repo.insert!()
+    |> tap(fn _event -> PublicEvents.broadcast_activity_refresh() end)
   end
 
   @spec classify_stream(ActivityEvent.t() | String.t() | nil) :: ActivityEvent.stream_type()

@@ -62,6 +62,7 @@ defmodule TechTree.MixProject do
        depth: 1},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
+      {:regent_cache, path: "../elixir-utils/cache"},
       {:xmtp_elixir_sdk, path: "../elixir-utils/xmtp"},
       {:libp2p_elixir, "~> 0.9.6"},
       {:prom_ex, "~> 1.11"},

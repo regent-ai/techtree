@@ -5,9 +5,6 @@ defmodule TechTree.Application do
 
   use Application
 
-  @default_dragonfly_host "localhost"
-  @default_dragonfly_port 6379
-
   @impl true
   def start(_type, _args) do
     :ok = enforce_siwa_http_verify_runtime_guard!()
@@ -15,13 +12,13 @@ defmodule TechTree.Application do
 
     children =
       [
-        TechTreeWeb.Telemetry,
         TechTree.Repo,
         {DNSCluster, query: Application.get_env(:tech_tree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: TechTree.PubSub},
         TechTree.XmtpIdentity,
         TechTree.P2P.Supervisor,
         {Oban, Application.fetch_env!(:tech_tree, Oban)},
+        TechTreeWeb.Telemetry,
         TechTreeWeb.Endpoint
       ] ++ dragonfly_children
 
@@ -68,22 +65,12 @@ defmodule TechTree.Application do
 
   @spec dragonfly_child_spec() :: Supervisor.child_spec()
   defp dragonfly_child_spec do
-    {Redix, name: :dragonfly, host: dragonfly_host(), port: dragonfly_port()}
+    RegentCache.Dragonfly.child_spec(:tech_tree)
   end
 
   @spec dragonfly_enabled?() :: boolean()
   defp dragonfly_enabled? do
     Application.get_env(:tech_tree, :dragonfly_enabled, true) == true
-  end
-
-  @spec dragonfly_host() :: String.t()
-  defp dragonfly_host do
-    Application.get_env(:tech_tree, :dragonfly_host, @default_dragonfly_host)
-  end
-
-  @spec dragonfly_port() :: non_neg_integer()
-  defp dragonfly_port do
-    Application.get_env(:tech_tree, :dragonfly_port, @default_dragonfly_port)
   end
 
   # Tell Phoenix to update the endpoint configuration

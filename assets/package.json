@@ -8,6 +8,7 @@
     "@deck.gl/core": "^9.2.11",
     "@deck.gl/extensions": "^9.2.11",
     "@deck.gl/layers": "^9.2.11",
+    "animejs": "^4.3.6",
     "heerich": "^0.6.4"
   },
   "devDependencies": {

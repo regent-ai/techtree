@@ -139,7 +139,7 @@ defmodule TechTreeWeb.Human.NodePresenter do
         entrypoint: autoskill_entrypoint(node),
         primary_file: autoskill_primary_file(node),
         access_copy: autoskill_access_copy(node),
-        pull_command: "regent techtree autoskill pull #{node.id}",
+        pull_command: "regents techtree autoskill pull #{node.id}",
         score_rows: autoskill_score_rows(node),
         listing_rows: autoskill_listing_rows(node)
       }

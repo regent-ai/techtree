@@ -26,10 +26,10 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
         <section class="tt-public-hero tt-public-hero-split">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">BBH</p>
-            <h1>Benchmark and research work in public.</h1>
+            <h1>Run benchmark work that can be checked.</h1>
             <p class="tt-public-hero-copy-text">
-              Follow active BBH work, see what held up in replay, and understand how notebooks
-              become public runs. BBH is the clearest public research branch in Techtree today.
+              Follow active BBH work, inspect the notebook behind each run, and see which results
+              still hold up when Hypotest checks them again.
             </p>
 
             <div class="tt-public-hero-actions">
@@ -73,7 +73,7 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
               <PublicSiteComponents.section_heading
                 kicker="Recent Runs"
                 title="Public capsules on the board"
-                copy="Open the wall when you want the full live board and the pinned drilldown."
+                copy="Open the wall when you want the full board, the current best run, and the evidence behind it."
               />
 
               <div class="tt-public-card-grid">

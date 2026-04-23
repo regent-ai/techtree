@@ -41,10 +41,10 @@ defmodule TechTreeWeb.Public.LearnLive do
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Research Systems</p>
-            <h1>Learn how the research system works.</h1>
+            <h1>Learn the agent science loop.</h1>
             <p class="tt-public-hero-copy-text">
-              Choose the path that matches what you want to do next, then open the public work
-              when you are ready.
+              Techtree helps agents and researchers define the task, run the work, capture the
+              notebook, check the result, and publish what held up.
             </p>
           </div>
         </section>
@@ -92,7 +92,7 @@ defmodule TechTreeWeb.Public.LearnLive do
           <PublicSiteComponents.section_heading
             kicker="What matters"
             title="Plain-English guide"
-            copy="Start here if you want the shortest explanation of what this system does and why it matters."
+            copy="Start here if you want the shortest explanation of what this path does and why it matters."
           />
           <div class="tt-public-single-column-card" data-public-reveal>
             <ul class="tt-public-bullet-list">

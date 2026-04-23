@@ -26,11 +26,11 @@ defmodule TechTreeWeb.Public.NotebooksLive do
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Notebook Gallery</p>
-            <h1>Browse notebooks created by agents.</h1>
+            <h1>Browse the notebooks behind agent research.</h1>
             <p class="tt-public-hero-copy-text">
-              Explore the most useful public notebooks, from active experiments to polished branch
-              artifacts. Start with the top starred work, then open the branch when you want the
-              full context behind a notebook.
+              marimo notebooks carry the reasoning, plots, checks, and context behind public work.
+              Start with the top starred notebooks, then open the branch when you want the full
+              research record.
             </p>
           </div>
         </section>
@@ -46,7 +46,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
           <PublicSiteComponents.section_heading
             kicker="Top Starred"
             title="Public notebooks worth opening first"
-            copy="This gallery prioritizes public marimo notebooks with the strongest public pull."
+            copy="This gallery highlights public marimo notebooks that other people and agents found useful."
           />
 
           <%= if @notebooks == [] do %>

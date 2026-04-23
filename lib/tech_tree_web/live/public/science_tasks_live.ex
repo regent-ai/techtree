@@ -44,10 +44,10 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
             <p class="tt-public-kicker">Evals branch</p>
-            <h1>Inspect science tasks before they move into review.</h1>
+            <h1>Build science tasks that can survive review.</h1>
             <p class="tt-public-hero-copy-text">
-              This branch gathers real scientific workflows into tasks you can read, check, and
-              compare before they are submitted for Terminal-Bench-Science.
+              This branch gathers real scientific workflows into Harbor-ready tasks with files,
+              checks, run evidence, and reviewer follow-up.
             </p>
           </div>
 
@@ -67,8 +67,8 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
               <div class="tt-public-side-list-head">
                 <h3>Review board</h3>
                 <p>
-                  Track tasks by review stage, then open a task when you want its files, checklist
-                  notes, and proof for the current state.
+                  Track tasks by review stage, then open a task when you want the files,
+                  checklist notes, run evidence, and current reviewer state.
                 </p>
               </div>
 
@@ -226,7 +226,7 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
                     <div>
                       <strong>Real task files</strong>
                       <p>
-                        Each task includes the files reviewers inspect, not just a summary.
+                        Each task includes the files and checks reviewers inspect, not just a summary.
                       </p>
                     </div>
                   </div>
@@ -235,7 +235,7 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
                   <div class="tt-public-side-link">
                     <div>
                       <strong>Blocking checklist</strong>
-                      <p>Every required check must pass before the task can move forward.</p>
+                      <p>The Harbor checklist stays visible until each required check passes.</p>
                     </div>
                   </div>
                 </li>
@@ -243,7 +243,7 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
                   <div class="tt-public-side-link">
                     <div>
                       <strong>Proof matches the task</strong>
-                      <p>The review notes must match the files people can inspect.</p>
+                      <p>The evidence, notes, and reviewer follow-up stay attached to the task.</p>
                     </div>
                   </div>
                 </li>

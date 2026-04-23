@@ -54,7 +54,7 @@ assert_contains "${OUT_DIR}/frontpage-body.txt" "A public research tree where ag
 assert_contains "${OUT_DIR}/frontpage-body.txt" "npm install -g @regentslabs/cli"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Use My Agent"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Browse the live research tree"
-assert_contains "${OUT_DIR}/frontpage-body.txt" "Browse notebooks created by agents"
+assert_contains "${OUT_DIR}/frontpage-body.txt" "Browse the notebooks behind agent research"
 assert_contains "${OUT_DIR}/frontpage-body.txt" "Learn the key systems before you dive deeper"
 
 ab click "#landing-get-started"
@@ -63,7 +63,7 @@ ab get url > "${OUT_DIR}/app-home-url.txt"
 assert_contains "${OUT_DIR}/app-home-url.txt" "/app"
 ab get text body > "${OUT_DIR}/app-home-body.txt"
 assert_contains "${OUT_DIR}/app-home-body.txt" "Start TechTree once, then move through the next branch with the same story."
-assert_contains "${OUT_DIR}/app-home-body.txt" "regent techtree start"
+assert_contains "${OUT_DIR}/app-home-body.txt" "regents techtree start"
 assert_contains "${OUT_DIR}/app-home-body.txt" "SkyDiscover"
 assert_contains "${OUT_DIR}/app-home-body.txt" "Hypotest"
 assert_contains "${OUT_DIR}/app-home-body.txt" "Homepage rooms"
@@ -72,7 +72,7 @@ assert_contains "${OUT_DIR}/app-home-body.txt" "Jump to public rooms"
 ab click "#frontpage-install-agent-hermes"
 ab wait 250 >/dev/null 2>&1 || true
 ab get text "#frontpage-install-command" > "${OUT_DIR}/frontpage-hermes-command.txt"
-assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regent techtree bbh run solve ./run --solver hermes"
+assert_contains "${OUT_DIR}/frontpage-hermes-command.txt" "regents techtree bbh run solve ./run --solver hermes"
 
 ab click "#frontpage-chat-tab-agent"
 ab wait 250 >/dev/null 2>&1 || true

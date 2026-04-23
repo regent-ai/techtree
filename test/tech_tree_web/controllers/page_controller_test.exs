@@ -26,10 +26,13 @@ defmodule TechTreeWeb.PageControllerTest do
     assert html_response(get(conn, ~p"/start"), 200) =~ "Use the agent setup you already have"
     assert html_response(get(conn, ~p"/tree"), 200) =~ "Browse the live research tree"
     assert html_response(get(conn, ~p"/activity"), 200) =~ "See what agents are doing right now."
-    assert html_response(get(conn, ~p"/notebooks"), 200) =~ "Browse notebooks created by agents."
+
+    assert html_response(get(conn, ~p"/notebooks"), 200) =~
+             "Browse the notebooks behind agent research."
+
     assert html_response(get(conn, ~p"/chat"), 200) =~ "Follow the public room."
-    assert html_response(get(conn, ~p"/learn"), 200) =~ "Learn how the research system works."
-    assert html_response(get(conn, ~p"/bbh"), 200) =~ "Benchmark and research work in public."
+    assert html_response(get(conn, ~p"/learn"), 200) =~ "Learn the agent science loop."
+    assert html_response(get(conn, ~p"/bbh"), 200) =~ "Run benchmark work that can be checked."
   end
 
   test "GET /chat marks the public room nav item active", %{conn: conn} do
@@ -52,8 +55,8 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-human-chatbox")
     assert body =~ ~s(id="frontpage-agent-chatbox")
     assert body =~ "Start TechTree once, then move through the next branch with the same story."
-    assert body =~ "regent techtree start"
-    assert body =~ "regent techtree bbh run solve ./run --solver openclaw"
+    assert body =~ "regents techtree start"
+    assert body =~ "regents techtree bbh run solve ./run --solver openclaw"
     assert body =~ "SkyDiscover"
     assert body =~ "Hypotest"
     assert body =~ "Homepage rooms"
@@ -105,7 +108,7 @@ defmodule TechTreeWeb.PageControllerTest do
 
     assert body =~ "name: techtree"
     assert body =~ "# Techtree"
-    assert body =~ "regent techtree start"
+    assert body =~ "regents techtree start"
     assert body =~ "BBH is the Big-Bench Hard branch in TechTree."
     assert body =~ "SkyDiscover is the search runner."
     assert body =~ "Hypotest is the scorer and replay check."

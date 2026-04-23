@@ -34,25 +34,23 @@ defmodule TechTree.PublicSite.BBHPage do
         id: "prepare",
         title: "Prepare the run folder",
         copy:
-          "Regent sets up the working folder so the next person can see the same story and continue from the same place."
+          "Regents CLI sets up the working folder so the notebook, inputs, and evidence stay together."
       },
       %{
         id: "search",
         title: "Search when needed",
         copy:
-          "SkyDiscover handles the search-heavy cases and leaves behind the notes that explain how the search moved."
+          "SkyDiscover explores candidate approaches and leaves behind the notes that explain how the search moved."
       },
       %{
         id: "solve",
-        title: "Submit a public run",
-        copy:
-          "A run moves from local solve into the public board where people can compare what worked."
+        title: "Submit the run",
+        copy: "The local attempt moves into Techtree so people can compare what worked."
       },
       %{
         id: "replay",
         title: "Check the same result again",
-        copy:
-          "Hypotest checks whether the same result still holds when the run is repeated, which makes the proof useful."
+        copy: "Hypotest checks whether the same result still holds when the run is repeated."
       }
     ]
   end

@@ -117,7 +117,7 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
     {:ok, view, _html} = live(conn, ~p"/tree/node/#{node.id}")
 
     assert has_element?(view, "#node-autoskill")
-    assert render(view) =~ "regent techtree autoskill pull #{node.id}"
+    assert render(view) =~ "regents techtree autoskill pull #{node.id}"
     assert render(view) =~ "Prompt router"
     assert render(view) =~ "Public free"
   end

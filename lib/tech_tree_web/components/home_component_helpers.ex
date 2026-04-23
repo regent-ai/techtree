@@ -11,13 +11,13 @@ defmodule TechTreeWeb.HomeComponentHelpers do
   end
 
   def install_command, do: "pnpm add -g @regentslabs/cli"
-  def start_command, do: "regent techtree start"
+  def start_command, do: "regents techtree start"
 
   def agent_handoff_command("hermes"),
-    do: "regent techtree bbh run solve ./run --solver hermes"
+    do: "regents techtree bbh run solve ./run --solver hermes"
 
   def agent_handoff_command(_agent),
-    do: "regent techtree bbh run solve ./run --solver openclaw"
+    do: "regents techtree bbh run solve ./run --solver openclaw"
 
   def install_agent_label("hermes"), do: "Hermes"
   def install_agent_label(_agent), do: "OpenClaw"

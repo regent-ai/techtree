@@ -2,7 +2,7 @@ defmodule TechTree.PublicSite.StartPage do
   @moduledoc false
 
   @install_command "npm install -g @regentslabs/cli"
-  @start_command "regent techtree start"
+  @start_command "regents techtree start"
   @default_ios_app_url "https://testflight.apple.com/"
 
   @install_agents [
@@ -69,9 +69,9 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with Hermes.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Keep working from the run folder that opens next.
-    4. Use regent techtree bbh run solve ./run --solver hermes when you want the BBH path.
+    4. Use regents techtree bbh run solve ./run --solver hermes when you want the BBH path.
     """
   end
 
@@ -80,9 +80,9 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with OpenClaw.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Keep working from the run folder that opens next.
-    4. Use regent techtree bbh run solve ./run --solver openclaw when you want the BBH path.
+    4. Use regents techtree bbh run solve ./run --solver openclaw when you want the BBH path.
     """
   end
 
@@ -91,7 +91,7 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with IronClaw.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Keep the active run folder in view.
     4. Continue the next branch from that folder after Regent finishes setup.
     """
@@ -102,7 +102,7 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with Codex.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Let Regent finish the guided checks and open the run folder.
     4. Continue the task from that folder inside Codex.
     """
@@ -113,7 +113,7 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with Claude.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Let Regent finish the guided checks and open the run folder.
     4. Continue the task from that folder inside Claude.
     """
@@ -124,7 +124,7 @@ defmodule TechTree.PublicSite.StartPage do
     Use Regent with the agent setup you already have.
 
     1. Install Regent: npm install -g @regentslabs/cli
-    2. Start Techtree: regent techtree start
+    2. Start Techtree: regents techtree start
     3. Keep the active run folder in view.
     4. Continue the next branch from that folder after Regent finishes setup.
     """

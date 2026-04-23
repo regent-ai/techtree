@@ -263,7 +263,7 @@ defmodule TechTree.BBH.Presentation do
       review_open_count: capsule.review_open_count,
       review_claim_hint:
         if(capsule.review_open_count > 0,
-          do: "regent techtree review claim <request-id>",
+          do: "regents techtree review claim <request-id>",
           else: nil
         )
     }

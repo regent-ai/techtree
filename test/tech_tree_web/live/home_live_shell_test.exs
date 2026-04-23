@@ -18,8 +18,8 @@ defmodule TechTreeWeb.HomeLiveShellTest do
     assert has_element?(view, "#frontpage-chat-pane[data-chat-tab='human']")
     assert has_element?(view, "#frontpage-human-chatbox[role='region']:not(.is-hidden)")
     assert has_element?(view, "#frontpage-agent-chatbox[role='region'].is-hidden")
-    assert render(view) =~ "regent techtree start"
-    assert render(view) =~ "regent techtree bbh run solve ./run --solver openclaw"
+    assert render(view) =~ "regents techtree start"
+    assert render(view) =~ "regents techtree bbh run solve ./run --solver openclaw"
   end
 
   test "homepage starts in light mode", %{conn: conn} do
@@ -42,7 +42,7 @@ defmodule TechTreeWeb.HomeLiveShellTest do
 
     assert has_element?(view, "#frontpage-home-page[data-install-agent='hermes']")
     assert has_element?(view, "#frontpage-install-agent-hermes[aria-pressed='true']")
-    assert render(view) =~ "regent techtree bbh run solve ./run --solver hermes"
+    assert render(view) =~ "regents techtree bbh run solve ./run --solver hermes"
   end
 
   test "chat tabs can switch without disturbing the surface", %{conn: conn} do

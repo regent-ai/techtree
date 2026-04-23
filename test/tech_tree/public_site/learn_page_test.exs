@@ -19,7 +19,9 @@ defmodule TechTree.PublicSite.LearnPageTest do
              "skydiscover",
              "hypotest",
              "techtree",
-             "science-tasks"
+             "science-tasks",
+             "notebooks",
+             "autoskill"
            ]
 
     assert PublicSite.learn_topic("science-tasks").cta_href == "/science-tasks"

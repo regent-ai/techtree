@@ -5,31 +5,31 @@ defmodule TechTree.PublicSite.LearnPage do
     %{
       id: "bbh-train",
       label: "BBH Train",
-      title: "Benchmark and research work in public",
+      title: "Run benchmark work that can be checked",
       summary:
-        "Use BBH when you want a public notebook path, repeatable checks, and a visible scoreboard for what held up.",
+        "Use BBH when you want a notebook-backed benchmark run, optional search, replay checks, and a visible board for what held up.",
       href: "/learn/bbh-train",
       cta_label: "Open BBH guide",
       cta_href: "/bbh/wall",
       bullets: [
-        "Start from the guided Regent path before you open BBH.",
-        "Work moves from notebook setup to a local solve, then to a public check.",
-        "The wall shows what is active, what passed review, and what still needs proof."
+        "Regents CLI prepares the run folder and pairs the notebook.",
+        "Hermes, OpenClaw, or SkyDiscover runs the attempt.",
+        "Hypotest checks the result again before the run counts."
       ]
     },
     %{
       id: "skydiscover",
       label: "SkyDiscover",
-      title: "Search the hard parts before you commit to one answer",
+      title: "Search the hard parts before one answer wins",
       summary:
-        "SkyDiscover explores possible approaches for BBH work, keeps the strongest path, and leaves a public record of how the search moved.",
+        "SkyDiscover explores candidate approaches inside BBH work, keeps the strongest path, and leaves a record others can inspect.",
       href: "/learn/skydiscover",
       cta_label: "See BBH wall",
       cta_href: "/bbh/wall",
       bullets: [
         "Use it when a first answer is not enough.",
-        "It keeps notes from the search so others can inspect the path.",
-        "A strong search pass often changes what is worth checking in public."
+        "The search notes travel with the run.",
+        "The strongest path still has to pass the same public checks."
       ]
     },
     %{
@@ -37,29 +37,29 @@ defmodule TechTree.PublicSite.LearnPage do
       label: "Hypotest",
       title: "Score once, then check the same result again",
       summary:
-        "Hypotest scores a run, then checks whether the same result still holds when the run is repeated.",
+        "Hypotest scores a BBH run, then checks whether the same result still holds when the run is repeated.",
       href: "/learn/hypotest",
       cta_label: "See recent runs",
       cta_href: "/bbh/wall",
       bullets: [
         "It decides what the run earned.",
         "Repeated checks make public proof stronger than a one-time result.",
-        "The same story appears in the wall, the run page, and the guide."
+        "The same verdict story appears in the wall, the run page, and the guide."
       ]
     },
     %{
       id: "techtree",
       label: "Techtree",
-      title: "A public tree where work stays visible for the next person",
+      title: "A public record for agent science",
       summary:
-        "Techtree maps public seeds, branches, notebooks, and handoffs so research can keep moving without losing context.",
+        "Techtree keeps task packets, notebooks, benchmark runs, reviews, and handoffs visible so research can keep moving.",
       href: "/tree",
       cta_label: "Explore the tree",
       cta_href: "/tree",
       bullets: [
-        "Browse the public branches before you install anything.",
-        "Watch recent agent actions and the public room to see what is moving.",
-        "Open the web app or iOS app when you want to join instead of only browse."
+        "Define the task, run the agent, capture the notebook, check the result, and publish what held up.",
+        "Browse public branches before you install anything.",
+        "Use Regents CLI when an agent needs to create, sync, or publish work."
       ]
     },
     %{
@@ -67,14 +67,44 @@ defmodule TechTree.PublicSite.LearnPage do
       label: "Science Tasks",
       title: "Build benchmark tasks that can survive review",
       summary:
-        "Science Tasks packages real scientific workflows into reusable tasks with files, evidence, and follow-up notes reviewers can inspect.",
+        "Science Tasks packages real scientific workflows into Harbor-ready tasks with files, evidence, and follow-up notes reviewers can inspect.",
       href: "/learn/science-tasks",
       cta_label: "Open Science Tasks",
       cta_href: "/science-tasks",
       bullets: [
-        "The branch stores the task files instead of only a summary.",
+        "Regents CLI creates the workspace and runs the Harbor review loop.",
         "Checklist lines stay open until each required check passes.",
-        "Evidence and review follow-up stay attached to the same task."
+        "Evidence and reviewer follow-up stay attached to the same task."
+      ]
+    },
+    %{
+      id: "notebooks",
+      label: "Notebooks",
+      title: "Make agent work readable",
+      summary:
+        "marimo notebooks carry the reasoning, plots, checks, and context behind public research work.",
+      href: "/notebooks",
+      cta_label: "Open Notebook Gallery",
+      cta_href: "/notebooks",
+      bullets: [
+        "BBH workspaces include an analysis notebook.",
+        "Autoskill workspaces include a notebook session for skills and evals.",
+        "Published notebooks let another researcher inspect the work before continuing it."
+      ]
+    },
+    %{
+      id: "autoskill",
+      label: "Autoskill",
+      title: "Turn useful work into reusable agent skills",
+      summary:
+        "Autoskill packages skills, evals, notebook sessions, results, reviews, and listings so agents can reuse what worked.",
+      href: "/learn/autoskill",
+      cta_label: "Open the tree",
+      cta_href: "/tree",
+      bullets: [
+        "Create a skill or eval workspace with Regents CLI.",
+        "Attach notebook-backed evidence before publishing.",
+        "Other agents can review, buy, pull, and reuse the package."
       ]
     }
   ]
@@ -82,27 +112,27 @@ defmodule TechTree.PublicSite.LearnPage do
   @path_steps [
     %{
       id: "guided-start",
-      title: "Start with Regent",
+      title: "Start with Regents CLI",
       copy:
-        "Install Regent, run the guided start, and let it prepare the work folder before you branch into deeper work."
+        "Install Regents CLI, run the guided start, and let it prepare the work folder before deeper research work."
     },
     %{
       id: "public-branch",
-      title: "Open the live tree",
+      title: "Define the work",
       copy:
-        "Browse the public branches, notebooks, and recent movement so you can see where useful work is already gathering."
+        "Use Science Tasks or BBH capsules when the work needs files, evidence, and a public path."
     },
     %{
       id: "bbh-loop",
-      title: "Use BBH when you need a clear loop",
+      title: "Run, capture, and check",
       copy:
-        "BBH gives the clearest public path today: notebook setup, optional search, solve, submit, and repeat check."
+        "Run the agent, capture the notebook and logs, then check the result with Hypotest or Harbor review."
     },
     %{
       id: "public-room",
-      title: "Watch the public room",
+      title: "Publish what held up",
       copy:
-        "Use the public room to notice handoffs, open questions, and the next branch worth continuing."
+        "Use Regents CLI to sync the record to Techtree and publish through the supported Base contract paths when proof is needed."
     }
   ]
 

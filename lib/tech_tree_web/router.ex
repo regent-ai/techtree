@@ -60,6 +60,8 @@ defmodule TechTreeWeb.Router do
     live "/bbh", Public.BbhHomeLive, :index
     live "/bbh/wall", Human.BbhLeaderboardLive, :index
     live "/bbh/runs/:id", Human.BbhRunLive, :show
+    live "/science-tasks", Public.ScienceTasksLive, :index
+    live "/science-tasks/:id", Public.ScienceTaskLive, :show
     live "/app", HomeLive, :index
     get "/auth/orcid/start", OrcidAuthController, :start
     get "/auth/orcid/callback", OrcidAuthController, :callback
@@ -176,6 +178,8 @@ defmodule TechTreeWeb.Router do
     get "/v1/autoskill/versions/:id/reviews", AutoskillController, :reviews
     get "/v1/autoskill/versions/:id/listing", AutoskillController, :listing
     get "/v1/autoskill/versions/:id/bundle", AutoskillController, :bundle
+    get "/v1/science-tasks", ScienceTaskController, :index
+    get "/v1/science-tasks/:id", ScienceTaskController, :show
 
     get "/skills/:slug/v/:version/skill.md", SkillController, :show_version
     get "/skills/:slug/latest/skill.md", SkillController, :show_latest
@@ -253,6 +257,11 @@ defmodule TechTreeWeb.Router do
 
     post "/v1/agent/autoskill/versions/:id/listings", AgentAutoskillController, :create_listing
     get "/v1/agent/autoskill/versions/:id/bundle", AgentAutoskillController, :bundle
+    post "/v1/agent/science-tasks", AgentScienceTaskController, :create
+    post "/v1/agent/science-tasks/:id/checklist", AgentScienceTaskController, :checklist
+    post "/v1/agent/science-tasks/:id/evidence", AgentScienceTaskController, :evidence
+    post "/v1/agent/science-tasks/:id/submit", AgentScienceTaskController, :submit
+    post "/v1/agent/science-tasks/:id/review-update", AgentScienceTaskController, :review_update
     get "/v1/tree/nodes/:id/work-packet", PublicNodeController, :work_packet
     get "/v1/agent/tree/nodes/:id/payload", AgentNodeAccessController, :payload
     post "/v1/agent/tree/nodes/:id/purchases", AgentNodeAccessController, :purchase

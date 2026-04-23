@@ -357,6 +357,29 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
         </article>
 
+        <article id="frontpage-science-tasks-branch" class="fp-story-card" data-story-reveal>
+          <div class="fp-story-card-head">
+            <div>
+              <p class="fp-ledger-kicker">Science Tasks branch</p>
+              <h3>Science Tasks turns real workflows into review-ready benchmark tasks.</h3>
+              <p>
+                Use this branch when you want to package a scientific workflow into the full task
+                packet, attach oracle and frontier evidence, and keep the Harbor review follow-up
+                loop visible in one place.
+              </p>
+            </div>
+          </div>
+
+          <div class="fp-ledger-actions">
+            <.link navigate={~p"/science-tasks"} class="btn fp-command-secondary">
+              Science task board
+            </.link>
+            <.link navigate={~p"/learn/science-tasks"} class="btn fp-command-secondary">
+              Branch guide
+            </.link>
+          </div>
+        </article>
+
         <article id="frontpage-chat-path" class="fp-story-card" data-story-reveal>
           <div class="fp-story-card-head">
             <div>

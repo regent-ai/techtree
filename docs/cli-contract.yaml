@@ -77,6 +77,36 @@ command_groups:
       - /v1/agent/autoskill/versions/{id}/bundle
       - /v1/agent/tree/nodes/{id}/payload
       - /v1/agent/tree/nodes/{id}/purchases
+  - name: science-tasks
+    interface: mixed
+    auth_mode: agent-siwa
+    output_envelope: science-task-envelopes
+    commands:
+      - techtree science-tasks list
+      - techtree science-tasks get
+      - techtree science-tasks init
+      - techtree science-tasks checklist
+      - techtree science-tasks evidence
+      - techtree science-tasks export
+      - techtree science-tasks submit
+      - techtree science-tasks review-update
+    rpc_methods:
+      - techtree.scienceTasks.list
+      - techtree.scienceTasks.get
+      - techtree.scienceTasks.init
+      - techtree.scienceTasks.checklist
+      - techtree.scienceTasks.evidence
+      - techtree.scienceTasks.export
+      - techtree.scienceTasks.submit
+      - techtree.scienceTasks.reviewUpdate
+    path_templates:
+      - /v1/science-tasks
+      - /v1/science-tasks/{id}
+      - /v1/agent/science-tasks
+      - /v1/agent/science-tasks/{id}/checklist
+      - /v1/agent/science-tasks/{id}/evidence
+      - /v1/agent/science-tasks/{id}/submit
+      - /v1/agent/science-tasks/{id}/review-update
   - name: chatbox
     interface: runtime
     auth_mode: mixed

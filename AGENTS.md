@@ -69,8 +69,9 @@ Keep these names and meanings consistent across docs, website copy, and CLI help
 
 - Guided start: `regent techtree start` is the first step. It prepares local config, checks the runtime, helps bind identity, and confirms readiness.
 - Run folder: the local folder for one active run. After the guided start, people usually open the next Techtree task or start the BBH loop.
-- Live tree: the public map of seeds, nodes, branches, and layer-0 subject areas. BBH is the first layer-0 branch today, not the last.
+- Live tree: the public map of seeds, nodes, branches, and layer-0 subject areas. BBH is the first layer-0 branch today, not the last. Science Tasks now sits under `Evals` as the branch for Harbor-ready science benchmark tasks.
 - BBH branch: the Big-Bench Hard research branch. It gives people a notebook flow, optional SkyDiscover search, Hypotest replay validation, and the clearest public publish-and-review loop in Techtree today.
+- Science Tasks branch: the `Evals` branch for packaging scientific workflows into real task packets with blocking checklist lines, evidence, and review-loop tracking for Harbor review.
 - Public rooms: the homepage human room and agent room help people notice movement, hand work forward, and jump into the next branch. Treat them as an important public coordination surface, not decorative chrome.
 - Leaf-node access: paid payload unlocks and autoskill buying belong on specific leaf nodes after someone already knows what they want. Do not turn them into the front-door story.
 - Trusted agent identity: Regent identity plus SIWA-backed provenance is an important trust layer, but not the main public pitch.

@@ -82,6 +82,13 @@ defmodule TechTreeWeb.Human.BranchLiveTest do
     assert render(view) =~ "Public free"
   end
 
+  test "renders the science tasks branch inside Evals", %{conn: conn} do
+    TechTree.ScienceTasks.ensure_public_branch_root!()
+    {:ok, view, _html} = live(conn, ~p"/tree/seed/Evals")
+
+    assert render(view) =~ "Science Tasks"
+  end
+
   defp seed_with_branches_fixture!(first_kind \\ :hypothesis) do
     agent = insert_agent_fixture!()
     root = Nodes.create_seed_root!("ML", "Machine Learning")

@@ -1,5 +1,5 @@
 defmodule TechTreeWeb.LandingLiveTest do
-  use TechTreeWeb.ConnCase, async: true
+  use TechTreeWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import TechTree.PhaseDApiSupport

@@ -112,6 +112,21 @@ defmodule TechTree.PublicSite do
         "Watch the latest agent actions and the public room to see what is moving.",
         "Open the web app or iOS app when you want to join instead of only browse."
       ]
+    },
+    %{
+      id: "science-tasks",
+      label: "Science Tasks",
+      title: "Build benchmark tasks that can survive review",
+      summary:
+        "Science Tasks is the Evals branch for packaging real scientific workflows into reusable Harbor-ready tasks with the packet, evidence, and follow-up notes review requires.",
+      href: "/learn/science-tasks",
+      cta_label: "Open Science Tasks",
+      cta_href: "/science-tasks",
+      bullets: [
+        "The branch stores the actual task files instead of only a summary.",
+        "Checklist lines stay blocking until every line is pass.",
+        "Oracle evidence, frontier evidence, and review follow-up stay attached to the same task."
+      ]
     }
   ]
 

@@ -3,6 +3,7 @@ defmodule TechTreeWeb.HomeLive.Dataset do
 
   import Ecto.Query, only: [where: 3, select: 3]
 
+  alias Decimal, as: D
   alias TechTree.Agents.AgentIdentity
   alias TechTree.{HumanUX, Nodes, Repo}
   alias TechTreeWeb.HomePresenter
@@ -214,13 +215,36 @@ defmodule TechTreeWeb.HomeLive.Dataset do
     |> Kernel.++(
       HumanUX.seed_lanes()
       |> Enum.flat_map(fn lane ->
-        Enum.map(lane.graph_nodes, fn node ->
+        lane.graph_nodes
+        |> Enum.reject(&skip_idle_branch_root?/1)
+        |> Enum.map(fn node ->
           base_graph_node(node, lane.seed)
         end)
       end)
     )
     |> Enum.uniq_by(& &1.id)
     |> enrich_graph_nodes()
+  end
+
+  defp skip_idle_branch_root?(node) do
+    Map.get(node, :depth, 0) == 1 and
+      Map.get(node, :creator_agent_id) == system_agent_id() and
+      (Map.get(node, :watcher_count, 0) || 0) == 0 and
+      (Map.get(node, :comment_count, 0) || 0) == 0 and
+      idle_activity_score?(Map.get(node, :activity_score))
+  end
+
+  defp idle_activity_score?(%D{} = score), do: D.equal?(score, D.new("0"))
+  defp idle_activity_score?(score) when is_integer(score) or is_float(score), do: score == 0
+  defp idle_activity_score?(nil), do: true
+  defp idle_activity_score?(_score), do: false
+
+  defp system_agent_id do
+    Application.get_env(:tech_tree, :system_agent_id, "1")
+    |> case do
+      value when is_integer(value) -> value
+      value when is_binary(value) -> String.to_integer(value)
+    end
   end
 
   defp enrich_graph_nodes(nodes) do

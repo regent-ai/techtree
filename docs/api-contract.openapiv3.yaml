@@ -13,6 +13,7 @@ tags:
   - name: auth
   - name: tree
   - name: autoskill
+  - name: science-tasks
   - name: chatbox
   - name: bbh
   - name: reviewer
@@ -788,6 +789,127 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LooseObject" }
+  /v1/science-tasks:
+    get:
+      operationId: listScienceTasks
+      tags: [science-tasks]
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - name: stage
+          in: query
+          schema: { $ref: "#/components/schemas/ScienceTaskStage" }
+        - name: science_domain
+          in: query
+          schema: { type: string }
+        - name: science_field
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Science task list
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskListResponse" }
+  /v1/science-tasks/{id}:
+    get:
+      operationId: getScienceTask
+      tags: [science-tasks]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      responses:
+        "200":
+          description: Science task detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskDetailResponse" }
+  /v1/agent/science-tasks:
+    post:
+      operationId: createScienceTask
+      tags: [science-tasks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScienceTaskCreateInput" }
+      responses:
+        "201":
+          description: Science task created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskMutationResponse" }
+  /v1/agent/science-tasks/{id}/checklist:
+    post:
+      operationId: updateScienceTaskChecklist
+      tags: [science-tasks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScienceTaskChecklistUpdateInput" }
+      responses:
+        "200":
+          description: Science task checklist updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskMutationResponse" }
+  /v1/agent/science-tasks/{id}/evidence:
+    post:
+      operationId: updateScienceTaskEvidence
+      tags: [science-tasks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScienceTaskEvidenceUpdateInput" }
+      responses:
+        "200":
+          description: Science task evidence updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskMutationResponse" }
+  /v1/agent/science-tasks/{id}/submit:
+    post:
+      operationId: submitScienceTask
+      tags: [science-tasks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScienceTaskSubmitInput" }
+      responses:
+        "200":
+          description: Science task submission state updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskMutationResponse" }
+  /v1/agent/science-tasks/{id}/review-update:
+    post:
+      operationId: reviewUpdateScienceTask
+      tags: [science-tasks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - $ref: "#/components/parameters/NodeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ScienceTaskReviewUpdateInput" }
+      responses:
+        "200":
+          description: Science task review loop updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScienceTaskMutationResponse" }
 
   /skills/{slug}/v/{version}/skill.md:
     get:
@@ -2031,6 +2153,225 @@ components:
         body_plaintext: { type: string, nullable: true }
         idempotency_key: { type: string, nullable: true }
       additionalProperties: true
+    ScienceTaskChecklistStatus:
+      type: string
+      enum: [pass, fail, unknown]
+    ScienceTaskStage:
+      type: string
+      enum: [authoring, checklist_fix, evidence_ready, submitted, review_fix, merge_ready]
+    ScienceTaskPacketFile:
+      type: object
+      required: [encoding, content]
+      properties:
+        encoding: { type: string, enum: [utf8, base64] }
+        content: { type: string }
+      additionalProperties: false
+    ScienceTaskPacketFiles:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/ScienceTaskPacketFile"
+    ScienceTaskChecklistEntry:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: "#/components/schemas/ScienceTaskChecklistStatus" }
+        note: { type: string, nullable: true }
+      additionalProperties: false
+    ScienceTaskChecklistMap:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/ScienceTaskChecklistEntry"
+    ScienceTaskRunEvidence:
+      type: object
+      required: [command, summary]
+      properties:
+        command: { type: string, minLength: 1 }
+        summary: { type: string, minLength: 1 }
+        key_lines:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    ScienceTaskSummary:
+      type: object
+      required:
+        [node_id, title, science_domain, science_field, task_slug, workflow_state, export_target_path]
+      properties:
+        node_id: { type: integer }
+        title: { type: string }
+        summary: { type: string, nullable: true }
+        science_domain: { type: string }
+        science_field: { type: string }
+        task_slug: { type: string }
+        workflow_state: { $ref: "#/components/schemas/ScienceTaskStage" }
+        export_target_path: { type: string }
+        harbor_pr_url: { type: string, nullable: true }
+        review_round_count: { type: integer, minimum: 0 }
+        open_reviewer_concerns_count: { type: integer, minimum: 0 }
+        current_files_match_latest_evidence: { type: boolean }
+        latest_rerun_after_latest_fix: { type: boolean }
+        inserted_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+      additionalProperties: false
+    ScienceTaskDetail:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskSummary"
+        - type: object
+          required:
+            [
+              structured_output_shape,
+              claimed_expert_time,
+              anti_cheat_notes,
+              reproducibility_notes,
+              dependency_pinning_status,
+              canary_status,
+              failure_analysis,
+              packet_files,
+              checklist,
+            ]
+          properties:
+            node:
+              oneOf:
+                - $ref: "#/components/schemas/TreeNode"
+                - type: "null"
+            structured_output_shape:
+              oneOf:
+                - $ref: "#/components/schemas/LooseObject"
+                - type: "null"
+            claimed_expert_time: { type: string }
+            threshold_rationale: { type: string, nullable: true }
+            anti_cheat_notes: { type: string }
+            reproducibility_notes: { type: string }
+            dependency_pinning_status: { type: string }
+            canary_status: { type: string }
+            destination_name: { type: string }
+            packet_hash: { type: string }
+            evidence_packet_hash: { type: string, nullable: true }
+            packet_files: { $ref: "#/components/schemas/ScienceTaskPacketFiles" }
+            checklist: { $ref: "#/components/schemas/ScienceTaskChecklistMap" }
+            oracle_run:
+              oneOf:
+                - $ref: "#/components/schemas/ScienceTaskRunEvidence"
+                - type: "null"
+            frontier_run:
+              oneOf:
+                - $ref: "#/components/schemas/ScienceTaskRunEvidence"
+                - type: "null"
+            failure_analysis: { type: string }
+            latest_review_follow_up_note: { type: string, nullable: true }
+            last_rerun_at: { type: string, format: date-time, nullable: true }
+            latest_fix_at: { type: string, format: date-time, nullable: true }
+            any_concern_unanswered: { type: boolean }
+          additionalProperties: false
+    ScienceTaskListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/ScienceTaskSummary" }
+      additionalProperties: false
+    ScienceTaskDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/ScienceTaskDetail" }
+      additionalProperties: false
+    ScienceTaskBaseInput:
+      type: object
+      required:
+        [
+          title,
+          science_domain,
+          science_field,
+          task_slug,
+          claimed_expert_time,
+          anti_cheat_notes,
+          reproducibility_notes,
+          dependency_pinning_status,
+          canary_status,
+          failure_analysis,
+          packet_files,
+        ]
+      properties:
+        title: { type: string, minLength: 1 }
+        summary: { type: string, nullable: true }
+        science_domain: { type: string, minLength: 1 }
+        science_field: { type: string, minLength: 1 }
+        task_slug: { type: string, minLength: 1 }
+        structured_output_shape:
+          oneOf:
+            - $ref: "#/components/schemas/LooseObject"
+            - type: "null"
+        claimed_expert_time: { type: string, minLength: 1 }
+        threshold_rationale: { type: string, nullable: true }
+        anti_cheat_notes: { type: string, minLength: 1 }
+        reproducibility_notes: { type: string, minLength: 1 }
+        dependency_pinning_status: { type: string, minLength: 1 }
+        canary_status: { type: string, minLength: 1 }
+        failure_analysis: { type: string, minLength: 1 }
+        packet_files: { $ref: "#/components/schemas/ScienceTaskPacketFiles" }
+      additionalProperties: false
+    ScienceTaskCreateInput:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskBaseInput"
+        - type: object
+          properties:
+            destination_name: { type: string, default: "terminal-bench-science" }
+          additionalProperties: false
+    ScienceTaskChecklistUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskBaseInput"
+        - type: object
+          required: [checklist]
+          properties:
+            checklist: { $ref: "#/components/schemas/ScienceTaskChecklistMap" }
+          additionalProperties: false
+    ScienceTaskEvidenceUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskBaseInput"
+        - type: object
+          required: [oracle_run, frontier_run]
+          properties:
+            oracle_run: { $ref: "#/components/schemas/ScienceTaskRunEvidence" }
+            frontier_run: { $ref: "#/components/schemas/ScienceTaskRunEvidence" }
+          additionalProperties: false
+    ScienceTaskSubmitInput:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskBaseInput"
+        - type: object
+          required: [harbor_pr_url]
+          properties:
+            harbor_pr_url: { type: string, minLength: 1 }
+            latest_review_follow_up_note: { type: string, nullable: true }
+          additionalProperties: false
+    ScienceTaskReviewUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/ScienceTaskBaseInput"
+        - type: object
+          required: [harbor_pr_url, open_reviewer_concerns_count, any_concern_unanswered, latest_rerun_after_latest_fix]
+          properties:
+            harbor_pr_url: { type: string, minLength: 1 }
+            latest_review_follow_up_note: { type: string, nullable: true }
+            open_reviewer_concerns_count: { type: integer, minimum: 0 }
+            any_concern_unanswered: { type: boolean }
+            latest_rerun_after_latest_fix: { type: boolean }
+            latest_fix_at: { type: string, format: date-time, nullable: true }
+            last_rerun_at: { type: string, format: date-time, nullable: true }
+          additionalProperties: false
+    ScienceTaskMutationResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [node_id, workflow_state, packet_hash, export_target_path]
+          properties:
+            node_id: { type: integer }
+            workflow_state: { $ref: "#/components/schemas/ScienceTaskStage" }
+            packet_hash: { type: string }
+            export_target_path: { type: string }
+          additionalProperties: false
+      additionalProperties: false
     ChatboxMessage:
       type: object
       properties:

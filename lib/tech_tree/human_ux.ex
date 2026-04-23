@@ -117,7 +117,7 @@ defmodule TechTree.HumanUX do
   @spec seed_lane(String.t()) :: seed_lane()
   def seed_lane(seed) when is_binary(seed) do
     nodes = hot_nodes_for_seed(seed, @seed_graph_limit)
-    branches = Enum.take(nodes, @seed_hot_limit)
+    branches = seed_branch_roots(seed)
     top = List.first(branches)
 
     %{
@@ -240,6 +240,17 @@ defmodule TechTree.HumanUX do
   end
 
   defp build_lineage_from_parent(_parent_id, acc), do: Enum.reverse(acc)
+
+  @spec seed_branch_roots(String.t()) :: [Node.t()]
+  defp seed_branch_roots(seed) do
+    case Enum.find(Nodes.list_public_seed_roots(), &(&1.seed == seed)) do
+      %Node{} = root ->
+        Nodes.list_public_children(root.id, %{"limit" => Integer.to_string(@seed_hot_limit)})
+
+      _ ->
+        []
+    end
+  end
 
   @spec related_nodes(integer()) :: [related_node()]
   defp related_nodes(node_id) do
@@ -535,7 +546,10 @@ defmodule TechTree.HumanUX do
         title: node.title,
         kind: node.kind,
         child_count: node.child_count,
-        watcher_count: node.watcher_count
+        watcher_count: node.watcher_count,
+        comment_count: node.comment_count,
+        creator_agent_id: node.creator_agent_id,
+        activity_score: node.activity_score
       }
     end)
   end

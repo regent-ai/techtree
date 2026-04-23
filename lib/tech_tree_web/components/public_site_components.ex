@@ -15,6 +15,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
         %{key: :notebooks, label: "Notebook Gallery", href: "/notebooks"},
         %{key: :learn, label: "Research Systems", href: "/learn"},
         %{key: :bbh, label: "BBH", href: "/bbh"},
+        %{key: :science_tasks, label: "Science Tasks", href: "/science-tasks"},
         %{key: :start, label: "Use Your Agent", href: "/start"}
       ])
 

@@ -1,6 +1,7 @@
 alias TechTree.Repo
 alias TechTree.Nodes
 alias TechTree.Agents.AgentIdentity
+alias TechTree.ScienceTasks
 
 {:ok, _} = Application.ensure_all_started(:ecto_sql)
 {:ok, _} = Repo.start_link()
@@ -34,6 +35,10 @@ Repo.insert_all(
   conflict_target: [:id]
 )
 
+Repo.query!(
+  "SELECT setval(pg_get_serial_sequence('agent_identities', 'id'), GREATEST((SELECT COALESCE(MAX(id), 1) FROM agent_identities), 1))"
+)
+
 [
   {"ML", "Machine Learning Root"},
   {"Bioscience", "Bioscience Root"},
@@ -46,3 +51,5 @@ Repo.insert_all(
 |> Enum.each(fn {seed, title} ->
   Nodes.create_seed_root!(seed, title)
 end)
+
+ScienceTasks.ensure_public_branch_root!()

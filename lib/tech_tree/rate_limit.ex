@@ -3,9 +3,9 @@ defmodule TechTree.RateLimit do
 
   require Logger
 
-  alias TechTree.Dragonfly
   alias TechTree.QueryHelpers
 
+  @cache_app :tech_tree
   @ets_table :tech_tree_rate_limit
   @backend_status_key {:meta, :backend_status}
   @message_policy %{capacity: 6, refill_tokens: 3, refill_interval_ms: 10_000}
@@ -74,7 +74,7 @@ defmodule TechTree.RateLimit do
   @spec status() :: map()
   def status do
     configured_backend = configured_backend()
-    dragonfly_enabled = Dragonfly.enabled?()
+    dragonfly_enabled = RegentCache.Dragonfly.enabled?(@cache_app)
     {dragonfly_reachable, live_error} = dragonfly_health(configured_backend, dragonfly_enabled)
     meta = reconcile_backend_status(configured_backend, live_error)
 
@@ -232,7 +232,7 @@ defmodule TechTree.RateLimit do
       "1"
     ]
 
-    case Dragonfly.command(["EVAL" | args]) do
+    case RegentCache.Dragonfly.command(@cache_app, ["EVAL" | args]) do
       {:ok, [1, 0]} -> :ok
       {:ok, [0, _retry_after_ms]} -> {:error, :rate_limited}
       {:error, _reason} -> {:error, :rate_limited}
@@ -271,7 +271,7 @@ defmodule TechTree.RateLimit do
 
     case rate_limit_backend() do
       :dragonfly ->
-        case Dragonfly.command(["EVAL" | args]) do
+        case RegentCache.Dragonfly.command(@cache_app, ["EVAL" | args]) do
           {:ok, [1, 0]} ->
             record_backend_healthy(:consume_bucket)
             :ok
@@ -335,7 +335,7 @@ defmodule TechTree.RateLimit do
 
         case rate_limit_backend() do
           :dragonfly ->
-            case Dragonfly.command([
+            case RegentCache.Dragonfly.command(@cache_app, [
                    "SET",
                    key,
                    "1",
@@ -387,7 +387,7 @@ defmodule TechTree.RateLimit do
   end
 
   defp duplicate_retry_after_ms(key) do
-    case Dragonfly.command(["PTTL", key]) do
+    case RegentCache.Dragonfly.command(@cache_app, ["PTTL", key]) do
       {:ok, ttl_ms} when is_integer(ttl_ms) and ttl_ms > 0 ->
         record_backend_healthy(:duplicate_retry_after)
         ttl_ms
@@ -432,7 +432,7 @@ defmodule TechTree.RateLimit do
     case Application.get_env(:tech_tree, __MODULE__, [])[:backend] do
       :local -> :local
       :dragonfly -> :dragonfly
-      _ -> if(Dragonfly.enabled?(), do: :dragonfly, else: :local)
+      _ -> if(RegentCache.Dragonfly.enabled?(@cache_app), do: :dragonfly, else: :local)
     end
   end
 
@@ -441,7 +441,7 @@ defmodule TechTree.RateLimit do
   defp dragonfly_health(:dragonfly, false), do: {false, "dragonfly disabled"}
 
   defp dragonfly_health(:dragonfly, true) do
-    case Dragonfly.command(["PING"]) do
+    case RegentCache.Dragonfly.command(@cache_app, ["PING"]) do
       {:ok, "PONG"} -> {true, nil}
       {:error, reason} -> {false, inspect(reason)}
       other -> {false, inspect(other)}

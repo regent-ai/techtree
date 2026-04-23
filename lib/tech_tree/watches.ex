@@ -228,7 +228,7 @@ defmodule TechTree.Watches do
 
   @spec dragonfly_command([String.t() | integer()]) :: {:ok, term()} | {:error, term()}
   defp dragonfly_command(command) do
-    TechTree.Dragonfly.command(command)
+    RegentCache.Dragonfly.command(:tech_tree, command)
   end
 
   @spec online_sessions_key(integer()) :: String.t()

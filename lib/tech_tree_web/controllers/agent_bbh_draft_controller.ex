@@ -2,7 +2,7 @@ defmodule TechTreeWeb.AgentBbhDraftController do
   use TechTreeWeb, :controller
 
   alias TechTree.BBH
-  alias TechTreeWeb.ApiError
+  alias TechTreeWeb.AgentApiResult
 
   def create(conn, params) do
     claims = conn.assigns[:current_agent_claims] || %{}
@@ -121,10 +121,12 @@ defmodule TechTreeWeb.AgentBbhDraftController do
         not_found(conn, "bbh_capsule_not_found", "BBH draft not found")
 
       {:error, :draft_not_owned} ->
-        ApiError.render_halted(conn, :forbidden, %{
-          code: "bbh_draft_not_owned",
-          message: "Only the draft owner can mark a draft ready"
-        })
+        AgentApiResult.render_message(
+          conn,
+          :forbidden,
+          "bbh_draft_not_owned",
+          "Only the draft owner can mark a draft ready"
+        )
 
       {:error, %Ecto.Changeset{} = changeset} ->
         invalid_with_changeset(conn, "bbh_draft_invalid", "BBH draft is invalid", changeset)
@@ -138,26 +140,14 @@ defmodule TechTreeWeb.AgentBbhDraftController do
   end
 
   defp not_found(conn, code, message) do
-    ApiError.render_halted(conn, :not_found, %{code: code, message: message})
+    AgentApiResult.render_message(conn, :not_found, code, message)
   end
 
   defp invalid(conn, code, message) do
-    ApiError.render_halted(conn, :unprocessable_entity, %{code: code, message: message})
+    AgentApiResult.render_message(conn, :unprocessable_entity, code, message)
   end
 
   defp invalid_with_changeset(conn, code, message, changeset) do
-    ApiError.render_halted(conn, :unprocessable_entity, %{
-      code: code,
-      message: message,
-      details: %{errors: translate_errors(changeset)}
-    })
-  end
-
-  defp translate_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
-      Enum.reduce(opts, message, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
+    AgentApiResult.render_changeset_errors(conn, :unprocessable_entity, code, message, changeset)
   end
 end

@@ -2,6 +2,7 @@ defmodule TechTree.BBH.Presentation do
   @moduledoc false
 
   alias TechTree.BBH
+  alias TechTree.BBH.WallCopy
 
   @active_window_minutes 30
   @hot_window_minutes 45
@@ -30,7 +31,7 @@ defmodule TechTree.BBH.Presentation do
     rendered_capsules =
       capsules |> layout_capsules() |> decorate_challenge_capsules(benchmark_top_score)
 
-    lane_sections = lane_sections(rendered_capsules)
+    lane_sections = WallCopy.lane_sections(rendered_capsules)
 
     %{
       split: "wall",
@@ -52,9 +53,12 @@ defmodule TechTree.BBH.Presentation do
       lane_sections: lane_sections,
       lane_counts: Map.new(lane_sections, &{&1.key, &1.count}),
       event_feed_items: build_event_feed(capsules),
-      official_boards: official_boards
+      official_boards: official_boards,
+      wall_copy: WallCopy.page_copy()
     }
   end
+
+  def lane_sections(capsules), do: WallCopy.lane_sections(capsules)
 
   @spec run_page(String.t()) :: {:ok, map()} | :error
   def run_page(run_id) when is_binary(run_id) do
@@ -330,35 +334,20 @@ defmodule TechTree.BBH.Presentation do
   end
 
   defp official_boards do
-    [
-      build_official_board(
-        :benchmark,
-        "Benchmark ledger",
-        "Ledger stays separate",
-        "The benchmark ledger ignores climb chatter. Only confirmed replay results belong here.",
-        "No benchmark ledger entries are locked yet."
-      ),
-      build_official_board(
-        :challenge,
-        "Challenge board",
-        "Reviewed frontier work",
-        "Published reviewed challenge capsules only become official here after confirmed replay results.",
-        "No challenge board entries are locked yet."
-      )
-    ]
+    Enum.map(WallCopy.official_board_specs(), &build_official_board/1)
   end
 
-  defp build_official_board(key, title, kicker, note, empty_message) do
-    split = Atom.to_string(key)
+  defp build_official_board(spec) do
+    split = Atom.to_string(spec.key)
     entries = official_ranking_entries(split)
 
     %{
-      key: key,
+      key: spec.key,
       split: split,
-      title: title,
-      intro_kicker: kicker,
-      intro_note: note,
-      empty_message: empty_message,
+      title: spec.title,
+      intro_kicker: spec.intro_kicker,
+      intro_note: spec.intro_note,
+      empty_message: spec.empty_message,
       count: length(entries),
       entries: entries
     }
@@ -598,40 +587,6 @@ defmodule TechTree.BBH.Presentation do
   defp badge_kind("climb"), do: :climb
   defp badge_kind("challenge"), do: :challenge
   defp badge_kind(_split), do: :benchmark
-
-  defp lane_sections(capsules) do
-    capsules_by_lane = Enum.group_by(capsules, & &1.lane_key)
-
-    [
-      %{
-        key: :practice,
-        label: "Practice",
-        operator_tag: "--lane climb",
-        copy:
-          "Public climb work. Iterate in the open until the capsule is ready to prove itself.",
-        count: length(capsules_by_lane[:practice] || []),
-        capsules: capsules_by_lane[:practice] || []
-      },
-      %{
-        key: :proving,
-        label: "Proving",
-        operator_tag: "--lane benchmark",
-        copy:
-          "Public benchmark work. In the v0.1 beta it stays visible on the wall while official board placement waits for the later verification update.",
-        count: length(capsules_by_lane[:proving] || []),
-        capsules: capsules_by_lane[:proving] || []
-      },
-      %{
-        key: :challenge,
-        label: "Challenge",
-        operator_tag: "--lane challenge",
-        copy:
-          "Public frontier work. Fresh reviewed capsules land here while the official board sections stay empty in the v0.1 beta.",
-        count: length(capsules_by_lane[:challenge] || []),
-        capsules: capsules_by_lane[:challenge] || []
-      }
-    ]
-  end
 
   defp lane_label(:practice), do: "Practice"
   defp lane_label(:proving), do: "Proving"

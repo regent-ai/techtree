@@ -44,12 +44,12 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
     assert render(view) =~ "Challenge"
     assert render(view) =~ "Benchmark ledger"
     assert render(view) =~ "Frontier ticker"
-    assert render(view) =~ "auto: --lane climb"
-    assert render(view) =~ "auto: --lane benchmark"
-    assert render(view) =~ "auto: --lane challenge"
-    assert render(view) =~ "manual: --capsule &lt;capsule_id&gt;"
-    assert render(view) =~ "public reviewed frontier lane"
-    assert render(view) =~ "homepage tree into the wall"
+    assert render(view) =~ "Practice lane"
+    assert render(view) =~ "Proving lane"
+    assert render(view) =~ "Challenge lane"
+    assert render(view) =~ "Pick one capsule to pin"
+    assert render(view) =~ "reviewed frontier lane"
+    assert render(view) =~ "closer read on one BBH branch"
     assert render(view) =~ "SkyDiscover search"
     assert render(view) =~ "Hypotest replay"
     assert has_element?(view, "#bbh-capsule-#{capsule.capsule_id}")
@@ -116,9 +116,9 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
 
     assert has_element?(view, "#bbh-drilldown-#{second_capsule.capsule_id}")
     assert render(view) =~ "Capsule Two"
-    assert render(view) =~ "Pinned focus survives refresh"
+    assert render(view) =~ "pinned capsule stays selected"
 
-    send(view.pid, :refresh_board)
+    TechTree.PublicEvents.broadcast_bbh_wall_refresh()
     assert render(view) =~ "Capsule Two"
     refute has_element?(view, "#bbh-drilldown-#{first_capsule.capsule_id}")
 

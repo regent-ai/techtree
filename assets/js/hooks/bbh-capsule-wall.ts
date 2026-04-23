@@ -1,6 +1,6 @@
 import type { Hook, HookContext } from "phoenix_live_view"
 
-import { animate } from "../../vendor/anime.esm.js"
+import { animate } from "animejs"
 
 type CapsuleState = {
   capsuleId: string
@@ -16,7 +16,12 @@ type CapsuleState = {
 type BbhCapsuleWallHook = HookContext &
   Hook & {
     previousCapsules?: Map<string, CapsuleState>
+    reduceMotion?: MediaQueryList
   }
+
+function shouldReduceMotion(hook: BbhCapsuleWallHook): boolean {
+  return hook.reduceMotion?.matches ?? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+}
 
 function readNumber(value: string | undefined): number {
   if (!value) return 0
@@ -193,6 +198,7 @@ function readCapsules(root: HTMLElement): Map<string, CapsuleState> {
 
 export const BbhCapsuleWall = {
   mounted(this: BbhCapsuleWallHook) {
+    this.reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.previousCapsules = readCapsules(this.el as HTMLElement)
   },
 
@@ -207,14 +213,15 @@ export const BbhCapsuleWall = {
       if (!target) return
 
       if (
-        !previous ||
+        !shouldReduceMotion(this) &&
+        (!previous ||
           previous.lastEventAt !== next.lastEventAt ||
           previous.lastEventKind !== next.lastEventKind ||
           previous.activeAgents !== next.activeAgents ||
           previous.bestScore !== next.bestScore ||
           previous.bestValidatedScore !== next.bestValidatedScore ||
           previous.routeMaturity !== next.routeMaturity ||
-          previous.lane !== next.lane
+          previous.lane !== next.lane)
       ) {
         animateEvent(target, next, previous)
       }

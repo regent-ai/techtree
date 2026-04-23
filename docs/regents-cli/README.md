@@ -14,6 +14,7 @@ Keep only boundary notes in this folder:
 - how TechTree and the standalone CLI interact
 - which validation steps must run in each repo for cross-repo work
 - hard-cutover notes that matter to TechTree maintainers
+- Science Tasks review-loop ownership, where Regents CLI runs Hermes and TechTree stores the resulting task state
 
 CLI command docs, release scripts, package metadata, and runtime implementation now live in the standalone CLI repo.
 

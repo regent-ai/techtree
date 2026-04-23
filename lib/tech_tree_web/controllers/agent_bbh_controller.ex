@@ -2,7 +2,7 @@ defmodule TechTreeWeb.AgentBbhController do
   use TechTreeWeb, :controller
 
   alias TechTree.BBH
-  alias TechTreeWeb.ApiError
+  alias TechTreeWeb.AgentApiResult
 
   def next_assignment(conn, params) do
     claims = conn.assigns[:current_agent_claims] || %{}
@@ -12,28 +12,20 @@ defmodule TechTreeWeb.AgentBbhController do
         json(conn, %{data: payload})
 
       {:error, :assignment_not_available} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_assignment_not_available",
-          message: "No BBH assignment is available for the requested split"
-        })
+        invalid(
+          conn,
+          "bbh_assignment_not_available",
+          "No BBH assignment is available for the requested split"
+        )
 
       {:error, :capsule_inventory_empty} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_inventory_empty",
-          message: "BBH capsule inventory is empty"
-        })
+        invalid(conn, "bbh_inventory_empty", "BBH capsule inventory is empty")
 
       {:error, :invalid_split} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_invalid_split",
-          message: "Invalid BBH split"
-        })
+        invalid(conn, "bbh_invalid_split", "Invalid BBH split")
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_assignment_failed",
-          message: Exception.message(reason)
-        })
+        invalid(conn, "bbh_assignment_failed", Exception.message(reason))
     end
   end
 
@@ -45,34 +37,23 @@ defmodule TechTreeWeb.AgentBbhController do
         json(conn, %{data: payload})
 
       {:error, :capsule_not_found} ->
-        ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_capsule_not_found",
-          message: "BBH capsule not found"
-        })
+        not_found(conn, "bbh_capsule_not_found", "BBH capsule not found")
 
       {:error, :capsule_not_selectable} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_capsule_not_selectable",
-          message: "This BBH capsule cannot be selected directly"
-        })
+        invalid(
+          conn,
+          "bbh_capsule_not_selectable",
+          "This BBH capsule cannot be selected directly"
+        )
 
       {:error, :capsule_inventory_empty} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_inventory_empty",
-          message: "BBH capsule inventory is empty"
-        })
+        invalid(conn, "bbh_inventory_empty", "BBH capsule inventory is empty")
 
       {:error, :invalid_split} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_invalid_split",
-          message: "Invalid BBH split"
-        })
+        invalid(conn, "bbh_invalid_split", "Invalid BBH split")
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_assignment_failed",
-          message: Exception.message(reason)
-        })
+        invalid(conn, "bbh_assignment_failed", Exception.message(reason))
     end
   end
 
@@ -95,35 +76,29 @@ defmodule TechTreeWeb.AgentBbhController do
         })
 
       {:error, :capsule_not_found} ->
-        ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_capsule_not_found",
-          message: "BBH capsule not found"
-        })
+        not_found(conn, "bbh_capsule_not_found", "BBH capsule not found")
 
       {:error, :assignment_ref_required} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_assignment_ref_required",
-          message: "Benchmark and challenge runs require an assignment reference"
-        })
+        invalid(
+          conn,
+          "bbh_assignment_ref_required",
+          "Benchmark and challenge runs require an assignment reference"
+        )
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_run_invalid",
-          message: "BBH run submission is invalid",
-          details: %{errors: translate_errors(changeset)}
-        })
+        AgentApiResult.render_changeset_errors(
+          conn,
+          :unprocessable_entity,
+          "bbh_run_invalid",
+          "BBH run submission is invalid",
+          changeset
+        )
 
       {:error, %ArgumentError{} = reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_run_invalid",
-          message: Exception.message(reason)
-        })
+        invalid(conn, "bbh_run_invalid", Exception.message(reason))
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_run_failed",
-          message: inspect(reason)
-        })
+        invalid(conn, "bbh_run_failed", inspect(reason))
     end
   end
 
@@ -141,29 +116,22 @@ defmodule TechTreeWeb.AgentBbhController do
         })
 
       {:error, :run_not_found} ->
-        ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_run_not_found",
-          message: "BBH run not found"
-        })
+        not_found(conn, "bbh_run_not_found", "BBH run not found")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_validation_invalid",
-          message: "BBH validation is invalid",
-          details: %{errors: translate_errors(changeset)}
-        })
+        AgentApiResult.render_changeset_errors(
+          conn,
+          :unprocessable_entity,
+          "bbh_validation_invalid",
+          "BBH validation is invalid",
+          changeset
+        )
 
       {:error, %ArgumentError{} = reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_validation_invalid",
-          message: Exception.message(reason)
-        })
+        invalid(conn, "bbh_validation_invalid", Exception.message(reason))
 
       {:error, reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_validation_failed",
-          message: inspect(reason)
-        })
+        invalid(conn, "bbh_validation_failed", inspect(reason))
     end
   end
 
@@ -173,18 +141,15 @@ defmodule TechTreeWeb.AgentBbhController do
         json(conn, %{data: BBH.sync_status(run_ids)})
 
       _ ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_sync_invalid",
-          message: "run_ids must be a list"
-        })
+        invalid(conn, "bbh_sync_invalid", "run_ids must be a list")
     end
   end
 
-  defp translate_errors(changeset) do
-    Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
-      Enum.reduce(opts, message, fn {key, value}, acc ->
-        String.replace(acc, "%{#{key}}", to_string(value))
-      end)
-    end)
+  defp not_found(conn, code, message) do
+    AgentApiResult.render_message(conn, :not_found, code, message)
+  end
+
+  defp invalid(conn, code, message) do
+    AgentApiResult.render_message(conn, :unprocessable_entity, code, message)
   end
 end

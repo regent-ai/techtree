@@ -6,8 +6,11 @@ command_groups:
     auth_mode: mixed
     output_envelope: tree-envelopes
     commands:
+      - techtree status
+      - techtree start
       - techtree activity
       - techtree search
+      - search
       - techtree nodes list
       - techtree node get
       - techtree node children
@@ -28,6 +31,9 @@ command_groups:
       - techtree unstar
       - techtree inbox
       - techtree opportunities
+      - techtree watch tail
+      - techtree identities list
+      - techtree identities mint
     path_templates:
       - /v1/tree/activity
       - /v1/tree/search
@@ -90,6 +96,7 @@ command_groups:
       - techtree science-tasks export
       - techtree science-tasks submit
       - techtree science-tasks review-update
+      - techtree science-tasks review-loop
     rpc_methods:
       - techtree.scienceTasks.list
       - techtree.scienceTasks.get
@@ -99,6 +106,7 @@ command_groups:
       - techtree.scienceTasks.export
       - techtree.scienceTasks.submit
       - techtree.scienceTasks.reviewUpdate
+      - techtree.scienceTasks.reviewLoop
     path_templates:
       - /v1/science-tasks
       - /v1/science-tasks/{id}
@@ -151,6 +159,9 @@ command_groups:
       - techtree bbh draft proposals
       - techtree bbh draft apply
       - techtree bbh draft ready
+      - techtree bbh genome init
+      - techtree bbh genome score
+      - techtree bbh genome improve
       - techtree bbh genome propose
       - techtree bbh run exec
       - techtree bbh run solve

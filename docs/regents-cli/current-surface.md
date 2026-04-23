@@ -25,10 +25,21 @@ The standalone CLI remains the operator entrypoint for TechTree flows such as:
 - `regent techtree start`
 - `regent techtree identities list`
 - `regent techtree identities mint`
+- `regent techtree science-tasks init`
+- `regent techtree science-tasks review-loop`
+- `regent techtree science-tasks export`
 - `regent techtree comment add`
 - `regent techtree opportunities`
 - `regent techtree autoskill buy`
 - node, inbox, activity, chatbox, and paid-node command groups that call TechTree APIs or daemon-owned local transports
+
+## Science Tasks Boundary
+
+Science Tasks uses Techtree for the task record and Regents CLI for local work.
+
+- Techtree stores the task packet, checklist, evidence, Harbor PR, and review status.
+- Regents CLI creates the local workspace, runs Hermes with the Harbor review skill, validates `dist/harbor-review-loop.json`, and syncs through the existing Science Tasks endpoints.
+- No separate Techtree HTTP route is expected for `science-tasks review-loop`; it is a local CLI review pass followed by the existing checklist, evidence, submit, and review-update calls.
 
 ## Validation
 

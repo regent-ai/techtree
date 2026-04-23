@@ -3,6 +3,7 @@ defmodule TechTree.BBH.RunIngest do
 
   alias Ecto.Multi
   alias TechTree.BBH.{Assignment, Genome, Helpers, Run, Validation}
+  alias TechTree.PublicEvents
   alias TechTree.Repo
 
   @bbh_splits ["climb", "benchmark", "challenge", "draft"]
@@ -52,6 +53,7 @@ defmodule TechTree.BBH.RunIngest do
       |> Repo.transaction()
       |> case do
         {:ok, %{run: run, genome: genome}} ->
+          PublicEvents.broadcast_bbh_wall_refresh()
           {:ok, %{run: run, genome: genome}}
 
         {:error, _step, reason, _changes} ->
@@ -74,8 +76,12 @@ defmodule TechTree.BBH.RunIngest do
       |> Multi.update(:run, Ecto.Changeset.change(run, status: next_run_status(review_source)))
       |> Repo.transaction()
       |> case do
-        {:ok, %{validation: validation}} -> {:ok, validation}
-        {:error, _step, reason, _changes} -> {:error, reason}
+        {:ok, %{validation: validation}} ->
+          PublicEvents.broadcast_bbh_wall_refresh()
+          {:ok, validation}
+
+        {:error, _step, reason, _changes} ->
+          {:error, reason}
       end
     else
       nil -> {:error, :run_not_found}

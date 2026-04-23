@@ -5,10 +5,9 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
   import TechTreeWeb.HumanComponents
 
   alias TechTree.BBH.Presentation
+  alias TechTree.PublicEvents
   alias TechTree.PublicSite
   alias TechTreeWeb.PublicSiteComponents
-
-  @refresh_interval_ms 4_000
 
   @impl true
   def mount(params, _session, socket) do
@@ -19,9 +18,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
       |> assign(:split, "benchmark")
       |> assign(:selected_capsule_id, params["focus"] || params["capsule_id"])
 
-    if connected?(socket) do
-      Process.send_after(self(), :refresh_board, @refresh_interval_ms)
-    end
+    if connected?(socket), do: PublicEvents.subscribe()
 
     {:ok, socket}
   end
@@ -45,18 +42,16 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
   end
 
   @impl true
-  def handle_info(:refresh_board, socket) do
+  def handle_info({:public_site_event, %{event: :bbh_wall_refresh}}, socket) do
     page =
       Presentation.leaderboard_page(%{
         selected_capsule_id: socket.assigns.selected_capsule_id
       })
 
-    if connected?(socket) do
-      Process.send_after(self(), :refresh_board, @refresh_interval_ms)
-    end
-
     {:noreply, assign_page(socket, page)}
   end
+
+  def handle_info({:public_site_event, _payload}, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do
@@ -69,7 +64,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
         <.human_header
           kicker="BBH Branch"
           title="Wall board"
-          subtitle="Follow the live BBH board by lane, keep one capsule pinned, and see which runs held up in replay."
+          subtitle={@wall_copy.header_subtitle}
         >
           <:actions>
             <.link navigate={~p"/bbh"} class="hu-ghost-link">BBH home</.link>
@@ -77,8 +72,8 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>
             <span class="bbh-chip">Challenge: {@lane_counts.challenge}</span>
-            <span class="bbh-chip">--lane climb / benchmark / challenge</span>
-            <span class="bbh-chip bbh-chip-official">Pinned focus survives refresh</span>
+            <span class="bbh-chip">Practice / Proving / Challenge</span>
+            <span class="bbh-chip bbh-chip-official">Pinned capsule stays selected</span>
           </:actions>
         </.human_header>
 
@@ -87,18 +82,12 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
             <.human_section id="bbh-capsule-wall" title="Wall board">
               <div class="bbh-wall-hero" data-motion="reveal">
                 <div class="bbh-wall-hero-copy">
-                  <p class="bbh-wall-kicker">BBH wall branch</p>
+                  <p class="bbh-wall-kicker">{@wall_copy.hero_kicker}</p>
                   <h2 class="bbh-wall-title">
-                    Move from the homepage tree into the wall when you need a branch-specific drilldown.
+                    {@wall_copy.hero_title}
                   </h2>
-                  <p class="bbh-wall-note">
-                    Practice is public climb work, Proving is benchmark work, and Challenge is the
-                    public reviewed frontier lane.
-                  </p>
-                  <p class="bbh-wall-note">
-                    Stay here when you want lane pressure, a pinned capsule, and a clear read of
-                    which runs came through direct notebook work, which used SkyDiscover search,
-                    and which already held up under Hypotest replay.
+                  <p :for={note <- @wall_copy.hero_notes} class="bbh-wall-note">
+                    {note}
                   </p>
                 </div>
 
@@ -123,11 +112,15 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
               </div>
 
               <div class="bbh-wall-caption">
-                <span class="bbh-chip">auto: --lane climb</span>
-                <span class="bbh-chip">auto: --lane benchmark</span>
-                <span class="bbh-chip">auto: --lane challenge</span>
-                <span class="bbh-chip">manual: --capsule &lt;capsule_id&gt;</span>
-                <span class="bbh-chip bbh-chip-official">selected capsule stays pinned</span>
+                <span
+                  :for={{chip, index} <- Enum.with_index(@wall_copy.caption_chips)}
+                  class={[
+                    "bbh-chip",
+                    index == length(@wall_copy.caption_chips) - 1 && "bbh-chip-official"
+                  ]}
+                >
+                  {chip}
+                </span>
               </div>
 
               <div id="bbh-wall-grid" class="bbh-wall-grid" phx-hook="BbhCapsuleWall">
@@ -229,7 +222,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                   </div>
 
                   <p class="bbh-drilldown-copy bbh-drilldown-pin-note">
-                    Pinned focus survives refresh and keeps its place while the wall keeps moving.
+                    {@wall_copy.pinned_note}
                   </p>
 
                   <dl class="bbh-drilldown-stats">
@@ -476,6 +469,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
     |> assign(:lane_counts, page.lane_counts)
     |> assign(:event_feed_items, page.event_feed_items)
     |> assign(:official_boards, page.official_boards)
+    |> assign(:wall_copy, page.wall_copy)
     |> assign(:total_entries, page.total_entries)
     |> assign(:total_capsules, page.total_capsules)
     |> assign(:top_score, page.top_score)

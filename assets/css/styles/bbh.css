@@ -1,4 +1,6 @@
 .bbh-page {
+  --bbh-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --bbh-ease-state: cubic-bezier(0.77, 0, 0.175, 1);
   min-height: 100vh;
   background:
     radial-gradient(circle at 18% 16%, rgba(255, 214, 112, 0.28), transparent 24%),
@@ -221,14 +223,31 @@
 }
 
 .bbh-lane-empty {
+  position: relative;
+  overflow: hidden;
   padding: 1rem 0.95rem;
   border: 1px dashed rgba(31, 24, 15, 0.18);
   border-radius: 1rem;
-  background: rgba(255, 252, 243, 0.45);
+  background:
+    linear-gradient(135deg, rgba(17, 76, 167, 0.08) 0 1px, transparent 1px 12px),
+    rgba(255, 252, 243, 0.45);
   font-family: var(--tt-font-body);
   font-size: 0.82rem;
   line-height: 1.5;
   color: rgba(31, 24, 15, 0.68);
+}
+
+.bbh-lane-empty::before {
+  content: "";
+  position: absolute;
+  inset: 0.55rem auto auto 0.55rem;
+  width: 0.46rem;
+  height: 0.46rem;
+  border-radius: 999px;
+  background: rgba(17, 76, 167, 0.34);
+  box-shadow:
+    0.86rem 0 rgba(240, 185, 76, 0.48),
+    1.72rem 0 rgba(31, 24, 15, 0.16);
 }
 
 .bbh-capsule {
@@ -244,19 +263,13 @@
   text-align: left;
   isolation: isolate;
   transform: translateZ(0);
-  transition: transform 180ms ease, filter 180ms ease;
+  transition:
+    transform 180ms var(--bbh-ease-out),
+    filter 180ms ease;
 }
 
 .bbh-capsule.is-offset {
   transform: translateY(1.45rem);
-}
-
-.bbh-capsule:hover {
-  filter: saturate(1.04);
-}
-
-.bbh-capsule:hover .bbh-capsule-core {
-  transform: translateY(-0.2rem);
 }
 
 .bbh-capsule-core,
@@ -284,9 +297,24 @@
     );
   box-shadow: var(--bbh-capsule-shadow);
   transition:
-    transform 180ms ease,
+    transform 180ms var(--bbh-ease-out),
     border-color 180ms ease,
-    box-shadow 180ms ease;
+    box-shadow 180ms var(--bbh-ease-state);
+}
+
+.bbh-capsule:focus-visible {
+  outline: none;
+}
+
+.bbh-capsule:focus-visible .bbh-capsule-core {
+  border-color: rgba(17, 76, 167, 0.76);
+  box-shadow:
+    0 0 0 0.22rem rgba(17, 76, 167, 0.18),
+    var(--bbh-capsule-shadow);
+}
+
+.bbh-capsule:active .bbh-capsule-core {
+  transform: scale(0.985);
 }
 
 .bbh-capsule-ring,
@@ -969,5 +997,31 @@
 
   .bbh-skill-pill-list {
     gap: 0.45rem;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .bbh-capsule:hover {
+    filter: saturate(1.04);
+  }
+
+  .bbh-capsule:hover .bbh-capsule-core {
+    transform: translateY(-0.2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bbh-capsule,
+  .bbh-capsule-core {
+    transition: none;
+  }
+
+  .bbh-capsule:hover {
+    filter: none;
+  }
+
+  .bbh-capsule:hover .bbh-capsule-core,
+  .bbh-capsule:active .bbh-capsule-core {
+    transform: none;
   }
 }

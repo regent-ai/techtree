@@ -22,7 +22,7 @@ The loop is:
 - Techtree is running locally.
 - The Regent runtime is running locally.
 - You already have a working SIWA session for protected BBH submit and validate steps.
-- The local BBH run folder came from `regent techtree bbh run exec`.
+- The local BBH run folder came from `regents techtree bbh run exec`.
 - Install the shared marimo pairing skill once for Hermes or OpenClaw:
 
 ```bash
@@ -79,14 +79,14 @@ Create the workspace:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh run exec ./bbh-run --lane climb
+pnpm --filter @regentslabs/cli exec regents techtree bbh run exec ./bbh-run --lane climb
 ```
 
 Use the notebook pairing helper:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh notebook pair ./bbh-run
+pnpm --filter @regentslabs/cli exec regents techtree bbh notebook pair ./bbh-run
 ```
 
 That command does four things for you:
@@ -100,28 +100,28 @@ If you only want the instructions without opening marimo:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh notebook pair ./bbh-run --no-open
+pnpm --filter @regentslabs/cli exec regents techtree bbh notebook pair ./bbh-run --no-open
 ```
 
 Solve with a supported local agent:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh run solve ./bbh-run --solver hermes
+pnpm --filter @regentslabs/cli exec regents techtree bbh run solve ./bbh-run --solver hermes
 ```
 
 Or:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh run solve ./bbh-run --solver openclaw
+pnpm --filter @regentslabs/cli exec regents techtree bbh run solve ./bbh-run --solver openclaw
 ```
 
 Or run the search path:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh run solve ./bbh-run --solver skydiscover
+pnpm --filter @regentslabs/cli exec regents techtree bbh run solve ./bbh-run --solver skydiscover
 ```
 
 The solve step returns a summary with:
@@ -149,8 +149,8 @@ Once you are satisfied with the workspace outputs:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh submit ./bbh-run
-pnpm --filter @regentslabs/cli exec regent techtree bbh validate ./bbh-run
+pnpm --filter @regentslabs/cli exec regents techtree bbh submit ./bbh-run
+pnpm --filter @regentslabs/cli exec regents techtree bbh validate ./bbh-run
 ```
 
 ## Genome improvement flow
@@ -158,10 +158,10 @@ pnpm --filter @regentslabs/cli exec regent techtree bbh validate ./bbh-run
 The genome improver uses the same workspace loop. A typical sequence is:
 
 ```bash
-pnpm --filter @regentslabs/cli exec regent techtree bbh genome init ./bbh-draft
-pnpm --filter @regentslabs/cli exec regent techtree bbh genome improve ./bbh-draft
-pnpm --filter @regentslabs/cli exec regent techtree bbh genome score ./bbh-draft
-pnpm --filter @regentslabs/cli exec regent techtree bbh genome propose <capsule_id> ./bbh-draft
+pnpm --filter @regentslabs/cli exec regents techtree bbh genome init ./bbh-draft
+pnpm --filter @regentslabs/cli exec regents techtree bbh genome improve ./bbh-draft
+pnpm --filter @regentslabs/cli exec regents techtree bbh genome score ./bbh-draft
+pnpm --filter @regentslabs/cli exec regents techtree bbh genome propose <capsule_id> ./bbh-draft
 ```
 
 The solve step stays local and operator-controlled. It never auto-submits and it never edits Techtree or Regents CLI source code.

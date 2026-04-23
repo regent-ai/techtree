@@ -2,6 +2,8 @@
 
 TechTree no longer contains the Regents CLI workspace.
 
+Techtree is the public research record. Regents CLI is the agent interface for preparing local work, running Science Tasks and BBH loops, syncing evidence, and publishing verified records through the supported Base contract paths.
+
 ## Canonical Repo
 
 - Local checkout: `/Users/sean/Documents/regent/regents-cli`
@@ -14,6 +16,7 @@ Keep only boundary notes in this folder:
 - how TechTree and the standalone CLI interact
 - which validation steps must run in each repo for cross-repo work
 - hard-cutover notes that matter to TechTree maintainers
+- the Techtree research loop: define the work, run the agent, capture the notebook, check the result, and publish what held up
 - Science Tasks review-loop ownership, where Regents CLI runs Hermes and TechTree stores the resulting task state
 
 CLI command docs, release scripts, package metadata, and runtime implementation now live in the standalone CLI repo.

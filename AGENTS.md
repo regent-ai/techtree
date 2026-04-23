@@ -30,13 +30,14 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.
 - The root workflow is single-source-of-truth for agent execution. Do not revive the old `.claude` command flow.
-- For API <-> backend functionality, treat the Regents CLI contract surface as the source of truth. Start from the contract files and ownership map in `/Users/sean/Documents/regent/regents-cli`, then update Techtree backend code to match.
+- For Techtree API or CLI work, start from the Techtree-owned contract files: `docs/api-contract.openapiv3.yaml` for HTTP behavior and `docs/cli-contract.yaml` for shipped command behavior. Then update Techtree and `/Users/sean/Documents/regent/regents-cli` to match.
 - When a concept or process changes, keep these surfaces aligned in the same pass: `README.md`, `AGENTS.md`, homepage/app copy, and the adjacent Regents CLI help and operator docs.
-- For most agent work, use Regents CLI as the normal entry path into Techtree:
-  1. run `regent techtree identities list --chain base-sepolia` or mint if needed
-  2. run `regent auth siwa login --registry-address ... --token-id ...`
-  3. run `regent doctor techtree`
+- For supported Techtree workflows, agents should use Regents CLI as the normal entry path into Techtree backend records and Base contract-backed publishing:
+  1. run `regents techtree identities list --chain base-sepolia` or mint if needed
+  2. run `regents identity ensure`
+  3. run `regents doctor techtree`
   4. only then use protected Techtree commands such as `node create`, `comment add`, `inbox`, `opportunities`, `autoskill buy`, and `autoskill pull`
+- Do not bypass Regents CLI for supported Techtree workflows unless the task is explicitly backend development or contract development.
 - If an agent bypasses Regents CLI and calls the SIWA HTTP routes directly, it must send the current request shape only: snake_case fields with an explicit `chain_id`. Do not rely on the backend to invent a chain value.
 - Agent registry and wallet addresses are stored in lowercase. Treat case variants as the same identity.
 - Contract file meanings:
@@ -67,11 +68,16 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 Keep these names and meanings consistent across docs, website copy, and CLI help:
 
-- Guided start: `regent techtree start` is the first step. It prepares local config, checks the runtime, helps bind identity, and confirms readiness.
+- Techtree: the public research record for agent science. The public story is: define the task, run the agent, capture the notebook, check the result, and publish what held up.
+- Regents CLI: the agent interface for Techtree. It prepares local research folders, runs benchmark and review loops, syncs evidence to Techtree, and publishes verified records through supported Base contract paths.
+- Guided start: `regents techtree start` is the first step. It prepares local config, checks the runtime, helps bind identity, and confirms readiness.
 - Run folder: the local folder for one active run. After the guided start, people usually open the next Techtree task or start the BBH loop.
 - Live tree: the public map of seeds, nodes, branches, and layer-0 subject areas. BBH is the first layer-0 branch today, not the last. Science Tasks now sits under `Evals` as the branch for Harbor-ready science benchmark tasks.
 - BBH branch: the Big-Bench Hard research branch. It gives people a notebook flow, optional SkyDiscover search, Hypotest replay validation, and the clearest public publish-and-review loop in Techtree today.
 - Science Tasks branch: the `Evals` branch for packaging scientific workflows into real task packets with blocking checklist lines, evidence, and review-loop tracking for Harbor review.
+- marimo notebooks: the readable research record agents create, pair with workspaces, publish, and surface in the Notebook Gallery.
+- Autoskill: the reuse layer for skills, evals, notebook sessions, results, reviews, and listings.
+- Harbor review loop: the supported Science Tasks review path. Do not claim that Techtree trains models today.
 - Public rooms: the homepage human room and agent room help people notice movement, hand work forward, and jump into the next branch. Treat them as an important public coordination surface, not decorative chrome.
 - Leaf-node access: paid payload unlocks and autoskill buying belong on specific leaf nodes after someone already knows what they want. Do not turn them into the front-door story.
 - Trusted agent identity: Regent identity plus SIWA-backed provenance is an important trust layer, but not the main public pitch.
@@ -79,24 +85,25 @@ Keep these names and meanings consistent across docs, website copy, and CLI help
 
 For human-facing copy, keep the main loop readable in this order:
 
-1. Install Regent.
-2. Create or reuse local state, then run `regent techtree start`.
-3. Move into the live tree and open BBH as the first research branch when you need it.
-4. Use the homepage public rooms to coordinate around what is moving without repeating setup work.
-5. Treat paid unlocks and autoskill buying as deeper leaf-node actions, not front-door copy.
+1. Define the work with Science Tasks or BBH capsules.
+2. Run the work with Hermes, OpenClaw, or SkyDiscover through Regents CLI.
+3. Capture the evidence in marimo notebooks, verdicts, logs, and review files.
+4. Check the result with Hypotest replay for BBH or Harbor review for Science Tasks.
+5. Publish what held up through Regents CLI, Techtree, and the supported Base contract paths.
 
 ## BBH Process
 
 - BBH means the Big-Bench Hard branch in TechTree.
 - The canonical local BBH package lives under `environments/techtree-bbh-py`. That package owns the run-folder shape, seeded files, scoring handoff, and replay validation bundle.
 - The local loop is:
-  1. `regent techtree bbh run exec` materializes the run folder.
-  2. `regent techtree bbh notebook pair` opens the notebook and prints the operator prompt.
-  3. `regent techtree bbh run solve --solver hermes|openclaw|skydiscover` produces the answer.
-  4. `regent techtree bbh submit` stores the run.
-  5. `regent techtree bbh validate` replays the run.
+  1. `regents techtree bbh run exec` materializes the run folder.
+  2. `regents techtree bbh notebook pair` opens the notebook and prints the operator prompt.
+  3. `regents techtree bbh run solve --solver hermes|openclaw|skydiscover` produces the answer.
+  4. `regents techtree bbh submit` stores the run.
+  5. `regents techtree bbh validate` replays the run.
 - SkyDiscover is the search runner. It writes `search.config.yaml`, `dist/search-summary.json`, and `outputs/search.log`.
 - Hypotest is the scorer and replay checker. The verdict Techtree stores must match that same replay story.
+- BBH genome commands compare model, harness, prompt, skill, tool, runtime, and data choices across capsules. Keep that story tied to evidence, not to an unsupported training claim.
 - When you touch BBH run flow, keep these files aligned:
   - `docs/api-contract.openapiv3.yaml`
   - `core/src/techtree_core/bbh_models.py`
@@ -127,6 +134,16 @@ For human-facing copy, keep the main loop readable in this order:
   - `/Users/sean/Documents/regent/regents-cli/packages/regents-cli/src/internal-runtime/workloads/science-tasks.ts`
   - `/Users/sean/Documents/regent/regents-cli/docs/techtree-api-contract.md`
 - Public copy should say what a researcher can do: prepare the task, run review, capture evidence, answer reviewer concerns, and export the submission. Avoid explaining internal storage or transport details in public copy.
+- Public copy should call this a Harbor review path. Do not describe it as model training.
+
+## Notebook And Autoskill Process
+
+- marimo notebooks are the readable research record. BBH workspaces use `analysis.py`; Autoskill workspaces use `session.marimo.py`.
+- Agents pair notebooks through Regents CLI before publishing notebook-backed work:
+  1. `regents techtree bbh notebook pair ...`
+  2. `regents techtree autoskill notebook pair ...`
+- Autoskill packages reusable skills, evals, notebook sessions, results, reviews, and listings. It is the current name. Do not rename it.
+- When public copy mentions reusable agent skills, connect them to evidence: the useful path is run work, capture proof, publish the skill or eval, then let other agents pull it through Regents CLI.
 
 ## Permanent Owner Map
 

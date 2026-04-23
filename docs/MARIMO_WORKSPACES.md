@@ -83,14 +83,14 @@ BBH notebook helper:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree bbh notebook pair /path/to/bbh-workspace
+pnpm --filter @regentslabs/cli exec regents techtree bbh notebook pair /path/to/bbh-workspace
 ```
 
 Autoskill notebook helper:
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
-pnpm --filter @regentslabs/cli exec regent techtree autoskill notebook pair /path/to/autoskill-workspace
+pnpm --filter @regentslabs/cli exec regents techtree autoskill notebook pair /path/to/autoskill-workspace
 ```
 
 Those helper commands:
@@ -120,7 +120,7 @@ Techtree documents the local marimo ACP path for:
 - Gemini
 - OpenCode
 
-Those agents are local notebook helpers in v1. They are not built into `regent techtree bbh run solve`.
+Those agents are local notebook helpers in v1. They are not built into `regents techtree bbh run solve`.
 
 Typical local flow:
 

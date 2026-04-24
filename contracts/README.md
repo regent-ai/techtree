@@ -31,6 +31,7 @@ Current launch scope:
 - `src/TechTreeContentSettlement.sol`
 - `script/DeployTechTreeRegistry.s.sol`
 - `script/DeployTechTreeContentSettlement.s.sol`
+- `script/DeployLocalTestUSDC.s.sol`
 - `test/TechTreeRegistry.t.sol`
 - `test/TechTreeContentSettlement.t.sol`
 - `test/token/TechToken.t.sol`
@@ -58,3 +59,66 @@ This repo's current registry and settlement deploy helpers are Base-targeted. Fo
 - `DEPLOY_TARGET=base-mainnet` uses `BASE_MAINNET_PRIVATE_KEY`
 
 `DeployTechTreeContentSettlement.s.sol` is the settlement deploy helper for paid node unlocks on Base-targeted environments.
+`DeployLocalTestUSDC.s.sol` is only for local Anvil rehearsals.
+
+Base Sepolia registry deploy:
+
+```bash
+cd /Users/sean/Documents/regent/techtree/contracts
+export DEPLOY_TARGET=base-sepolia
+export BASE_SEPOLIA_RPC_URL=...
+export BASE_SEPOLIA_PRIVATE_KEY=...
+
+forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --broadcast
+```
+
+Base Sepolia content settlement deploy:
+
+```bash
+cd /Users/sean/Documents/regent/techtree/contracts
+export DEPLOY_TARGET=base-sepolia
+export BASE_SEPOLIA_RPC_URL=...
+export BASE_SEPOLIA_PRIVATE_KEY=...
+export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=0x...
+export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=0x...
+
+forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
+  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --broadcast
+```
+
+After deployment, check both addresses:
+
+```bash
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+```
+
+Each call should return bytecode. The full app, CLI, and Fly run sheet lives at [../docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](../docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md).
+
+Local Anvil rehearsal:
+
+```bash
+cd /Users/sean/Documents/regent/techtree/contracts
+export ANVIL_RPC_URL=http://127.0.0.1:8545
+export ANVIL_PRIVATE_KEY=0x...
+export DEPLOY_TARGET=anvil
+
+forge script script/DeployLocalTestUSDC.s.sol:DeployLocalTestUSDC \
+  --rpc-url "$ANVIL_RPC_URL" \
+  --broadcast
+
+export AUTOSKILL_ANVIL_USDC_TOKEN=0xLOCAL_TEST_USDC
+export AUTOSKILL_ANVIL_TREASURY_ADDRESS="$(cast wallet address --private-key "$ANVIL_PRIVATE_KEY")"
+
+forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
+  --rpc-url "$ANVIL_RPC_URL" \
+  --broadcast
+
+forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
+  --rpc-url "$ANVIL_RPC_URL" \
+  --broadcast
+```

@@ -103,6 +103,8 @@ check_chain_contract() {
   local chain_id
   local code
   local rpc_url
+  local settlement_code
+  local usdc_code
   local writer_address
   local writer_balance
 
@@ -117,6 +119,16 @@ check_chain_contract() {
   code="$("${CAST_BIN:-cast}" code "${REGISTRY_CONTRACT_ADDRESS}" --rpc-url "${rpc_url}")"
   [[ -n "${code}" && "${code}" != "0x" ]] || {
     fail "no contract code found at REGISTRY_CONTRACT_ADDRESS=${REGISTRY_CONTRACT_ADDRESS}"
+  }
+
+  settlement_code="$("${CAST_BIN:-cast}" code "${AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT}" --rpc-url "${rpc_url}")"
+  [[ -n "${settlement_code}" && "${settlement_code}" != "0x" ]] || {
+    fail "no contract code found at AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT=${AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT}"
+  }
+
+  usdc_code="$("${CAST_BIN:-cast}" code "${AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN}" --rpc-url "${rpc_url}")"
+  [[ -n "${usdc_code}" && "${usdc_code}" != "0x" ]] || {
+    fail "no token code found at AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=${AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN}"
   }
 
   writer_address="$("${CAST_BIN:-cast}" wallet address --private-key "${REGISTRY_WRITER_PRIVATE_KEY}")"
@@ -152,6 +164,9 @@ require_env LIGHTHOUSE_API_KEY
 require_env TECHTREE_CHAIN_ID
 require_env REGISTRY_CONTRACT_ADDRESS
 require_env REGISTRY_WRITER_PRIVATE_KEY
+require_env AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT
+require_env AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN
+require_env AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS
 [[ "${TECHTREE_CHAIN_ID}" =~ ^[0-9]+$ ]] || fail "TECHTREE_CHAIN_ID must be a positive integer"
 
 [[ "${SIWA_SHARED_SECRET}" == "${SIWA_HMAC_SECRET:-}" ]] || {

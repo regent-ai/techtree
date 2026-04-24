@@ -27,7 +27,9 @@ Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
 - `flyctl` installed and authenticated
 - `openssl` installed
 - `mix` available locally so `mix phx.gen.secret` can run
+- Foundry installed locally so `cast` can check the Base Sepolia contracts before deploy
 - `main` checked out and validated through steps 1 to 3 in [docs/VALIDATION.md](VALIDATION.md)
+- Base Sepolia registry and content settlement contracts already deployed
 
 ## Auth model for this deploy
 
@@ -70,6 +72,17 @@ Important runtime env also used by Phoenix:
 - `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
 - `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
 
+Before deploy, check the Base Sepolia values from the deploy shell:
+
+```bash
+cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+```
+
+The chain ID must be `84532`, and each `cast code` call must return bytecode.
+
 ## Required SIWA sidecar secrets
 
 These must exist in Fly for the SIWA sidecar:
@@ -105,9 +118,10 @@ The stack deploy script will:
 3. create managed Postgres if missing
 4. attach Postgres to Phoenix
 5. require first-prod secrets for Privy, Lighthouse, and Base Sepolia chain publishing
-6. generate or reuse the required shared secrets
-7. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=84532` for Phoenix
-8. deploy Dragonfly, then SIWA, then Phoenix
+6. require the Base Sepolia content settlement values used by paid node verification
+7. generate or reuse the required shared secrets
+8. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=84532` for Phoenix
+9. deploy Dragonfly, then SIWA, then Phoenix
 
 ## Manual secret rotation
 

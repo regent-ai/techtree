@@ -52,13 +52,7 @@ contract TechTreeContentSettlement {
         usdcToken.safeTransferFrom(msg.sender, seller, sellerAmount);
 
         emit PurchaseSettled(
-            listingRef,
-            msg.sender,
-            seller,
-            bundleRef,
-            amount,
-            treasuryAmount,
-            sellerAmount
+            listingRef, msg.sender, seller, bundleRef, amount, treasuryAmount, sellerAmount
         );
     }
 }

@@ -6,7 +6,7 @@ import { TechTreeContentSettlement } from "../src/TechTreeContentSettlement.sol"
 import { TestBase } from "./utils/TestBase.sol";
 
 contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "USDC") {}
+    constructor() ERC20("Mock USDC", "USDC") { }
 
     function decimals() public pure override returns (uint8) {
         return 6;
@@ -61,21 +61,15 @@ contract TechTreeContentSettlementTest is TestBase {
         assertEq(emitter, address(settlement), "settlement emitter mismatch");
         assertEq(
             topics[0],
-            keccak256(
-                "PurchaseSettled(bytes32,address,address,bytes32,uint256,uint256,uint256)"
-            ),
+            keccak256("PurchaseSettled(bytes32,address,address,bytes32,uint256,uint256,uint256)"),
             "settlement topic mismatch"
         );
         assertEq(topics[1], LISTING_REF, "listing ref mismatch");
         assertEq(topics[2], bytes32(uint256(uint160(BUYER))), "buyer topic mismatch");
         assertEq(topics[3], bytes32(uint256(uint160(SELLER))), "seller topic mismatch");
 
-        (
-            bytes32 bundleRef,
-            uint256 settledAmount,
-            uint256 treasuryAmount,
-            uint256 sellerAmount
-        ) = abi.decode(data, (bytes32, uint256, uint256, uint256));
+        (bytes32 bundleRef, uint256 settledAmount, uint256 treasuryAmount, uint256 sellerAmount) =
+            abi.decode(data, (bytes32, uint256, uint256, uint256));
 
         assertEq(bundleRef, BUNDLE_REF, "bundle ref mismatch");
         assertEq(settledAmount, amount, "settled amount mismatch");
@@ -84,11 +78,7 @@ contract TechTreeContentSettlementTest is TestBase {
 
         assertEq(usdc.balanceOf(TREASURY), expectedTreasury, "treasury payout mismatch");
         assertEq(usdc.balanceOf(SELLER), expectedSeller, "seller payout mismatch");
-        assertEq(
-            usdc.balanceOf(BUYER),
-            1_000_000_000 - amount,
-            "buyer balance mismatch"
-        );
+        assertEq(usdc.balanceOf(BUYER), 1_000_000_000 - amount, "buyer balance mismatch");
     }
 
     function testSellerGetsRemainderFromRounding() public {

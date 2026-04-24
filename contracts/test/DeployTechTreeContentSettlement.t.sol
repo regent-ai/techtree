@@ -43,8 +43,7 @@ contract DeployTechTreeContentSettlementTest is Test {
     function testCheckChainIdRejectsUnknownTarget() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeployTechTreeContentSettlement.InvalidDeployTarget.selector,
-                "unsupported-target"
+                DeployTechTreeContentSettlement.InvalidDeployTarget.selector, "unsupported-target"
             )
         );
         harness.exposedCheckChainId("unsupported-target");
@@ -53,13 +52,9 @@ contract DeployTechTreeContentSettlementTest is Test {
     function testRunBaseSepoliaDeploysSettlementWithConfiguredAddresses() external {
         vm.chainId(84_532);
         vm.setEnv("BASE_SEPOLIA_PRIVATE_KEY", "12345");
+        vm.setEnv("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", "0x00000000000000000000000000000000000000aa");
         vm.setEnv(
-            "AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN",
-            "0x00000000000000000000000000000000000000aa"
-        );
-        vm.setEnv(
-            "AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS",
-            "0x00000000000000000000000000000000000000bb"
+            "AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", "0x00000000000000000000000000000000000000bb"
         );
 
         TechTreeContentSettlement deployed = harness.runBaseSepolia();

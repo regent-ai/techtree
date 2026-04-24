@@ -32,9 +32,7 @@ contract DeployTechTreeRegistryTest is Test {
         vm.chainId(31_337);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeployTechTreeRegistry.UnexpectedChainId.selector,
-                uint256(84_532),
-                uint256(31_337)
+                DeployTechTreeRegistry.UnexpectedChainId.selector, uint256(84_532), uint256(31_337)
             )
         );
         harness.exposedCheckChainId("base-sepolia");
@@ -43,8 +41,7 @@ contract DeployTechTreeRegistryTest is Test {
     function testCheckChainIdRejectsUnknownTarget() external {
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeployTechTreeRegistry.InvalidDeployTarget.selector,
-                "unsupported-target"
+                DeployTechTreeRegistry.InvalidDeployTarget.selector, "unsupported-target"
             )
         );
         harness.exposedCheckChainId("unsupported-target");

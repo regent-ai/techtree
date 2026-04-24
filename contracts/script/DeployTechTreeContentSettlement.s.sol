@@ -45,7 +45,10 @@ contract DeployTechTreeContentSettlement {
         deployed = _runTarget("base-mainnet");
     }
 
-    function _runTarget(string memory target) internal returns (TechTreeContentSettlement deployed) {
+    function _runTarget(string memory target)
+        internal
+        returns (TechTreeContentSettlement deployed)
+    {
         _checkChainId(target);
 
         uint256 deployerKey = _privateKeyForTarget(target);

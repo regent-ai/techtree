@@ -11,7 +11,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
      socket
      |> assign(:page_title, "Notebook Gallery")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
-     |> assign(:collections, PublicSite.notebook_collections(3))
+     |> assign(:loop_steps, notebook_loop_steps())
      |> assign(:notebooks, PublicSite.notebook_cards(12))}
   end
 
@@ -35,10 +35,12 @@ defmodule TechTreeWeb.Public.NotebooksLive do
           </div>
         </section>
 
-        <section class="tt-public-section">
-          <PublicSiteComponents.collection_strip
-            strip_id="notebook-collections"
-            collections={@collections}
+        <section class="tt-public-section tt-public-section-tight">
+          <PublicSiteComponents.research_loop
+            loop_id="notebook-core-loop"
+            steps={@loop_steps}
+            title="Notebooks make the work inspectable"
+            copy="A notebook is not a side artifact. It is the readable record between a run and a public claim."
           />
         </section>
 
@@ -63,5 +65,18 @@ defmodule TechTreeWeb.Public.NotebooksLive do
       </main>
     </div>
     """
+  end
+
+  defp notebook_loop_steps do
+    [
+      %{id: "pair", title: "Pair", copy: "Open the notebook from the workspace."},
+      %{id: "work", title: "Work", copy: "Capture reasoning, plots, checks, and decisions."},
+      %{id: "attach", title: "Attach", copy: "Keep the notebook with the run or skill package."},
+      %{
+        id: "publish",
+        title: "Publish",
+        copy: "Make the notebook visible when the evidence is ready."
+      }
+    ]
   end
 end

@@ -40,63 +40,35 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
             </div>
           </div>
 
-          <aside class="tt-public-signal-panel" data-public-reveal>
-            <PublicSiteComponents.section_heading
-              kicker="Live snapshot"
-              title="What is moving right now"
-              copy="These counts update from the live public BBH board."
-            />
-            <dl class="tt-public-node-stats tt-public-node-stats-large">
-              <div>
-                <dt>Practice</dt>
-                <dd>{@bbh.lane_counts.practice}</dd>
-              </div>
-              <div>
-                <dt>Proving</dt>
-                <dd>{@bbh.lane_counts.proving}</dd>
-              </div>
-              <div>
-                <dt>Challenge</dt>
-                <dd>{@bbh.lane_counts.challenge}</dd>
-              </div>
-              <div>
-                <dt>Top validated</dt>
-                <dd>{Float.round(@bbh.top_score, 1)}%</dd>
-              </div>
-            </dl>
-          </aside>
+          <PublicSiteComponents.research_loop
+            loop_id="bbh-core-loop"
+            steps={@steps}
+            title="BBH in four moves"
+            copy="Prepare the folder, search if needed, submit the run, then replay-check it."
+          />
         </section>
 
         <section class="tt-public-section">
-          <div class="tt-public-learn-layout">
-            <div class="tt-public-learn-main">
-              <PublicSiteComponents.section_heading
-                kicker="Recent Runs"
-                title="Public capsules on the board"
-                copy="Open the wall when you want the full board, the current best run, and the evidence behind it."
-              />
+          <PublicSiteComponents.section_heading
+            kicker="Recent runs"
+            title="What has proof attached"
+            copy="Open the wall when you want the full board, the current best run, and the evidence behind it."
+          />
 
-              <div class="tt-public-card-grid">
-                <article
-                  :for={capsule <- @bbh.capsules}
-                  id={"bbh-capsule-preview-#{capsule.id}"}
-                  class="tt-public-learn-card"
-                  data-public-reveal
-                >
-                  <p class="tt-public-kicker">{capsule.lane}</p>
-                  <h3>{capsule.title}</h3>
-                  <p>{capsule.status}</p>
-                  <ul class="tt-public-bullet-list">
-                    <li>Best score: {capsule.score_label}</li>
-                    <li>Freshness: {capsule.freshness}</li>
-                  </ul>
-                </article>
+          <div class="tt-public-card-grid tt-public-card-grid-compact">
+            <article
+              :for={capsule <- @bbh.capsules}
+              id={"bbh-capsule-preview-#{capsule.id}"}
+              class="tt-public-learn-card"
+              data-public-reveal
+            >
+              <p class="tt-public-kicker">{capsule.lane}</p>
+              <h3>{capsule.title}</h3>
+              <p>{capsule.status} · {capsule.score_label}</p>
+              <div class="tt-public-card-actions">
+                <span class="tt-public-room-chip">{capsule.freshness}</span>
               </div>
-            </div>
-
-            <aside class="tt-public-learn-side">
-              <PublicSiteComponents.step_rail rail_id="bbh-flow-rail" steps={@steps} />
-            </aside>
+            </article>
           </div>
         </section>
       </main>

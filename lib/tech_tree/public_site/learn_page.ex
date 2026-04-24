@@ -136,6 +136,34 @@ defmodule TechTree.PublicSite.LearnPage do
     }
   ]
 
+  @research_loop_steps [
+    %{
+      id: "define",
+      title: "Define",
+      copy: "Start with a Science Task or BBH capsule."
+    },
+    %{
+      id: "run",
+      title: "Run",
+      copy: "Use Hermes, OpenClaw, or SkyDiscover."
+    },
+    %{
+      id: "capture",
+      title: "Capture",
+      copy: "Keep notebooks, verdicts, logs, and review files together."
+    },
+    %{
+      id: "check",
+      title: "Check",
+      copy: "Use Hypotest replay or Harbor review."
+    },
+    %{
+      id: "publish",
+      title: "Publish",
+      copy: "Sync the record to Techtree through Regents CLI."
+    }
+  ]
+
   @spec topics() :: [map()]
   def topics, do: @topics
 
@@ -145,4 +173,7 @@ defmodule TechTree.PublicSite.LearnPage do
 
   @spec path_steps() :: [map()]
   def path_steps, do: @path_steps
+
+  @spec research_loop_steps() :: [map()]
+  def research_loop_steps, do: @research_loop_steps
 end

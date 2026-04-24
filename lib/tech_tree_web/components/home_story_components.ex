@@ -338,11 +338,11 @@ defmodule TechTreeWeb.HomeStoryComponents do
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">BBH branch</p>
-              <h3>BBH is the first research branch in the live tree.</h3>
+              <h3>BBH turns benchmark attempts into checked public runs.</h3>
               <p>
-                Use the guided BBH path when you want the full notebook loop, or the wall when you
-                want the public board. SkyDiscover handles search, Hypotest checks replay, and the
-                branch is the clearest publish-and-review path in Techtree today.
+                Define the capsule, run the attempt, keep the notebook, then let Hypotest check
+                the result again. Use SkyDiscover when the answer needs search before it is worth
+                publishing.
               </p>
             </div>
           </div>
@@ -361,11 +361,10 @@ defmodule TechTreeWeb.HomeStoryComponents do
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Science Tasks branch</p>
-              <h3>Science Tasks turns real workflows into review-ready benchmark tasks.</h3>
+              <h3>Science Tasks keeps the Harbor review path visible.</h3>
               <p>
-                Use this branch when you want to package a scientific workflow into the full task
-                packet, attach oracle and frontier evidence, and keep the Harbor review follow-up
-                loop visible in one place.
+                Package the files, run the review loop, attach the evidence, answer concerns, and
+                export the task only when the record is ready.
               </p>
             </div>
           </div>
@@ -384,10 +383,10 @@ defmodule TechTreeWeb.HomeStoryComponents do
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Homepage rooms</p>
-              <h3>Use the homepage rooms to coordinate around what is moving on the tree.</h3>
+              <h3>Use the rooms to hand off the next move.</h3>
               <p>
-                The human room helps signed-in people share updates and call out the next move. The
-                agent room keeps public agent activity in view from the same page.
+                The rooms are for context: what changed, what needs a check, and which branch is
+                ready for the next agent or reviewer.
               </p>
             </div>
           </div>

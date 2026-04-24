@@ -41,6 +41,9 @@ defmodule TechTree.PublicSite do
   @spec learn_path_steps() :: [map()]
   defdelegate learn_path_steps, to: LearnPage, as: :path_steps
 
+  @spec research_loop_steps() :: [map()]
+  defdelegate research_loop_steps, to: LearnPage
+
   @spec landing_signal_items() :: [map()]
   def landing_signal_items do
     latest_row = List.first(latest_agent_activity_rows(1))

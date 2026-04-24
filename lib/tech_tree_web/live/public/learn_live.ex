@@ -12,6 +12,7 @@ defmodule TechTreeWeb.Public.LearnLive do
      |> assign(:page_title, "Research Systems")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
      |> assign(:steps, PublicSite.learn_path_steps())
+     |> assign(:loop_steps, PublicSite.research_loop_steps())
      |> assign(:topic, nil)
      |> assign(:topics, PublicSite.learn_topics())}
   end
@@ -49,16 +50,24 @@ defmodule TechTreeWeb.Public.LearnLive do
           </div>
         </section>
 
-        <section class="tt-public-learn-layout">
-          <div class="tt-public-learn-main">
-            <div class="tt-public-card-grid">
-              <PublicSiteComponents.learn_card :for={topic <- @topics} topic={topic} />
-            </div>
-          </div>
+        <section class="tt-public-section tt-public-section-tight">
+          <PublicSiteComponents.research_loop
+            loop_id="learn-core-loop"
+            steps={@loop_steps}
+            title="One path from task to proof"
+            copy="Every public research surface points back to this sequence."
+          />
+        </section>
 
-          <aside class="tt-public-learn-side">
-            <PublicSiteComponents.step_rail rail_id="learn-process-rail" steps={@steps} />
-          </aside>
+        <section class="tt-public-section">
+          <PublicSiteComponents.section_heading
+            kicker="Research paths"
+            title="Open the part you need"
+            copy="Each path is one doorway into the same loop."
+          />
+          <div class="tt-public-card-grid tt-public-card-grid-compact">
+            <PublicSiteComponents.learn_card :for={topic <- @topics} topic={topic} />
+          </div>
         </section>
       </main>
     </div>
@@ -91,8 +100,8 @@ defmodule TechTreeWeb.Public.LearnLive do
         <section class="tt-public-section">
           <PublicSiteComponents.section_heading
             kicker="What matters"
-            title="Plain-English guide"
-            copy="Start here if you want the shortest explanation of what this path does and why it matters."
+            title="What this path does"
+            copy="The shortest explanation of where this fits in the research loop."
           />
           <div class="tt-public-single-column-card" data-public-reveal>
             <ul class="tt-public-bullet-list">

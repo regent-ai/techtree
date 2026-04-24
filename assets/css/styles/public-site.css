@@ -24,6 +24,8 @@
 }
 
 .tt-public-shell {
+  --tt-public-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --tt-public-ease-state: cubic-bezier(0.77, 0, 0.175, 1);
   min-height: 100dvh;
   color: var(--color-fg);
   font-family: var(--font-family-ui);
@@ -159,22 +161,11 @@
   font-size: 0.88rem;
   will-change: transform;
   transition:
-    transform 180ms ease,
-    border-color 180ms ease,
-    background-color 180ms ease,
-    box-shadow 180ms ease;
+    transform 160ms var(--tt-public-ease-out),
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms var(--tt-public-ease-out);
   cursor: pointer;
-}
-
-.tt-public-nav-link:hover,
-.tt-public-app-link:hover,
-.tt-public-ios-link:hover,
-.tt-public-primary-button:hover,
-.tt-public-secondary-button:hover,
-.tt-public-card-link:hover,
-.tt-public-agent-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 32px -28px color-mix(in srgb, var(--color-fg) 24%, transparent);
 }
 
 .tt-public-nav-link:active,
@@ -185,6 +176,19 @@
 .tt-public-card-link:active,
 .tt-public-agent-pill:active {
   transform: translateY(0) scale(0.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tt-public-nav-link:hover,
+  .tt-public-app-link:hover,
+  .tt-public-ios-link:hover,
+  .tt-public-primary-button:hover,
+  .tt-public-secondary-button:hover,
+  .tt-public-card-link:hover,
+  .tt-public-agent-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 32px -28px color-mix(in srgb, var(--color-fg) 24%, transparent);
+  }
 }
 
 .tt-public-nav-link.is-active,
@@ -559,6 +563,88 @@ a.tt-public-signal-value {
   font-size: 0.92rem;
 }
 
+.tt-public-loop {
+  padding: clamp(18px, 3vw, 28px);
+  border-radius: 32px;
+  border: 1px solid color-mix(in srgb, var(--color-bg-primary) 16%, var(--color-bg-secondary));
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-bg) 92%, white) 0%,
+      color-mix(in srgb, var(--color-bg-primary) 8%, var(--color-bg)) 48%,
+      color-mix(in srgb, var(--color-bg) 84%, var(--color-bg-alt)) 100%
+    );
+  box-shadow: 0 28px 72px -56px color-mix(in srgb, var(--color-fg) 24%, transparent);
+}
+
+.tt-public-loop-head {
+  max-width: 680px;
+  margin-bottom: 20px;
+}
+
+.tt-public-loop-head h2 {
+  margin: 0;
+  font-family: var(--font-family-title);
+  font-size: clamp(1.75rem, 3vw, 2.65rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.tt-public-loop-head p:not(.tt-public-kicker) {
+  margin: 10px 0 0;
+  color: color-mix(in srgb, var(--color-fg) 76%, var(--color-fg-muted));
+  line-height: 1.65;
+}
+
+.tt-public-loop-list {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.tt-public-loop-step {
+  position: relative;
+  min-height: 148px;
+  padding: 16px;
+  display: grid;
+  align-content: space-between;
+  gap: 14px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--color-bg) 72%, white);
+  border: 1px solid color-mix(in srgb, var(--color-bg-primary) 10%, transparent);
+}
+
+.tt-public-loop-step span {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-bg-primary) 14%, white);
+  color: var(--color-fg-primary);
+  font-family: var(--font-family-title);
+  font-size: 0.78rem;
+}
+
+.tt-public-loop-step h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-family-title);
+  font-size: 1.08rem;
+  line-height: 1.04;
+}
+
+.tt-public-loop-step p {
+  margin: 0;
+  color: color-mix(in srgb, var(--color-fg) 72%, var(--color-fg-muted));
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
 .tt-public-step-summary h3,
 .tt-public-step-card h3 {
   margin: 0 0 6px;
@@ -647,6 +733,10 @@ a.tt-public-signal-value {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.tt-public-card-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .tt-public-collection-strip {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -688,6 +778,8 @@ a.tt-public-signal-value {
 
 .tt-public-learn-card {
   border-color: color-mix(in srgb, var(--color-bg-primary) 14%, var(--color-bg-secondary));
+  min-height: 100%;
+  align-content: start;
 }
 
 .tt-public-collection-card {
@@ -1107,6 +1199,10 @@ a.tt-public-room-chip {
   .tt-public-tree-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .tt-public-loop-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -1184,7 +1280,8 @@ a.tt-public-room-chip {
   .tt-public-command-card,
   .tt-public-collection-card,
   .tt-public-tree-canvas,
-  .tt-public-detail-card-wide {
+  .tt-public-detail-card-wide,
+  .tt-public-loop {
     border-radius: 20px;
   }
 
@@ -1216,7 +1313,8 @@ a.tt-public-room-chip {
   .tt-public-signal-strip,
   .tt-public-card-grid,
   .tt-public-collection-strip,
-  .tt-public-tree-grid {
+  .tt-public-tree-grid,
+  .tt-public-loop-list {
     grid-template-columns: 1fr;
   }
 

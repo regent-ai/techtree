@@ -12,6 +12,7 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
      socket
      |> assign(:page_title, "Science Tasks")
      |> assign(:ios_app_url, PublicSite.ios_app_url())
+     |> assign(:loop_steps, science_task_loop_steps())
      |> assign(:science_tasks_page, empty_page())}
   end
 
@@ -59,6 +60,15 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
               Read the branch guide
             </.link>
           </div>
+        </section>
+
+        <section class="tt-public-section tt-public-section-tight">
+          <PublicSiteComponents.research_loop
+            loop_id="science-task-core-loop"
+            steps={@loop_steps}
+            title="A task moves only when the evidence moves"
+            copy="The board is organized around the same review sequence every task follows."
+          />
         </section>
 
         <section class="tt-public-tree-layout">
@@ -281,5 +291,15 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
       stage_names: ScienceTasks.stage_names(),
       visible_stages: ScienceTasks.stage_names()
     }
+  end
+
+  defp science_task_loop_steps do
+    [
+      %{id: "packet", title: "Packet", copy: "Write the task files and expected checks."},
+      %{id: "review", title: "Review", copy: "Run Hermes with the Harbor checklist."},
+      %{id: "evidence", title: "Evidence", copy: "Record baseline and frontier runs."},
+      %{id: "follow-up", title: "Follow up", copy: "Answer reviewer concerns and rerun checks."},
+      %{id: "export", title: "Export", copy: "Prepare the submission folder."}
+    ]
   end
 end

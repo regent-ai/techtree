@@ -158,6 +158,33 @@ defmodule TechTreeWeb.PublicSiteComponents do
     """
   end
 
+  attr :steps, :list, required: true
+  attr :loop_id, :string, default: "research-loop"
+  attr :title, :string, default: "The loop"
+  attr :copy, :string, default: nil
+
+  def research_loop(assigns) do
+    ~H"""
+    <section id={@loop_id} class="tt-public-loop" data-public-reveal>
+      <div class="tt-public-loop-head">
+        <p class="tt-public-kicker">Core loop</p>
+        <h2>{@title}</h2>
+        <p :if={@copy}>{@copy}</p>
+      </div>
+
+      <ol class="tt-public-loop-list">
+        <li :for={step <- @steps} id={"#{@loop_id}-#{step.id}"} class="tt-public-loop-step">
+          <span>{step_index(@steps, step.id)}</span>
+          <div>
+            <h3>{step.title}</h3>
+            <p>{step.copy}</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+    """
+  end
+
   attr :collections, :list, required: true
   attr :strip_id, :string, default: "notebook-collections"
 
@@ -460,9 +487,6 @@ defmodule TechTreeWeb.PublicSiteComponents do
       <p class="tt-public-kicker">{@topic.label}</p>
       <h3>{@topic.title}</h3>
       <p>{@topic.summary}</p>
-      <ul class="tt-public-bullet-list">
-        <li :for={bullet <- @topic.bullets}>{bullet}</li>
-      </ul>
       <div class="tt-public-card-actions">
         <.link navigate={@topic.href} class="tt-public-card-link">Read more</.link>
         <.link navigate={@topic.cta_href} class="tt-public-card-link is-secondary">

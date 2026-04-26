@@ -14,22 +14,27 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
   ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /workspace
 
 RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV=prod
 
-COPY mix.exs mix.lock ./
+COPY techtree/mix.exs techtree/mix.lock techtree/
+COPY elixir-utils elixir-utils
+COPY design-system design-system
+
+WORKDIR /workspace/techtree
+
 RUN mix deps.get --only $MIX_ENV
 
-COPY config config
+COPY techtree/config config
 RUN mix deps.compile
 
-COPY priv priv
-COPY lib lib
-COPY assets assets
-COPY rel rel
+COPY techtree/priv priv
+COPY techtree/lib lib
+COPY techtree/assets assets
+COPY techtree/rel rel
 
 RUN mix assets.deploy
 RUN mix compile
@@ -52,7 +57,7 @@ ENV LC_ALL=en_US.UTF-8
 WORKDIR /app
 RUN useradd --create-home app
 
-COPY --from=builder --chown=app:app /app/_build/prod/rel/tech_tree ./
+COPY --from=builder --chown=app:app /workspace/techtree/_build/prod/rel/tech_tree ./
 
 USER app
 ENV HOME=/app

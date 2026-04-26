@@ -13,64 +13,20 @@ import {
   type PrivyLike,
   type PrivyUser,
   requireEthereumProvider,
+  signWithConnectedWallet,
 } from "./privy-wallet";
 
-const TRANSPORT_POLL_MS = 15_000;
-
-type TransportMode = "libp2p" | "local_only" | "degraded";
-
-type TransportStatusPayload = {
-  data?: {
-    mode?: TransportMode;
-    ready?: boolean;
-    peer_count?: number;
-  };
-};
+const ROOM_HEARTBEAT_MS = 30_000;
 
 interface HomeChatboxElement extends HTMLElement {
   _homeChatboxCleanup?: () => void;
   _homeChatboxSeenKeys?: Set<string>;
-  _homeChatboxAbortControllers?: Set<AbortController>;
   _homeChatboxMounted?: boolean;
   _homeChatboxReduceMotion?: boolean;
   _homeChatboxCurrentTab?: string;
+  _homeChatboxHeartbeat?: number;
+  _homeChatboxSyncComposerState?: () => void;
 }
-
-const buildTransportLabel = (
-  payload: NonNullable<TransportStatusPayload["data"]>,
-): string => {
-  if (payload.ready) {
-    const peerCount = payload.peer_count ?? 0;
-    return peerCount === 1 ? "1 peer live" : `${peerCount} peers live`;
-  }
-
-  if (payload.mode === "degraded") {
-    return "mesh degraded";
-  }
-
-  return "local only";
-};
-
-const transportToneClasses: Record<TransportMode | "ready", string[]> = {
-  ready: ["border-[var(--fp-accent)]", "bg-[var(--fp-accent)]", "text-black"],
-  libp2p: ["border-[var(--fp-accent)]", "bg-[var(--fp-accent)]", "text-black"],
-  local_only: [
-    "border-[var(--fp-panel-border)]",
-    "bg-[var(--fp-panel)]",
-    "text-[var(--fp-text)]",
-  ],
-  degraded: [
-    "border-[var(--color-warning)]",
-    "bg-[var(--fp-chat-human-accent-bg)]",
-    "text-[var(--fp-text)]",
-  ],
-};
-
-const transportErrorClasses = [
-  "border-[var(--color-error)]",
-  "bg-[var(--color-error)]",
-  "text-[var(--color-error-content)]",
-];
 
 const chatPane = (root: HTMLElement) =>
   root.closest<HTMLElement>("#frontpage-chat-pane");
@@ -79,6 +35,8 @@ const activeChatSection = (root: HTMLElement) =>
   chatPane(root)?.querySelector<HTMLElement>(
     ".fp-chat-section[aria-hidden='false']",
   );
+
+const boolData = (root: HTMLElement, key: string) => root.dataset[key] === "true";
 
 const animateActiveChatSection = (root: HomeChatboxElement) => {
   if (root._homeChatboxReduceMotion) return;
@@ -94,68 +52,10 @@ const animateActiveChatSection = (root: HomeChatboxElement) => {
   });
 };
 
-function registerAbortController(root: HomeChatboxElement): AbortController {
-  const controller = new AbortController();
-  const controllers =
-    root._homeChatboxAbortControllers ?? new Set<AbortController>();
-  controllers.add(controller);
-  root._homeChatboxAbortControllers = controllers;
-  return controller;
-}
-
-function finishAbortController(
-  root: HomeChatboxElement,
-  controller: AbortController,
-) {
-  root._homeChatboxAbortControllers?.delete(controller);
-}
-
-async function fetchJson<T>(
-  root: HomeChatboxElement,
-  input: string,
-  init: RequestInit,
-): Promise<T> {
-  const controller = registerAbortController(root);
-
-  try {
-    const response = await fetch(input, {
-      ...init,
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(await parseErrorMessage(response));
-    }
-
-    return (await response.json()) as T;
-  } finally {
-    finishAbortController(root, controller);
-  }
-}
-
-async function parseErrorMessage(response: Response): Promise<string> {
-  try {
-    const payload = (await response.json()) as {
-      error?: { message?: string; code?: string };
-      message?: string;
-    };
-
-    return (
-      payload.error?.message ||
-      payload.message ||
-      payload.error?.code ||
-      `request failed (${response.status})`
-    );
-  } catch {
-    return `request failed (${response.status})`;
-  }
-}
-
 export const HomeChatbox: Hook = {
   mounted() {
     const root = this.el as HomeChatboxElement;
     root._homeChatboxMounted = true;
-    root._homeChatboxAbortControllers = new Set<AbortController>();
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const syncMotionPreference = () => {
       root._homeChatboxReduceMotion = motionQuery.matches;
@@ -163,6 +63,7 @@ export const HomeChatbox: Hook = {
 
     syncMotionPreference();
     root._homeChatboxCurrentTab = chatPane(root)?.dataset.chatTab || "human";
+
     const authButton = root.querySelector<HTMLButtonElement>(
       "[data-chatbox-auth]",
     );
@@ -174,12 +75,6 @@ export const HomeChatbox: Hook = {
     );
     const input = root.querySelector<HTMLInputElement>("[data-chatbox-input]");
     const state = root.querySelector<HTMLElement>("[data-chatbox-state]");
-    const transportBadge = root.querySelector<HTMLElement>(
-      "[data-chatbox-transport]",
-    );
-    const transportStatusUrl =
-      root.dataset.transportStatusUrl?.trim() || "/v1/runtime/transport";
-    const postUrl = root.dataset.postUrl?.trim() || "/v1/chatbox/messages";
     const sessionUrl =
       root.dataset.sessionUrl?.trim() || "/api/auth/privy/session";
     const completeUrl = "/api/auth/privy/xmtp/complete";
@@ -189,20 +84,12 @@ export const HomeChatbox: Hook = {
         .querySelector<HTMLMetaElement>("meta[name='csrf-token']")
         ?.content?.trim() || "";
 
-    if (
-      !authButton ||
-      !disconnectButton ||
-      !sendButton ||
-      !input ||
-      !state ||
-      !transportBadge
-    ) {
+    if (!authButton || !disconnectButton || !sendButton || !input || !state) {
       return;
     }
 
     let currentUser: PrivyUser = null;
-    let roomReady = false;
-    let needsRoomSetup = false;
+    let signingIn = false;
     let sending = false;
     const privy =
       privyAppId.length > 0
@@ -214,8 +101,8 @@ export const HomeChatbox: Hook = {
         : null;
 
     const setState = (message: string) => {
-      if (!root._homeChatboxMounted) return;
-      if (state.textContent === message) return;
+      if (!root._homeChatboxMounted || state.textContent === message) return;
+
       state.textContent = message;
       if (!root._homeChatboxReduceMotion) {
         animate(state, {
@@ -227,81 +114,42 @@ export const HomeChatbox: Hook = {
       }
     };
 
-    const paintTransport = (
-      payload: NonNullable<TransportStatusPayload["data"]>,
-    ) => {
-      if (!root._homeChatboxMounted) return;
-      const nextLabel = buildTransportLabel(payload);
-      const tone = payload.ready ? "ready" : (payload.mode ?? "local_only");
-      const nextClasses = transportToneClasses[tone];
-      const allClasses = new Set([
-        ...Object.values(transportToneClasses).flat(),
-        ...transportErrorClasses,
-      ]);
-
-      for (const className of allClasses) {
-        transportBadge.classList.remove(className);
-      }
-
-      transportBadge.classList.add(...nextClasses);
-
-      if (transportBadge.textContent !== nextLabel) {
-        transportBadge.textContent = nextLabel;
-        if (!root._homeChatboxReduceMotion) {
-          animate(transportBadge, {
-            scale: [0.9, 1],
-            opacity: [0.4, 1],
-            duration: 420,
-            ease: "outExpo",
-          });
-        }
-      }
-    };
-
     const syncComposerState = () => {
       if (!root._homeChatboxMounted) return;
+
       const connected = Boolean(currentUser?.id);
+      const joined = boolData(root, "roomJoined");
+      const canJoin = boolData(root, "roomCanJoin");
+      const canSend = boolData(root, "roomCanSend");
+      const pending = boolData(root, "roomPending");
       const draft = input.value.trim();
 
-      authButton.disabled = privy == null;
+      authButton.disabled = privy == null || signingIn || pending;
       authButton.textContent = connected
-        ? needsRoomSetup || !roomReady
-          ? "Finish setup"
-          : `Disconnect ${labelForUser(currentUser)}`
-        : "Connect wallet";
-      disconnectButton.disabled = privy == null || sending;
-      disconnectButton.hidden = !(connected && (needsRoomSetup || !roomReady));
+        ? joined
+          ? `Disconnect ${labelForUser(currentUser)}`
+          : pending
+            ? "Check wallet"
+            : canJoin
+              ? "Join room"
+              : `Signed in as ${labelForUser(currentUser)}`
+        : "Sign in";
 
-      input.disabled = privy == null || !connected || !roomReady || sending;
-      sendButton.disabled =
-        privy == null ||
-        !connected ||
-        !roomReady ||
-        sending ||
-        draft.length === 0;
-      sendButton.textContent = sending
-        ? "Sending to public room..."
-        : "Send to public room";
+      disconnectButton.disabled = privy == null || signingIn || sending;
+      disconnectButton.hidden = !connected || joined;
+
+      input.disabled = !canSend || sending;
+      sendButton.disabled = !canSend || sending || draft.length === 0;
+      sendButton.textContent = sending ? "Sending..." : "Send to public room";
     };
 
-    const applySessionState = (session: PrivySessionResponse) => {
-      if (session.xmtp?.status === "signature_required") {
-        roomReady = false;
-        needsRoomSetup = true;
-        setState("Sign one wallet message before you post in the public room.");
-        return;
-      }
-
-      roomReady = true;
-      needsRoomSetup = false;
-      setState("Connected. You can post in the public room.");
-    };
+    root._homeChatboxSyncComposerState = syncComposerState;
 
     const ensureSessionReady = async (
       user: PrivyUser,
       allowInteractiveCompletion: boolean,
-    ) => {
-      if (!privy || !user?.id) return;
+    ): Promise<PrivySessionResponse | null> => {
+      if (!privy || !user?.id) return null;
 
       const session = await syncPrivySession(privy, user, {
         csrfToken,
@@ -309,15 +157,20 @@ export const HomeChatbox: Hook = {
         completeUrl,
         allowInteractiveCompletion,
       });
-      applySessionState(session);
+
+      if (session.xmtp?.status === "signature_required") {
+        setState("Check your wallet to finish room setup.");
+        return session;
+      }
+
+      setState("Signed in. Join when you want to post.");
+      return session;
     };
 
     const refreshUser = async (allowInteractiveCompletion = false) => {
       if (!privy) {
         currentUser = null;
-        roomReady = false;
-        needsRoomSetup = false;
-        setState("Wallet sign-in is not available right now.");
+        setState("Sign-in is not available right now.");
         syncComposerState();
         return;
       }
@@ -325,27 +178,20 @@ export const HomeChatbox: Hook = {
       try {
         const result = await privy.user.get();
         if (!root._homeChatboxMounted) return;
+
         currentUser = ((result?.user as PrivyUser) || null)?.id
           ? (result?.user as PrivyUser)
           : null;
 
         if (currentUser?.id) {
           await ensureSessionReady(currentUser, allowInteractiveCompletion);
-        } else {
-          roomReady = false;
-          needsRoomSetup = false;
-          setState("Connect your wallet to post in the public room.");
         }
       } catch (error) {
-        console.error("Home chatbox wallet refresh failed", error);
-        if (!currentUser?.id) {
-          roomReady = false;
-          needsRoomSetup = false;
-        }
+        console.error("Home chat sign-in refresh failed", error);
         setState(
           error instanceof Error
             ? error.message
-            : "Wallet sign-in could not be checked.",
+            : "Sign-in could not be checked.",
         );
       } finally {
         syncComposerState();
@@ -353,36 +199,51 @@ export const HomeChatbox: Hook = {
     };
 
     const beginLogin = async () => {
-      if (!privy || sending) return;
+      if (!privy || signingIn || sending) return;
 
+      signingIn = true;
       setState("Check your wallet to continue.");
+      syncComposerState();
 
       try {
         const provider = await requireEthereumProvider();
         await loginWithPrivyWallet(privy, provider);
         await refreshUser(true);
+        if (!boolData(root, "serverSignedIn")) {
+          window.location.reload();
+          return;
+        }
+        this.pushEvent("frontpage_chat_join", {});
       } catch (error) {
-        console.error("Home chatbox wallet sign-in failed", error);
-        setState(
-          error instanceof Error ? error.message : "Wallet sign-in failed.",
-        );
+        console.error("Home chat sign-in failed", error);
+        setState(error instanceof Error ? error.message : "Sign-in failed.");
+      } finally {
+        signingIn = false;
         syncComposerState();
       }
     };
 
-    const finishRoomSetup = async () => {
-      if (!currentUser?.id || sending) return;
+    const joinRoom = async () => {
+      if (!currentUser?.id || signingIn || sending) return;
 
-      setState("Check your wallet to continue.");
+      signingIn = true;
+      setState("Opening your room seat...");
+      syncComposerState();
 
       try {
         await ensureSessionReady(currentUser, true);
+        if (!boolData(root, "serverSignedIn")) {
+          window.location.reload();
+          return;
+        }
+        this.pushEvent("frontpage_chat_join", {});
       } catch (error) {
-        console.error("Home chatbox room setup failed", error);
+        console.error("Home chat join failed", error);
         setState(
-          error instanceof Error ? error.message : "We could not finish setup.",
+          error instanceof Error ? error.message : "We could not join the room.",
         );
       } finally {
+        signingIn = false;
         syncComposerState();
       }
     };
@@ -394,18 +255,16 @@ export const HomeChatbox: Hook = {
         await privy.auth.logout({ userId: currentUser.id });
         await clearPrivySession(sessionUrl, csrfToken);
         currentUser = null;
-        roomReady = false;
-        needsRoomSetup = false;
         input.value = "";
-        setState(
-          "Disconnected. Connect your wallet to post in the public room.",
-        );
+        setState("Signed out. You can still read the room.");
+        if (boolData(root, "serverSignedIn")) {
+          window.location.reload();
+          return;
+        }
       } catch (error) {
-        console.error("Home chatbox logout failed", error);
+        console.error("Home chat sign-out failed", error);
         currentUser = null;
-        roomReady = false;
-        needsRoomSetup = false;
-        setState(error instanceof Error ? error.message : "Disconnect failed.");
+        setState(error instanceof Error ? error.message : "Sign-out failed.");
       } finally {
         syncComposerState();
       }
@@ -413,25 +272,25 @@ export const HomeChatbox: Hook = {
 
     const toggleAuth = async () => {
       if (!privy) {
-        setState("Wallet sign-in is not available right now.");
+        setState("Sign-in is not available right now.");
         return;
       }
 
-      if (currentUser?.id) {
-        if (needsRoomSetup || !roomReady) {
-          await finishRoomSetup();
-          return;
-        }
-
-        await disconnect();
+      if (!currentUser?.id) {
+        await beginLogin();
         return;
       }
 
-      await beginLogin();
+      if (!boolData(root, "roomJoined") && boolData(root, "roomCanJoin")) {
+        await joinRoom();
+        return;
+      }
+
+      await disconnect();
     };
 
     const sendMessage = async () => {
-      if (!privy || !currentUser?.id || !roomReady || sending) return;
+      if (!boolData(root, "roomCanSend") || sending) return;
 
       const body = input.value.trim();
       if (body.length === 0) {
@@ -443,77 +302,17 @@ export const HomeChatbox: Hook = {
       setState("Sending your update...");
       syncComposerState();
 
-      try {
-        const token = await privy.getAccessToken();
-        if (!token) {
-          throw new Error(
-            "Your sign-in token is missing. Reconnect your wallet and try again.",
-          );
-        }
+      this.pushEvent("frontpage_chat_send", { body });
+      input.value = "";
+      sending = false;
+      syncComposerState();
 
-        const payload = await fetchJson<{ ok?: boolean }>(root, postUrl, {
-          method: "POST",
-          headers: {
-            accept: "application/json",
-            "content-type": "application/json",
-            authorization: `Bearer ${token}`,
-            ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
-          },
-          credentials: "same-origin",
-          body: JSON.stringify({
-            body,
-            client_message_id: crypto.randomUUID(),
-          }),
+      if (!root._homeChatboxReduceMotion) {
+        animate(sendButton, {
+          scale: [1, 0.96, 1],
+          duration: 380,
+          ease: "outExpo",
         });
-        if (!root._homeChatboxMounted || payload.ok === false) return;
-
-        input.value = "";
-        setState("Posted to the public room.");
-        if (!root._homeChatboxReduceMotion) {
-          animate(sendButton, {
-            scale: [1, 0.96, 1],
-            duration: 380,
-            ease: "outExpo",
-          });
-        }
-      } catch (error) {
-        setState(
-          error instanceof Error
-            ? error.message
-            : "Unable to send your message.",
-        );
-      } finally {
-        sending = false;
-        syncComposerState();
-      }
-    };
-
-    const refreshTransport = async () => {
-      try {
-        const payload = await fetchJson<TransportStatusPayload>(
-          root,
-          transportStatusUrl,
-          {
-            method: "GET",
-            headers: { accept: "application/json" },
-            credentials: "same-origin",
-          },
-        );
-        if (payload.data?.mode) {
-          paintTransport(payload.data);
-        }
-      } catch (error) {
-        if (!root._homeChatboxMounted) return;
-        transportBadge.textContent = "status unavailable";
-        for (const className of Object.values(transportToneClasses).flat()) {
-          transportBadge.classList.remove(className);
-        }
-        transportBadge.classList.add(...transportErrorClasses);
-        setState(
-          error instanceof Error
-            ? error.message
-            : "Unable to load transport status.",
-        );
       }
     };
 
@@ -524,9 +323,7 @@ export const HomeChatbox: Hook = {
       );
       const newEntries = entries.filter((entry) => {
         const key = entry.dataset.messageKey || entry.id;
-        if (seenKeys.has(key)) {
-          return false;
-        }
+        if (seenKeys.has(key)) return false;
 
         seenKeys.add(key);
         return true;
@@ -546,6 +343,38 @@ export const HomeChatbox: Hook = {
       }
     };
 
+    this.handleEvent("xmtp:sign-request", async (payload) => {
+      const { request_id, signature_text, wallet_address } = payload as {
+        request_id: string;
+        signature_text: string;
+        wallet_address?: string | null;
+      };
+
+      try {
+        setState("Check your wallet to finish joining.");
+        const provider = await requireEthereumProvider();
+        const { signature } = await signWithConnectedWallet(
+          provider,
+          String(signature_text ?? ""),
+          typeof wallet_address === "string" ? wallet_address : null,
+        );
+
+        setState("Joining room...");
+        this.pushEvent("frontpage_chat_join_signature_signed", {
+          request_id,
+          signature,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "We could not finish joining this room.";
+
+        setState(message);
+        this.pushEvent("frontpage_chat_join_signature_failed", { message });
+      }
+    });
+
     const handleInput = () => syncComposerState();
     const handleAuthClick = () => void toggleAuth();
     const handleDisconnectClick = () => void disconnect();
@@ -564,71 +393,49 @@ export const HomeChatbox: Hook = {
 
     if ("addEventListener" in motionQuery) {
       motionQuery.addEventListener("change", syncMotionPreference);
-    } else {
-      const legacyMotionQuery = motionQuery as MediaQueryList & {
-        addListener: (
-          listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void,
-        ) => void;
-        removeListener: (
-          listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void,
-        ) => void;
-      };
-
-      legacyMotionQuery.addListener(syncMotionPreference);
     }
+
+    root._homeChatboxHeartbeat = window.setInterval(() => {
+      this.pushEvent("frontpage_chat_heartbeat", {});
+    }, ROOM_HEARTBEAT_MS);
 
     syncComposerState();
     observeFeed(true);
-
-    const pollId = window.setInterval(() => {
-      void refreshTransport();
-    }, TRANSPORT_POLL_MS);
 
     void (async () => {
       if (privy) {
         await privy.initialize();
         await refreshUser();
       } else {
-        syncComposerState();
-        setState("Wallet sign-in is not available right now.");
+        setState("Sign-in is not available right now.");
       }
-
-      await refreshTransport();
     })();
 
     root._homeChatboxCleanup = () => {
       root._homeChatboxMounted = false;
-      root._homeChatboxAbortControllers?.forEach((controller) =>
-        controller.abort(),
-      );
-      root._homeChatboxAbortControllers?.clear();
-      window.clearInterval(pollId);
+
+      if (root._homeChatboxHeartbeat) {
+        window.clearInterval(root._homeChatboxHeartbeat);
+      }
+
+      delete root._homeChatboxSyncComposerState;
+
       input.removeEventListener("input", handleInput);
       input.removeEventListener("keydown", handleInputKeydown);
       authButton.removeEventListener("click", handleAuthClick);
       disconnectButton.removeEventListener("click", handleDisconnectClick);
       sendButton.removeEventListener("click", handleSendClick);
+
       if ("removeEventListener" in motionQuery) {
         motionQuery.removeEventListener("change", syncMotionPreference);
-      } else {
-        const legacyMotionQuery = motionQuery as MediaQueryList & {
-          addListener: (
-            listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void,
-          ) => void;
-          removeListener: (
-            listener: (this: MediaQueryList, ev: MediaQueryListEvent) => void,
-          ) => void;
-        };
-
-        legacyMotionQuery.removeListener(syncMotionPreference);
       }
     };
   },
 
   updated() {
     const root = this.el as HomeChatboxElement;
-    const seenKeys = root._homeChatboxSeenKeys ?? new Set<string>();
-    root._homeChatboxSeenKeys = seenKeys;
+    root._homeChatboxSeenKeys = root._homeChatboxSeenKeys ?? new Set<string>();
+    root._homeChatboxSyncComposerState?.();
 
     if (root._homeChatboxCurrentTab !== chatPane(root)?.dataset.chatTab) {
       root._homeChatboxCurrentTab = chatPane(root)?.dataset.chatTab || "human";
@@ -640,8 +447,8 @@ export const HomeChatbox: Hook = {
     );
     const newEntries = entries.filter((entry) => {
       const key = entry.dataset.messageKey || entry.id;
-      if (seenKeys.has(key)) return false;
-      seenKeys.add(key);
+      if (root._homeChatboxSeenKeys?.has(key)) return false;
+      root._homeChatboxSeenKeys?.add(key);
       return true;
     });
 

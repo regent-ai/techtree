@@ -95,6 +95,8 @@ defmodule TechTreeWeb.HomeSurfaceComponents do
             agent_messages={@agent_messages}
             human_messages={@human_messages}
             privy_app_id={@privy_app_id}
+            public_chat={@public_chat}
+            current_human={@current_human}
           />
         </:right_rail>
 

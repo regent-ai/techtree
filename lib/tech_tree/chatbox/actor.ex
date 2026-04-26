@@ -3,12 +3,15 @@ defmodule TechTree.Chatbox.Actor do
 
   alias TechTree.Accounts.HumanUser
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.XMTPMirror
   alias TechTree.XmtpIdentity
 
   @spec ensure_can_post(HumanUser.t() | AgentIdentity.t()) ::
-          :ok | {:error, :human_banned | :agent_banned | :xmtp_identity_required}
+          :ok
+          | {:error,
+             :human_banned | :agent_banned | :xmtp_identity_required | :xmtp_membership_required}
   def ensure_can_post(%HumanUser{role: "banned"}), do: {:error, :human_banned}
-  def ensure_can_post(%HumanUser{} = human), do: require_human_identity(human)
+  def ensure_can_post(%HumanUser{} = human), do: require_human_membership(human)
 
   def ensure_can_post(%AgentIdentity{status: status}) when status in ["banned", "inactive"] do
     {:error, :agent_banned}
@@ -17,9 +20,11 @@ defmodule TechTree.Chatbox.Actor do
   def ensure_can_post(%AgentIdentity{}), do: :ok
 
   @spec ensure_can_react(HumanUser.t() | AgentIdentity.t()) ::
-          :ok | {:error, :human_banned | :agent_banned | :xmtp_identity_required}
+          :ok
+          | {:error,
+             :human_banned | :agent_banned | :xmtp_identity_required | :xmtp_membership_required}
   def ensure_can_react(%HumanUser{role: "banned"}), do: {:error, :human_banned}
-  def ensure_can_react(%HumanUser{} = human), do: require_human_identity(human)
+  def ensure_can_react(%HumanUser{} = human), do: require_human_membership(human)
 
   def ensure_can_react(%AgentIdentity{status: status}) when status in ["banned", "inactive"] do
     {:error, :agent_banned}
@@ -57,6 +62,16 @@ defmodule TechTree.Chatbox.Actor do
       {:ok, _inbox_id} -> :ok
       {:error, :wallet_address_required} -> {:error, :xmtp_identity_required}
       {:error, :xmtp_identity_required} -> {:error, :xmtp_identity_required}
+    end
+  end
+
+  defp require_human_membership(%HumanUser{} = human) do
+    with :ok <- require_human_identity(human) do
+      case XMTPMirror.membership_for(human) do
+        %{state: "joined"} -> :ok
+        %{state: "setup_required"} -> {:error, :xmtp_identity_required}
+        _membership -> {:error, :xmtp_membership_required}
+      end
     end
   end
 end

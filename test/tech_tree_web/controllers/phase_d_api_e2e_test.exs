@@ -291,6 +291,11 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
              |> get("/v1/chatbox/membership")
              |> json_response(200)
 
+    assert %{"data" => %{"status" => "alive", "room_key" => "public-chatbox"}} =
+             human_conn.()
+             |> post("/v1/chatbox/heartbeat", %{})
+             |> json_response(200)
+
     assert %{"data" => %{"body" => posted_body, "author_kind" => "human"}} =
              human_conn.()
              |> post("/v1/chatbox/messages", %{

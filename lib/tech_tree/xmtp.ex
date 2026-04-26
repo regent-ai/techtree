@@ -98,6 +98,10 @@ defmodule TechTree.Xmtp do
     Xmtp.bootstrap_room!(@manager, room_key, opts)
   end
 
+  def reset_for_test!(room_key \\ default_room_key()) do
+    Xmtp.reset_for_test!(@manager, room_key)
+  end
+
   def principal_for_agent_wallet(wallet_address, label \\ nil) do
     Principal.agent(%{wallet_address: wallet_address, display_name: label})
   end

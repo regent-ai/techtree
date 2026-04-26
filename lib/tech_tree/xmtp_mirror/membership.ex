@@ -106,7 +106,11 @@ defmodule TechTree.XMTPMirror.Membership do
   end
 
   @spec heartbeat_presence(HumanUser.t(), map()) ::
-          {:ok, map()} | {:error, :room_not_found | :xmtp_identity_required | Ecto.Changeset.t()}
+          {:ok, map()}
+          | {:error,
+             :human_banned | :room_not_found | :xmtp_identity_required | Ecto.Changeset.t()}
+  def heartbeat_presence(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
+
   def heartbeat_presence(%HumanUser{} = human, attrs) when is_map(attrs) do
     with {:ok, inbox_id} <- require_human_inbox_id(human),
          {:ok, room} <- Rooms.resolve_join_room(attrs) do
@@ -172,11 +176,14 @@ defmodule TechTree.XMTPMirror.Membership do
       %XmtpRoom{} = room ->
         case require_human_inbox_id(human) do
           {:ok, _inbox_id} ->
+            member_room = latest_public_membership_room(human) || room
+
             %{
               human_id: human.id,
-              room_key: room.room_key,
+              room_key: member_room.room_key,
+              shard_key: member_room.room_key,
               room_present: true,
-              state: membership_state_for(human, room)
+              state: membership_state_for(human, member_room)
             }
 
           {:error, :xmtp_identity_required} ->
@@ -391,6 +398,23 @@ defmodule TechTree.XMTPMirror.Membership do
       _ ->
         "not_joined"
     end
+  end
+
+  defp latest_public_membership_room(%HumanUser{} = human) do
+    canonical_room_key = Rooms.canonical_room_key()
+    shard_prefix = "#{canonical_room_key}-shard-"
+
+    XmtpMembershipCommand
+    |> join(:inner, [command], room in XmtpRoom, on: room.id == command.room_id)
+    |> where(
+      [command, room],
+      command.human_user_id == ^human.id and
+        (room.room_key == ^canonical_room_key or like(room.room_key, ^"#{shard_prefix}%"))
+    )
+    |> order_by([command, _room], desc: command.inserted_at, desc: command.id)
+    |> limit(1)
+    |> select([_command, room], room)
+    |> Repo.one()
   end
 
   defp require_human_room_inbox_id(%HumanUser{} = human, %XmtpRoom{} = room) do

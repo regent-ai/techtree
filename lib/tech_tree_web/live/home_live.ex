@@ -2,7 +2,7 @@ defmodule TechTreeWeb.HomeLive do
   @moduledoc false
   use TechTreeWeb, :live_view
 
-  alias TechTree.{Chatbox, HomeGraph}
+  alias TechTree.{Accounts, HomeGraph, PublicChat}
   alias TechTreeWeb.HomeLive.State
   alias TechTreeWeb.{HomeComponents, HomePresenter, HomeRegentScene}
 
@@ -13,13 +13,14 @@ defmodule TechTreeWeb.HomeLive do
   @default_chat_tab "human"
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     if connected?(socket) do
-      :ok = Chatbox.subscribe()
+      :ok = PublicChat.subscribe()
     end
 
     {:ok,
      socket
+     |> assign(:current_human, current_human(session))
      |> assign(:dev_dataset_toggle?, @dev_dataset_toggle?)
      |> assign(
        :privy_app_id,
@@ -34,8 +35,66 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   @impl true
-  def handle_info({:chatbox_event, _envelope}, socket) do
+  def handle_info({:xmtp_public_room, :refresh}, socket) do
     {:noreply, assign_public_chatbox_panels(socket)}
+  end
+
+  @impl true
+  def handle_event("frontpage_chat_join", _params, socket) do
+    case PublicChat.request_join(socket.assigns[:current_human]) do
+      {:ok, panel} ->
+        {:noreply, assign_public_chatbox_panels(socket, panel)}
+
+      {:needs_signature, %{request_id: request_id, signature_text: signature_text, panel: panel}} ->
+        {:noreply,
+         socket
+         |> assign_public_chatbox_panels(panel)
+         |> push_event("xmtp:sign-request", %{
+           request_id: request_id,
+           signature_text: signature_text,
+           wallet_address: panel.connected_wallet
+         })}
+
+      {:error, reason} ->
+        {:noreply, put_public_chatbox_status(socket, PublicChat.reason_message(reason))}
+    end
+  end
+
+  @impl true
+  def handle_event(
+        "frontpage_chat_join_signature_signed",
+        %{"request_id" => request_id, "signature" => signature},
+        socket
+      ) do
+    case PublicChat.complete_join_signature(socket.assigns[:current_human], request_id, signature) do
+      {:ok, panel} ->
+        {:noreply, assign_public_chatbox_panels(socket, panel)}
+
+      {:error, reason} ->
+        {:noreply, put_public_chatbox_status(socket, PublicChat.reason_message(reason))}
+    end
+  end
+
+  @impl true
+  def handle_event("frontpage_chat_join_signature_failed", %{"message" => message}, socket) do
+    {:noreply, put_public_chatbox_status(socket, message)}
+  end
+
+  @impl true
+  def handle_event("frontpage_chat_send", %{"body" => body}, socket) do
+    case PublicChat.send_message(socket.assigns[:current_human], body) do
+      {:ok, panel} ->
+        {:noreply, assign_public_chatbox_panels(socket, panel)}
+
+      {:error, reason} ->
+        {:noreply, put_public_chatbox_status(socket, PublicChat.reason_message(reason))}
+    end
+  end
+
+  @impl true
+  def handle_event("frontpage_chat_heartbeat", _params, socket) do
+    :ok = PublicChat.heartbeat(socket.assigns[:current_human])
+    {:noreply, socket}
   end
 
   @impl true
@@ -272,13 +331,29 @@ defmodule TechTreeWeb.HomeLive do
     |> sync_regent_scene()
   end
 
-  defp assign_public_chatbox_panels(socket) do
-    %{messages: messages} = Chatbox.list_public_messages(%{"limit" => "24"})
+  defp current_human(%{"privy_user_id" => privy_user_id}) when is_binary(privy_user_id) do
+    Accounts.get_human_by_privy_id(privy_user_id)
+  end
+
+  defp current_human(%{privy_user_id: privy_user_id}) when is_binary(privy_user_id) do
+    Accounts.get_human_by_privy_id(privy_user_id)
+  end
+
+  defp current_human(_session), do: nil
+
+  defp assign_public_chatbox_panels(socket, panel \\ nil) do
+    panel = panel || PublicChat.room_panel(socket.assigns[:current_human])
+    messages = PublicChat.split_messages(panel)
 
     assign(socket, %{
-      agent_messages: HomePresenter.build_public_panel_messages(messages, :agent),
-      human_messages: HomePresenter.build_public_panel_messages(messages, :human)
+      public_chat: panel,
+      agent_messages: messages.agent,
+      human_messages: messages.human
     })
+  end
+
+  defp put_public_chatbox_status(socket, message) do
+    assign(socket, :public_chat, Map.put(socket.assigns.public_chat, :status, message))
   end
 
   defp assign_grid_view(socket, view_stack) do

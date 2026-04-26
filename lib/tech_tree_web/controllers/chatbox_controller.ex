@@ -51,6 +51,12 @@ defmodule TechTreeWeb.ChatboxController do
           message: "finish secure room setup before you post in the public room"
         })
 
+      {:error, :xmtp_membership_required} ->
+        ApiError.render(conn, :unprocessable_entity, %{
+          code: "chat_membership_required",
+          message: "join the public room before you post"
+        })
+
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
           code: "message_create_failed",
@@ -111,6 +117,12 @@ defmodule TechTreeWeb.ChatboxController do
         ApiError.render(conn, :unprocessable_entity, %{
           code: "chat_identity_required",
           message: "finish secure room setup before you react in the public room"
+        })
+
+      {:error, :xmtp_membership_required} ->
+        ApiError.render(conn, :unprocessable_entity, %{
+          code: "chat_membership_required",
+          message: "join the public room before you react"
         })
 
       {:error, :message_not_found} ->

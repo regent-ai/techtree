@@ -66,6 +66,7 @@ defmodule TechTree.MixProject do
       {:xmtp_elixir_sdk, path: "../elixir-utils/xmtp"},
       {:libp2p_elixir, "~> 0.9.6"},
       {:prom_ex, "~> 1.11"},
+      {:plug_cowboy, "~> 2.7"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.0"},
       {:gettext, "~> 1.0"},

@@ -9,6 +9,8 @@ defmodule TechTreeWeb.ChatboxControllerTest do
   setup do
     privy = setup_privy_config!()
     human = create_human!("chatbox-controller", role: "user")
+    room = create_canonical_room!()
+    _membership = join_public_room!(room, human)
 
     authed_conn =
       Phoenix.ConnTest.build_conn()
@@ -18,7 +20,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
       privy.restore.()
     end)
 
-    {:ok, conn: authed_conn, human: human, privy: privy}
+    {:ok, conn: authed_conn, human: human, privy: privy, room: room}
   end
 
   test "GET /v1/chatbox/messages returns canonical messages with pagination", %{human: human} do
@@ -223,6 +225,19 @@ defmodule TechTreeWeb.ChatboxControllerTest do
     assert %{"error" => %{"code" => "chat_identity_required"}} =
              conn
              |> post("/v1/chatbox/messages", %{"body" => "should work"})
+             |> json_response(422)
+  end
+
+  test "POST /v1/chatbox/messages requires a joined public room", %{privy: privy} do
+    human = create_human!("chatbox-not-joined")
+
+    conn =
+      Phoenix.ConnTest.build_conn()
+      |> with_privy_bearer(human.privy_user_id, privy.app_id, privy.private_pem)
+
+    assert %{"error" => %{"code" => "chat_membership_required"}} =
+             conn
+             |> post("/v1/chatbox/messages", %{"body" => "not joined"})
              |> json_response(422)
   end
 

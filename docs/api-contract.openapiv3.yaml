@@ -1012,6 +1012,21 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LooseDataEnvelope" }
+  /v1/chatbox/heartbeat:
+    post:
+      operationId: heartbeatWebappChatboxMembership
+      tags: [chatbox]
+      security: [{ PrivyBearerToken: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LooseObject" }
+      responses:
+        "200":
+          description: Room presence refreshed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LooseDataEnvelope" }
   /v1/chatbox/messages/{id}/reactions:
     post:
       operationId: reactToWebappChatboxMessage

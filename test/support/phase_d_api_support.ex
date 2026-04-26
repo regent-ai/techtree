@@ -7,7 +7,7 @@ defmodule TechTree.PhaseDApiSupport do
   alias TechTree.Nodes.Node
   alias TechTreeWeb.TestSupport.SiwaIntegrationSupport
   alias TechTree.Chatbox.Message, as: ChatboxMessage
-  alias TechTree.XMTPMirror.{XmtpMessage, XmtpRoom}
+  alias TechTree.XMTPMirror.{XmtpMembershipCommand, XmtpMessage, XmtpRoom}
   alias Decimal, as: D
   alias XmtpElixirSdk.Types
 
@@ -199,6 +199,20 @@ defmodule TechTree.PhaseDApiSupport do
       name: "Public Chatbox",
       status: "active",
       xmtp_group_id: "group-public-chatbox-#{unique_suffix()}"
+    })
+    |> Repo.insert!()
+  end
+
+  @spec join_public_room!(XmtpRoom.t(), TechTree.Accounts.HumanUser.t()) ::
+          XmtpMembershipCommand.t()
+  def join_public_room!(%XmtpRoom{} = room, %TechTree.Accounts.HumanUser{} = human) do
+    %XmtpMembershipCommand{}
+    |> XmtpMembershipCommand.enqueue_changeset(%{
+      room_id: room.id,
+      human_user_id: human.id,
+      op: "add_member",
+      xmtp_inbox_id: human.xmtp_inbox_id,
+      status: "done"
     })
     |> Repo.insert!()
   end

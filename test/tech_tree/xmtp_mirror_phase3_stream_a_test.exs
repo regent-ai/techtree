@@ -84,6 +84,21 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert shard_key == room_key
     assert Repo.get_by!(XmtpRoom, room_key: room_key)
     assert command_count(canonical_room.id, human.id, "add_member") == 0
+
+    assert %{state: "join_pending", room_key: ^room_key, shard_key: ^room_key} =
+             XMTPMirror.membership_for(human)
+
+    shard_room = Repo.get_by!(XmtpRoom, room_key: room_key)
+    command_id = latest_command_id!(shard_room.id, human.id, "add_member")
+
+    {_count, _rows} =
+      Repo.update_all(
+        from(command in XmtpMembershipCommand, where: command.id == ^command_id),
+        set: [status: "done"]
+      )
+
+    assert %{state: "joined", room_key: ^room_key, shard_key: ^room_key} =
+             XMTPMirror.membership_for(human)
   end
 
   test "list_shards includes capacity and joinability state" do
@@ -135,6 +150,21 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
                room_id: room.id,
                xmtp_inbox_id: stale_human.xmtp_inbox_id
              )
+  end
+
+  test "heartbeat rejects banned humans" do
+    _room = create_canonical_room!()
+    wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
+
+    {:ok, banned_human} =
+      Accounts.upsert_human_by_privy_id("privy-banned-heartbeat", %{
+        "wallet_address" => wallet_address,
+        "xmtp_inbox_id" => TechTree.PhaseDApiSupport.deterministic_inbox_id(wallet_address),
+        "display_name" => "banned-heartbeat",
+        "role" => "banned"
+      })
+
+    assert {:error, :human_banned} = XMTPMirror.heartbeat_presence(banned_human)
   end
 
   test "lease_next_command only leases one pending command across concurrent workers" do

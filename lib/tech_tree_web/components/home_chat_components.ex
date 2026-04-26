@@ -14,6 +14,7 @@ defmodule TechTreeWeb.HomeChatComponents do
 
     assigns = assign(assigns, :mobile_room_label, room_label)
     assigns = assign(assigns, :mobile_room_count, room_count)
+    assigns = assign(assigns, :server_signed_in?, not is_nil(assigns[:current_human]))
 
     ~H"""
     <aside id="frontpage-chat-pane" class="fp-chat-pane" data-chat-tab={@chat_tab}>
@@ -68,32 +69,32 @@ defmodule TechTreeWeb.HomeChatComponents do
           aria-hidden={@chat_tab != "human"}
           phx-hook="HomeChatbox"
           data-privy-app-id={@privy_app_id}
-          data-post-url="/v1/chatbox/messages"
           data-session-url="/api/auth/privy/session"
-          data-transport-status-url="/v1/runtime/transport"
+          data-room-joined={to_string(@public_chat.joined?)}
+          data-room-can-join={to_string(@public_chat.can_join?)}
+          data-room-can-send={to_string(@public_chat.can_send?)}
+          data-room-pending={to_string(@public_chat.membership_state == :join_pending_signature)}
+          data-server-signed-in={to_string(@server_signed_in?)}
         >
           <div class="fp-chat-section-head">
             <div>
               <p class="fp-ledger-kicker">Human room</p>
               <h3 id="frontpage-human-chat-title">
-                Sign in before you post in the public human room.
+                Join the public room before you post.
               </h3>
               <p>
-                Use this room when you want to point people to a branch, share an update, or
-                confirm what should happen next.
+                There are 200 seats in the first room. Use it to point people to a branch,
+                share an update, or confirm what should happen next.
               </p>
             </div>
 
             <div class="flex items-center gap-2">
               <span class="badge badge-outline font-body">{length(@human_messages)} recent</span>
-              <span
-                class="badge badge-outline font-body"
-                data-chatbox-transport
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                starting
+              <span class="badge badge-outline font-body">
+                {@public_chat.member_count}/{@public_chat.seat_count} seats
+              </span>
+              <span class="badge badge-outline font-body">
+                {room_state_label(@public_chat)}
               </span>
             </div>
           </div>
@@ -108,7 +109,7 @@ defmodule TechTreeWeb.HomeChatComponents do
                   class="btn border-0 bg-[var(--fp-panel)] text-[var(--fp-text)] hover:brightness-105"
                   data-chatbox-auth
                 >
-                  Connect wallet
+                  Sign in
                 </button>
                 <button
                   type="button"
@@ -126,7 +127,7 @@ defmodule TechTreeWeb.HomeChatComponents do
                 aria-live="polite"
                 aria-atomic="true"
               >
-                Connect your wallet to post in the public room.
+                {room_status_copy(@public_chat)}
               </p>
             </div>
 
@@ -140,12 +141,12 @@ defmodule TechTreeWeb.HomeChatComponents do
                 placeholder="Share an update in the public room"
                 class="grow bg-transparent"
                 data-chatbox-input
-                disabled
+                disabled={!@public_chat.can_send?}
               />
             </label>
             <button
               type="button"
-              disabled
+              disabled={!@public_chat.can_send?}
               class="btn border-0 bg-[var(--fp-accent)] text-black disabled:bg-[var(--fp-accent-soft)] disabled:text-[var(--fp-muted)]"
               data-chatbox-send
             >
@@ -242,4 +243,16 @@ defmodule TechTreeWeb.HomeChatComponents do
     </div>
     """
   end
+
+  defp room_state_label(%{joined?: true}), do: "Joined"
+  defp room_state_label(%{membership_state: :join_pending_signature}), do: "Confirming"
+  defp room_state_label(%{membership_state: :full}), do: "Full"
+  defp room_state_label(%{ready?: false}), do: "Opening soon"
+  defp room_state_label(_room), do: "Open to read"
+
+  defp room_status_copy(%{status: status}) when is_binary(status) and status != "", do: status
+  defp room_status_copy(%{joined?: true}), do: "You can post in the public room."
+  defp room_status_copy(%{can_join?: true}), do: "Sign in, then join when you want to post."
+  defp room_status_copy(%{ready?: false}), do: "The room is not open yet."
+  defp room_status_copy(_room), do: "Read along now. Sign in before you post."
 end

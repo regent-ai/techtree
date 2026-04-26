@@ -195,6 +195,7 @@ defmodule TechTreeWeb.Router do
 
     get "/v1/chatbox/membership", ChatboxMembershipController, :membership
     post "/v1/chatbox/request-join", ChatboxMembershipController, :request_join
+    post "/v1/chatbox/heartbeat", ChatboxMembershipController, :heartbeat
     post "/v1/chatbox/messages", ChatboxController, :create_message
     post "/v1/chatbox/messages/:id/reactions", ChatboxController, :react_message
   end

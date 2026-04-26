@@ -45,6 +45,8 @@ defmodule TechTreeWeb.HomeComponents do
         agent_messages={@agent_messages}
         human_messages={@human_messages}
         privy_app_id={@privy_app_id}
+        public_chat={@public_chat}
+        current_human={@current_human}
         install_agent={@install_agent}
         chat_tab={@chat_tab}
       />

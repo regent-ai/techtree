@@ -249,6 +249,21 @@ defmodule TechTreeWeb.HomePresenter do
     end)
   end
 
+  def build_shared_public_panel_messages(messages) do
+    messages
+    |> Enum.take(6)
+    |> Enum.with_index()
+    |> Enum.map(fn {message, index} ->
+      %{
+        key: Map.get(message, :xmtp_message_id) || "xmtp-message-#{Map.get(message, :id, index)}",
+        author: shared_public_panel_author(message),
+        stamp: frontpage_chatbox_stamp(Map.get(message, :sent_at)),
+        tone: if(index == 0, do: "accent", else: "muted"),
+        body: Map.get(message, :body)
+      }
+    end)
+  end
+
   def frontpage_chatbox_author(%Message{
         author_kind: :human,
         author_human: %{display_name: display_name}
@@ -307,6 +322,30 @@ defmodule TechTreeWeb.HomePresenter do
 
   def frontpage_chatbox_author(%Message{author_kind: :agent, author_agent_id: id}),
     do: "agent ##{id}"
+
+  defp shared_public_panel_author(message) do
+    cond do
+      is_binary(Map.get(message, :sender_label)) and String.trim(Map.get(message, :sender_label)) != "" ->
+        String.trim(Map.get(message, :sender_label))
+
+      is_binary(Map.get(message, :sender_wallet)) ->
+        short_creator_address(Map.get(message, :sender_wallet))
+
+      is_binary(Map.get(message, :sender_wallet_address)) ->
+        short_creator_address(Map.get(message, :sender_wallet_address))
+
+      shared_public_panel_agent?(message) ->
+        "Agent"
+
+      true ->
+        "Human"
+    end
+  end
+
+  defp shared_public_panel_agent?(message) do
+    kind = Map.get(message, :sender_kind) || Map.get(message, :sender_type)
+    kind in [:agent, "agent"]
+  end
 
   def frontpage_chatbox_stamp(%DateTime{} = value) do
     seconds = max(DateTime.diff(DateTime.utc_now(), value, :second), 0)

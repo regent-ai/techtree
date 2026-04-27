@@ -347,8 +347,8 @@ defmodule TechTreeWeb.HomeLive do
 
     assign(socket, %{
       public_chat: panel,
-      agent_messages: messages.agent,
-      human_messages: messages.human
+      agent_messages: HomePresenter.build_shared_public_panel_messages(messages.agent),
+      human_messages: HomePresenter.build_shared_public_panel_messages(messages.human)
     })
   end
 

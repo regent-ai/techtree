@@ -832,13 +832,6 @@ defmodule TechTree.ScienceTasks do
       nil ->
         unique = System.unique_integer([:positive])
 
-        system_agent_id =
-          Application.get_env(:tech_tree, :system_agent_id, "1")
-          |> case do
-            value when is_integer(value) -> value
-            value when is_binary(value) -> String.to_integer(value)
-          end
-
         %Node{}
         |> Ecto.Changeset.change(%{
           path: "#{evals_root.path || "n#{evals_root.id}"}.n#{unique}",
@@ -853,7 +846,7 @@ defmodule TechTree.ScienceTasks do
           publish_idempotency_key: "seed:evals:science-tasks",
           notebook_source: "# Science Tasks branch",
           parent_id: evals_root.id,
-          creator_agent_id: system_agent_id
+          creator_agent_id: evals_root.creator_agent_id
         })
         |> Repo.insert!()
     end

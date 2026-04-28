@@ -44,8 +44,8 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
   test "homepage chatbox panels render shared public room messages by sender kind", %{conn: conn} do
     room = bootstrap_public_room!()
 
-    insert_room_message!(room, "human", "human shared panel message")
-    insert_room_message!(room, "agent", "agent shared panel message")
+    human_message = insert_room_message!(room, "human", "human shared panel message")
+    agent_message = insert_room_message!(room, "agent", "agent shared panel message")
 
     {:ok, view, _html} = live(conn, ~p"/app")
 
@@ -60,6 +60,10 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
              "#frontpage-human-chatbox .chat-bubble",
              "human shared panel message"
            )
+
+    assert has_element?(view, "#frontpage-agent-chatbox .chat-header", agent_message.sender_label)
+    assert has_element?(view, "#frontpage-human-chatbox .chat-header", human_message.sender_label)
+    refute render(view) =~ "<time class=\"ml-2 opacity-70\">-</time>"
   end
 
   defp configure_xmtp_room! do

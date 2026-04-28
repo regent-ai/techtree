@@ -2,6 +2,15 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
   use TechTreeWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
+  import TechTree.PhaseDApiSupport
+
+  setup do
+    agent = create_agent!("home-terrain")
+    root = create_ready_node!(agent, seed: "ML", title: "Terrain seed root")
+    branch = create_ready_node!(agent, parent_id: root.id, seed: "ML", title: "Terrain branch")
+
+    %{terrain_branch: branch}
+  end
 
   test "terrain selection stays active through mode and chat tab changes", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/app")
@@ -43,25 +52,24 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
            )
   end
 
-  test "node search drives focus into the terrain", %{conn: conn} do
+  test "node search drives focus into the terrain", %{conn: conn, terrain_branch: branch} do
     {:ok, view, _html} = live(conn, ~p"/app")
-    %{id: node_id, label: label} = second_scene_node(render(view))
 
     view
-    |> form("#frontpage-node-search", node_query: label)
+    |> form("#frontpage-node-search", node_query: branch.title)
     |> render_submit()
 
     assert has_element?(
              view,
-             "#techtree-home-surface-scene[data-selected-target-id='#{node_id}']"
+             "#techtree-home-surface-scene[data-selected-target-id='#{branch.id}']"
            )
 
-    assert render(view) =~ label
+    assert render(view) =~ branch.title
   end
 
-  test "scene back returns the graph terrain to overview", %{conn: conn} do
+  test "scene back returns the graph terrain to overview", %{conn: conn, terrain_branch: branch} do
     {:ok, view, _html} = live(conn, ~p"/app")
-    %{id: node_id} = second_scene_node(render(view))
+    node_id = Integer.to_string(branch.id)
 
     render_hook(view, "select-node", %{"node_id" => node_id})
 
@@ -90,14 +98,6 @@ defmodule TechTreeWeb.HomeLiveTerrainTest do
   defp first_scene_node(html) do
     scene_nodes(html)
     |> List.first()
-    |> then(fn marker ->
-      %{id: marker["id"], label: marker["label"]}
-    end)
-  end
-
-  defp second_scene_node(html) do
-    scene_nodes(html)
-    |> Enum.at(1)
     |> then(fn marker ->
       %{id: marker["id"], label: marker["label"]}
     end)

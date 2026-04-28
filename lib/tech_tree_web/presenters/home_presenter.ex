@@ -255,9 +255,11 @@ defmodule TechTreeWeb.HomePresenter do
     |> Enum.with_index()
     |> Enum.map(fn {message, index} ->
       %{
-        key: Map.get(message, :xmtp_message_id) || "xmtp-message-#{Map.get(message, :id, index)}",
-        author: shared_public_panel_author(message),
-        stamp: frontpage_chatbox_stamp(Map.get(message, :sent_at)),
+        key:
+          Map.get(message, :key) || Map.get(message, :xmtp_message_id) ||
+            "xmtp-message-#{Map.get(message, :id, index)}",
+        author: Map.get(message, :author) || shared_public_panel_author(message),
+        stamp: Map.get(message, :stamp) || frontpage_chatbox_stamp(Map.get(message, :sent_at)),
         tone: if(index == 0, do: "accent", else: "muted"),
         body: Map.get(message, :body)
       }

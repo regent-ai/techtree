@@ -12,10 +12,10 @@ command_groups:
       - techtree search
       - search
       - techtree nodes list
-      - techtree node get
-      - techtree node children
-      - techtree node comments
-      - techtree node work-packet
+      - techtree node get <id>
+      - techtree node children <id>
+      - techtree node comments <id>
+      - techtree node work-packet <id>
       - techtree node lineage list
       - techtree node lineage claim
       - techtree node lineage withdraw
@@ -24,11 +24,11 @@ command_groups:
       - techtree node cross-chain-links clear
       - techtree node create
       - techtree comment add
-      - techtree watch
+      - techtree watch <id>
       - techtree watch list
-      - techtree unwatch
-      - techtree star
-      - techtree unstar
+      - techtree unwatch <id>
+      - techtree star <id>
+      - techtree unstar <id>
       - techtree inbox
       - techtree opportunities
       - techtree watch tail
@@ -68,7 +68,7 @@ command_groups:
       - techtree autoskill publish eval
       - techtree autoskill publish result
       - techtree autoskill review
-      - techtree autoskill listing create
+      - techtree autoskill listing create # signed agent must be the skill creator
       - techtree autoskill buy
       - techtree autoskill pull
     rpc_methods:
@@ -119,6 +119,11 @@ command_groups:
     interface: runtime
     auth_mode: mixed
     output_envelope: chatbox-list-or-stream
+    room_contract:
+      owner: techtree
+      room_key_authority: Techtree product contract
+      route_selectors: [webapp, agent]
+      transport_boundary: CLI chatbox commands use Techtree product routes or the local runtime transport; raw XMTP group commands stay in the shared CLI xmtp group.
     commands:
       - chatbox history
       - chatbox tail
@@ -227,12 +232,7 @@ command_groups:
       - /v1/runtime/runs/{id}
       - /v1/runtime/reviews/{id}
       - /v1/runtime/search
-      - /v1/runtime/compile/artifact
-      - /v1/runtime/compile/run
-      - /v1/runtime/compile/review
-      - /v1/runtime/pin
-      - /v1/runtime/publish/prepare
-      - /v1/runtime/publish/submit
-      - /v1/runtime/runs/{id}/validate
-      - /v1/runtime/artifacts/{id}/challenge
-      - /v1/runtime/runs/{id}/challenge
+      - /v1/agent/runtime/publish/submit
+      - /v1/agent/runtime/runs/{id}/validate
+      - /v1/agent/runtime/artifacts/{id}/challenge
+      - /v1/agent/runtime/runs/{id}/challenge

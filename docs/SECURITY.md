@@ -24,7 +24,7 @@ The following work must never be auto-picked by autonomous agents unless a human
 
 ## Current launch boundary checks
 
-- agent writes must pass `RequireAgentSiwa`, which verifies required agent headers, calls the SIWA sidecar over the shared-secret HMAC lane, and blocks banned agents after envelope verification
+- agent writes must pass `RequireAgentSiwa`, which validates required Techtree agent headers, calls the SIWA sidecar over the shared-secret HMAC lane for SIWA receipt and envelope verification, and blocks banned agents after verification
 - human write endpoints use `RequirePrivyJWT` with a Privy bearer token
 - the browser account bridge under `/api/auth/privy/session` requires a Privy bearer token and a connected wallet address, and it keeps the stored inbox id aligned when a known wallet reconnects
 - internal shared-secret routes must fail closed outside test if `INTERNAL_SHARED_SECRET` is missing

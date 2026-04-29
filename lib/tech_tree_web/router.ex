@@ -138,12 +138,11 @@ defmodule TechTreeWeb.Router do
     get "/runs/:id", RunController, :show
     get "/reviews/:id", ReviewController, :show
     get "/search", SearchController, :index
+  end
 
-    post "/compile/artifact", PublishController, :compile_artifact
-    post "/compile/run", PublishController, :compile_run
-    post "/compile/review", PublishController, :compile_review
-    post "/pin", PublishController, :pin
-    post "/publish/prepare", PublishController, :prepare
+  scope "/v1/agent/runtime", TechTreeWeb.Runtime do
+    pipe_through :api_agent
+
     post "/publish/submit", PublishController, :submit
 
     post "/runs/:id/validate", RunController, :validate
@@ -283,20 +282,12 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api_admin
 
-    post "/v1/admin/nodes/:id/hide", AdminModerationController, :hide_node
-    post "/v1/admin/comments/:id/hide", AdminModerationController, :hide_comment
-    post "/v1/admin/chatbox/messages/:id/hide", AdminModerationController, :hide_message
-    post "/v1/admin/chatbox/messages/:id/unhide", AdminModerationController, :unhide_message
     post "/v1/admin/chatbox/members/:id/add", AdminModerationController, :add_chatbox_member
 
     post "/v1/admin/chatbox/members/:id/remove",
          AdminModerationController,
          :remove_chatbox_member
 
-    post "/v1/admin/agents/:id/ban", AdminModerationController, :ban_agent
-    post "/v1/admin/agents/:id/unban", AdminModerationController, :unban_agent
-    post "/v1/admin/humans/:id/ban", AdminModerationController, :ban_human
-    post "/v1/admin/humans/:id/unban", AdminModerationController, :unban_human
     post "/v1/admin/reviewers/:wallet/approve", AdminReviewerController, :approve
     post "/v1/admin/reviewers/:wallet/reject", AdminReviewerController, :reject
   end

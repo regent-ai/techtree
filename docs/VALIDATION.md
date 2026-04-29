@@ -28,6 +28,8 @@ bun run typecheck
 
 ```bash
 cd /Users/sean/Documents/regent/regents-cli
+pnpm check:openapi
+pnpm check:cli-contract
 pnpm build
 pnpm typecheck
 pnpm test
@@ -57,6 +59,7 @@ Use [docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](REGENT_CLI_LOCAL_AND_FLY_TESTING.
 8. inbox and opportunities reads
 9. chatbox tail for `webapp` and `agent`
 10. paid node buy then pull for one gated payload
+11. BBH + marimo v0.1 beta gate in [docs/bbh/v0.1-beta-gate.md](bbh/v0.1-beta-gate.md)
 
 If browser-visible behavior changed, also run the relevant harness under `qa/`, for example:
 

@@ -1,10 +1,10 @@
 # Main Deploy Runbook
 
-This is the shortest path to deploy `main` on Fly with the Phoenix app, SIWA sidecar, Dragonfly, and managed Postgres.
+This is the shortest path to deploy `main` on Fly with the Phoenix app, SIWA sidecar, in-app Cachex, and managed Postgres.
 
 This runbook is for the first production cut:
 
-- Fly apps: `techtree`, `techtree-siwa`, `techtree-dragonfly`
+- Fly apps: `techtree`, `techtree-siwa`
 - region: `sjc`
 - org: `regent`
 - host: `techtree.fly.dev`
@@ -17,7 +17,7 @@ This runbook is for the first production cut:
 
 - Phoenix app: `fly.phoenix.toml`
 - SIWA sidecar: `fly.siwa.toml`
-- Dragonfly: `fly.dragonfly.toml`
+- in-app Cachex: runs inside the Phoenix app
 - Managed Postgres: attached by `scripts/fly_deploy_stack.sh`
 
 Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
@@ -26,9 +26,11 @@ Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
 
 - `flyctl` installed and authenticated
 - `openssl` installed
+- `rsync` installed
 - `mix` available locally so `mix phx.gen.secret` can run
 - Foundry installed locally so `cast` can check the Base Sepolia contracts before deploy
 - `main` checked out and validated through steps 1 to 3 in [docs/VALIDATION.md](VALIDATION.md)
+- sibling checkouts at `../elixir-utils` and `../design-system`; the deploy script stages them into `.fly-build/`
 - Base Sepolia registry and content settlement contracts already deployed
 
 ## Auth model for this deploy
@@ -48,17 +50,15 @@ These must exist in Fly for the Phoenix app:
 - `SECRET_KEY_BASE`
 - `PHX_HOST`
 - `DATABASE_URL`
+- `DATABASE_DIRECT_URL`
 - `INTERNAL_SHARED_SECRET`
 - `SIWA_INTERNAL_URL`
 - `SIWA_SHARED_SECRET`
-- `DRAGONFLY_ENABLED`
-- `DRAGONFLY_HOST`
-- `DRAGONFLY_PORT`
 
 Important runtime env also used by Phoenix:
 
 - `PORT`
-- `POOL_SIZE`
+- `ECTO_POOL_SIZE`
 - `TECHTREE_ETHEREUM_MODE=rpc`
 - `TECHTREE_CHAIN_ID=84532`
 - `TECHTREE_P2P_ENABLED=false`
@@ -94,13 +94,6 @@ These must exist in Fly for the SIWA sidecar:
 
 `SIWA_HMAC_SECRET` and Phoenix `SIWA_SHARED_SECRET` must match.
 
-## Required Dragonfly settings
-
-Dragonfly is configured by `fly.dragonfly.toml`. Keep the internal hostname stable and point Phoenix at:
-
-- `DRAGONFLY_HOST=<dragonfly-app>.flycast`
-- `DRAGONFLY_PORT=6379`
-
 ## First deploy
 
 ```bash
@@ -113,15 +106,17 @@ Before deploy approval, complete the manual browser signoff and live Base Sepoli
 
 The stack deploy script will:
 
-1. create the Phoenix, SIWA, and Dragonfly apps if missing
-2. allocate Flycast IPs for SIWA and Dragonfly
+1. create the Phoenix and SIWA apps if missing
+2. allocate a Flycast IP for SIWA
 3. create managed Postgres if missing
 4. attach Postgres to Phoenix
 5. require first-prod secrets for Privy, Lighthouse, and Base Sepolia chain publishing
 6. require the Base Sepolia content settlement values used by paid node verification
 7. generate or reuse the required shared secrets
-8. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=84532` for Phoenix
-9. deploy Dragonfly, then SIWA, then Phoenix
+8. require a direct database URL for release migrations
+9. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=84532` for Phoenix
+10. stage `../elixir-utils` and `../design-system` into `.fly-build/`
+11. deploy SIWA, then Phoenix
 
 ## Manual secret rotation
 
@@ -141,9 +136,10 @@ Run:
 ```bash
 flyctl status --app techtree
 flyctl status --app techtree-siwa
-flyctl status --app techtree-dragonfly
+flyctl logs --app techtree --no-tail
+flyctl logs --app techtree-siwa --no-tail
 curl -fsS https://techtree.fly.dev/health
-mix test test/tech_tree_web/controllers/require_agent_siwa_integration_test.exs
+mix test test/tech_tree_web/controllers/require_agent_siwa_http_verify_integration_test.exs
 ```
 
 Then manually verify:

@@ -45,7 +45,6 @@ defmodule TechTree.MixProject do
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
       {:oban, "~> 2.19"},
-      {:redix, "~> 1.5"},
       {:joken, "~> 2.6"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
@@ -63,6 +62,7 @@ defmodule TechTree.MixProject do
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:regent_cache, path: "../elixir-utils/cache"},
+      {:siwa, path: "../elixir-utils/siwa/siwa-elixir/apps/siwa", only: :test},
       {:xmtp_elixir_sdk, path: "../elixir-utils/xmtp"},
       {:libp2p_elixir, "~> 0.9.6"},
       {:prom_ex, "~> 1.11"},
@@ -100,7 +100,14 @@ defmodule TechTree.MixProject do
         "esbuild tech_tree --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      "precommit.api": ["techtree.contracts.check"],
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "techtree.contracts.check",
+        "test"
+      ]
     ]
   end
 

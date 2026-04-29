@@ -22,19 +22,6 @@ source_env() {
   source "${ROOT_DIR}/.env.local"
   set +a
 }
-
-dragonfly_ping() {
-  local response
-
-  exec 3<>/dev/tcp/127.0.0.1/6379 || return 1
-  printf '*1\r\n$4\r\nPING\r\n' >&3
-  IFS= read -r -t 2 response <&3 || true
-  exec 3<&-
-  exec 3>&-
-
-  [[ "${response}" == "+PONG" ]]
-}
-
 wait_for_postgres() {
   local attempt
 
@@ -48,20 +35,6 @@ wait_for_postgres() {
   done
 
   fail "postgres did not become ready in docker compose"
-}
-
-wait_for_dragonfly() {
-  local attempt
-
-  for attempt in $(seq 1 30); do
-    if dragonfly_ping; then
-      return 0
-    fi
-
-    sleep 2
-  done
-
-  fail "dragonfly did not answer PING on localhost:6379"
 }
 
 cleanup() {
@@ -138,13 +111,10 @@ docker compose version >/dev/null 2>&1 || fail "docker compose is required"
 source_env
 
 log "starting local infra"
-docker compose -f "${COMPOSE_FILE}" up -d postgres dragonfly
+docker compose -f "${COMPOSE_FILE}" up -d postgres
 
 log "waiting for postgres"
 wait_for_postgres
-
-log "waiting for dragonfly"
-wait_for_dragonfly
 
 trap 'cleanup $?' EXIT INT TERM
 

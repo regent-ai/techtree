@@ -44,39 +44,32 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
     end
   end
 
-  describe "dragonfly rate-limit policy" do
+  describe "local cache rate-limit policy" do
     setup do
       original_backend = Application.get_env(:tech_tree, TechTree.RateLimit, [])
-      original_enabled = Application.get_env(:tech_tree, :dragonfly_enabled)
-      original_name = Application.get_env(:tech_tree, :dragonfly_name)
 
       on_exit(fn ->
         restore_application_env(:tech_tree, TechTree.RateLimit, original_backend)
-        restore_application_env(:tech_tree, :dragonfly_enabled, original_enabled)
-        restore_application_env(:tech_tree, :dragonfly_name, original_name)
         TechTree.RateLimit.reset!()
       end)
 
       :ok
     end
 
-    test "reports intentional local-only mode without degradation" do
-      Application.put_env(:tech_tree, :dragonfly_enabled, true)
-      Application.put_env(:tech_tree, TechTree.RateLimit, backend: :local)
+    test "reports local cache mode without degradation" do
+      Application.put_env(:tech_tree, TechTree.RateLimit, backend: :cachex)
 
       assert %{
-               configured_backend: :local,
-               effective_backend: :local,
-               dragonfly_enabled: true,
-               dragonfly_reachable: nil,
+               configured_backend: :cachex,
+               effective_backend: :cachex,
+               cache_ready: true,
                degraded: false,
                last_error: nil
              } = TechTree.RateLimit.status()
     end
 
-    test "local fallback state survives across request processes" do
-      Application.put_env(:tech_tree, :dragonfly_enabled, true)
-      Application.put_env(:tech_tree, TechTree.RateLimit, backend: :local)
+    test "local cache state survives across request processes" do
+      Application.put_env(:tech_tree, TechTree.RateLimit, backend: :cachex)
 
       message_opts = [
         actor_scope: "human:cross-process",
@@ -94,37 +87,6 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
                |> Task.await()
 
       assert retry_after_ms > 0
-    end
-
-    test "fails closed and records degraded state when dragonfly is unavailable" do
-      unavailable_name = :"dragonfly_unavailable_#{System.unique_integer([:positive])}"
-
-      Application.put_env(:tech_tree, :dragonfly_enabled, true)
-      Application.put_env(:tech_tree, :dragonfly_name, unavailable_name)
-      Application.put_env(:tech_tree, TechTree.RateLimit, backend: :dragonfly)
-
-      assert {:error, %{code: :rate_limited, retry_after_ms: retry_after_ms}} =
-               TechTree.RateLimit.allow_chatbox_message(
-                 actor_scope: "actor:#{System.unique_integer([:positive])}",
-                 principal_scope: "principal:#{System.unique_integer([:positive])}",
-                 ip_scope: "127.0.0.1",
-                 message_body: "dragonfly degraded fail closed"
-               )
-
-      assert retry_after_ms > 0
-
-      assert %{
-               configured_backend: :dragonfly,
-               effective_backend: :dragonfly,
-               dragonfly_enabled: true,
-               dragonfly_reachable: false,
-               degraded: true,
-               last_error: last_error,
-               last_degraded_at_ms: last_degraded_at_ms
-             } = TechTree.RateLimit.status()
-
-      assert is_binary(last_error)
-      assert is_integer(last_degraded_at_ms)
     end
   end
 

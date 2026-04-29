@@ -43,18 +43,6 @@ resolve_chain_rpc_url() {
   esac
 }
 
-dragonfly_ping() {
-  local response
-
-  exec 3<>/dev/tcp/127.0.0.1/6379 || return 1
-  printf '*1\r\n$4\r\nPING\r\n' >&3
-  IFS= read -r -t 2 response <&3 || true
-  exec 3<&-
-  exec 3>&-
-
-  [[ "${response}" == "+PONG" ]]
-}
-
 assert_http_ok() {
   local name="$1"
   local url="$2"
@@ -180,16 +168,12 @@ require_env AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS
 
 log "checking docker compose infra"
 check_compose_service postgres
-check_compose_service dragonfly
 
 log "checking postgres"
 docker compose -f "${COMPOSE_FILE}" exec -T postgres \
   pg_isready -U postgres -d tech_tree_dev >/dev/null 2>&1 || {
   fail "postgres is not ready"
 }
-
-log "checking dragonfly"
-dragonfly_ping || fail "dragonfly did not answer PING on localhost:6379"
 
 log "checking phoenix health"
 assert_http_ok "phoenix /health" "http://127.0.0.1:${PORT:-4001}/health"

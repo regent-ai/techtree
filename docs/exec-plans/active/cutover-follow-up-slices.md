@@ -16,13 +16,12 @@ Goal:
 
 - keep homepage presentation, grid math, and top-level interaction isolated from platform and CLI work
 
-## Slice 2: Platform data model and importer
+## Slice 2: Platform read model
 
 Scope:
 
 - `lib/tech_tree/platform.ex`
 - `lib/tech_tree/platform/**`
-- `lib/mix/tasks/tech_tree.platform.import.ex`
 - `priv/repo/migrations/20260311100000_create_platform_surface.exs`
 - `priv/repo/migrations/20260311103000_expand_node_search_document_sources.exs`
 - `test/tech_tree/platform/**`
@@ -30,7 +29,7 @@ Scope:
 
 Goal:
 
-- keep canonical platform read-model work independent from web-shell changes
+- keep Techtree's local platform read surfaces independent from web-shell changes
 
 ## Slice 3: Platform LiveView surfaces
 
@@ -75,7 +74,7 @@ Scope:
 - `lib/tech_tree_web/plugs/require_internal_shared_secret.ex`
 - `lib/tech_tree_web/controllers/agent_siwa_controller.ex`
 - `services/siwa-sidecar/**`
-- `test/tech_tree_web/controllers/require_agent_siwa_integration_test.exs`
+- `test/tech_tree_web/controllers/require_agent_siwa_http_verify_integration_test.exs`
 - `test/tech_tree_web/plugs/**`
 
 Goal:

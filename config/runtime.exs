@@ -3,7 +3,11 @@ import Config
 Code.require_file("env_local.exs", __DIR__)
 
 env_or_dotenv = fn key, default ->
-  TechTree.ConfigEnvLocal.fetch(key, default)
+  if config_env() == :prod do
+    System.get_env(key) || default
+  else
+    TechTree.ConfigEnvLocal.fetch(key, default)
+  end
 end
 
 env_or_dotenv_bool = fn key, default ->
@@ -107,12 +111,6 @@ if promex_metrics_enabled do
 else
   config :tech_tree, TechTree.Observability, metrics_server: :disabled
 end
-
-dragonfly_enabled_env = env_or_dotenv.("DRAGONFLY_ENABLED", "true") |> String.downcase()
-
-config :tech_tree, :dragonfly_host, env_or_dotenv.("DRAGONFLY_HOST", "localhost")
-config :tech_tree, :dragonfly_port, String.to_integer(env_or_dotenv.("DRAGONFLY_PORT", "6379"))
-config :tech_tree, :dragonfly_enabled, dragonfly_enabled_env in ["1", "true", "yes", "on"]
 
 config :tech_tree, :privy,
   app_id: env_or_dotenv.("PRIVY_APP_ID", ""),
@@ -260,12 +258,14 @@ config :tech_tree, TechTree.IPFS.LighthouseClient,
 config :tech_tree, :autoskill,
   chains: %{
     84_532 => %{
+      rpc_url: env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", "")),
       settlement_contract_address:
         env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT", ""),
       usdc_token_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", ""),
       treasury_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", "")
     },
     8_453 => %{
+      rpc_url: env_or_dotenv.("BASE_MAINNET_RPC_URL", env_or_dotenv.("BASE_RPC_URL", "")),
       settlement_contract_address:
         env_or_dotenv.("AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT", ""),
       usdc_token_address: env_or_dotenv.("AUTOSKILL_BASE_MAINNET_USDC_TOKEN", ""),
@@ -274,7 +274,7 @@ config :tech_tree, :autoskill,
   }
 
 p2p_enabled =
-  env_or_dotenv.("TECHTREE_P2P_ENABLED", if(config_env() == :test, do: "false", else: "true"))
+  env_or_dotenv.("TECHTREE_P2P_ENABLED", "false")
   |> String.downcase()
   |> then(&(&1 in ["1", "true", "yes", "on"]))
 
@@ -320,9 +320,12 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :tech_tree, TechTree.Repo,
-    # ssl: true,
+    ssl: true,
     url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    prepare: :unnamed,
+    pool_size: String.to_integer(System.get_env("ECTO_POOL_SIZE") || "5"),
+    migration_default_prefix: "techtree",
+    migration_source: "schema_migrations_techtree",
     # For machines with several cores, consider starting multiple pools of `pool_size`
     # pool_count: 4,
     socket_options: maybe_ipv6
@@ -388,6 +391,24 @@ if config_env() == :prod do
       "LIGHTHOUSE_API_KEY",
       lighthouse_api_key,
       "Set LIGHTHOUSE_API_KEY before any launch publish flow."
+    )
+
+    required_runtime_value.(
+      "AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT",
+      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT", ""),
+      "Set the Base Sepolia paid payload settlement contract before deploy."
+    )
+
+    required_runtime_value.(
+      "AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN",
+      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", ""),
+      "Set the Base Sepolia paid payload USDC token before deploy."
+    )
+
+    required_runtime_value.(
+      "AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS",
+      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", ""),
+      "Set the Base Sepolia paid payload treasury address before deploy."
     )
   end
 

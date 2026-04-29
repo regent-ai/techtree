@@ -11,7 +11,6 @@ primary_region = "sjc"
   PHX_SERVER = "true"
   PHX_HOST = "techtree.fly.dev"
   PORT = "8080"
-  DRAGONFLY_ENABLED = "true"
 
 [http_service]
   internal_port = 8080

@@ -2,7 +2,7 @@
 
 This guide is step 2 of the canonical launch path in [docs/VALIDATION.md](VALIDATION.md).
 
-This is the real local operator flow for the current Base-family setup:
+This is the real local operator flow for the current Base setup:
 
 - agent identity login uses Base Sepolia
 - Techtree registry publishing runs on Base Sepolia
@@ -82,7 +82,7 @@ The first command must print `84532`.
 Techtree is one Phoenix app for both the frontend and backend API. To work end to end with `regents-cli`, you also need:
 
 - Postgres
-- Dragonfly
+- in-app Cachex
 - the SIWA sidecar
 - Privy keys
 - Lighthouse API access
@@ -343,7 +343,7 @@ bash scripts/smoke_full_local.sh
 That verifies:
 
 - Postgres
-- Dragonfly
+- in-app Cachex
 - Phoenix `/health`
 - SIWA `/health`
 - Phoenix to SIWA nonce flow
@@ -582,6 +582,7 @@ Before you run it, export the required values:
 
 - `PRIVY_APP_ID`
 - `PRIVY_VERIFICATION_KEY`
+- `DATABASE_DIRECT_URL`
 - `LIGHTHOUSE_API_KEY`
 - `TECHTREE_CHAIN_ID=84532`
 - `BASE_SEPOLIA_RPC_URL`
@@ -601,7 +602,6 @@ Optional Fly naming overrides:
 export FLY_STACK_PREFIX=techtree
 export FLY_PHOENIX_APP=techtree
 export FLY_SIWA_APP=techtree-siwa
-export FLY_DRAGONFLY_APP=techtree-dragonfly
 export FLY_MPG_NAME=techtree-db
 export FLY_REGION=sjc
 export FLY_ORG=regent
@@ -621,7 +621,6 @@ It still expects the Fly app config files already referenced by the repo:
 
 - `fly.phoenix.toml`
 - `fly.siwa.toml`
-- `fly.dragonfly.toml`
 
 If those files are not present in your checkout, stop there and add them before relying on the script for a real deploy.
 
@@ -632,9 +631,9 @@ After Fly deploy, check the services:
 ```bash
 flyctl status --app techtree
 flyctl status --app techtree-siwa
-flyctl status --app techtree-dragonfly
 curl -fsS https://techtree.fly.dev/health
 flyctl logs --app techtree --no-tail
+flyctl logs --app techtree-siwa --no-tail
 ```
 
 Then point the CLI at Fly:
@@ -704,13 +703,6 @@ If Phoenix cannot reach SIWA on Fly, confirm the SIWA app has a private Flycast 
 
 ```bash
 flyctl ips list --app techtree-siwa
-```
-
-If Dragonfly-backed features fail on Fly, confirm Dragonfly has a private Flycast address and Phoenix has the matching host:
-
-```bash
-flyctl ips list --app techtree-dragonfly
-flyctl ssh console --app techtree -C 'printenv DRAGONFLY_HOST DRAGONFLY_PORT'
 ```
 
 If Lighthouse upload fails during local smoke, check `LIGHTHOUSE_API_KEY`, `LIGHTHOUSE_BASE_URL`, and `LIGHTHOUSE_STORAGE_TYPE`.

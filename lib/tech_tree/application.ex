@@ -8,11 +8,11 @@ defmodule TechTree.Application do
   @impl true
   def start(_type, _args) do
     :ok = enforce_siwa_http_verify_runtime_guard!()
-    dragonfly_children = if dragonfly_enabled?(), do: [dragonfly_child_spec()], else: []
 
     children =
       [
         TechTree.Repo,
+        TechTree.LocalCache.child_spec(),
         {DNSCluster, query: Application.get_env(:tech_tree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: TechTree.PubSub},
         TechTree.XmtpIdentity,
@@ -21,7 +21,7 @@ defmodule TechTree.Application do
         {Oban, Application.fetch_env!(:tech_tree, Oban)},
         TechTreeWeb.Telemetry,
         TechTreeWeb.Endpoint
-      ] ++ dragonfly_children
+      ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -62,16 +62,6 @@ defmodule TechTree.Application do
     runtime_env = Application.get_env(:tech_tree, :runtime_env, :dev)
     siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
     validate_siwa_runtime_config!(runtime_env, siwa_cfg)
-  end
-
-  @spec dragonfly_child_spec() :: Supervisor.child_spec()
-  defp dragonfly_child_spec do
-    RegentCache.Dragonfly.child_spec(:tech_tree)
-  end
-
-  @spec dragonfly_enabled?() :: boolean()
-  defp dragonfly_enabled? do
-    Application.get_env(:tech_tree, :dragonfly_enabled, true) == true
   end
 
   # Tell Phoenix to update the endpoint configuration

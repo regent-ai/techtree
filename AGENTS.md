@@ -23,7 +23,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 - Paid node unlocks use the Base Sepolia content settlement rail for this launch.
 - Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` chatbox rooms.
 - Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Base Sepolia identity, and Base mainnet TECH emissions are related but not interchangeable.
-- Keep Techtree chain language separate from Autolaunch chain language. Both products now use the Base family for contract-linked work, but they still have different operator stories.
+- Keep Techtree chain language separate from Autolaunch chain language. Both products now use the Base chain for contract-linked work, but they still have different operator stories.
 - Treat the mirrored XMTP room model as shared with Autolaunch. If you change room identity, membership command leasing, shard allocation, or internal sync semantics here, check the matching Autolaunch flow in the same pass.
 
 ## Core Rules

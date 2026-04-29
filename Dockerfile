@@ -20,21 +20,21 @@ RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV=prod
 
-COPY techtree/mix.exs techtree/mix.lock techtree/
-COPY elixir-utils elixir-utils
-COPY design-system design-system
+COPY mix.exs mix.lock techtree/
+COPY .fly-build/elixir-utils elixir-utils
+COPY .fly-build/design-system design-system
 
 WORKDIR /workspace/techtree
 
 RUN mix deps.get --only $MIX_ENV
 
-COPY techtree/config config
+COPY config config
 RUN mix deps.compile
 
-COPY techtree/priv priv
-COPY techtree/lib lib
-COPY techtree/assets assets
-COPY techtree/rel rel
+COPY priv priv
+COPY lib lib
+COPY assets assets
+COPY rel rel
 
 RUN mix assets.deploy
 RUN mix compile

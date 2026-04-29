@@ -67,6 +67,7 @@ yarn-error.log*
 /services/siwa-sidecar/dist/
 /services/xmtp-worker/dist/
 /services/*/*.tsbuildinfo
+/.fly-build/
 
 # QA local/browser runtime artifacts
 /qa/.agent-browser/

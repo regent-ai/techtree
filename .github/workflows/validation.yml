@@ -29,16 +29,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: techtree
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/elixir-utils
+          path: elixir-utils
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/design-system
+          path: design-system
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.15.8"
-          otp-version: "26.2.5"
+          elixir-version: "1.19.5"
+          otp-version: "28.4"
 
       - name: Install Phoenix deps
+        working-directory: techtree
         run: mix deps.get
 
       - name: Run Phoenix validation
+        working-directory: techtree
         run: |
           mix precommit
           git diff --exit-code
@@ -68,38 +82,54 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: techtree
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/elixir-utils
+          path: elixir-utils
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/design-system
+          path: design-system
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.15.8"
-          otp-version: "26.2.5"
+          elixir-version: "1.19.5"
+          otp-version: "28.4"
 
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
 
       - name: Install Phoenix deps
+        working-directory: techtree
         run: mix deps.get
 
       - name: Install asset deps
-        working-directory: assets
+        working-directory: techtree/assets
         run: npm ci
 
       - name: Install browser CLI
         run: npm install -g agent-browser
 
       - name: Prepare app
+        working-directory: techtree
         run: |
           mix ecto.setup
           mix assets.setup
           mix assets.build
 
       - name: Start Phoenix server
+        working-directory: techtree
         run: |
           mix phx.server > /tmp/tech_tree_browser.log 2>&1 &
           echo $! > /tmp/tech_tree_browser.pid
 
       - name: Run homepage browser lanes
+        working-directory: techtree
         run: |
           bash qa/phase-c-smoke.sh
           bash qa/phase-d-browser-e2e.sh
@@ -117,7 +147,7 @@ jobs:
         with:
           name: browser-artifacts
           path: |
-            qa/artifacts
+            techtree/qa/artifacts
             /tmp/tech_tree_browser.log
 
   services:
@@ -125,15 +155,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: techtree
 
       - uses: oven-sh/setup-bun@v2
 
       - name: Install services deps
-        working-directory: services
+        working-directory: techtree/services
         run: bun install --frozen-lockfile
 
       - name: Run services validation
-        working-directory: services
+        working-directory: techtree/services
         run: |
           bun run build
           bun run typecheck
@@ -144,8 +176,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          path: techtree
+
+      - uses: actions/checkout@v4
+        with:
           repository: regents-ai/regents-cli
-          path: regents-cli-repo
+          path: regents-cli
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/platform
+          path: platform
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/autolaunch
+          path: autolaunch
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/siwa-server
+          path: siwa-server
 
       - uses: actions/setup-node@v4
         with:
@@ -156,11 +207,17 @@ jobs:
           version: "9.15.0"
 
       - name: Install regents-cli deps
-        working-directory: regents-cli-repo
+        working-directory: regents-cli
         run: pnpm install --frozen-lockfile
 
+      - name: Run cross-repo contract validation
+        working-directory: regents-cli
+        run: |
+          pnpm check:openapi
+          pnpm check:cli-contract
+
       - name: Run regents-cli validation and packaged install smoke
-        working-directory: regents-cli-repo
+        working-directory: regents-cli
         run: |
           pnpm build
           pnpm typecheck

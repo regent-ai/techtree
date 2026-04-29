@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+WORKSPACE_DIR="$(cd "$ROOT_DIR/.." && pwd)"
+BUILD_CONTEXT_DIR="$ROOT_DIR/.fly-build"
 cd "$ROOT_DIR"
 
 export PATH="${HOME}/.fly/bin:${PATH}"
@@ -21,6 +23,11 @@ if ! command -v openssl >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v rsync >/dev/null 2>&1; then
+  echo "rsync is required to stage Phoenix build dependencies"
+  exit 1
+fi
+
 require_env() {
   local name="$1"
 
@@ -33,7 +40,6 @@ require_env() {
 STACK_PREFIX="${FLY_STACK_PREFIX:-techtree}"
 PHOENIX_APP="${FLY_PHOENIX_APP:-$STACK_PREFIX}"
 SIWA_APP="${FLY_SIWA_APP:-${STACK_PREFIX}-siwa}"
-DRAGONFLY_APP="${FLY_DRAGONFLY_APP:-${STACK_PREFIX}-dragonfly}"
 DB_NAME="${FLY_MPG_NAME:-${STACK_PREFIX}-db}"
 REGION="${FLY_REGION:-sjc}"
 PLAN="${FLY_MPG_PLAN:-development}"
@@ -46,14 +52,12 @@ SIWA_RECEIPT_SECRET="${SIWA_RECEIPT_SECRET:-$(openssl rand -hex 32)}"
 INTERNAL_SHARED_SECRET="${INTERNAL_SHARED_SECRET:-$(openssl rand -hex 32)}"
 SIWA_HMAC_KEY_ID="${SIWA_HMAC_KEY_ID:-sidecar-internal-v1}"
 SIWA_PORT="${SIWA_PORT:-4100}"
-DRAGONFLY_PORT="${DRAGONFLY_PORT:-6379}"
 TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-84532}"
 TECHTREE_P2P_ENABLED="${TECHTREE_P2P_ENABLED:-false}"
 SIWA_INTERNAL_URL="http://${SIWA_APP}.flycast:${SIWA_PORT}"
-DRAGONFLY_HOST="${DRAGONFLY_APP}.flycast"
 
 if [[ "$TECHTREE_CHAIN_ID" != "84532" && "$TECHTREE_CHAIN_ID" != "8453" ]]; then
-  echo "deploys are Base-family only; set TECHTREE_CHAIN_ID=84532 or TECHTREE_CHAIN_ID=8453"
+  echo "deploys are Base only; set TECHTREE_CHAIN_ID=84532 or TECHTREE_CHAIN_ID=8453"
   exit 1
 fi
 
@@ -94,6 +98,31 @@ ensure_postgres() {
   fi
 }
 
+stage_build_dependency() {
+  local source_dir="$1"
+  local target_dir="$2"
+  local label="$3"
+
+  if [[ ! -d "$source_dir" ]]; then
+    echo "missing required ${label} checkout: ${source_dir}"
+    exit 1
+  fi
+
+  mkdir -p "$target_dir"
+  rsync -a --delete \
+    --exclude .git \
+    --exclude _build \
+    --exclude deps \
+    --exclude node_modules \
+    "$source_dir"/ "$target_dir"/
+}
+
+prepare_phoenix_build_context() {
+  echo "Staging Phoenix build dependencies"
+  stage_build_dependency "$WORKSPACE_DIR/elixir-utils" "$BUILD_CONTEXT_DIR/elixir-utils" "elixir-utils"
+  stage_build_dependency "$WORKSPACE_DIR/design-system" "$BUILD_CONTEXT_DIR/design-system" "design-system"
+}
+
 attach_postgres() {
   local attach_output
 
@@ -109,6 +138,7 @@ attach_postgres() {
 }
 
 require_prod_env() {
+  require_env DATABASE_DIRECT_URL
   require_env PRIVY_APP_ID
   require_env PRIVY_VERIFICATION_KEY
   require_env LIGHTHOUSE_API_KEY
@@ -126,6 +156,7 @@ set_phoenix_secrets() {
     PHX_SERVER=true \
     PHX_HOST="$PHOENIX_HOST" \
     SECRET_KEY_BASE="$SECRET_KEY_BASE" \
+    DATABASE_DIRECT_URL="$DATABASE_DIRECT_URL" \
     PORT=8080 \
     INTERNAL_SHARED_SECRET="$INTERNAL_SHARED_SECRET" \
     SIWA_INTERNAL_URL="$SIWA_INTERNAL_URL" \
@@ -141,10 +172,7 @@ set_phoenix_secrets() {
     REGISTRY_WRITER_PRIVATE_KEY="$REGISTRY_WRITER_PRIVATE_KEY" \
     AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT="$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" \
     AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN="$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" \
-    AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS="$AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS" \
-    DRAGONFLY_ENABLED=true \
-    DRAGONFLY_HOST="$DRAGONFLY_HOST" \
-    DRAGONFLY_PORT="$DRAGONFLY_PORT"
+    AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS="$AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS"
 }
 
 set_siwa_secrets() {
@@ -166,10 +194,8 @@ deploy_app() {
 
 ensure_app "$PHOENIX_APP"
 ensure_app "$SIWA_APP"
-ensure_app "$DRAGONFLY_APP"
 
 ensure_private_ip "$SIWA_APP"
-ensure_private_ip "$DRAGONFLY_APP"
 
 ensure_postgres
 attach_postgres
@@ -178,12 +204,11 @@ require_prod_env
 set_siwa_secrets
 set_phoenix_secrets
 
-deploy_app "$DRAGONFLY_APP" "fly.dragonfly.toml"
 deploy_app "$SIWA_APP" "fly.siwa.toml"
+prepare_phoenix_build_context
 deploy_app "$PHOENIX_APP" "fly.phoenix.toml"
 
 echo
 echo "Fly stack deployed."
 echo "Phoenix:   https://${PHOENIX_HOST}"
 echo "SIWA:      ${SIWA_INTERNAL_URL}"
-echo "Dragonfly: redis://${DRAGONFLY_HOST}:${DRAGONFLY_PORT}"

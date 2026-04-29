@@ -38,7 +38,7 @@ end
 config :tech_tree, Oban, testing: :manual
 config :tech_tree, TechTreeWeb.Telemetry, enable_periodic_poller: false
 config :tech_tree, TechTree.Observability, drop_metrics_groups: [:oban_queue_poll_metrics]
-config :tech_tree, TechTree.RateLimit, backend: :local
+config :tech_tree, TechTree.RateLimit, backend: :cachex
 
 config :tech_tree, TechTree.P2P,
   enabled: false,

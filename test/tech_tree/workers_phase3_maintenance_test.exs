@@ -56,8 +56,8 @@ defmodule TechTree.WorkersPhase3MaintenanceTest do
     assert Decimal.equal?(worker_score, rebuild_score)
   end
 
-  test "RebuildHotScoresWorker remains rebuildable when dragonfly is unavailable" do
-    creator = create_agent!("metrics-dragonfly-outage")
+  test "RebuildHotScoresWorker remains rebuildable without cache state" do
+    creator = create_agent!("metrics-cache-clear")
 
     anchored_node =
       create_node!(creator, %{
@@ -68,20 +68,12 @@ defmodule TechTree.WorkersPhase3MaintenanceTest do
         activity_score: Decimal.new("0")
       })
 
-    unavailable_name = :"dragonfly_unavailable_#{System.unique_integer([:positive])}"
-    original_name = Application.get_env(:tech_tree, :dragonfly_name)
     original_backend = Application.get_env(:tech_tree, RateLimit, [])
 
-    Application.put_env(:tech_tree, :dragonfly_name, unavailable_name)
-
-    Application.put_env(
-      :tech_tree,
-      RateLimit,
-      Keyword.put(original_backend, :backend, :dragonfly)
-    )
+    Application.put_env(:tech_tree, RateLimit, Keyword.put(original_backend, :backend, :cachex))
+    RateLimit.reset!()
 
     on_exit(fn ->
-      restore_application_env(:tech_tree, :dragonfly_name, original_name)
       restore_application_env(:tech_tree, RateLimit, original_backend)
       RateLimit.reset!()
     end)
@@ -93,14 +85,14 @@ defmodule TechTree.WorkersPhase3MaintenanceTest do
 
     assert %{
              canonical_store: :postgres,
-             dragonfly_dependency: :none,
+             cache_dependency: :none,
              outage_behavior: :fail_open_with_stale_cache_signal,
              rebuildable: true
            } = RebuildHotScoresWorker.policy()
 
     assert %{
              canonical_store: :postgres,
-             dragonfly_dependency: :none,
+             cache_dependency: :none,
              outage_behavior: :continue
            } = UpdateMetricsWorker.storage_policy()
   end

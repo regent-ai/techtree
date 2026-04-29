@@ -27,198 +27,125 @@ defmodule TechTree.Moderation do
           recent_actions: [ModerationAction.t()]
         }
 
-  @type safe_action_result ::
-          :ok
-          | {:error, :message_not_found}
-          | {:error, :agent_not_found}
-          | {:error, :human_not_found}
+  @type action ::
+          :hide_node
+          | :hide_comment
+          | :hide_chatbox_message
+          | :unhide_chatbox_message
+          | :ban_agent
+          | :unban_agent
+          | :ban_human
+          | :unban_human
+          | :add_chatbox_member
+          | :remove_chatbox_member
 
-  @type chatbox_membership_action_result ::
-          {:ok, XMTPMirror.room_admin_action_status()}
-          | {:error, :human_not_found}
-          | {:error, :human_banned}
-          | {:error, :room_not_found}
-          | {:error, :xmtp_identity_required}
+  @type action_result ::
+          {:ok,
+           :hidden
+           | :restored
+           | :banned
+           | :unbanned
+           | XMTPMirror.room_admin_action_status()}
+          | {:error,
+             :agent_not_found
+             | :comment_not_found
+             | :human_banned
+             | :human_not_found
+             | :invalid_action
+             | :message_not_found
+             | :node_not_found
+             | :room_not_found
+             | :xmtp_identity_required}
 
-  @spec hide_node(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def hide_node(id, admin, reason) do
-    node = Repo.get!(Node, normalize_id(id))
-    node |> Node.hide_changeset() |> Repo.update!()
-    :ok = Nodes.refresh_parent_child_metrics!(node.parent_id)
-    _ = Nodes.refresh_activity_score!(node.id)
+  @spec apply_action(action(), integer() | String.t(), HumanUser.t(), String.t() | nil) ::
+          action_result()
+  def apply_action(:hide_node, id, admin, reason) do
+    with {:ok, node} <- fetch_entity(Node, id, :node_not_found) do
+      node |> Node.hide_changeset() |> Repo.update!()
+      :ok = Nodes.refresh_parent_child_metrics!(node.parent_id)
+      _ = Nodes.refresh_activity_score!(node.id)
 
-    log!(:node, node.id, "hide", admin, reason)
-    :ok
+      log!(:node, node.id, "hide", admin, reason)
+      {:ok, :hidden}
+    end
   end
 
-  @spec hide_comment(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def hide_comment(id, admin, reason) do
-    comment = Repo.get!(Comment, normalize_id(id))
-    comment |> Comment.hide_changeset() |> Repo.update!()
-    :ok = Nodes.refresh_comment_metrics!(comment.node_id)
+  def apply_action(:hide_comment, id, admin, reason) do
+    with {:ok, comment} <- fetch_entity(Comment, id, :comment_not_found) do
+      comment |> Comment.hide_changeset() |> Repo.update!()
+      :ok = Nodes.refresh_comment_metrics!(comment.node_id)
 
-    log!(:comment, comment.id, "hide", admin, reason)
-    :ok
+      log!(:comment, comment.id, "hide", admin, reason)
+      {:ok, :hidden}
+    end
   end
 
-  @spec hide_chatbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def hide_chatbox_message(id, admin, reason) do
-    {:ok, message} = Chatbox.hide_message(id)
-
-    log!(:chatbox_message, message.id, "hide", admin, reason)
-    :ok
-  end
-
-  @spec unhide_chatbox_message(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def unhide_chatbox_message(id, admin, reason) do
-    {:ok, message} = Chatbox.unhide_message(id)
-
-    log!(:chatbox_message, message.id, "unhide", admin, reason)
-    :ok
-  end
-
-  @spec ban_agent(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def ban_agent(id, admin, reason) do
-    agent = Repo.get!(AgentIdentity, normalize_id(id))
-    agent |> Ecto.Changeset.change(status: "banned") |> Repo.update!()
-    :ok = reconcile_agent_metrics!(agent.id)
-
-    log!(:agent, agent.id, "ban", admin, reason)
-    :ok
-  end
-
-  @spec unban_agent(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def unban_agent(id, admin, reason) do
-    agent = Repo.get!(AgentIdentity, normalize_id(id))
-    agent |> Ecto.Changeset.change(status: "active") |> Repo.update!()
-    :ok = reconcile_agent_metrics!(agent.id)
-
-    log!(:agent, agent.id, "unban", admin, reason)
-    :ok
-  end
-
-  @spec ban_human(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def ban_human(id, admin, reason) do
-    human = Repo.get!(HumanUser, normalize_id(id))
-    human |> Ecto.Changeset.change(role: "banned") |> Repo.update!()
-    :ok = XMTPMirror.best_effort_remove_human_from_canonical_room(human.id)
-
-    log!(:human, human.id, "ban", admin, reason)
-    :ok
-  end
-
-  @spec unban_human(integer() | String.t(), HumanUser.t(), String.t() | nil) :: :ok
-  def unban_human(id, admin, reason) do
-    human = Repo.get!(HumanUser, normalize_id(id))
-    human |> Ecto.Changeset.change(role: "user") |> Repo.update!()
-
-    log!(:human, human.id, "unban", admin, reason)
-    :ok
-  end
-
-  @spec hide_chatbox_message_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          safe_action_result()
-  def hide_chatbox_message_if_present(id, admin, reason) do
-    with {:ok, message} <- Chatbox.hide_message_if_present(id) do
+  def apply_action(:hide_chatbox_message, id, admin, reason) do
+    with {:ok, message} <- Chatbox.hide_message(id) do
       log!(:chatbox_message, message.id, "hide", admin, reason)
-      :ok
+      {:ok, :hidden}
     end
   end
 
-  @spec unhide_chatbox_message_if_present(
-          integer() | String.t(),
-          HumanUser.t(),
-          String.t() | nil
-        ) :: safe_action_result()
-  def unhide_chatbox_message_if_present(id, admin, reason) do
-    with {:ok, message} <- Chatbox.unhide_message_if_present(id) do
+  def apply_action(:unhide_chatbox_message, id, admin, reason) do
+    with {:ok, message} <- Chatbox.unhide_message(id) do
       log!(:chatbox_message, message.id, "unhide", admin, reason)
-      :ok
+      {:ok, :restored}
     end
   end
 
-  @spec ban_agent_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          safe_action_result()
-  def ban_agent_if_present(id, admin, reason) do
+  def apply_action(:ban_agent, id, admin, reason) do
     with {:ok, agent} <- fetch_entity(AgentIdentity, id, :agent_not_found) do
       agent |> Ecto.Changeset.change(status: "banned") |> Repo.update!()
       :ok = reconcile_agent_metrics!(agent.id)
 
       log!(:agent, agent.id, "ban", admin, reason)
-      :ok
+      {:ok, :banned}
     end
   end
 
-  @spec unban_agent_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          safe_action_result()
-  def unban_agent_if_present(id, admin, reason) do
+  def apply_action(:unban_agent, id, admin, reason) do
     with {:ok, agent} <- fetch_entity(AgentIdentity, id, :agent_not_found) do
       agent |> Ecto.Changeset.change(status: "active") |> Repo.update!()
       :ok = reconcile_agent_metrics!(agent.id)
 
       log!(:agent, agent.id, "unban", admin, reason)
-      :ok
+      {:ok, :unbanned}
     end
   end
 
-  @spec ban_human_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          safe_action_result()
-  def ban_human_if_present(id, admin, reason) do
+  def apply_action(:ban_human, id, admin, reason) do
     with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
       human |> Ecto.Changeset.change(role: "banned") |> Repo.update!()
       :ok = XMTPMirror.best_effort_remove_human_from_canonical_room(human.id)
 
       log!(:human, human.id, "ban", admin, reason)
-      :ok
+      {:ok, :banned}
     end
   end
 
-  @spec unban_human_if_present(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          safe_action_result()
-  def unban_human_if_present(id, admin, reason) do
+  def apply_action(:unban_human, id, admin, reason) do
     with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
       human |> Ecto.Changeset.change(role: "user") |> Repo.update!()
 
       log!(:human, human.id, "unban", admin, reason)
-      :ok
+      {:ok, :unbanned}
     end
   end
 
-  @spec add_human_to_chatbox(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          chatbox_membership_action_result()
-  def add_human_to_chatbox(id, admin, reason) do
-    human = Repo.get!(HumanUser, normalize_id(id))
-
-    case XMTPMirror.add_human_to_canonical_room(human.id) do
-      {:ok, :enqueued} ->
-        log!(:human, human.id, "add_chatbox_member", admin, reason)
-        {:ok, :enqueued}
-
-      {:ok, status} ->
-        {:ok, status}
-
-      {:error, reason_code} ->
-        {:error, reason_code}
+  def apply_action(:add_chatbox_member, id, admin, reason) do
+    with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
+      update_chatbox_membership(:add_chatbox_member, human, admin, reason)
     end
   end
 
-  @spec remove_human_from_chatbox(integer() | String.t(), HumanUser.t(), String.t() | nil) ::
-          chatbox_membership_action_result()
-  def remove_human_from_chatbox(id, admin, reason) do
-    human = Repo.get!(HumanUser, normalize_id(id))
-
-    case XMTPMirror.remove_human_from_canonical_room(human.id) do
-      {:ok, :enqueued} ->
-        log!(:human, human.id, "remove_chatbox_member", admin, reason)
-        {:ok, :enqueued}
-
-      {:ok, status} ->
-        {:ok, status}
-
-      {:error, reason_code} ->
-        {:error, reason_code}
+  def apply_action(:remove_chatbox_member, id, admin, reason) do
+    with {:ok, human} <- fetch_entity(HumanUser, id, :human_not_found) do
+      update_chatbox_membership(:remove_chatbox_member, human, admin, reason)
     end
   end
+
+  def apply_action(_action, _id, _admin, _reason), do: {:error, :invalid_action}
 
   @spec list_chatbox_dashboard_messages(map()) :: [Message.t()]
   def list_chatbox_dashboard_messages(filters \\ %{}) when is_map(filters) do
@@ -398,6 +325,34 @@ defmodule TechTree.Moderation do
 
   defp author_ref(%Message{author_kind: :human, author_human_id: id}), do: id
   defp author_ref(%Message{author_kind: :agent, author_agent_id: id}), do: id
+
+  defp update_chatbox_membership(:add_chatbox_member, human, admin, reason) do
+    case XMTPMirror.add_human_to_canonical_room(human.id) do
+      {:ok, :enqueued} ->
+        log!(:human, human.id, "add_chatbox_member", admin, reason)
+        {:ok, :enqueued}
+
+      {:ok, status} ->
+        {:ok, status}
+
+      {:error, reason_code} ->
+        {:error, reason_code}
+    end
+  end
+
+  defp update_chatbox_membership(:remove_chatbox_member, human, admin, reason) do
+    case XMTPMirror.remove_human_from_canonical_room(human.id) do
+      {:ok, :enqueued} ->
+        log!(:human, human.id, "remove_chatbox_member", admin, reason)
+        {:ok, :enqueued}
+
+      {:ok, status} ->
+        {:ok, status}
+
+      {:error, reason_code} ->
+        {:error, reason_code}
+    end
+  end
 
   defp fetch_entity(schema, id, not_found_reason) do
     case Repo.get(schema, normalize_id(id)) do

@@ -166,7 +166,7 @@ defmodule TechTreeWeb.BbhControllerTest do
 
     TechTree.Repo.get!(TechTree.BBH.Capsule, capsule.capsule_id)
     |> Ecto.Changeset.change(%{
-      certificate_status: "active",
+      certificate_status: :active,
       certificate_review_id: "0xreview#{String.duplicate("1", 58)}"
     })
     |> TechTree.Repo.update!()

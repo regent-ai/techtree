@@ -20,8 +20,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_draft_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_failed", "BBH draft failed")
     end
   end
 
@@ -35,8 +35,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_draft_list_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_list_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_list_failed", "BBH draft list failed")
     end
   end
 
@@ -48,8 +48,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, :capsule_not_found} ->
         not_found(conn, "bbh_capsule_not_found", "BBH draft not found")
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_failed", "BBH draft failed")
     end
   end
 
@@ -74,8 +74,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_draft_proposal_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_proposal_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_proposal_failed", "BBH draft proposal failed")
     end
   end
 
@@ -105,8 +105,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_draft_proposal_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_proposal_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_proposal_failed", "BBH draft proposal failed")
     end
   end
 
@@ -134,8 +134,8 @@ defmodule TechTreeWeb.AgentBbhDraftController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_draft_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_draft_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_draft_failed", "BBH draft failed")
     end
   end
 

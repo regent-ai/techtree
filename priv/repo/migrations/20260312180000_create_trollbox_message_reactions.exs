@@ -1,7 +1,7 @@
 defmodule TechTree.Repo.Migrations.CreateChatboxMessageReactions do
   use Ecto.Migration
 
-  def change do
+  def up do
     execute("""
     CREATE TABLE IF NOT EXISTS chatbox_messages (
       id bigserial PRIMARY KEY,
@@ -54,5 +54,9 @@ defmodule TechTree.Repo.Migrations.CreateChatboxMessageReactions do
              [:message_id, :actor_kind, :actor_ref, :reaction],
              name: :chatbox_message_reactions_message_actor_reaction_uidx
            )
+  end
+
+  def down do
+    raise "hard cutover only"
   end
 end

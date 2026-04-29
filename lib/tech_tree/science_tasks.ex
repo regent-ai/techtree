@@ -51,6 +51,7 @@ defmodule TechTree.ScienceTasks do
   @spec list_public_tasks(map()) :: [ScienceTask.t()]
   def list_public_tasks(params \\ %{}) when is_map(params) do
     limit = parse_limit(params)
+    cursor = TechTree.QueryHelpers.parse_cursor(params)
 
     query =
       ScienceTask
@@ -60,6 +61,7 @@ defmodule TechTree.ScienceTasks do
       |> maybe_filter_stage(params["stage"])
       |> maybe_filter_string(:science_domain, params["science_domain"])
       |> maybe_filter_string(:science_field, params["science_field"])
+      |> maybe_before_cursor(cursor)
       |> order_by([task, node], asc: task.workflow_state, desc: node.inserted_at, desc: node.id)
       |> limit(^limit)
 
@@ -1007,6 +1009,11 @@ defmodule TechTree.ScienceTasks do
   end
 
   defp maybe_filter_stage(query, _value), do: query
+
+  defp maybe_before_cursor(query, nil), do: query
+
+  defp maybe_before_cursor(query, cursor),
+    do: where(query, [task, _node, _agent], task.node_id < ^cursor)
 
   defp maybe_filter_string(query, _field, nil), do: query
 

@@ -66,7 +66,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
 
     TechTree.Repo.get!(TechTree.BBH.Capsule, seeded_capsule.capsule_id)
     |> Ecto.Changeset.change(%{
-      certificate_status: "active",
+      certificate_status: :active,
       certificate_review_id: "0xreview#{String.duplicate("1", 58)}"
     })
     |> TechTree.Repo.update!()
@@ -165,7 +165,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
       })
 
     validation
-    |> Ecto.Changeset.change(%{result: "rejected"})
+    |> Ecto.Changeset.change(%{result: :rejected})
     |> Repo.update!()
 
     {:ok, view, _html} = live(conn, ~p"/bbh/runs/#{run.run_id}")

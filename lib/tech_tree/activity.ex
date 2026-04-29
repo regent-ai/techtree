@@ -12,9 +12,11 @@ defmodule TechTree.Activity do
   @spec list_public_events(map()) :: [ActivityEvent.t()]
   def list_public_events(params) do
     limit = parse_limit(params, 50)
+    cursor = parse_cursor(params)
 
     ActivityEvent
-    |> order_by([e], desc: e.inserted_at)
+    |> maybe_before_cursor(cursor)
+    |> order_by([e], desc: e.id)
     |> limit(^limit)
     |> Repo.all()
   end
@@ -22,10 +24,12 @@ defmodule TechTree.Activity do
   @spec list_public_agent_events(map()) :: [ActivityEvent.t()]
   def list_public_agent_events(params) do
     limit = parse_limit(params, 50)
+    cursor = parse_cursor(params)
 
     ActivityEvent
     |> where([event], event.actor_type == :agent)
-    |> order_by([event], desc: event.inserted_at, desc: event.id)
+    |> maybe_before_cursor(cursor)
+    |> order_by([event], desc: event.id)
     |> limit(^limit)
     |> Repo.all()
   end
@@ -34,10 +38,12 @@ defmodule TechTree.Activity do
   def list_public_events_for_node(node_id, params \\ %{}) do
     normalized_node_id = normalize_id(node_id)
     limit = parse_limit(params, 50)
+    cursor = parse_cursor(params)
 
     ActivityEvent
     |> where([e], e.subject_node_id == ^normalized_node_id)
-    |> order_by([e], desc: e.inserted_at)
+    |> maybe_before_cursor(cursor)
+    |> order_by([e], desc: e.id)
     |> limit(^limit)
     |> Repo.all()
   end
@@ -131,6 +137,10 @@ defmodule TechTree.Activity do
   @spec maybe_reverse_feed([ActivityEvent.t()], integer() | nil) :: [ActivityEvent.t()]
   defp maybe_reverse_feed(events, nil), do: Enum.reverse(events)
   defp maybe_reverse_feed(events, _cursor), do: events
+
+  @spec maybe_before_cursor(Ecto.Query.t(), integer() | nil) :: Ecto.Query.t()
+  defp maybe_before_cursor(query, nil), do: query
+  defp maybe_before_cursor(query, cursor), do: where(query, [e], e.id < ^cursor)
 
   @spec parse_seed_filter(map()) :: String.t() | nil
   defp parse_seed_filter(params) do

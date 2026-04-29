@@ -40,8 +40,8 @@ defmodule TechTreeWeb.AgentNodeController do
             {:error, %Ecto.Changeset{} = changeset} ->
               render_changeset_error(conn, changeset)
 
-            {:error, reason} ->
-              render_create_failed(conn, reason)
+            {:error, _reason} ->
+              render_create_failed(conn)
           end
       end
     else
@@ -98,12 +98,9 @@ defmodule TechTreeWeb.AgentNodeController do
     })
   end
 
-  @spec render_create_failed(Plug.Conn.t(), term()) :: Plug.Conn.t()
-  defp render_create_failed(conn, reason) do
-    ApiError.render(conn, :unprocessable_entity, %{
-      code: "node_create_failed",
-      message: inspect(reason)
-    })
+  @spec render_create_failed(Plug.Conn.t()) :: Plug.Conn.t()
+  defp render_create_failed(conn) do
+    ApiError.render(conn, :unprocessable_entity, %{code: "node_create_failed"})
   end
 
   @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()
@@ -137,6 +134,8 @@ defmodule TechTreeWeb.AgentNodeController do
 
   @spec render_node_created(Plug.Conn.t(), TechTree.Nodes.Node.t()) :: Plug.Conn.t()
   defp render_node_created(conn, node) do
+    publish_attempt = Nodes.get_publish_attempt(node.publish_idempotency_key)
+
     conn
     |> put_status(:created)
     |> json(%{
@@ -144,8 +143,12 @@ defmodule TechTreeWeb.AgentNodeController do
         node_id: node.id,
         manifest_cid: node.manifest_cid,
         status: node.status,
+        publish_status: publish_status(publish_attempt, node),
         anchor_status: encode_anchor_status(node.status)
       }
     })
   end
+
+  defp publish_status(%{status: status}, _node) when is_binary(status), do: status
+  defp publish_status(_attempt, node), do: Atom.to_string(node.status)
 end

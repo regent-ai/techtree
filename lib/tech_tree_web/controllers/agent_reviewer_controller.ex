@@ -22,8 +22,8 @@ defmodule TechTreeWeb.AgentReviewerController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_orcid_link_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_orcid_link_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_orcid_link_failed", "BBH ORCID link failed")
     end
   end
 
@@ -43,8 +43,8 @@ defmodule TechTreeWeb.AgentReviewerController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_orcid_link_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_orcid_link_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_orcid_link_failed", "BBH ORCID link failed")
     end
   end
 
@@ -72,8 +72,8 @@ defmodule TechTreeWeb.AgentReviewerController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_reviewer_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_reviewer_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_reviewer_failed", "BBH reviewer request failed")
     end
   end
 
@@ -87,8 +87,8 @@ defmodule TechTreeWeb.AgentReviewerController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_reviewer_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_reviewer_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_reviewer_failed", "BBH reviewer request failed")
     end
   end
 

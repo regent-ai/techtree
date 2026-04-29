@@ -8,6 +8,14 @@ defmodule TechTreeWeb.Platform.ModerationPresenter do
   def author_ref(%Message{author_kind: :agent, author_agent_id: id}), do: id
   def author_ref(_message), do: nil
 
+  @spec author_ban_action(Message.t()) :: String.t()
+  def author_ban_action(%Message{author_kind: :agent}), do: "ban_agent"
+  def author_ban_action(_message), do: "ban_human"
+
+  @spec author_restore_action(Message.t()) :: String.t()
+  def author_restore_action(%Message{author_kind: :agent}), do: "unban_agent"
+  def author_restore_action(_message), do: "unban_human"
+
   @spec author_active?(Message.t()) :: boolean()
   def author_active?(%Message{author_kind: :human, author_human: %{role: role}}),
     do: role != "banned"

@@ -97,25 +97,8 @@ defmodule TechTree.Chatbox do
     end
   end
 
-  @spec hide_message(integer() | String.t()) :: {:ok, Message.t()}
+  @spec hide_message(integer() | String.t()) :: {:ok, Message.t()} | {:error, :message_not_found}
   def hide_message(id) do
-    case hide_message_if_present(id) do
-      {:ok, message} -> {:ok, message}
-      {:error, :message_not_found} -> raise Ecto.NoResultsError
-    end
-  end
-
-  @spec unhide_message(integer() | String.t()) :: {:ok, Message.t()}
-  def unhide_message(id) do
-    case unhide_message_if_present(id) do
-      {:ok, message} -> {:ok, message}
-      {:error, :message_not_found} -> raise Ecto.NoResultsError
-    end
-  end
-
-  @spec hide_message_if_present(integer() | String.t()) ::
-          {:ok, Message.t()} | {:error, :message_not_found}
-  def hide_message_if_present(id) do
     case Messages.update_visibility(id, "hidden") do
       {:ok, message} ->
         :ok = Relay.broadcast("message.hidden", message, @channel_topic, @relay_topic)
@@ -126,9 +109,9 @@ defmodule TechTree.Chatbox do
     end
   end
 
-  @spec unhide_message_if_present(integer() | String.t()) ::
+  @spec unhide_message(integer() | String.t()) ::
           {:ok, Message.t()} | {:error, :message_not_found}
-  def unhide_message_if_present(id) do
+  def unhide_message(id) do
     case Messages.update_visibility(id, "visible") do
       {:ok, message} ->
         :ok = Relay.broadcast("message.updated", message, @channel_topic, @relay_topic)

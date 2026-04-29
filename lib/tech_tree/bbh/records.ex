@@ -2,6 +2,9 @@ defmodule TechTree.BBH.Capsule do
   @moduledoc false
   use TechTree.Schema
 
+  @workflow_states [:authoring, :review_ready, :in_review, :approved, :rejected]
+  @certificate_statuses [:none, :active]
+
   @primary_key {:capsule_id, :string, autogenerate: false}
   @foreign_key_type :string
 
@@ -25,7 +28,7 @@ defmodule TechTree.BBH.Capsule do
     field :source_node_id, :integer
     field :seed, :string
     field :parent_id, :integer
-    field :workflow_state, :string, default: "authoring"
+    field :workflow_state, Ecto.Enum, values: @workflow_states, default: :authoring
     field :notebook_py, :string
     field :capsule_source, :map, default: %{}
     field :recommended_genome_source, :map, default: %{}
@@ -33,7 +36,7 @@ defmodule TechTree.BBH.Capsule do
     field :publication_artifact_id, :string
     field :publication_review_id, :string
     field :published_at, :utc_datetime_usec
-    field :certificate_status, :string, default: "none"
+    field :certificate_status, Ecto.Enum, values: @certificate_statuses, default: :none
     field :certificate_review_id, :string
     field :certificate_scope, :string
     field :certificate_expires_at, :utc_datetime_usec
@@ -109,6 +112,8 @@ defmodule TechTree.BBH.Capsule do
       :rubric_json,
       :task_json
     ])
+    |> check_constraint(:workflow_state, name: :bbh_capsules_workflow_state_check)
+    |> check_constraint(:certificate_status, name: :bbh_capsules_certificate_status_check)
   end
 end
 
@@ -116,13 +121,15 @@ defmodule TechTree.BBH.Assignment do
   @moduledoc false
   use TechTree.Schema
 
+  @statuses [:assigned, :completed]
+
   @primary_key {:assignment_ref, :string, autogenerate: false}
   @foreign_key_type :string
 
   schema "bbh_assignments" do
     field :capsule_id, :string
     field :split, :string
-    field :status, :string
+    field :status, Ecto.Enum, values: @statuses
     field :agent_wallet_address, :string
     field :agent_token_id, :string
     field :origin, :string
@@ -152,6 +159,7 @@ defmodule TechTree.BBH.Assignment do
       :completed_at
     ])
     |> validate_required([:assignment_ref, :capsule_id, :split, :status, :origin])
+    |> check_constraint(:status, name: :bbh_assignments_status_check)
   end
 end
 
@@ -224,6 +232,8 @@ defmodule TechTree.BBH.Run do
   @moduledoc false
   use TechTree.Schema
 
+  @statuses [:validation_pending, :running, :failed, :validated, :rejected]
+
   @primary_key {:run_id, :string, autogenerate: false}
   @foreign_key_type :string
 
@@ -236,7 +246,7 @@ defmodule TechTree.BBH.Run do
     field :harness_type, :string
     field :harness_version, :string
     field :split, :string
-    field :status, :string
+    field :status, Ecto.Enum, values: @statuses
     field :raw_score, :float
     field :normalized_score, :float
     field :score_source, :string
@@ -320,6 +330,7 @@ defmodule TechTree.BBH.Run do
       :genome_source,
       :run_source
     ])
+    |> check_constraint(:status, name: :bbh_runs_status_check)
   end
 end
 
@@ -327,15 +338,19 @@ defmodule TechTree.BBH.Validation do
   @moduledoc false
   use TechTree.Schema
 
+  @roles [:official, :community]
+  @methods [:replay, :manual, :replication]
+  @results [:confirmed, :rejected, :mixed, :needs_revision]
+
   @primary_key {:validation_id, :string, autogenerate: false}
   @foreign_key_type :string
 
   schema "bbh_validations" do
     field :run_id, :string
     field :canonical_review_id, :string
-    field :role, :string
-    field :method, :string
-    field :result, :string
+    field :role, Ecto.Enum, values: @roles
+    field :method, Ecto.Enum, values: @methods
+    field :result, Ecto.Enum, values: @results
     field :reproduced_raw_score, :float
     field :reproduced_normalized_score, :float
     field :tolerance_raw_abs, :float
@@ -382,5 +397,8 @@ defmodule TechTree.BBH.Validation do
       :review_source,
       :tolerance_raw_abs
     ])
+    |> check_constraint(:role, name: :bbh_validations_role_check)
+    |> check_constraint(:method, name: :bbh_validations_method_check)
+    |> check_constraint(:result, name: :bbh_validations_result_check)
   end
 end

@@ -26,7 +26,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.map(Nodes.list_tagged_edges(root.id), & &1.dst_node_id) == [child.id]
     assert Enum.map(Nodes.get_public_node!(root.id).tag_edges_out, & &1.dst_node_id) == [child.id]
 
-    :ok = Moderation.hide_node(child.id, admin, "hidden child")
+    {:ok, :hidden} = Moderation.apply_action(:hide_node, child.id, admin, "hidden child")
 
     root_after_child_hide = Repo.get!(Node, root.id)
     assert root_after_child_hide.child_count == 0
@@ -36,7 +36,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Nodes.list_tagged_edges(root.id) == []
     assert Nodes.get_public_node!(root.id).tag_edges_out == []
 
-    :ok = Moderation.hide_node(root.id, admin, "hidden root")
+    {:ok, :hidden} = Moderation.apply_action(:hide_node, root.id, admin, "hidden root")
 
     refute Enum.any?(Nodes.list_public_nodes(%{}), &(&1.id == root.id))
     assert_raise Ecto.NoResultsError, fn -> Nodes.get_public_node!(root.id) end
@@ -59,14 +59,13 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
     assert Repo.get!(Node, node.id).comment_count == 2
 
-    assert Enum.map(Comments.list_public_for_node(node.id, %{}), & &1.id) == [
-             hidden_comment.id,
-             visible_comment.id
-           ]
+    assert Comments.list_public_for_node(node.id, %{}) |> Enum.map(& &1.id) |> Enum.sort() ==
+             [hidden_comment.id, visible_comment.id] |> Enum.sort()
 
     assert Enum.map(Search.search(hidden_term, %{}).comments, & &1.id) == [hidden_comment.id]
 
-    :ok = Moderation.hide_comment(hidden_comment.id, admin, "hidden comment")
+    {:ok, :hidden} =
+      Moderation.apply_action(:hide_comment, hidden_comment.id, admin, "hidden comment")
 
     assert Repo.get!(Node, node.id).comment_count == 1
     assert Enum.map(Comments.list_public_for_node(node.id, %{}), & &1.id) == [visible_comment.id]
@@ -119,7 +118,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Search.search(node_term, %{}).nodes, &(&1.id == banned_node.id))
     assert Enum.any?(Search.search(comment_term, %{}).comments, &(&1.id == banned_comment.id))
 
-    :ok = Moderation.ban_agent(banned_agent.id, admin, "banned agent")
+    {:ok, :banned} = Moderation.apply_action(:ban_agent, banned_agent.id, admin, "banned agent")
 
     active_node_after_ban = Repo.get!(Node, active_node.id)
 
@@ -156,7 +155,8 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
-    :ok = Moderation.hide_chatbox_message(hidden_message.id, admin, "hidden message")
+    {:ok, :hidden} =
+      Moderation.apply_action(:hide_chatbox_message, hidden_message.id, admin, "hidden message")
 
     refute Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == hidden_message.id))
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
@@ -194,8 +194,8 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == agent_message.id))
     assert Enum.any?(Chatbox.list_public_messages(%{}).messages, &(&1.id == visible_message.id))
 
-    :ok = Moderation.ban_human(banned_human.id, admin, "ban human")
-    :ok = Moderation.ban_agent(banned_agent.id, admin, "ban agent")
+    {:ok, :banned} = Moderation.apply_action(:ban_human, banned_human.id, admin, "ban human")
+    {:ok, :banned} = Moderation.apply_action(:ban_agent, banned_agent.id, admin, "ban agent")
 
     assert Repo.get_by!(XmtpMembershipCommand,
              human_user_id: banned_human.id,
@@ -225,7 +225,8 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     insert_joined_membership!(human)
     {:ok, cleared_human} = Accounts.update_human(human, %{"xmtp_inbox_id" => nil})
 
-    :ok = Moderation.ban_human(cleared_human.id, admin, "ban human after clear")
+    {:ok, :banned} =
+      Moderation.apply_action(:ban_human, cleared_human.id, admin, "ban human after clear")
 
     assert Repo.get_by!(XmtpMembershipCommand,
              human_user_id: cleared_human.id,

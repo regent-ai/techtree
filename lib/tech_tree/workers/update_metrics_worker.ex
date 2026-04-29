@@ -10,7 +10,7 @@ defmodule TechTree.Workers.UpdateMetricsWorker do
   def storage_policy do
     %{
       canonical_store: :postgres,
-      dragonfly_dependency: :none,
+      cache_dependency: :none,
       outage_behavior: :continue
     }
   end

@@ -12,7 +12,11 @@ defmodule TechTreeWeb.PublicNodeController do
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, params) do
     nodes = Nodes.list_public_nodes(params)
-    json(conn, %{data: PublicEncoding.encode_nodes(nodes)})
+
+    json(
+      conn,
+      ControllerHelpers.paginated(%{data: PublicEncoding.encode_nodes(nodes)}, params, nodes, 50)
+    )
   end
 
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -51,7 +55,16 @@ defmodule TechTreeWeb.PublicNodeController do
     case parse_id(id) do
       {:ok, normalized_id} ->
         children = Nodes.list_public_children(normalized_id, params)
-        json(conn, %{data: PublicEncoding.encode_nodes(children)})
+
+        json(
+          conn,
+          ControllerHelpers.paginated(
+            %{data: PublicEncoding.encode_nodes(children)},
+            params,
+            children,
+            100
+          )
+        )
 
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
@@ -68,7 +81,15 @@ defmodule TechTreeWeb.PublicNodeController do
         Nodes.list_readable_children(agent.id, normalized_id, params)
         |> NodeAccess.attach_projection(%{wallet_address: agent.wallet_address})
 
-      json(conn, %{data: PublicEncoding.encode_nodes(children)})
+      json(
+        conn,
+        ControllerHelpers.paginated(
+          %{data: PublicEncoding.encode_nodes(children)},
+          params,
+          children,
+          100
+        )
+      )
     else
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
@@ -95,7 +116,16 @@ defmodule TechTreeWeb.PublicNodeController do
     case parse_id(id) do
       {:ok, normalized_id} ->
         comments = Comments.list_public_for_node(normalized_id, params)
-        json(conn, %{data: PublicEncoding.encode_comments(comments)})
+
+        json(
+          conn,
+          ControllerHelpers.paginated(
+            %{data: PublicEncoding.encode_comments(comments)},
+            params,
+            comments,
+            100
+          )
+        )
 
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
@@ -109,7 +139,16 @@ defmodule TechTreeWeb.PublicNodeController do
     with {:ok, normalized_id} <- parse_id(id),
          {:ok, _node} <- fetch_readable_node(agent.id, normalized_id) do
       comments = Comments.list_readable_for_agent_node(agent.id, normalized_id, params)
-      json(conn, %{data: PublicEncoding.encode_comments(comments)})
+
+      json(
+        conn,
+        ControllerHelpers.paginated(
+          %{data: PublicEncoding.encode_comments(comments)},
+          params,
+          comments,
+          100
+        )
+      )
     else
       {:error, :invalid_id} ->
         ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})

@@ -8,7 +8,7 @@ defmodule TechTree.Workers.RebuildHotScoresWorker do
   def policy do
     %{
       canonical_store: :postgres,
-      dragonfly_dependency: :none,
+      cache_dependency: :none,
       outage_behavior: :fail_open_with_stale_cache_signal,
       rebuildable: true
     }

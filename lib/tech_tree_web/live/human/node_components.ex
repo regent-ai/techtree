@@ -108,8 +108,8 @@ defmodule TechTreeWeb.Human.NodeComponents do
       <div class="tt-public-node-detail-main">
         <section id="node-proof" class="tt-public-detail-card">
           <div class="tt-public-side-list-head">
-            <h3>Proof</h3>
-            <p>Open the publication and notebook records that anchor this branch.</p>
+            <h3>Public proof</h3>
+            <p>Read the public source, chain, and publication records for this branch.</p>
           </div>
           <ul class="tt-public-detail-list">
             <%= for row <- @page.proof_rows do %>

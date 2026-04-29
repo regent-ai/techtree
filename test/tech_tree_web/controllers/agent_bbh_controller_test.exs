@@ -113,7 +113,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
 
     run = Repo.get!(Run, run_id)
     assert run.capsule_id == capsule.capsule_id
-    assert run.status == "validation_pending"
+    assert run.status == :validation_pending
     assert run.score_source == "hypotest:hypotest-v1"
     assert get_in(run.run_source, ["solver", "kind"]) == "skydiscover"
     assert get_in(run.run_source, ["search", "summary", "iterations_completed"]) == 6
@@ -188,10 +188,10 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
 
     assert returned_run_id == run.run_id
 
-    assert %Validation{run_id: ^returned_run_id, result: "confirmed"} =
+    assert %Validation{run_id: ^returned_run_id, result: :confirmed} =
              Repo.get!(Validation, validation_id)
 
-    assert Repo.get!(Run, run.run_id).status == "validated"
+    assert Repo.get!(Run, run.run_id).status == :validated
 
     assert get_in(Repo.get!(Validation, validation_id).review_source, ["bbh", "evaluator_kind"]) ==
              "hypotest"
@@ -222,7 +222,7 @@ defmodule TechTreeWeb.AgentBbhControllerTest do
            } = response
 
     assert run_id == run.run_id
-    assert validation.result == "confirmed"
+    assert validation.result == :confirmed
   end
 
   test "POST /v1/agent/bbh/sync returns the latest validation for multiple runs", %{conn: conn} do

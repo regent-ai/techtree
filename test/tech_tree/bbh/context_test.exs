@@ -195,8 +195,8 @@ defmodule TechTree.BBH.ContextTest do
              )
 
     updated = Repo.get!(Capsule, capsule.capsule_id)
-    assert updated.workflow_state == "approved"
-    assert updated.certificate_status == "active"
+    assert updated.workflow_state == :approved
+    assert updated.certificate_status == :active
     assert updated.certificate_review_id == review_node_id
   end
 end

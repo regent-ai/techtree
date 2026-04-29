@@ -306,26 +306,6 @@ defmodule TechTree.V1 do
     end
   end
 
-  defp materialize_submission(%{"path" => path} = attrs),
-    do: materialize_submission(Map.put(attrs, :path, path))
-
-  defp materialize_submission(%{path: path} = attrs) when is_binary(path) do
-    with {:ok, compiled} <- locate_compilation(path) do
-      {:ok,
-       %{
-         node_type: compiled.node_type,
-         header: compiled.header,
-         manifest: compiled.manifest,
-         payload_index: compiled.payload_index,
-         manifest_cid: map_get(attrs, "manifest_cid", :manifest_cid),
-         payload_cid: map_get(attrs, "payload_cid", :payload_cid),
-         tx_hash: map_get(attrs, "tx_hash", :tx_hash),
-         block_number: map_get(attrs, "block_number", :block_number),
-         block_time: map_get(attrs, "block_time", :block_time)
-       }}
-    end
-  end
-
   defp materialize_submission(attrs) when is_map(attrs) do
     manifest = map_get(attrs, "manifest", :manifest)
     payload_index = map_get(attrs, "payload_index", :payload_index)
@@ -420,7 +400,11 @@ defmodule TechTree.V1 do
   defp fetch_ipfs_json(cid, suffix \\ nil) do
     path = if is_binary(suffix), do: "#{cid}/#{suffix}", else: cid
 
-    case Req.get(url: "#{gateway_base()}/#{path}") do
+    case Req.get(
+           url: "#{gateway_base()}/#{path}",
+           receive_timeout: 15_000,
+           connect_options: [timeout: 5_000]
+         ) do
       {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
         case body do
           decoded when is_map(decoded) -> {:ok, decoded}
@@ -488,9 +472,10 @@ defmodule TechTree.V1 do
   end
 
   defp upload_file(path) do
-    {:ok, LighthouseClient.upload_path!(path)}
-  rescue
-    error -> {:error, {:upload_failed, Exception.message(error)}}
+    case LighthouseClient.upload_path(path) do
+      {:ok, upload} -> {:ok, upload}
+      {:error, reason} -> {:error, {:upload_failed, reason}}
+    end
   end
 
   defp persist_verified_node(compiled, verification) do
@@ -524,10 +509,13 @@ defmodule TechTree.V1 do
     )
     |> Multi.delete_all(:delete_run, from(run in Run, where: run.id == ^node_id))
     |> Multi.delete_all(:delete_review, from(review in Review, where: review.id == ^node_id))
-    |> Multi.insert_or_update(
-      :node,
-      Node.changeset(%Node{id: node_id}, node_attrs(compiled, verification, node_type))
-    )
+    |> Multi.run(:node, fn repo, _changes ->
+      node = repo.get(Node, node_id) || %Node{}
+
+      node
+      |> Node.changeset(node_attrs(compiled, verification, node_type))
+      |> repo.insert_or_update()
+    end)
     |> Multi.run(:type_record, fn repo, %{node: _node} ->
       insert_type_record(repo, compiled, node_id)
     end)
@@ -544,15 +532,18 @@ defmodule TechTree.V1 do
     |> Multi.run(:edges, fn repo, _changes ->
       insert_edges(repo, node_id, compiled.manifest, compiled.node_type)
     end)
-    |> Multi.insert_or_update(
-      :node_state,
-      NodeState.changeset(%NodeState{node_id: node_id}, %{
+    |> Multi.run(:node_state, fn repo, _changes ->
+      node_state = repo.get_by(NodeState, node_id: node_id) || %NodeState{}
+
+      node_state
+      |> NodeState.changeset(%{
         node_id: node_id,
         validated: false,
         challenged: false,
         retired: false
       })
-    )
+      |> repo.insert_or_update()
+    end)
     |> Multi.run(:review_state, fn repo, _changes -> maybe_update_target_state(repo, compiled) end)
     |> Repo.transaction()
     |> case do
@@ -750,7 +741,7 @@ defmodule TechTree.V1 do
     target_id = get_in(manifest, ["target", "id"])
 
     state =
-      Repo.get(NodeState, target_id) ||
+      repo.get(NodeState, target_id) ||
         %NodeState{node_id: target_id, validated: false, challenged: false, retired: false}
 
     attrs = %{

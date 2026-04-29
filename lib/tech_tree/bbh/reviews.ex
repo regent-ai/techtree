@@ -20,7 +20,7 @@ defmodule TechTree.BBH.Reviews do
 
   @certificate_ttl_days 365
   @review_kinds ~w(design genome certification)
-  @review_open_states ~w(open claimed)
+  @review_open_states [:open, :claimed]
   @review_decisions ~w(approve approve_with_edits changes_requested reject)
 
   def list_reviews(agent_claims, attrs \\ %{}) do
@@ -46,18 +46,18 @@ defmodule TechTree.BBH.Reviews do
     with {:ok, profile} <- Reviewers.require_approved_reviewer(agent_claims),
          %ReviewRequest{} = request <-
            Repo.get(ReviewRequest, request_id) || {:error, :review_request_not_found},
-         true <- request.state == "open" || {:error, :review_request_not_claimable},
+         true <- request.state == :open || {:error, :review_request_not_claimable},
          %Capsule{} = capsule <-
            Repo.get(Capsule, request.capsule_id) || {:error, :capsule_not_found} do
       Multi.new()
       |> Multi.update(
         :request,
         ReviewRequest.changeset(request, %{
-          state: "claimed",
+          state: :claimed,
           claimed_by_wallet: profile.wallet_address
         })
       )
-      |> Multi.update(:capsule, Capsule.changeset(capsule, %{workflow_state: "in_review"}))
+      |> Multi.update(:capsule, Capsule.changeset(capsule, %{workflow_state: :in_review}))
       |> Repo.transaction()
       |> case do
         {:ok, %{request: updated}} -> {:ok, review_request_payload(updated)}
@@ -73,7 +73,7 @@ defmodule TechTree.BBH.Reviews do
          %ReviewRequest{} = request <-
            Repo.get(ReviewRequest, request_id) || {:error, :review_request_not_found},
          true <-
-           (request.state == "open" or request.claimed_by_wallet == wallet) ||
+           (request.state == :open or request.claimed_by_wallet == wallet) ||
              {:error, :review_request_not_claimed},
          %Capsule{} = capsule <-
            Repo.get(Capsule, request.capsule_id) || {:error, :capsule_not_found} do
@@ -92,7 +92,7 @@ defmodule TechTree.BBH.Reviews do
          prior_proposals: proposals,
          evidence_pack_summary: %{
            proposal_count: length(proposals),
-           current_workflow_state: capsule.workflow_state
+           current_workflow_state: enum_value(capsule.workflow_state)
          },
          checklist_template: %{
            completeness: false,
@@ -144,7 +144,7 @@ defmodule TechTree.BBH.Reviews do
           reviewer_wallet: profile.wallet_address,
           checklist_json: Helpers.required_map(attrs, "checklist_json"),
           suggested_edits_json: Helpers.required_map(attrs, "suggested_edits_json"),
-          decision: decision,
+          decision: enum_atom(decision),
           summary_md: Helpers.required_binary(attrs, "summary_md"),
           genome_recommendation_source: genome_source,
           certificate_payload: certificate_payload,
@@ -156,7 +156,7 @@ defmodule TechTree.BBH.Reviews do
       end)
       |> Multi.update(
         :request,
-        ReviewRequest.changeset(request, %{state: "closed", closed_at: DateTime.utc_now()})
+        ReviewRequest.changeset(request, %{state: :closed, closed_at: DateTime.utc_now()})
       )
       |> Multi.update(
         :capsule,
@@ -187,9 +187,9 @@ defmodule TechTree.BBH.Reviews do
     %{
       request_id: request.request_id,
       capsule_id: request.capsule_id,
-      review_kind: request.review_kind,
-      visibility: request.visibility,
-      state: request.state,
+      review_kind: enum_value(request.review_kind),
+      visibility: enum_value(request.visibility),
+      state: enum_value(request.state),
       capsule_title: capsule && capsule.title,
       claimed_by_wallet: request.claimed_by_wallet,
       fee_quote_usdc: request.fee_quote_usdc,
@@ -220,7 +220,7 @@ defmodule TechTree.BBH.Reviews do
       reviewer_wallet: submission.reviewer_wallet,
       checklist_json: submission.checklist_json,
       suggested_edits_json: submission.suggested_edits_json,
-      decision: submission.decision,
+      decision: enum_value(submission.decision),
       summary_md: submission.summary_md,
       genome_recommendation_source:
         if(
@@ -241,7 +241,7 @@ defmodule TechTree.BBH.Reviews do
       capsule_id: capsule.capsule_id,
       artifact_id: capsule.publication_artifact_id,
       review_id: capsule.certificate_review_id,
-      status: capsule.certificate_status || "none",
+      status: enum_value(capsule.certificate_status || :none),
       title: capsule.title
     }
   end
@@ -258,8 +258,8 @@ defmodule TechTree.BBH.Reviews do
     case decision do
       "approve" ->
         %{
-          workflow_state: "approved",
-          certificate_status: "active",
+          workflow_state: :approved,
+          certificate_status: :active,
           certificate_review_id: review_node_id,
           certificate_scope: "publication",
           certificate_expires_at:
@@ -268,8 +268,8 @@ defmodule TechTree.BBH.Reviews do
 
       "approve_with_edits" ->
         %{
-          workflow_state: "approved",
-          certificate_status: "active",
+          workflow_state: :approved,
+          certificate_status: :active,
           certificate_review_id: review_node_id,
           certificate_scope: "publication",
           certificate_expires_at:
@@ -277,10 +277,10 @@ defmodule TechTree.BBH.Reviews do
         }
 
       "changes_requested" ->
-        %{workflow_state: "authoring", certificate_status: "none", certificate_review_id: nil}
+        %{workflow_state: :authoring, certificate_status: :none, certificate_review_id: nil}
 
       "reject" ->
-        %{workflow_state: "rejected", certificate_status: "none", certificate_review_id: nil}
+        %{workflow_state: :rejected, certificate_status: :none, certificate_review_id: nil}
     end
   end
 
@@ -341,8 +341,14 @@ defmodule TechTree.BBH.Reviews do
   defp maybe_filter_review_kind(query, nil), do: query
 
   defp maybe_filter_review_kind(query, kind) when kind in @review_kinds do
-    where(query, [request], request.review_kind == ^kind)
+    where(query, [request], request.review_kind == ^enum_atom(kind))
   end
 
   defp maybe_filter_review_kind(query, _kind), do: query
+
+  defp enum_atom(value) when is_binary(value), do: String.to_existing_atom(value)
+  defp enum_atom(value), do: value
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 end

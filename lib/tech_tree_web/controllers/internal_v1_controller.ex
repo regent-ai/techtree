@@ -18,10 +18,9 @@ defmodule TechTreeWeb.InternalV1Controller do
           message: "publish receipt is not available yet"
         })
 
-      {:error, reason} ->
+      {:error, _reason} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "publish_ingest_failed",
-          message: inspect(reason)
+          code: "publish_ingest_failed"
         })
     end
   end

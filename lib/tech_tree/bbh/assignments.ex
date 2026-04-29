@@ -88,7 +88,7 @@ defmodule TechTree.BBH.Assignments do
       assignment_ref: assignment_ref,
       capsule_id: capsule.capsule_id,
       split: capsule.split,
-      status: "assigned",
+      status: :assigned,
       origin: capsule.assignment_policy,
       agent_wallet_address: Map.get(agent_claims, "wallet_address"),
       agent_token_id: Map.get(agent_claims, "token_id")

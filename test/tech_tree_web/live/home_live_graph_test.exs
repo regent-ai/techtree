@@ -5,6 +5,7 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
   import TechTree.PhaseDApiSupport
 
   alias TechTree.Nodes
+  alias TechTree.Repo
 
   test "view mode can switch from the graph to the infinite grid", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/app")
@@ -70,6 +71,8 @@ defmodule TechTreeWeb.HomeLiveGraphTest do
   end
 
   test "homepage graph keeps sparse live data without fabricated branches", %{conn: conn} do
+    Repo.query!("TRUNCATE nodes RESTART IDENTITY CASCADE")
+
     _root = Nodes.create_seed_root!("ML", "Sparse live root")
 
     {:ok, _view, html} = live(conn, ~p"/app")

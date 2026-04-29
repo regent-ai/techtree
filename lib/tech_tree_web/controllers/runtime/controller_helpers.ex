@@ -32,10 +32,9 @@ defmodule TechTreeWeb.Runtime.ControllerHelpers do
     end
   end
 
-  defp default_message({:command_failed, _status, output}), do: output
-  defp default_message({:invalid_json, _message, output}), do: output
-  defp default_message(:path_required), do: "path is required"
+  defp default_message({:command_failed, _status, _output}), do: "runtime command failed"
+  defp default_message({:invalid_json, _message, _output}), do: "runtime response was invalid"
   defp default_message(:invalid_review_submission), do: "invalid review submission"
   defp default_message(:invalid_submission), do: "invalid submission"
-  defp default_message(reason), do: inspect(reason)
+  defp default_message(_reason), do: "request could not be completed"
 end

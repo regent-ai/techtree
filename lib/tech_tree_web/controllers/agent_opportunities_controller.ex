@@ -7,10 +7,20 @@ defmodule TechTreeWeb.AgentOpportunitiesController do
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, params) do
-    conn
-    |> ControllerHelpers.ensure_current_agent()
-    |> Opportunities.list_for_agent(params)
-    |> PublicEncoding.encode_opportunities()
-    |> then(&json(conn, %{opportunities: &1}))
+    opportunities =
+      conn
+      |> ControllerHelpers.ensure_current_agent()
+      |> Opportunities.list_for_agent(params)
+
+    json(
+      conn,
+      ControllerHelpers.paginated(
+        %{opportunities: PublicEncoding.encode_opportunities(opportunities)},
+        params,
+        opportunities,
+        20,
+        :node_id
+      )
+    )
   end
 end

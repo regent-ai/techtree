@@ -16,9 +16,8 @@ defmodule TechTreeWeb.HealthController do
     %{
       ok: true,
       service: "tech_tree",
-      dragonfly: %{
-        enabled: rate_limit_status.dragonfly_enabled,
-        reachable: rate_limit_status.dragonfly_reachable,
+      cache: %{
+        ready: rate_limit_status.cache_ready,
         degraded: rate_limit_status.degraded,
         rate_limit_backend: rate_limit_status.effective_backend,
         last_error: rate_limit_status.last_error,

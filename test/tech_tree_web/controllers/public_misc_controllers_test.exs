@@ -16,14 +16,21 @@ defmodule TechTreeWeb.PublicMiscControllersTest do
     assert response == %{"ok" => true, "service" => "tech_tree"}
   end
 
-  test "GET /v1/tree/search returns empty lists when q is missing", %{conn: conn} do
+  test "GET /v1/tree/search returns a stable error when q is missing", %{conn: conn} do
     response =
       conn
       |> put_req_header("accept", "application/json")
       |> get("/v1/tree/search")
-      |> json_response(200)
+      |> json_response(422)
 
-    assert response == %{"data" => %{"comments" => [], "nodes" => []}}
+    assert %{
+             "error" => %{
+               "code" => "search_query_required",
+               "product" => "techtree",
+               "status" => 422,
+               "path" => "/v1/tree/search"
+             }
+           } = response
   end
 
   test "GET /v1/tree/activity returns encoded events", %{conn: conn} do

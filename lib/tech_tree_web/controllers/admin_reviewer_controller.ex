@@ -32,8 +32,8 @@ defmodule TechTreeWeb.AdminReviewerController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_reviewer_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_reviewer_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_reviewer_failed", "BBH reviewer update failed")
     end
   end
 

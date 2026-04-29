@@ -51,10 +51,10 @@ defmodule TechTree.BBH.RunReads do
             [
               %{
                 run_id: run.run_id,
-                status: run.status,
+                status: enum_value(run.status),
                 raw_score: run.raw_score,
                 normalized_score: run.normalized_score,
-                validation_status: latest_validation && latest_validation.result
+                validation_status: latest_validation && enum_value(latest_validation.result)
               }
             ]
 
@@ -79,10 +79,10 @@ defmodule TechTree.BBH.RunReads do
         on: capsule.capsule_id == run.capsule_id,
         where:
           run.split == ^split and
-            run.status == "validated" and
-            validation.role == "official" and
-            validation.method == "replay" and
-            validation.result == "confirmed",
+            run.status == :validated and
+            validation.role == :official and
+            validation.method == :replay and
+            validation.result == :confirmed,
         distinct: run.run_id,
         order_by: [asc: run.run_id, desc: run.normalized_score, desc: run.updated_at],
         select: %{run: run, genome: genome}
@@ -123,4 +123,7 @@ defmodule TechTree.BBH.RunReads do
       entries: entries
     }
   end
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 end

@@ -122,63 +122,37 @@ defmodule TechTree.WorkersWatcherFanoutTest do
     assert measurements.session_broadcasts >= 0
   end
 
-  test "online-session helpers fail open when dragonfly is unavailable" do
-    creator = create_agent!("dragonfly-fallback")
-    node = create_node!(creator)
-    unavailable_name = :"dragonfly_unavailable_#{System.unique_integer([:positive])}"
-
-    original = Application.get_env(:tech_tree, :dragonfly_name)
-    Application.put_env(:tech_tree, :dragonfly_name, unavailable_name)
-
-    on_exit(fn ->
-      if original == nil do
-        Application.delete_env(:tech_tree, :dragonfly_name)
-      else
-        Application.put_env(:tech_tree, :dragonfly_name, original)
-      end
-    end)
-
-    assert :ok = Watches.add_online_session(node.id, "sess-1")
-    assert [] == Watches.list_online_sessions(node.id)
-    assert :ok = Watches.remove_online_session(node.id, "sess-1")
-  end
-
-  test "fanout also targets online session topics when dragonfly is available" do
-    creator = create_agent!("dragonfly-online")
+  test "fanout also targets online session topics from local cache" do
+    creator = create_agent!("cache-online")
     node = create_node!(creator)
     node_id = node.id
     session_id = "sess-#{System.unique_integer([:positive])}"
     online_key = "watch:online:#{node_id}"
 
-    if dragonfly_available?() do
-      assert {:ok, _} = Redix.command(:dragonfly, ["DEL", online_key])
-      {:ok, _watch} = Watches.watch_human(node_id, 404)
-      assert :ok = Watches.add_online_session(node_id, session_id)
+    assert {:ok, _} = Cachex.del(:techtree_cache, online_key)
+    {:ok, _watch} = Watches.watch_human(node_id, 404)
+    assert :ok = Watches.add_online_session(node_id, session_id)
 
-      :ok = PubSub.subscribe(TechTree.PubSub, watcher_node_topic(:human, 404, node_id))
-      :ok = PubSub.subscribe(TechTree.PubSub, online_session_topic(session_id))
+    :ok = PubSub.subscribe(TechTree.PubSub, watcher_node_topic(:human, 404, node_id))
+    :ok = PubSub.subscribe(TechTree.PubSub, online_session_topic(session_id))
 
-      assert :ok = Watches.fanout_node_activity(node_id)
+    assert :ok = Watches.fanout_node_activity(node_id)
 
-      assert_receive watcher_payload
-      assert_receive session_payload
+    assert_receive watcher_payload
+    assert_receive session_payload
 
-      expected_payload = %{
-        event: "node_activity",
-        node_id: node_id,
-        watcher_type: "human",
-        watcher_ref: 404
-      }
+    expected_payload = %{
+      event: "node_activity",
+      node_id: node_id,
+      watcher_type: "human",
+      watcher_ref: 404
+    }
 
-      assert watcher_payload == expected_payload
-      assert session_payload == expected_payload
+    assert watcher_payload == expected_payload
+    assert session_payload == expected_payload
 
-      assert :ok = Watches.remove_online_session(node_id, session_id)
-      assert {:ok, _} = Redix.command(:dragonfly, ["DEL", online_key])
-    else
-      assert :ok = Watches.add_online_session(node_id, session_id)
-      assert [] == Watches.list_online_sessions(node_id)
-    end
+    assert :ok = Watches.remove_online_session(node_id, session_id)
+    assert {:ok, _} = Cachex.del(:techtree_cache, online_key)
   end
 
   test "fanout_node_activity returns :ok when node has no watchers" do
@@ -195,10 +169,6 @@ defmodule TechTree.WorkersWatcherFanoutTest do
 
   defp online_session_topic(session_id) do
     "watch:session:#{session_id}"
-  end
-
-  defp dragonfly_available? do
-    match?({:ok, "PONG"}, Redix.command(:dragonfly, ["PING"]))
   end
 
   defp create_agent!(label_prefix) do

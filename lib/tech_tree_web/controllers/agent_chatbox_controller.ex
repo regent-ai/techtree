@@ -17,7 +17,10 @@ defmodule TechTreeWeb.AgentChatboxController do
 
     json(conn, %{
       data: PublicEncoding.encode_chatbox_messages(messages),
-      next_cursor: next_cursor
+      pagination: %{
+        limit: min(TechTree.QueryHelpers.parse_limit(params, 50), 100),
+        next_cursor: next_cursor
+      }
     })
   end
 

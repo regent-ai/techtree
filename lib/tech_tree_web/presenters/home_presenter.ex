@@ -327,7 +327,8 @@ defmodule TechTreeWeb.HomePresenter do
 
   defp shared_public_panel_author(message) do
     cond do
-      is_binary(Map.get(message, :sender_label)) and String.trim(Map.get(message, :sender_label)) != "" ->
+      is_binary(Map.get(message, :sender_label)) and
+          String.trim(Map.get(message, :sender_label)) != "" ->
         String.trim(Map.get(message, :sender_label))
 
       is_binary(Map.get(message, :sender_wallet)) ->

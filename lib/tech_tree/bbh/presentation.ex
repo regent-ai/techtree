@@ -111,7 +111,7 @@ defmodule TechTree.BBH.Presentation do
              artifact_source: run.artifact_source,
              publication_review_id: capsule.publication_review_id,
              published_at: capsule.published_at && format_timestamp(capsule.published_at),
-             certificate_status: capsule.certificate_status || "none",
+             certificate_status: enum_value(capsule.certificate_status || :none),
              certificate_review_id: capsule.certificate_review_id,
              certificate_expires_at:
                capsule.certificate_expires_at && format_timestamp(capsule.certificate_expires_at)
@@ -169,7 +169,7 @@ defmodule TechTree.BBH.Presentation do
         publication_review_id: capsule.publication_review_id,
         publication_artifact_id: capsule.publication_artifact_id,
         published_at: capsule.published_at,
-        certificate_status: capsule.certificate_status || "none",
+        certificate_status: enum_value(capsule.certificate_status || :none),
         certificate_review_id: capsule.certificate_review_id,
         certificate_expires_at: capsule.certificate_expires_at,
         review_open_count: BBH.review_open_count(capsule.capsule_id),
@@ -256,7 +256,7 @@ defmodule TechTree.BBH.Presentation do
       challenge_attempts: Map.get(capsule, :challenge_attempts, 0),
       publication_age_label: Map.get(capsule, :publication_age_label),
       publication_review_id: capsule.publication_review_id,
-      certificate_status: capsule.certificate_status,
+      certificate_status: enum_value(capsule.certificate_status),
       certificate_review_id: capsule.certificate_review_id,
       certificate_expires_at:
         capsule.certificate_expires_at && freshness_label(capsule.certificate_expires_at),
@@ -412,10 +412,10 @@ defmodule TechTree.BBH.Presentation do
       |> Enum.map(fn {run, validation} ->
         kind =
           cond do
-            validation.result == "confirmed" and MapSet.member?(capsule_best_ids, run.run_id) ->
+            validation.result == :confirmed and MapSet.member?(capsule_best_ids, run.run_id) ->
               :validated_official_best
 
-            validation.result == "confirmed" ->
+            validation.result == :confirmed ->
               :validation_confirmed
 
             true ->
@@ -431,7 +431,7 @@ defmodule TechTree.BBH.Presentation do
           cond do
             MapSet.member?(capsule_best_ids, run.run_id) -> :capsule_best
             MapSet.member?(personal_best_ids, run.run_id) -> :personal_best
-            run.status in ["failed", "crashed"] -> :run_failed
+            run.status == :failed -> :run_failed
             true -> :run_submitted
           end
 
@@ -661,12 +661,12 @@ defmodule TechTree.BBH.Presentation do
 
   defp confirmed_run?(run, validations) do
     Enum.any?(validations, fn validation ->
-      validation.run_id == run.run_id and validation.role == "official" and
-        validation.method == "replay" and validation.result == "confirmed"
+      validation.run_id == run.run_id and validation.role == :official and
+        validation.method == :replay and validation.result == :confirmed
     end)
   end
 
-  defp review_state_label(_split, %{result: "confirmed"}), do: "validated"
+  defp review_state_label(_split, %{result: :confirmed}), do: "validated"
   defp review_state_label("climb", _review), do: "self-reported"
   defp review_state_label(_split, _review), do: "pending validation"
 
@@ -794,7 +794,7 @@ defmodule TechTree.BBH.Presentation do
       {"capsule_summary", capsule && capsule.hypothesis},
       {"publication_review_id", capsule && capsule.publication_review_id},
       {"published_at", capsule && capsule.published_at && format_timestamp(capsule.published_at)},
-      {"certificate_status", capsule && capsule.certificate_status},
+      {"certificate_status", capsule && enum_value(capsule.certificate_status)},
       {"certificate_review_id", capsule && capsule.certificate_review_id},
       {"certificate_expires_at",
        capsule && capsule.certificate_expires_at &&
@@ -823,17 +823,17 @@ defmodule TechTree.BBH.Presentation do
     %{
       id: validation.validation_id,
       validator_id: validation.role || "official",
-      validator_kind: validation.method,
-      status: validation.result,
+      validator_kind: enum_value(validation.method),
+      status: enum_value(validation.result),
       status_label:
         case validation.result do
-          "confirmed" -> "validated"
-          "rejected" -> "rejected"
+          :confirmed -> "validated"
+          :rejected -> "rejected"
           _ -> "pending validation"
         end,
-      reproducible: validation.result == "confirmed",
-      artifact_match: Map.get(review_bbh, "artifact_match", validation.result == "confirmed"),
-      score_match: Map.get(review_bbh, "score_match", validation.result == "confirmed")
+      reproducible: validation.result == :confirmed,
+      artifact_match: Map.get(review_bbh, "artifact_match", validation.result == :confirmed),
+      score_match: Map.get(review_bbh, "score_match", validation.result == :confirmed)
     }
   end
 
@@ -935,4 +935,7 @@ defmodule TechTree.BBH.Presentation do
   defp ledger_boundary_note(_split, status_label),
     do:
       "This run sits in Proving and is currently marked #{status_label}. In the v0.1 beta, the public wall and run page are the visible destination while the official board sections stay empty."
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 end

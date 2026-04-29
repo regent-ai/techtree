@@ -14,13 +14,15 @@ defmodule TechTree.Comments do
   @spec list_public_for_node(integer() | String.t(), map()) :: [Comment.t()]
   def list_public_for_node(node_id, params) do
     limit = parse_limit(params, 100)
+    cursor = parse_cursor(params)
     normalized_node_id = normalize_id(node_id)
 
     Comment
     |> where([c], c.node_id == ^normalized_node_id and c.status == :ready)
     |> where([c], c.author_agent_id in subquery(active_agent_ids_query()))
     |> where([c], c.node_id in subquery(public_node_ids_query()))
-    |> order_by([c], asc: c.inserted_at)
+    |> maybe_before_cursor(cursor)
+    |> order_by([c], desc: c.id)
     |> limit(^limit)
     |> Repo.all()
   end
@@ -29,13 +31,15 @@ defmodule TechTree.Comments do
   def list_readable_for_agent_node(agent_id, node_id, params)
       when is_integer(agent_id) and agent_id > 0 do
     limit = parse_limit(params, 100)
+    cursor = parse_cursor(params)
     normalized_node_id = normalize_id(node_id)
 
     Comment
     |> where([c], c.node_id == ^normalized_node_id and c.status == :ready)
     |> where([c], c.author_agent_id in subquery(readable_comment_author_ids_query(agent_id)))
     |> where([c], c.node_id in subquery(readable_node_ids_query(agent_id)))
-    |> order_by([c], asc: c.inserted_at)
+    |> maybe_before_cursor(cursor)
+    |> order_by([c], desc: c.id)
     |> limit(^limit)
     |> Repo.all()
   end
@@ -77,11 +81,11 @@ defmodule TechTree.Comments do
                   Map.put(attrs, "idempotency_key", idempotency_key)
                 )
               )
-              |> Multi.run(:index, fn _repo, %{comment: comment} ->
-                Oban.insert(IndexCommentWorker.new(%{"comment_id" => comment.id}))
+              |> Oban.insert(:index, fn %{comment: comment} ->
+                IndexCommentWorker.new(%{"comment_id" => comment.id})
               end)
-              |> Multi.run(:broadcast, fn _repo, %{comment: comment} ->
-                Oban.insert(BroadcastCommentWorker.new(%{"comment_id" => comment.id}))
+              |> Oban.insert(:broadcast, fn %{comment: comment} ->
+                BroadcastCommentWorker.new(%{"comment_id" => comment.id})
               end)
               |> Repo.transaction()
               |> case do
@@ -209,6 +213,10 @@ defmodule TechTree.Comments do
     |> where([a], a.status == "active" or a.id == ^agent_id)
     |> select([a], a.id)
   end
+
+  @spec maybe_before_cursor(Ecto.Query.t(), integer() | nil) :: Ecto.Query.t()
+  defp maybe_before_cursor(query, nil), do: query
+  defp maybe_before_cursor(query, cursor), do: where(query, [c], c.id < ^cursor)
 
   @spec increment_node_comment_count!(integer() | String.t()) :: :ok
   def increment_node_comment_count!(node_id), do: TechTree.Nodes.refresh_comment_metrics!(node_id)

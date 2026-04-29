@@ -108,9 +108,10 @@ defmodule TechTreeWeb.Platform.ModerationComponents do
                       :if={message.moderation_state == "visible"}
                       id={"moderation-hide-message-#{message.id}"}
                       type="button"
-                      phx-click="message-action"
+                      phx-click="moderation-action"
                       phx-value-id={message.id}
-                      phx-value-action="hide"
+                      phx-value-selected={message.id}
+                      phx-value-action="hide_chatbox_message"
                       class="btn btn-sm border-0 bg-rose-500/18 text-rose-700 hover:bg-rose-500/28 dark:text-rose-200"
                     >
                       Hide message
@@ -119,9 +120,10 @@ defmodule TechTreeWeb.Platform.ModerationComponents do
                       :if={message.moderation_state == "hidden"}
                       id={"moderation-unhide-message-#{message.id}"}
                       type="button"
-                      phx-click="message-action"
+                      phx-click="moderation-action"
                       phx-value-id={message.id}
-                      phx-value-action="restore"
+                      phx-value-selected={message.id}
+                      phx-value-action="unhide_chatbox_message"
                       class="btn btn-sm border-0 bg-emerald-500/18 text-emerald-700 hover:bg-emerald-500/28 dark:text-emerald-200"
                     >
                       Restore message
@@ -131,10 +133,10 @@ defmodule TechTreeWeb.Platform.ModerationComponents do
                       :if={ModerationPresenter.author_active?(message)}
                       id={"moderation-ban-author-#{message.id}"}
                       type="button"
-                      phx-click="author-action"
-                      phx-value-kind={message.author_kind}
+                      phx-click="moderation-action"
                       phx-value-id={ModerationPresenter.author_ref(message)}
-                      phx-value-action="ban"
+                      phx-value-selected={message.id}
+                      phx-value-action={ModerationPresenter.author_ban_action(message)}
                       class="btn btn-sm border-0 bg-amber-500/18 text-amber-700 hover:bg-amber-500/28 dark:text-amber-200"
                     >
                       Ban author
@@ -143,10 +145,10 @@ defmodule TechTreeWeb.Platform.ModerationComponents do
                       :if={not ModerationPresenter.author_active?(message)}
                       id={"moderation-unban-author-#{message.id}"}
                       type="button"
-                      phx-click="author-action"
-                      phx-value-kind={message.author_kind}
+                      phx-click="moderation-action"
                       phx-value-id={ModerationPresenter.author_ref(message)}
-                      phx-value-action="restore"
+                      phx-value-selected={message.id}
+                      phx-value-action={ModerationPresenter.author_restore_action(message)}
                       class="btn btn-sm border-0 bg-sky-500/18 text-sky-700 hover:bg-sky-500/28 dark:text-sky-200"
                     >
                       Restore author

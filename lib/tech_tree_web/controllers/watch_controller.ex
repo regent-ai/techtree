@@ -7,13 +7,21 @@ defmodule TechTreeWeb.WatchController do
   alias TechTree.Watches
 
   @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
-  def index(conn, _params) do
+  def index(conn, params) do
     watches =
       conn
       |> ControllerHelpers.ensure_current_agent()
-      |> then(&Watches.list_agent_watches(&1.id))
+      |> then(&Watches.list_agent_watches(&1.id, params))
 
-    json(conn, %{data: PublicEncoding.encode_watches(watches)})
+    json(
+      conn,
+      ControllerHelpers.paginated(
+        %{data: PublicEncoding.encode_watches(watches)},
+        params,
+        watches,
+        50
+      )
+    )
   end
 
   @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
@@ -38,10 +46,9 @@ defmodule TechTreeWeb.WatchController do
           details: ApiError.translate_changeset(changeset)
         })
 
-      {:error, reason} ->
+      {:error, _reason} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "watch_create_failed",
-          message: inspect(reason)
+          code: "watch_create_failed"
         })
     end
   end

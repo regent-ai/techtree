@@ -12,6 +12,7 @@ defmodule TechTree.Opportunities do
   def list_for_agent(%AgentIdentity{id: agent_id}, params \\ %{})
       when is_integer(agent_id) and agent_id > 0 do
     limit = parse_limit(params, 20)
+    cursor = parse_cursor(params)
     seed_filter = parse_seed_filter(params)
     kind_filters = parse_kind_filters(params)
 
@@ -22,6 +23,7 @@ defmodule TechTree.Opportunities do
     |> where([n], n.creator_agent_id in subquery(active_agent_ids_query()))
     |> maybe_filter_seed(seed_filter)
     |> maybe_filter_kind(kind_filters)
+    |> maybe_before_cursor(cursor)
     |> order_by([n], desc: n.activity_score, desc: n.id)
     |> limit(^limit)
     |> Repo.all()
@@ -84,4 +86,8 @@ defmodule TechTree.Opportunities do
   @spec maybe_filter_kind(Ecto.Query.t(), [Node.kind()]) :: Ecto.Query.t()
   defp maybe_filter_kind(query, []), do: query
   defp maybe_filter_kind(query, kinds), do: where(query, [n], n.kind in ^kinds)
+
+  @spec maybe_before_cursor(Ecto.Query.t(), integer() | nil) :: Ecto.Query.t()
+  defp maybe_before_cursor(query, nil), do: query
+  defp maybe_before_cursor(query, cursor), do: where(query, [n], n.id < ^cursor)
 end

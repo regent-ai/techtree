@@ -30,14 +30,13 @@ defmodule TechTreeWeb.AgentInboxControllerTest do
       |> get("/v1/agent/inbox")
       |> json_response(200)
 
-    assert Enum.sort(Map.keys(response)) == ["events", "next_cursor"]
+    assert Enum.sort(Map.keys(response)) == ["data", "pagination"]
 
-    refute Map.has_key?(response, "data")
     refute Map.has_key?(response, "activity_events")
     refute Map.has_key?(response, "economic_events")
     refute Map.has_key?(response, "pending_actions")
 
-    assert response["events"]
+    assert response["data"]["events"]
            |> Enum.map(&{&1["event_type"], &1["stream"]})
            |> MapSet.new() ==
              MapSet.new([
@@ -46,8 +45,8 @@ defmodule TechTreeWeb.AgentInboxControllerTest do
                {"economic.reward_earned", "economic"}
              ])
 
-    assert response["next_cursor"] ==
-             response["events"] |> Enum.map(& &1["id"]) |> Enum.max()
+    assert response["pagination"]["next_cursor"] ==
+             response["data"]["events"] |> Enum.map(& &1["id"]) |> Enum.max()
   end
 
   test "supports seed scoping and cursor polling", %{conn: conn} do
@@ -73,22 +72,22 @@ defmodule TechTreeWeb.AgentInboxControllerTest do
                "id" => second_event_id,
                "stream" => "activity"
              }
-           ] = response["events"]
+           ] = response["data"]["events"]
 
     assert second_event_id == second_ml_event.id
-    assert response["next_cursor"] == second_ml_event.id
+    assert response["pagination"]["next_cursor"] == second_ml_event.id
 
     next_response =
       conn
       |> with_siwa_headers(headers)
       |> get("/v1/agent/inbox", %{
         "seed" => "ML",
-        "cursor" => Integer.to_string(response["next_cursor"])
+        "cursor" => Integer.to_string(response["pagination"]["next_cursor"])
       })
       |> json_response(200)
 
-    assert next_response["events"] == []
-    assert next_response["next_cursor"] == response["next_cursor"]
+    assert next_response["data"]["events"] == []
+    assert next_response["pagination"]["next_cursor"] == response["pagination"]["next_cursor"]
   end
 
   defp create_agent_headers!(label_prefix) do

@@ -18,53 +18,39 @@ defmodule TechTree.PhaseDSecurityPerfTest do
   alias TechTree.XMTPMirror.XmtpMembershipCommand
 
   describe "rate-limit abuse windows" do
-    test "node/comment keys block replays and isolate by wallet+node when dragonfly is available" do
+    test "node/comment keys block replays and isolate by wallet+node" do
       wallet_a = "0xphaseDwalletA#{System.unique_integer([:positive])}"
       wallet_b = "0xphaseDwalletB#{System.unique_integer([:positive])}"
       node_a = System.unique_integer([:positive])
       node_b = node_a + 1
 
-      if dragonfly_available?() do
-        assert :ok = RateLimit.check_node_create!(wallet_a)
-        assert {:error, :rate_limited} = RateLimit.check_node_create!(wallet_a)
+      assert :ok = RateLimit.check_node_create!(wallet_a)
+      assert {:error, :rate_limited} = RateLimit.check_node_create!(wallet_a)
 
-        assert :ok = RateLimit.check_node_create!(wallet_b)
+      assert :ok = RateLimit.check_node_create!(wallet_b)
 
-        assert :ok = RateLimit.check_comment_create!(wallet_a, node_a)
-        assert {:error, :rate_limited} = RateLimit.check_comment_create!(wallet_a, node_a)
+      assert :ok = RateLimit.check_comment_create!(wallet_a, node_a)
+      assert {:error, :rate_limited} = RateLimit.check_comment_create!(wallet_a, node_a)
 
-        assert :ok = RateLimit.check_comment_create!(wallet_a, node_b)
-        assert :ok = RateLimit.check_comment_create!(wallet_b, node_a)
-      else
-        # Fail-closed fallback when dragonfly is unavailable in the execution environment.
-        assert {:error, :rate_limited} = RateLimit.check_node_create!(wallet_a)
-        assert {:error, :rate_limited} = RateLimit.check_comment_create!(wallet_a, node_a)
-      end
+      assert :ok = RateLimit.check_comment_create!(wallet_a, node_b)
+      assert :ok = RateLimit.check_comment_create!(wallet_b, node_a)
     end
 
     test "chatbox burst limiter blocks the 11th post inside the rolling window" do
       identity = "phase-d-chatbox-#{System.unique_integer([:positive])}"
       post_key = "rl:chatbox:post:#{identity}"
-      burst_key = "rl:chatbox:burst:#{identity}"
 
-      if dragonfly_available?() do
-        assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key, burst_key])
-
-        Enum.each(1..10, fn _attempt ->
-          assert :ok = RateLimit.check_chatbox_post!(identity)
-
-          # Simulate elapsed per-post cooldown without sleeping to exercise burst-window logic.
-          assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key])
-        end)
-
-        assert {:error, :rate_limited} = RateLimit.check_chatbox_post!(identity)
-
-        # Simulate burst window expiry to validate recovery.
-        assert {:ok, _} = Redix.command(:dragonfly, ["DEL", post_key, burst_key])
+      Enum.each(1..10, fn _attempt ->
         assert :ok = RateLimit.check_chatbox_post!(identity)
-      else
-        assert {:error, :rate_limited} = RateLimit.check_chatbox_post!(identity)
-      end
+
+        # Simulate elapsed per-post cooldown without sleeping to exercise burst-window logic.
+        assert {:ok, _} = Cachex.del(:techtree_cache, post_key)
+      end)
+
+      assert {:error, :rate_limited} = RateLimit.check_chatbox_post!(identity)
+
+      TechTree.RateLimit.reset!()
+      assert :ok = RateLimit.check_chatbox_post!(identity)
     end
   end
 
@@ -212,10 +198,6 @@ defmodule TechTree.PhaseDSecurityPerfTest do
         |> Repo.insert!()
       end
     end
-  end
-
-  defp dragonfly_available? do
-    match?({:ok, "PONG"}, Redix.command(:dragonfly, ["PING"]))
   end
 
   defp create_agent!(label_prefix) do

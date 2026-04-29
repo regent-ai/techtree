@@ -17,7 +17,7 @@ defmodule TechTree.BBH.PublicReads do
 
   @draft_split "draft"
   @challenge_split "challenge"
-  @review_open_states ~w(open claimed)
+  @review_open_states [:open, :claimed]
 
   def list_runs(opts \\ %{}) do
     split = Map.get(opts, "split") || Map.get(opts, :split)
@@ -125,7 +125,7 @@ defmodule TechTree.BBH.PublicReads do
     ReviewRequest
     |> where(
       [request],
-      request.capsule_id == ^capsule_id and request.visibility == "public_claim" and
+      request.capsule_id == ^capsule_id and request.visibility == :public_claim and
         request.state in ^@review_open_states
     )
     |> Repo.aggregate(:count, :request_id)
@@ -183,7 +183,7 @@ defmodule TechTree.BBH.PublicReads do
       provider_ref: capsule.provider_ref,
       assignment_policy: capsule.assignment_policy,
       published_at: capsule.published_at,
-      certificate_status: capsule.certificate_status || "none",
+      certificate_status: enum_value(capsule.certificate_status || :none),
       certificate_review_id: capsule.certificate_review_id,
       certificate_expires_at: capsule.certificate_expires_at,
       review_open_count: public_review_open_count(capsule.capsule_id)
@@ -213,7 +213,7 @@ defmodule TechTree.BBH.PublicReads do
   defp certificate_summary_payload(%Capsule{} = capsule) do
     %{
       capsule_id: capsule.capsule_id,
-      status: capsule.certificate_status || "none",
+      status: enum_value(capsule.certificate_status || :none),
       certificate_review_id: capsule.certificate_review_id,
       scope: capsule.certificate_scope,
       issued_at: capsule.updated_at,
@@ -230,4 +230,7 @@ defmodule TechTree.BBH.PublicReads do
       submission -> submission.reviewer_wallet
     end
   end
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 end

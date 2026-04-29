@@ -67,6 +67,21 @@ defmodule TechTreeWeb.Human.NodePresenter do
   defp proof_rows(node) do
     [
       %{
+        id: "source",
+        label: "Public proof source",
+        value: proof_source(node)
+      },
+      %{
+        id: "chain-block",
+        label: "Chain and block",
+        value: chain_label(node.chain_id, node.block_number)
+      },
+      %{
+        id: "freshness",
+        label: "Proof status",
+        value: proof_status(node)
+      },
+      %{
         id: "manifest-uri",
         label: "Manifest URI",
         value: HumanComponents.present(node.manifest_uri, "Unpublished")
@@ -182,6 +197,24 @@ defmodule TechTreeWeb.Human.NodePresenter do
 
   defp chain_label(chain_id, _block_number) when is_integer(chain_id), do: "#{chain_id}"
   defp chain_label(_chain_id, _block_number), do: "Unavailable"
+
+  defp proof_source(%{tx_hash: tx_hash}) when is_binary(tx_hash) and tx_hash != "",
+    do: "Published chain record"
+
+  defp proof_source(%{manifest_uri: manifest_uri})
+       when is_binary(manifest_uri) and manifest_uri != "",
+       do: "Published manifest"
+
+  defp proof_source(_node), do: "Public Techtree record"
+
+  defp proof_status(%{status: status, tx_hash: tx_hash})
+       when status in [:anchored, "anchored"] and is_binary(tx_hash) and tx_hash != "",
+       do: "Fresh"
+
+  defp proof_status(%{status: status}) when status in [:anchored, "anchored"],
+    do: "Waiting for chain anchor"
+
+  defp proof_status(_node), do: "Needs refresh"
 
   defp yes_no(true), do: "yes"
   defp yes_no(false), do: "no"

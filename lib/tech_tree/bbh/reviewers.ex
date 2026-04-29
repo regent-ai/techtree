@@ -14,7 +14,7 @@ defmodule TechTree.BBH.Reviewers do
     |> OrcidLinkRequest.changeset(%{
       request_id: request_id,
       wallet_address: wallet,
-      state: "pending",
+      state: :pending,
       expires_at: expires_at
     })
     |> Repo.insert()
@@ -23,7 +23,7 @@ defmodule TechTree.BBH.Reviewers do
         {:ok,
          %{
            request_id: request.request_id,
-           state: request.state,
+           state: enum_value(request.state),
            start_url:
              "#{TechTreeWeb.Endpoint.url()}/auth/orcid/start?request_id=#{request.request_id}",
            reviewer: reviewer_profile_payload(Repo.get(ReviewerProfile, wallet))
@@ -50,9 +50,9 @@ defmodule TechTree.BBH.Reviewers do
           {:ok,
            %{
              request_id: request.request_id,
-             state: request.state,
+             state: enum_value(request.state),
              start_url:
-               if(request.state == "pending",
+               if(request.state == :pending,
                  do:
                    "#{TechTreeWeb.Endpoint.url()}/auth/orcid/start?request_id=#{request.request_id}",
                  else: nil
@@ -96,14 +96,16 @@ defmodule TechTree.BBH.Reviewers do
     {:ok,
      reviewer_profile_payload(
        Repo.get(ReviewerProfile, wallet) ||
-         %ReviewerProfile{wallet_address: wallet, vetting_status: "pending", domain_tags: []}
+         %ReviewerProfile{wallet_address: wallet, vetting_status: :pending, domain_tags: []}
      )}
   rescue
     error in [ArgumentError] -> {:error, error}
   end
 
   def approve_reviewer(wallet_address, admin_ref, status)
-      when status in ["approved", "rejected"] do
+      when status in ["approved", "rejected", :approved, :rejected] do
+    status = enum_atom(status)
+
     profile =
       Repo.get(ReviewerProfile, wallet_address) ||
         %ReviewerProfile{wallet_address: wallet_address, domain_tags: []}
@@ -129,7 +131,7 @@ defmodule TechTree.BBH.Reviewers do
       %OrcidLinkRequest{} = request ->
         request = maybe_expire_orcid_request(request)
 
-        if request.state != "pending" do
+        if request.state != :pending do
           {:error, :orcid_request_expired}
         else
           orcid_id = Helpers.generated_orcid_id(request.wallet_address)
@@ -139,7 +141,7 @@ defmodule TechTree.BBH.Reviewers do
           |> Multi.update(
             :request,
             OrcidLinkRequest.changeset(request, %{
-              state: "authenticated",
+              state: :authenticated,
               authenticated_at: DateTime.utc_now()
             })
           )
@@ -153,7 +155,7 @@ defmodule TechTree.BBH.Reviewers do
               orcid_id: orcid_id,
               orcid_auth_kind: "oauth_authenticated",
               orcid_name: orcid_name,
-              vetting_status: profile.vetting_status || "pending"
+              vetting_status: profile.vetting_status || :pending
             })
             |> repo.insert_or_update()
           end)
@@ -170,7 +172,7 @@ defmodule TechTree.BBH.Reviewers do
     wallet = Helpers.required_wallet(agent_claims)
 
     case Repo.get(ReviewerProfile, wallet) do
-      %ReviewerProfile{vetting_status: "approved"} = profile -> {:ok, profile}
+      %ReviewerProfile{vetting_status: :approved} = profile -> {:ok, profile}
       %ReviewerProfile{} -> {:error, :reviewer_not_approved}
       nil -> {:error, :reviewer_not_approved}
     end
@@ -186,7 +188,7 @@ defmodule TechTree.BBH.Reviewers do
       orcid_id: profile.orcid_id,
       orcid_auth_kind: profile.orcid_auth_kind,
       orcid_name: profile.orcid_name,
-      vetting_status: profile.vetting_status,
+      vetting_status: enum_value(profile.vetting_status),
       domain_tags: profile.domain_tags || [],
       payout_wallet: profile.payout_wallet,
       experience_summary: profile.experience_summary,
@@ -196,11 +198,11 @@ defmodule TechTree.BBH.Reviewers do
   end
 
   defp maybe_expire_orcid_request(%OrcidLinkRequest{} = request) do
-    if request.state == "pending" and
+    if request.state == :pending and
          DateTime.compare(request.expires_at, DateTime.utc_now()) == :lt do
       {:ok, updated} =
         request
-        |> OrcidLinkRequest.changeset(%{state: "expired"})
+        |> OrcidLinkRequest.changeset(%{state: :expired})
         |> Repo.update()
 
       updated
@@ -208,4 +210,10 @@ defmodule TechTree.BBH.Reviewers do
       request
     end
   end
+
+  defp enum_atom(value) when is_binary(value), do: String.to_existing_atom(value)
+  defp enum_atom(value), do: value
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 end

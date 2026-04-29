@@ -17,8 +17,8 @@ defmodule TechTreeWeb.AgentReviewController do
       {:error, %ArgumentError{} = error} ->
         invalid(conn, "bbh_review_invalid", Exception.message(error))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_review_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_review_failed", "BBH review failed")
     end
   end
 
@@ -41,8 +41,8 @@ defmodule TechTreeWeb.AgentReviewController do
       {:error, %Ecto.Changeset{} = changeset} ->
         invalid_with_changeset(conn, "bbh_review_invalid", "Review request is invalid", changeset)
 
-      {:error, reason} ->
-        invalid(conn, "bbh_review_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_review_failed", "BBH review failed")
     end
   end
 
@@ -65,8 +65,8 @@ defmodule TechTreeWeb.AgentReviewController do
           message: "Review request must be claimed before pulling the packet"
         })
 
-      {:error, reason} ->
-        invalid(conn, "bbh_review_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_review_failed", "BBH review failed")
     end
   end
 
@@ -112,8 +112,8 @@ defmodule TechTreeWeb.AgentReviewController do
         {:error, %ArgumentError{} = error} ->
           invalid(conn, "bbh_review_invalid", Exception.message(error))
 
-        {:error, reason} ->
-          invalid(conn, "bbh_review_failed", inspect(reason))
+        {:error, _reason} ->
+          invalid(conn, "bbh_review_failed", "BBH review failed")
       end
     end
   end

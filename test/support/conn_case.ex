@@ -40,7 +40,7 @@ defmodule TechTreeWeb.ConnCase do
   defp reset_siwa_sidecar_state do
     if Process.whereis(TechTreeWeb.TestSupport.SiwaSidecarState) do
       Agent.update(TechTreeWeb.TestSupport.SiwaSidecarState, fn _state ->
-        %{status: 200, last_request: nil}
+        %{status: 200, last_request: nil, last_trusted_headers: nil}
       end)
     end
   end

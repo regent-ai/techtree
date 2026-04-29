@@ -8,7 +8,7 @@ defmodule TechTree.BBH.Drafts do
   alias TechTree.Repo
 
   @draft_split "draft"
-  @review_open_states ~w(open claimed)
+  @review_open_states [:open, :claimed]
 
   def create_draft(agent_claims, attrs) when is_map(attrs) do
     wallet = Helpers.required_wallet(agent_claims)
@@ -38,13 +38,13 @@ defmodule TechTree.BBH.Drafts do
       source_node_id: Helpers.fetch_value(attrs, "source_node_id"),
       seed: Helpers.optional_binary(attrs, "seed"),
       parent_id: Helpers.fetch_value(attrs, "parent_id"),
-      workflow_state: "authoring",
+      workflow_state: :authoring,
       notebook_py: Helpers.required_binary(workspace, "notebook_py"),
       capsule_source: Helpers.required_map(workspace, "capsule_source"),
       recommended_genome_source:
         Helpers.optional_map(workspace, "recommended_genome_source") || %{},
       genome_notes_md: Helpers.optional_binary(workspace, "genome_notes_md"),
-      certificate_status: "none"
+      certificate_status: :none
     })
     |> Repo.insert()
     |> case do
@@ -100,7 +100,7 @@ defmodule TechTree.BBH.Drafts do
              workspace_bundle: workspace,
              patch_json: Helpers.optional_map(attrs, "patch_json") || %{},
              workspace_manifest_hash: Helpers.required_binary(attrs, "workspace_manifest_hash"),
-             status: "open"
+             status: :open
            })
            |> Repo.insert() do
       {:ok, %{proposal: proposal_payload(proposal)}}
@@ -129,7 +129,7 @@ defmodule TechTree.BBH.Drafts do
         :capsule,
         Capsule.changeset(capsule, capsule_workspace_attrs(proposal.workspace_bundle))
       )
-      |> Multi.update(:proposal, DraftProposal.changeset(proposal, %{status: "accepted"}))
+      |> Multi.update(:proposal, DraftProposal.changeset(proposal, %{status: :accepted}))
       |> Repo.transaction()
       |> case do
         {:ok, %{capsule: updated}} ->
@@ -155,7 +155,7 @@ defmodule TechTree.BBH.Drafts do
       Multi.new()
       |> Multi.update(
         :capsule,
-        Capsule.changeset(capsule, %{workflow_state: "review_ready"})
+        Capsule.changeset(capsule, %{workflow_state: :review_ready})
       )
       |> Multi.run(:review_request, fn repo, %{capsule: updated_capsule} ->
         existing =
@@ -174,9 +174,9 @@ defmodule TechTree.BBH.Drafts do
           |> ReviewRequest.changeset(%{
             request_id: request_id,
             capsule_id: updated_capsule.capsule_id,
-            review_kind: "certification",
-            visibility: "public_claim",
-            state: "open"
+            review_kind: :certification,
+            visibility: :public_claim,
+            state: :open
           })
           |> repo.insert()
         end
@@ -203,7 +203,7 @@ defmodule TechTree.BBH.Drafts do
       capsule_id: capsule.capsule_id,
       title: capsule.title,
       split: "draft",
-      workflow_state: capsule.workflow_state,
+      workflow_state: enum_value(capsule.workflow_state),
       owner_wallet_address: capsule.owner_wallet_address,
       source_node_id: capsule.source_node_id,
       seed: capsule.seed,
@@ -249,7 +249,7 @@ defmodule TechTree.BBH.Drafts do
       summary: proposal.summary,
       patch_json: proposal.patch_json,
       workspace_manifest_hash: proposal.workspace_manifest_hash,
-      status: proposal.status,
+      status: enum_value(proposal.status),
       inserted_at: proposal.inserted_at,
       updated_at: proposal.updated_at
     }
@@ -258,7 +258,7 @@ defmodule TechTree.BBH.Drafts do
   defp certificate_summary_payload(%Capsule{} = capsule) do
     %{
       capsule_id: capsule.capsule_id,
-      status: capsule.certificate_status || "none",
+      status: enum_value(capsule.certificate_status || :none),
       certificate_review_id: capsule.certificate_review_id,
       scope: capsule.certificate_scope,
       issued_at: capsule.updated_at,
@@ -266,6 +266,9 @@ defmodule TechTree.BBH.Drafts do
       reviewer_wallet: certificate_reviewer_wallet(capsule)
     }
   end
+
+  defp enum_value(value) when is_atom(value), do: Atom.to_string(value)
+  defp enum_value(value), do: value
 
   defp certificate_reviewer_wallet(%Capsule{certificate_review_id: nil}), do: nil
 

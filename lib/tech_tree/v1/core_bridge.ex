@@ -92,17 +92,35 @@ defmodule TechTree.V1.CoreBridge do
   defp base_args(author), do: ["--author", author]
 
   defp run_json(python_args) do
-    case System.cmd("uv", ["run", "--directory", @core_dir, "python" | python_args],
-           stderr_to_stdout: true
-         ) do
+    case run_uv(["run", "--directory", @core_dir, "python" | python_args]) do
       {output, 0} ->
         case Jason.decode(output) do
           {:ok, decoded} -> {:ok, decoded}
           {:error, reason} -> {:error, {:invalid_json, Exception.message(reason), output}}
         end
 
-      {output, status} ->
+      {output, status} when is_binary(output) and is_integer(status) ->
         {:error, {:command_failed, status, String.trim(output)}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp run_uv(args) do
+    task = Task.async(fn -> System.cmd("uv", args, stderr_to_stdout: true) end)
+
+    receive do
+      {ref, result} when ref == task.ref ->
+        Process.demonitor(task.ref, [:flush])
+        result
+
+      {:DOWN, ref, :process, _pid, reason} when ref == task.ref ->
+        {:error, {:command_failed, reason}}
+    after
+      60_000 ->
+        Task.shutdown(task, :brutal_kill)
+        {:error, {:command_timeout, 60_000}}
     end
   end
 

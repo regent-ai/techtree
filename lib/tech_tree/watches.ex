@@ -37,11 +37,16 @@ defmodule TechTree.Watches do
     delete_watch(node_id, :agent, agent_id)
   end
 
-  @spec list_agent_watches(integer()) :: [NodeWatcher.t()]
-  def list_agent_watches(agent_id) when is_integer(agent_id) and agent_id > 0 do
+  @spec list_agent_watches(integer(), map()) :: [NodeWatcher.t()]
+  def list_agent_watches(agent_id, params \\ %{}) when is_integer(agent_id) and agent_id > 0 do
+    limit = parse_limit(params, 50)
+    cursor = parse_cursor(params)
+
     NodeWatcher
     |> where([w], w.watcher_type == :agent and w.watcher_ref == ^agent_id)
-    |> order_by([w], desc: w.inserted_at, desc: w.id)
+    |> maybe_before_cursor(cursor)
+    |> order_by([w], desc: w.id)
+    |> limit(^limit)
     |> Repo.all()
   end
 
@@ -55,14 +60,13 @@ defmodule TechTree.Watches do
     else
       key = online_sessions_key(normalized_node_id)
 
-      case dragonfly_command(["SADD", key, normalized_session_id]) do
-        {:ok, _} ->
-          _ = dragonfly_command(["EXPIRE", key, @online_session_ttl_seconds])
+      case TechTree.LocalCache.set_add(key, normalized_session_id, @online_session_ttl_seconds) do
+        :ok ->
           :ok
 
         {:error, reason} ->
           Logger.debug(
-            "dragonfly online-session add failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
+            "local cache online-session add failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
           )
 
           :ok
@@ -80,13 +84,13 @@ defmodule TechTree.Watches do
     else
       key = online_sessions_key(normalized_node_id)
 
-      case dragonfly_command(["SREM", key, normalized_session_id]) do
-        {:ok, _} ->
+      case TechTree.LocalCache.set_remove(key, normalized_session_id, @online_session_ttl_seconds) do
+        :ok ->
           :ok
 
         {:error, reason} ->
           Logger.debug(
-            "dragonfly online-session remove failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
+            "local cache online-session remove failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
           )
 
           :ok
@@ -99,7 +103,7 @@ defmodule TechTree.Watches do
     normalized_node_id = normalize_id(node_id)
     key = online_sessions_key(normalized_node_id)
 
-    case dragonfly_command(["SMEMBERS", key]) do
+    case TechTree.LocalCache.set_members(key) do
       {:ok, session_ids} when is_list(session_ids) ->
         session_ids
         |> Enum.map(&normalize_session_id/1)
@@ -109,7 +113,7 @@ defmodule TechTree.Watches do
 
       {:error, reason} ->
         Logger.debug(
-          "dragonfly online-session list failed node_id=#{normalized_node_id}: #{inspect(reason)}"
+          "local cache online-session list failed node_id=#{normalized_node_id}: #{inspect(reason)}"
         )
 
         []
@@ -226,10 +230,9 @@ defmodule TechTree.Watches do
   defp normalize_session_id(value) when is_integer(value), do: Integer.to_string(value)
   defp normalize_session_id(value) when is_binary(value), do: String.trim(value)
 
-  @spec dragonfly_command([String.t() | integer()]) :: {:ok, term()} | {:error, term()}
-  defp dragonfly_command(command) do
-    RegentCache.Dragonfly.command(:tech_tree, command)
-  end
+  @spec maybe_before_cursor(Ecto.Query.t(), integer() | nil) :: Ecto.Query.t()
+  defp maybe_before_cursor(query, nil), do: query
+  defp maybe_before_cursor(query, cursor), do: where(query, [w], w.id < ^cursor)
 
   @spec online_sessions_key(integer()) :: String.t()
   defp online_sessions_key(node_id), do: "watch:online:#{node_id}"

@@ -4,11 +4,14 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
   import Ecto.Query
   import TechTree.PhaseDApiSupport
 
+  alias TechTree.Moderation
   alias TechTree.Repo
   alias TechTree.Agents.AgentIdentity
   alias TechTree.Nodes.Node
   alias TechTree.Watches.NodeWatcher
+  alias TechTree.Workers.PinNodeWorker
   alias TechTree.XMTPMirror.XmtpMembershipCommand
+  alias Oban.Job
 
   setup do
     Process.put(:tech_tree_disable_rate_limits, true)
@@ -88,8 +91,9 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
     assert %{
              "data" => %{
                "node_id" => child_node_id,
-               "manifest_cid" => manifest_cid,
+               "manifest_cid" => nil,
                "status" => "pinned",
+               "publish_status" => "queued",
                "anchor_status" => "pending"
              }
            } =
@@ -103,8 +107,6 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
                "idempotency_key" => node_idempotency_key
              })
              |> json_response(201)
-
-    assert is_binary(manifest_cid) and manifest_cid != ""
 
     assert %{"data" => %{"node_id" => ^child_node_id}} =
              writer_conn.()
@@ -124,6 +126,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
              |> get("/v1/tree/nodes/#{root_node.id}/children")
              |> json_response(200)
 
+    assert :ok = PinNodeWorker.perform(%Job{args: %{"node_id" => child_node_id}})
     assert :ok = mark_node_ready_for_public!(child_node_id)
     assert :ok = force_public_visibility!(child_node_id)
 
@@ -318,12 +321,13 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
       )
     end)
 
-    assert %{"ok" => true} =
-             admin_conn.()
-             |> post("/v1/admin/chatbox/messages/#{visible_message.id}/hide", %{
-               "reason" => "phase-d-hide-message"
-             })
-             |> json_response(200)
+    {:ok, :hidden} =
+      Moderation.apply_action(
+        :hide_chatbox_message,
+        visible_message.id,
+        admin,
+        "phase-d-hide-message"
+      )
 
     moderated_messages =
       await_ok("moderated message should disappear from public chatbox feed", fn ->
@@ -344,12 +348,8 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
 
     refute Enum.any?(moderated_messages, &(&1["id"] == visible_message.id))
 
-    assert %{"ok" => true} =
-             admin_conn.()
-             |> post("/v1/admin/agents/#{writer_agent_id}/ban", %{
-               "reason" => "phase-d-ban-agent"
-             })
-             |> json_response(200)
+    {:ok, :banned} =
+      Moderation.apply_action(:ban_agent, writer_agent_id, admin, "phase-d-ban-agent")
 
     children_after_ban =
       await_ok("banned agent child node should disappear from parent children feed", fn ->

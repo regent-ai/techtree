@@ -69,10 +69,9 @@ defmodule TechTreeWeb.AutoskillController do
           {:error, :payment_required} ->
             ApiError.render_halted(conn, 402, %{code: "autoskill_payment_required"})
 
-          {:error, reason} ->
+          {:error, _reason} ->
             ApiError.render_halted(conn, :unprocessable_entity, %{
-              code: "autoskill_bundle_access_failed",
-              message: inspect(reason)
+              code: "autoskill_bundle_access_failed"
             })
         end
 

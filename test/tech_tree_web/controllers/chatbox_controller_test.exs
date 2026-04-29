@@ -27,7 +27,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
     older = create_chatbox_message!(human, %{body: "older-message"})
     newer = create_chatbox_message!(human, %{body: "newer-message"})
 
-    assert %{"data" => [first], "next_cursor" => next_cursor} =
+    assert %{"data" => [first], "pagination" => %{"next_cursor" => next_cursor}} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> get("/v1/chatbox/messages", %{"limit" => "1", "room" => "webapp"})
@@ -36,7 +36,7 @@ defmodule TechTreeWeb.ChatboxControllerTest do
     assert first["id"] == newer.id
     assert next_cursor == newer.id
 
-    assert %{"data" => older_page, "next_cursor" => _next_cursor} =
+    assert %{"data" => older_page, "pagination" => %{"next_cursor" => _next_cursor}} =
              Phoenix.ConnTest.build_conn()
              |> put_req_header("accept", "application/json")
              |> get("/v1/chatbox/messages", %{

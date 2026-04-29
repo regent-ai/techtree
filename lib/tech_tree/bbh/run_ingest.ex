@@ -271,17 +271,17 @@ defmodule TechTree.BBH.RunIngest do
 
       assignment ->
         assignment
-        |> Ecto.Changeset.change(status: "completed", completed_at: DateTime.utc_now())
+        |> Ecto.Changeset.change(status: :completed, completed_at: DateTime.utc_now())
         |> repo.update()
     end
   end
 
   defp next_run_status(review_source) do
     case Helpers.required_binary(review_source, "result") do
-      "confirmed" -> "validated"
-      "rejected" -> "rejected"
-      "mixed" -> "rejected"
-      "needs_revision" -> "rejected"
+      "confirmed" -> :validated
+      "rejected" -> :rejected
+      "mixed" -> :rejected
+      "needs_revision" -> :rejected
     end
   end
 
@@ -306,10 +306,10 @@ defmodule TechTree.BBH.RunIngest do
     error in [ArgumentError] -> {:error, error}
   end
 
-  defp normalize_run_status("completed", _score), do: "validation_pending"
-  defp normalize_run_status("created", _score), do: "validation_pending"
-  defp normalize_run_status("failed", _score), do: "failed"
-  defp normalize_run_status("running", _score), do: "running"
+  defp normalize_run_status("completed", _score), do: :validation_pending
+  defp normalize_run_status("created", _score), do: :validation_pending
+  defp normalize_run_status("failed", _score), do: :failed
+  defp normalize_run_status("running", _score), do: :running
 
   defp required_enum(value, field, allowed_values) when is_binary(value) do
     if value in allowed_values do

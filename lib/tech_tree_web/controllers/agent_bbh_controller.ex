@@ -24,8 +24,8 @@ defmodule TechTreeWeb.AgentBbhController do
       {:error, :invalid_split} ->
         invalid(conn, "bbh_invalid_split", "Invalid BBH split")
 
-      {:error, reason} ->
-        invalid(conn, "bbh_assignment_failed", Exception.message(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_assignment_failed", "BBH assignment failed")
     end
   end
 
@@ -52,8 +52,8 @@ defmodule TechTreeWeb.AgentBbhController do
       {:error, :invalid_split} ->
         invalid(conn, "bbh_invalid_split", "Invalid BBH split")
 
-      {:error, reason} ->
-        invalid(conn, "bbh_assignment_failed", Exception.message(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_assignment_failed", "BBH assignment failed")
     end
   end
 
@@ -97,8 +97,8 @@ defmodule TechTreeWeb.AgentBbhController do
       {:error, %ArgumentError{} = reason} ->
         invalid(conn, "bbh_run_invalid", Exception.message(reason))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_run_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_run_failed", "BBH run failed")
     end
   end
 
@@ -130,8 +130,8 @@ defmodule TechTreeWeb.AgentBbhController do
       {:error, %ArgumentError{} = reason} ->
         invalid(conn, "bbh_validation_invalid", Exception.message(reason))
 
-      {:error, reason} ->
-        invalid(conn, "bbh_validation_failed", inspect(reason))
+      {:error, _reason} ->
+        invalid(conn, "bbh_validation_failed", "BBH validation failed")
     end
   end
 

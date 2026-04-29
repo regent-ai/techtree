@@ -143,13 +143,11 @@ defmodule TechTreeWeb.PublicEncoding do
           events: [ActivityEvent.t()],
           next_cursor: integer() | nil
         }) :: %{
-          events: [map()],
-          next_cursor: integer() | nil
+          events: [map()]
         }
-  def encode_agent_inbox(%{events: events, next_cursor: next_cursor}) do
+  def encode_agent_inbox(%{events: events}) do
     %{
-      events: encode_activity_events(events),
-      next_cursor: next_cursor
+      events: encode_activity_events(events)
     }
   end
 

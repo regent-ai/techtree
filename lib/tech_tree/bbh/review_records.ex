@@ -2,6 +2,8 @@ defmodule TechTree.BBH.DraftProposal do
   @moduledoc false
   use TechTree.Schema
 
+  @statuses [:open, :accepted]
+
   @primary_key {:proposal_id, :string, autogenerate: false}
   @foreign_key_type :string
 
@@ -12,7 +14,7 @@ defmodule TechTree.BBH.DraftProposal do
     field :workspace_bundle, :map, default: %{}
     field :patch_json, :map, default: %{}
     field :workspace_manifest_hash, :string
-    field :status, :string, default: "open"
+    field :status, Ecto.Enum, values: @statuses, default: :open
 
     belongs_to :capsule, TechTree.BBH.Capsule,
       define_field: false,
@@ -44,6 +46,7 @@ defmodule TechTree.BBH.DraftProposal do
       :workspace_manifest_hash,
       :status
     ])
+    |> check_constraint(:status, name: :bbh_draft_proposals_status_check)
   end
 end
 
@@ -51,13 +54,15 @@ defmodule TechTree.BBH.ReviewerProfile do
   @moduledoc false
   use TechTree.Schema
 
+  @vetting_statuses [:pending, :approved, :rejected]
+
   @primary_key {:wallet_address, :string, autogenerate: false}
 
   schema "bbh_reviewer_profiles" do
     field :orcid_id, :string
     field :orcid_auth_kind, :string
     field :orcid_name, :string
-    field :vetting_status, :string, default: "pending"
+    field :vetting_status, Ecto.Enum, values: @vetting_statuses, default: :pending
     field :domain_tags, {:array, :string}, default: []
     field :payout_wallet, :string
     field :experience_summary, :string
@@ -82,6 +87,7 @@ defmodule TechTree.BBH.ReviewerProfile do
       :vetted_at
     ])
     |> validate_required([:wallet_address, :vetting_status, :domain_tags])
+    |> check_constraint(:vetting_status, name: :bbh_reviewer_profiles_vetting_status_check)
   end
 end
 
@@ -89,11 +95,13 @@ defmodule TechTree.BBH.OrcidLinkRequest do
   @moduledoc false
   use TechTree.Schema
 
+  @states [:pending, :authenticated, :expired]
+
   @primary_key {:request_id, :string, autogenerate: false}
 
   schema "bbh_orcid_link_requests" do
     field :wallet_address, :string
-    field :state, :string, default: "pending"
+    field :state, Ecto.Enum, values: @states, default: :pending
     field :expires_at, :utc_datetime_usec
     field :authenticated_at, :utc_datetime_usec
 
@@ -104,6 +112,7 @@ defmodule TechTree.BBH.OrcidLinkRequest do
     request
     |> cast(attrs, [:request_id, :wallet_address, :state, :expires_at, :authenticated_at])
     |> validate_required([:request_id, :wallet_address, :state, :expires_at])
+    |> check_constraint(:state, name: :bbh_orcid_link_requests_state_check)
   end
 end
 
@@ -111,14 +120,18 @@ defmodule TechTree.BBH.ReviewRequest do
   @moduledoc false
   use TechTree.Schema
 
+  @review_kinds [:design, :genome, :certification]
+  @visibilities [:public_claim]
+  @states [:open, :claimed, :closed]
+
   @primary_key {:request_id, :string, autogenerate: false}
   @foreign_key_type :string
 
   schema "bbh_review_requests" do
     field :capsule_id, :string
-    field :review_kind, :string
-    field :visibility, :string, default: "public_claim"
-    field :state, :string, default: "open"
+    field :review_kind, Ecto.Enum, values: @review_kinds
+    field :visibility, Ecto.Enum, values: @visibilities, default: :public_claim
+    field :state, Ecto.Enum, values: @states, default: :open
     field :claimed_by_wallet, :string
     field :fee_quote_usdc, :string
     field :holdback_usdc, :string
@@ -153,12 +166,17 @@ defmodule TechTree.BBH.ReviewRequest do
       :closed_at
     ])
     |> validate_required([:request_id, :capsule_id, :review_kind, :visibility, :state])
+    |> check_constraint(:review_kind, name: :bbh_review_requests_review_kind_check)
+    |> check_constraint(:visibility, name: :bbh_review_requests_visibility_check)
+    |> check_constraint(:state, name: :bbh_review_requests_state_check)
   end
 end
 
 defmodule TechTree.BBH.ReviewSubmission do
   @moduledoc false
   use TechTree.Schema
+
+  @decisions [:approve, :approve_with_edits, :changes_requested, :reject]
 
   @primary_key {:submission_id, :string, autogenerate: false}
   @foreign_key_type :string
@@ -169,7 +187,7 @@ defmodule TechTree.BBH.ReviewSubmission do
     field :reviewer_wallet, :string
     field :checklist_json, :map, default: %{}
     field :suggested_edits_json, :map, default: %{}
-    field :decision, :string
+    field :decision, Ecto.Enum, values: @decisions
     field :summary_md, :string
     field :genome_recommendation_source, :map, default: %{}
     field :certificate_payload, :map, default: %{}
@@ -215,5 +233,6 @@ defmodule TechTree.BBH.ReviewSubmission do
       :decision,
       :summary_md
     ])
+    |> check_constraint(:decision, name: :bbh_review_submissions_decision_check)
   end
 end

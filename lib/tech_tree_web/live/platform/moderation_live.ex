@@ -58,13 +58,8 @@ defmodule TechTreeWeb.Platform.ModerationLive do
   end
 
   @impl true
-  def handle_event("message-action", %{"action" => action, "id" => id}, socket) do
-    handle_message_action(socket, action, id)
-  end
-
-  @impl true
-  def handle_event("author-action", %{"action" => action, "kind" => kind, "id" => id}, socket) do
-    handle_author_action(socket, action, kind, id)
+  def handle_event("moderation-action", %{"action" => action, "id" => id} = params, socket) do
+    handle_moderation_action(socket, action, id, params["selected"])
   end
 
   @impl true
@@ -98,54 +93,6 @@ defmodule TechTreeWeb.Platform.ModerationLive do
       <Layouts.flash_group flash={@flash} />
     </div>
     """
-  end
-
-  defp handle_message_action(socket, action, raw_id) do
-    with {:ok, message_id} <- parse_required_id(raw_id),
-         {:ok, message_fun, flash_message} <- resolve_message_action(action),
-         :ok <- message_fun.(message_id, socket.assigns.current_admin, socket.assigns.reason) do
-      refreshed_socket =
-        socket
-        |> assign(:selected_message_id, message_id)
-        |> refresh_dashboard()
-
-      {:noreply,
-       refreshed_socket
-       |> put_flash(:info, flash_message)
-       |> assign(:selected_message_id, refreshed_socket.assigns.selected_message_id)}
-    else
-      :error ->
-        {:noreply, put_flash(socket, :error, "Invalid message id")}
-
-      {:error, :invalid_action} ->
-        {:noreply, put_flash(socket, :error, "Invalid message action")}
-
-      {:error, :message_not_found} ->
-        handle_missing_target(socket)
-    end
-  end
-
-  defp handle_author_action(socket, action, raw_kind, raw_id) do
-    with {:ok, author_kind} <- parse_author_kind(raw_kind),
-         {:ok, author_id} <- parse_required_id(raw_id),
-         {:ok, author_fun, flash_message} <- resolve_author_action(author_kind, action),
-         :ok <- author_fun.(author_id, socket.assigns.current_admin, socket.assigns.reason) do
-      refreshed_socket = refresh_dashboard(socket)
-
-      {:noreply,
-       refreshed_socket
-       |> put_flash(:info, flash_message)
-       |> assign(:selected_message_id, refreshed_socket.assigns.selected_message_id)}
-    else
-      {:error, :human_not_found} ->
-        handle_missing_target(socket)
-
-      {:error, :agent_not_found} ->
-        handle_missing_target(socket)
-
-      _ ->
-        {:noreply, put_flash(socket, :error, "Invalid author")}
-    end
   end
 
   defp refresh_dashboard(socket) do
@@ -187,33 +134,54 @@ defmodule TechTreeWeb.Platform.ModerationLive do
     end
   end
 
-  defp parse_author_kind("human"), do: {:ok, :human}
-  defp parse_author_kind("agent"), do: {:ok, :agent}
-  defp parse_author_kind(:human), do: {:ok, :human}
-  defp parse_author_kind(:agent), do: {:ok, :agent}
-  defp parse_author_kind(_value), do: {:error, :invalid_author_kind}
+  defp handle_moderation_action(socket, raw_action, raw_id, raw_selected_id) do
+    with {:ok, action} <- parse_action(raw_action),
+         {:ok, target_id} <- parse_required_id(raw_id),
+         {:ok, _status} <-
+           Moderation.apply_action(
+             action,
+             target_id,
+             socket.assigns.current_admin,
+             socket.assigns.reason
+           ) do
+      selected_message_id = parse_id(raw_selected_id) || socket.assigns.selected_message_id
 
-  defp resolve_message_action("hide"),
-    do: {:ok, &Moderation.hide_chatbox_message_if_present/3, "Message hidden"}
+      refreshed_socket =
+        socket
+        |> assign(:selected_message_id, selected_message_id)
+        |> refresh_dashboard()
 
-  defp resolve_message_action("restore"),
-    do: {:ok, &Moderation.unhide_chatbox_message_if_present/3, "Message restored"}
+      {:noreply,
+       refreshed_socket
+       |> put_flash(:info, action_flash(action))
+       |> assign(:selected_message_id, refreshed_socket.assigns.selected_message_id)}
+    else
+      :error ->
+        {:noreply, put_flash(socket, :error, "Invalid target id")}
 
-  defp resolve_message_action(_action), do: {:error, :invalid_action}
+      {:error, :invalid_action} ->
+        {:noreply, put_flash(socket, :error, "Invalid moderation action")}
 
-  defp resolve_author_action(:human, "ban"),
-    do: {:ok, &Moderation.ban_human_if_present/3, "Human banned"}
+      {:error, reason}
+      when reason in [:message_not_found, :human_not_found, :agent_not_found] ->
+        handle_missing_target(socket)
+    end
+  end
 
-  defp resolve_author_action(:human, "restore"),
-    do: {:ok, &Moderation.unban_human_if_present/3, "Human restored"}
+  defp parse_action("hide_chatbox_message"), do: {:ok, :hide_chatbox_message}
+  defp parse_action("unhide_chatbox_message"), do: {:ok, :unhide_chatbox_message}
+  defp parse_action("ban_human"), do: {:ok, :ban_human}
+  defp parse_action("unban_human"), do: {:ok, :unban_human}
+  defp parse_action("ban_agent"), do: {:ok, :ban_agent}
+  defp parse_action("unban_agent"), do: {:ok, :unban_agent}
+  defp parse_action(_action), do: {:error, :invalid_action}
 
-  defp resolve_author_action(:agent, "ban"),
-    do: {:ok, &Moderation.ban_agent_if_present/3, "Agent banned"}
-
-  defp resolve_author_action(:agent, "restore"),
-    do: {:ok, &Moderation.unban_agent_if_present/3, "Agent restored"}
-
-  defp resolve_author_action(_author_kind, _action), do: {:error, :invalid_action}
+  defp action_flash(:hide_chatbox_message), do: "Message hidden"
+  defp action_flash(:unhide_chatbox_message), do: "Message restored"
+  defp action_flash(:ban_human), do: "Human banned"
+  defp action_flash(:unban_human), do: "Human restored"
+  defp action_flash(:ban_agent), do: "Agent banned"
+  defp action_flash(:unban_agent), do: "Agent restored"
 
   defp handle_missing_target(socket) do
     {:noreply,

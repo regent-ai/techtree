@@ -36,8 +36,8 @@ defmodule TechTreeWeb.AgentCommentController do
               {:error, %Ecto.Changeset{} = changeset} ->
                 render_changeset_error(conn, changeset)
 
-              {:error, reason} ->
-                render_create_failed(conn, reason)
+              {:error, _reason} ->
+                render_create_failed(conn)
             end
         end
 
@@ -100,12 +100,9 @@ defmodule TechTreeWeb.AgentCommentController do
     })
   end
 
-  @spec render_create_failed(Plug.Conn.t(), term()) :: Plug.Conn.t()
-  defp render_create_failed(conn, reason) do
-    ApiError.render(conn, :unprocessable_entity, %{
-      code: "comment_create_failed",
-      message: inspect(reason)
-    })
+  @spec render_create_failed(Plug.Conn.t()) :: Plug.Conn.t()
+  defp render_create_failed(conn) do
+    ApiError.render(conn, :unprocessable_entity, %{code: "comment_create_failed"})
   end
 
   @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()

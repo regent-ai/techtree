@@ -180,23 +180,28 @@ defmodule TechTree.Autoskill.BundleNodes do
   defp archive_upload_attrs(encoded_archive, filename) when is_binary(encoded_archive) do
     archive_bytes = Base.decode64!(encoded_archive)
 
-    upload =
-      LighthouseClient.upload_content!(filename, archive_bytes, content_type: "application/json")
+    case LighthouseClient.upload_content(filename, archive_bytes,
+           content_type: "application/json"
+         ) do
+      {:ok, upload} ->
+        attrs = %{
+          bundle_hash: Digests.sha256_hex(archive_bytes)
+        }
 
-    attrs = %{
-      bundle_hash: Digests.sha256_hex(archive_bytes)
-    }
+        if String.contains?(filename, ".encrypted.") do
+          Map.merge(attrs, %{
+            encrypted_bundle_uri: "ipfs://#{upload.cid}",
+            encrypted_bundle_cid: upload.cid
+          })
+        else
+          Map.merge(attrs, %{
+            bundle_uri: "ipfs://#{upload.cid}",
+            bundle_cid: upload.cid
+          })
+        end
 
-    if String.contains?(filename, ".encrypted.") do
-      Map.merge(attrs, %{
-        encrypted_bundle_uri: "ipfs://#{upload.cid}",
-        encrypted_bundle_cid: upload.cid
-      })
-    else
-      Map.merge(attrs, %{
-        bundle_uri: "ipfs://#{upload.cid}",
-        bundle_cid: upload.cid
-      })
+      {:error, reason} ->
+        raise RuntimeError, "autoskill archive upload failed: #{inspect(reason)}"
     end
   end
 end

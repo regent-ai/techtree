@@ -25,8 +25,9 @@ defmodule TechTree.IPFS.LighthouseClientTest do
     :ok
   end
 
-  test "upload_content!/3 mock mode returns deterministic valid cid" do
-    upload = LighthouseClient.upload_content!("notebook.py", "print('ok')", mock_uploads: true)
+  test "upload_content/3 mock mode returns deterministic valid cid" do
+    assert {:ok, upload} =
+             LighthouseClient.upload_content("notebook.py", "print('ok')", mock_uploads: true)
 
     assert upload.name == "notebook.py"
     assert upload.size == byte_size("print('ok')")
@@ -34,7 +35,7 @@ defmodule TechTree.IPFS.LighthouseClientTest do
     assert upload.gateway_url == "https://gateway.test/ipfs/#{upload.cid}"
   end
 
-  test "upload_path!/2 mock mode uploads file content" do
+  test "upload_path/2 mock mode uploads file content" do
     tmp_path =
       Path.join(System.tmp_dir!(), "lighthouse-client-#{System.unique_integer([:positive])}.txt")
 
@@ -42,20 +43,20 @@ defmodule TechTree.IPFS.LighthouseClientTest do
 
     on_exit(fn -> File.rm(tmp_path) end)
 
-    upload = LighthouseClient.upload_path!(tmp_path, mock_uploads: true)
+    assert {:ok, upload} = LighthouseClient.upload_path(tmp_path, mock_uploads: true)
 
     assert upload.name == Path.basename(tmp_path)
     assert upload.size == byte_size("tmp-content")
     assert LighthouseClient.valid_cid?(upload.cid)
   end
 
-  test "decode_upload_response!/1 accepts nested data envelopes" do
+  test "decode_upload_response/1 accepts nested data envelopes" do
     cid = "bafybeibwzifh6x6s6sa2r5y4d7zjz3mx2mhn7abm2wxyx7szj2z5g2rmcq"
 
-    upload =
-      LighthouseClient.decode_upload_response!(%{
-        "data" => %{"Hash" => cid, "Name" => "manifest.json", "Size" => "128"}
-      })
+    assert {:ok, upload} =
+             LighthouseClient.decode_upload_response(%{
+               "data" => %{"Hash" => cid, "Name" => "manifest.json", "Size" => "128"}
+             })
 
     assert upload.cid == cid
     assert upload.name == "manifest.json"
@@ -63,9 +64,8 @@ defmodule TechTree.IPFS.LighthouseClientTest do
     assert upload.gateway_url == "https://gateway.test/ipfs/#{cid}"
   end
 
-  test "decode_upload_response!/1 rejects invalid cids" do
-    assert_raise RuntimeError, ~r/invalid CID/, fn ->
-      LighthouseClient.decode_upload_response!(%{"Hash" => "not-a-cid", "Name" => "x"})
-    end
+  test "decode_upload_response/1 rejects invalid cids" do
+    assert {:error, :invalid_cid} =
+             LighthouseClient.decode_upload_response(%{"Hash" => "not-a-cid", "Name" => "x"})
   end
 end

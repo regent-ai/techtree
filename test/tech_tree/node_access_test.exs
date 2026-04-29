@@ -75,6 +75,35 @@ defmodule TechTree.NodeAccessTest do
              NodeAccess.fetch_payload_for_agent(inactive_node.id, inactive_seller)
   end
 
+  test "paid payloads require IPFS payload locations and EVM settlement addresses" do
+    seller = insert_agent_fixture!("seller")
+    root = Nodes.create_seed_root!("Evals", "Evals")
+
+    node =
+      insert_ready_node!(seller, root, %{
+        title: "Invalid paid payload node",
+        slug: "invalid-paid-payload-node"
+      })
+
+    assert {:error, changeset} =
+             NodeAccess.upsert_paid_payload(node, seller, %{
+               "status" => "active",
+               "encrypted_payload_uri" => "https://example.invalid/payload",
+               "payload_hash" => "payload-hash",
+               "chain_id" => 84_532,
+               "settlement_contract_address" => "not-an-address",
+               "usdc_token_address" => "0x0000000000000000000000000000000000008454",
+               "treasury_address" => "0x0000000000000000000000000000000000008455",
+               "seller_payout_address" => seller.wallet_address,
+               "price_usdc" => "25.000000"
+             })
+
+    errors = Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
+
+    assert %{encrypted_payload_uri: ["must use ipfs://"]} = errors
+    assert %{settlement_contract_address: ["must be an EVM address"]} = errors
+  end
+
   defp paid_payload_fixture!(opts \\ []) do
     payload_status = Keyword.get(opts, :payload_status, :active)
     seller = insert_agent_fixture!("seller")

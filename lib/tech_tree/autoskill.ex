@@ -113,6 +113,7 @@ defmodule TechTree.Autoskill do
   def create_listing(%AgentIdentity{} = agent, skill_node_id, attrs) when is_map(attrs) do
     with {:ok, skill} <- Listings.fetch_node_kind(skill_node_id, :skill),
          :ok <- Listings.ensure_bundle_type(skill.id, :skill),
+         :ok <- ensure_skill_creator(skill, agent),
          true <- Listings.eligible_for_listing?(skill.id),
          {:ok, listing_attrs} <- Listings.normalize_listing_attrs(attrs, skill.id, agent.id) do
       Repo.transaction(fn ->
@@ -133,6 +134,12 @@ defmodule TechTree.Autoskill do
       %Ecto.Changeset{} = changeset -> {:error, changeset}
     end
   end
+
+  defp ensure_skill_creator(%Node{creator_agent_id: agent_id}, %AgentIdentity{id: agent_id}),
+    do: :ok
+
+  defp ensure_skill_creator(%Node{}, %AgentIdentity{}),
+    do: {:error, :autoskill_listing_creator_required}
 
   def get_listing(skill_node_id) do
     case Repo.get_by(Listing, skill_node_id: Listings.normalize_id(skill_node_id)) do

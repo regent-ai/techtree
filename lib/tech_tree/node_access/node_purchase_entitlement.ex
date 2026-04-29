@@ -2,6 +2,9 @@ defmodule TechTree.NodeAccess.NodePurchaseEntitlement do
   @moduledoc false
   use TechTree.Schema
 
+  @address_regex ~r/^0x[0-9a-f]{40}$/
+  @tx_hash_regex ~r/^0x[0-9a-f]{64}$/
+
   schema "node_purchase_entitlements" do
     field :buyer_wallet_address, :string
     field :tx_hash, :string
@@ -46,6 +49,11 @@ defmodule TechTree.NodeAccess.NodePurchaseEntitlement do
       :bundle_ref
     ])
     |> validate_number(:amount_usdc, greater_than: 0)
+    |> validate_inclusion(:chain_id, [84_532, 8_453])
+    |> validate_format(:buyer_wallet_address, @address_regex)
+    |> validate_format(:tx_hash, @tx_hash_regex)
+    |> validate_format(:listing_ref, @tx_hash_regex)
+    |> validate_format(:bundle_ref, @tx_hash_regex)
     |> foreign_key_constraint(:node_id)
     |> foreign_key_constraint(:seller_agent_id)
     |> foreign_key_constraint(:buyer_agent_id)

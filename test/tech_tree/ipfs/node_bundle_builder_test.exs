@@ -9,7 +9,7 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
   @skill_cid "bafybeihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
   @manifest_cid "bafybeia6q4xixf2j6z4mupg3dty6ew2v5vqd4f3i27p2u5mr55ei6lv5we"
 
-  test "build_and_pin!/3 emits spec-compliant manifest for skill nodes" do
+  test "build_and_pin/3 emits spec-compliant manifest for skill nodes" do
     creator = create_agent!("bundle-skill")
 
     parent =
@@ -38,15 +38,15 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
 
     {upload_fun, upload_log} = capture_upload_fun()
 
-    bundle =
-      NodeBundleBuilder.build_and_pin!(
-        node,
-        %{
-          "notebook_source" => "print('skill')",
-          "skill_md_body" => "# Skill body"
-        },
-        upload_fun: upload_fun
-      )
+    assert {:ok, bundle} =
+             NodeBundleBuilder.build_and_pin(
+               node,
+               %{
+                 "notebook_source" => "print('skill')",
+                 "skill_md_body" => "# Skill body"
+               },
+               upload_fun: upload_fun
+             )
 
     uploads = Agent.get(upload_log, &Enum.reverse/1)
 
@@ -83,7 +83,7 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
     assert bundle.skill_md_body == "# Skill body"
   end
 
-  test "build_and_pin!/3 omits optional fields for non-skill root nodes" do
+  test "build_and_pin/3 omits optional fields for non-skill root nodes" do
     node = %Node{
       id: 99_002,
       seed: "ML",
@@ -94,12 +94,12 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
 
     {upload_fun, upload_log} = capture_upload_fun()
 
-    bundle =
-      NodeBundleBuilder.build_and_pin!(
-        node,
-        %{"notebook_source" => "print('hypothesis')"},
-        upload_fun: upload_fun
-      )
+    assert {:ok, bundle} =
+             NodeBundleBuilder.build_and_pin(
+               node,
+               %{"notebook_source" => "print('hypothesis')"},
+               upload_fun: upload_fun
+             )
 
     uploads = Agent.get(upload_log, &Enum.reverse/1)
     filenames = Enum.map(uploads, &elem(&1, 0))
@@ -120,20 +120,19 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
     assert bundle.skill_md_body == nil
   end
 
-  test "build_and_pin!/3 raises when skill node is missing skill_md_body" do
+  test "build_and_pin/3 returns an error when skill node is missing skill_md_body" do
     node = %Node{id: 99_003, seed: "Skills", kind: :skill, title: "Broken Skill", parent_id: nil}
     {upload_fun, _upload_log} = capture_upload_fun()
 
-    assert_raise ArgumentError, ~r/skill node requires non-empty skill_md_body/, fn ->
-      NodeBundleBuilder.build_and_pin!(
-        node,
-        %{"notebook_source" => "print('broken')"},
-        upload_fun: upload_fun
-      )
-    end
+    assert {:error, :skill_md_body_required} =
+             NodeBundleBuilder.build_and_pin(
+               node,
+               %{"notebook_source" => "print('broken')"},
+               upload_fun: upload_fun
+             )
   end
 
-  test "build_and_pin!/3 raises when upload returns invalid cid" do
+  test "build_and_pin/3 returns an error when upload returns invalid cid" do
     node = %Node{id: 99_004, seed: "ML", kind: :hypothesis, title: "Bad CID Node", parent_id: nil}
 
     upload_fun = fn _filename, _content, _opts ->
@@ -146,11 +145,10 @@ defmodule TechTree.IPFS.NodeBundleBuilderTest do
       }
     end
 
-    assert_raise ArgumentError, ~r/returned invalid cid/, fn ->
-      NodeBundleBuilder.build_and_pin!(node, %{"notebook_source" => "print('bad cid')"},
-        upload_fun: upload_fun
-      )
-    end
+    assert {:error, :invalid_cid} =
+             NodeBundleBuilder.build_and_pin(node, %{"notebook_source" => "print('bad cid')"},
+               upload_fun: upload_fun
+             )
   end
 
   defp capture_upload_fun do

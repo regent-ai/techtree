@@ -40,6 +40,25 @@ defmodule TechTreeWeb.RuntimePublishControllerTest do
     assert %{"error" => %{"code" => "internal_auth_required"}} = json_response(conn, 401)
   end
 
+  test "agent runtime write paths require SIWA auth before request handling", %{conn: conn} do
+    paths = [
+      "/v1/agent/runtime/publish/submit",
+      "/v1/agent/runtime/runs/run-1/validate",
+      "/v1/agent/runtime/artifacts/artifact-1/challenge",
+      "/v1/agent/runtime/runs/run-1/challenge"
+    ]
+
+    Enum.each(paths, fn path ->
+      response =
+        conn
+        |> recycle()
+        |> put_req_header("accept", "application/json")
+        |> post(path, %{})
+
+      assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(response, 401)
+    end)
+  end
+
   test "internal published-node ingest persists a verified node", %{conn: conn} do
     fixture = load_fixture!("artifact_plain")
     registry_address = "0x4444444444444444444444444444444444444444"

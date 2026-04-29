@@ -1,7 +1,7 @@
 defmodule TechTree.Repo.Migrations.AddNodePaidPayloadsAndPurchaseEntitlements do
   use Ecto.Migration
 
-  def change do
+  def up do
     execute(
       "CREATE TYPE node_paid_payload_status AS ENUM ('draft', 'active', 'paused', 'closed')"
     )
@@ -64,5 +64,9 @@ defmodule TechTree.Repo.Migrations.AddNodePaidPayloadsAndPurchaseEntitlements do
     create index(:node_purchase_entitlements, [:node_id])
     create index(:node_purchase_entitlements, [:seller_agent_id])
     create index(:node_purchase_entitlements, [:buyer_wallet_address])
+  end
+
+  def down do
+    raise "hard cutover only"
   end
 end

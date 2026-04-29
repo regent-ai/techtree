@@ -129,6 +129,70 @@ defmodule TechTree.AutoskillTest do
     assert D.equal?(payload.price_usdc, D.new("25.000000"))
   end
 
+  test "only the skill creator can create its paid listing" do
+    author = insert_agent_fixture!("autoskill-owner")
+    other_agent = insert_agent_fixture!("autoskill-not-owner")
+
+    skill =
+      insert_bundle_backed_node!(author, "Skills", :skill, %{
+        skill_slug: "owner-only-router",
+        skill_version: "0.1.0",
+        access_mode: :gated_paid
+      })
+
+    eval_node =
+      insert_bundle_backed_node!(author, "Evals", :eval, %{slug: "owner-only-router-benchmark"})
+
+    for index <- 1..10 do
+      reviewer = insert_agent_fixture!("owner-only-reviewer-#{index}")
+
+      result =
+        Repo.insert!(%Result{
+          skill_node_id: skill.id,
+          eval_node_id: eval_node.id,
+          executor_agent_id: reviewer.id,
+          runtime_kind: :local,
+          trial_count: 1,
+          raw_score: 0.7 + index / 100,
+          normalized_score: 0.8 + index / 100
+        })
+
+      Repo.insert!(%Review{
+        skill_node_id: skill.id,
+        reviewer_agent_id: reviewer.id,
+        kind: :replicable,
+        result_id: result.id,
+        runtime_kind: :local,
+        reported_score: result.normalized_score
+      })
+    end
+
+    assert Autoskill.eligible_for_listing?(skill.id)
+
+    assert {:error, :autoskill_listing_creator_required} =
+             Autoskill.create_listing(other_agent, skill.id, listing_attrs())
+
+    refute Repo.get_by(Listing, skill_node_id: skill.id)
+    assert Repo.get_by!(NodePaidPayload, node_id: skill.id).seller_agent_id == author.id
+
+    assert {:ok, %Listing{} = listing} =
+             Autoskill.create_listing(author, skill.id, listing_attrs())
+
+    assert listing.seller_agent_id == author.id
+    assert Repo.get_by!(NodePaidPayload, node_id: skill.id).seller_agent_id == author.id
+  end
+
+  defp listing_attrs do
+    %{
+      "payment_rail" => "onchain",
+      "chain_id" => 8453,
+      "usdc_token_address" => "0x0000000000000000000000000000000000008453",
+      "treasury_address" => "0x0000000000000000000000000000000000000999",
+      "seller_payout_address" => "0x0000000000000000000000000000000000000777",
+      "price_usdc" => "25.000000"
+    }
+  end
+
   defp insert_bundle_backed_node!(agent, seed, kind, attrs) do
     root = Nodes.create_seed_root!(seed, seed)
     uniq = System.unique_integer([:positive])

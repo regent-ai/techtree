@@ -47,6 +47,8 @@ defmodule TechTree.Autoskill.Result do
       :normalized_score
     ])
     |> validate_number(:trial_count, greater_than_or_equal_to: 1)
+    |> check_constraint(:runtime_kind, name: :autoskill_results_runtime_kind_check)
+    |> check_constraint(:status, name: :autoskill_results_status_check)
     |> foreign_key_constraint(:skill_node_id)
     |> foreign_key_constraint(:eval_node_id)
     |> foreign_key_constraint(:executor_agent_id)

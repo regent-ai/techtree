@@ -25,8 +25,10 @@ defmodule TechTree.Nodes.Reads do
   @spec list_public_nodes(map()) :: [Node.t()]
   def list_public_nodes(params) do
     limit = QueryHelpers.parse_limit(params, 50)
+    cursor = QueryHelpers.parse_cursor(params)
 
     public_nodes_query()
+    |> maybe_before_cursor(cursor)
     |> order_by([n, _creator], desc: n.activity_score, desc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
@@ -37,8 +39,10 @@ defmodule TechTree.Nodes.Reads do
   @spec list_recent_public_nodes(map()) :: [Node.t()]
   def list_recent_public_nodes(params) do
     limit = QueryHelpers.parse_limit(params, 50)
+    cursor = QueryHelpers.parse_cursor(params)
 
     public_nodes_query()
+    |> maybe_before_cursor(cursor)
     |> order_by([n, _creator], desc: n.inserted_at, desc: n.id)
     |> limit(^limit)
     |> Repo.all()
@@ -88,10 +92,12 @@ defmodule TechTree.Nodes.Reads do
   def list_public_children(id, params) do
     parent_id = QueryHelpers.normalize_id(id)
     limit = QueryHelpers.parse_limit(params, 100)
+    cursor = QueryHelpers.parse_cursor(params)
 
     public_nodes_query()
     |> where([n, _creator], n.parent_id == ^parent_id)
     |> where([n, _creator], n.parent_id in subquery(public_node_ids_query()))
+    |> maybe_before_cursor(cursor)
     |> order_by([n, _creator], desc: n.activity_score, asc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
@@ -103,9 +109,11 @@ defmodule TechTree.Nodes.Reads do
   def list_readable_children(agent_id, id, params) when is_integer(agent_id) and agent_id > 0 do
     parent_id = QueryHelpers.normalize_id(id)
     limit = QueryHelpers.parse_limit(params, 100)
+    cursor = QueryHelpers.parse_cursor(params)
 
     readable_nodes_query(agent_id)
     |> where([n, _creator], n.parent_id == ^parent_id)
+    |> maybe_before_cursor(cursor)
     |> order_by([n, _creator], desc: n.activity_score, asc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
@@ -128,9 +136,11 @@ defmodule TechTree.Nodes.Reads do
   @spec list_hot_nodes(String.t(), map()) :: [Node.t()]
   def list_hot_nodes(seed, params) do
     limit = QueryHelpers.parse_limit(params, 25)
+    cursor = QueryHelpers.parse_cursor(params)
 
     public_nodes_query()
     |> where([n, _creator], n.seed == ^seed)
+    |> maybe_before_cursor(cursor)
     |> order_by([n, _creator], desc: n.activity_score, desc: n.inserted_at)
     |> limit(^limit)
     |> Repo.all()
@@ -216,6 +226,10 @@ defmodule TechTree.Nodes.Reads do
     public_nodes_query()
     |> select([n, _creator], n.id)
   end
+
+  @spec maybe_before_cursor(Ecto.Query.t(), integer() | nil) :: Ecto.Query.t()
+  defp maybe_before_cursor(query, nil), do: query
+  defp maybe_before_cursor(query, cursor), do: where(query, [n, _creator], n.id < ^cursor)
 
   @spec normalize_id(integer() | String.t()) :: integer()
   def normalize_id(value), do: QueryHelpers.normalize_id(value)

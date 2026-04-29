@@ -55,6 +55,9 @@ defmodule TechTree.Autoskill.NodeBundle do
     |> validate_marimo_entrypoint()
     |> validate_bundle_version()
     |> validate_access_shape()
+    |> check_constraint(:bundle_type, name: :node_bundles_bundle_type_check)
+    |> check_constraint(:access_mode, name: :node_bundles_access_mode_check)
+    |> check_constraint(:payment_rail, name: :node_bundles_payment_rail_check)
     |> foreign_key_constraint(:node_id)
     |> unique_constraint(:node_id)
   end

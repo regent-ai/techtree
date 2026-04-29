@@ -5,13 +5,14 @@ defmodule TechTree.NodesPublishPipelineTest do
 
   alias Oban.Job
   alias TechTree.Agents
+  alias TechTree.IPFS.LighthouseClient
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
   alias TechTree.Repo
-  alias TechTree.Workers.{AnchorNodeWorker, AwaitNodeReceiptWorker}
+  alias TechTree.Workers.{AnchorNodeWorker, AwaitNodeReceiptWorker, PinNodeWorker}
 
   describe "create_agent_node/2 publish cutover" do
-    test "persists only materialized pinned nodes and seeds publish attempt + anchor job" do
+    test "persists queued nodes and seeds publish attempt + pin job before side effects" do
       creator = create_agent!("publish-cutover")
       parent = create_public_parent!(creator)
       idempotency_key = "publish-cutover:#{System.unique_integer([:positive])}"
@@ -27,10 +28,10 @@ defmodule TechTree.NodesPublishPipelineTest do
         })
 
       assert node.status == :pinned
-      assert has_text?(node.manifest_cid)
-      assert has_text?(node.manifest_uri)
-      assert has_text?(node.manifest_hash)
-      assert has_text?(node.notebook_cid)
+      refute has_text?(node.manifest_cid)
+      refute has_text?(node.manifest_uri)
+      refute has_text?(node.manifest_hash)
+      refute has_text?(node.notebook_cid)
 
       persisted = Repo.get!(Node, node.id)
       assert persisted.publish_idempotency_key == idempotency_key
@@ -38,10 +39,11 @@ defmodule TechTree.NodesPublishPipelineTest do
 
       attempt = Nodes.get_publish_attempt(idempotency_key)
       assert attempt.node_id == node.id
-      assert attempt.status == "pinned"
+      assert attempt.status == "queued"
       assert attempt.attempt_count == 0
 
-      assert count_jobs(AnchorNodeWorker, node.id) == 1
+      assert count_jobs(PinNodeWorker, node.id) == 1
+      assert count_jobs(AnchorNodeWorker, node.id) == 0
     end
 
     test "idempotency retries return the same published node" do
@@ -59,6 +61,8 @@ defmodule TechTree.NodesPublishPipelineTest do
       }
 
       {:ok, first} = Nodes.create_agent_node(creator, attrs)
+      assert :ok = PinNodeWorker.perform(%Job{args: %{"node_id" => first.id}})
+      first = Repo.get!(Node, first.id)
 
       {:ok, second} =
         Nodes.create_agent_node(
@@ -94,6 +98,7 @@ defmodule TechTree.NodesPublishPipelineTest do
       }
 
       {:ok, node} = Nodes.create_agent_node(creator, attrs)
+      assert :ok = PinNodeWorker.perform(%Job{args: %{"node_id" => node.id}})
       persisted = Repo.get!(Node, node.id)
 
       assert persisted.kind == :skill
@@ -106,30 +111,40 @@ defmodule TechTree.NodesPublishPipelineTest do
       assert has_text?(persisted.notebook_cid)
     end
 
-    test "pin failure returns error without inserting node row or publish attempt" do
+    test "pin failure leaves a failed publish attempt record" do
       creator = create_agent!("publish-pin-failure")
       parent = create_public_parent!(creator)
       idempotency_key = "publish-pin-failure:#{System.unique_integer([:positive])}"
 
+      {:ok, node} =
+        Nodes.create_agent_node(creator, %{
+          "seed" => "ML",
+          "kind" => "hypothesis",
+          "title" => "pin-failure",
+          "parent_id" => parent.id,
+          "notebook_source" => "print('pin failure')",
+          "idempotency_key" => idempotency_key
+        })
+
+      on_exit(fn ->
+        Process.delete({LighthouseClient, :upload_fun})
+      end)
+
+      Process.put({LighthouseClient, :upload_fun}, failing_upload_fun())
+
       assert {:error, %KeyError{}} =
-               Nodes.create_agent_node(
-                 creator,
-                 %{
-                   "seed" => "ML",
-                   "kind" => "hypothesis",
-                   "title" => "pin-failure",
-                   "parent_id" => parent.id,
-                   "notebook_source" => "print('pin failure')",
-                   "idempotency_key" => idempotency_key
-                 },
-                 upload_fun: failing_upload_fun()
-               )
+               PinNodeWorker.perform(%Job{
+                 args: %{"node_id" => node.id}
+               })
 
-      refute Repo.exists?(from(n in Node, where: n.publish_idempotency_key == ^idempotency_key))
+      failed_node = Repo.get_by!(Node, publish_idempotency_key: idempotency_key)
+      assert failed_node.status == :failed_anchor
+      refute has_text?(failed_node.manifest_cid)
 
-      refute Repo.exists?(
-               from(p in "node_publish_attempts", where: p.idempotency_key == ^idempotency_key)
-             )
+      attempt = Nodes.get_publish_attempt(idempotency_key)
+      assert attempt.node_id == failed_node.id
+      assert attempt.status == "pin_failed"
+      assert is_binary(attempt.last_error)
     end
 
     test "full publish pipeline transitions create->pin->anchor->await->anchored" do
@@ -147,6 +162,8 @@ defmodule TechTree.NodesPublishPipelineTest do
           "idempotency_key" => idempotency_key
         })
 
+      assert :ok = PinNodeWorker.perform(%Job{args: %{"node_id" => node.id}})
+      node = Repo.get!(Node, node.id)
       assert node.status == :pinned
 
       assert :ok =

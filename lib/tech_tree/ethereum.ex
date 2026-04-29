@@ -226,7 +226,7 @@ defmodule TechTree.Ethereum do
       if is_function(cast_runner, 2) do
         cast_runner.(cfg.cast_bin, args)
       else
-        System.cmd(cfg.cast_bin, args, stderr_to_stdout: true)
+        run_cmd_with_timeout(cfg.cast_bin, args, 30_000)
       end
 
     case result do
@@ -242,6 +242,23 @@ defmodule TechTree.Ethereum do
   rescue
     error ->
       {:error, {:cast_exec_failed, Exception.message(error)}}
+  end
+
+  defp run_cmd_with_timeout(command, args, timeout_ms) do
+    task = Task.async(fn -> System.cmd(command, args, stderr_to_stdout: true) end)
+
+    receive do
+      {ref, result} when ref == task.ref ->
+        Process.demonitor(task.ref, [:flush])
+        result
+
+      {:DOWN, ref, :process, _pid, reason} when ref == task.ref ->
+        {"command failed: #{inspect(reason)}", 1}
+    after
+      timeout_ms ->
+        Task.shutdown(task, :brutal_kill)
+        {"command timed out", 124}
+    end
   end
 
   @spec extract_tx_hash(String.t()) :: {:ok, String.t()} | {:error, term()}

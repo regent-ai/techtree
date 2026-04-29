@@ -30,6 +30,12 @@ defmodule TechTreeWeb.Human.NodeLiveTest do
     assert has_element?(view, "#related-node-#{related.id}-1")
     assert has_element?(view, "#comment-#{comment.id}")
     assert has_element?(view, "#node-monetization-provenance")
+    assert render(view) =~ "Public proof"
+    assert render(view) =~ "Public proof source"
+    assert render(view) =~ "Chain and block"
+    assert render(view) =~ "Proof status"
+    assert render(view) =~ "Public Techtree record"
+    assert render(view) =~ "Waiting for chain anchor"
     refute has_element?(view, "#node-cross-chain-lineage")
     refute has_element?(view, "#node-graph")
   end

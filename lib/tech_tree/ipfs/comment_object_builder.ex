@@ -5,8 +5,8 @@ defmodule TechTree.IPFS.CommentObjectBuilder do
   alias TechTree.Repo
   alias TechTree.Comments.Comment
 
-  @spec build_and_pin!(Comment.t()) :: map()
-  def build_and_pin!(%Comment{} = comment) do
+  @spec build_and_pin(Comment.t()) :: {:ok, map()} | {:error, term()}
+  def build_and_pin(%Comment{} = comment) do
     comment = Repo.preload(comment, [:author_agent])
 
     body =
@@ -31,20 +31,23 @@ defmodule TechTree.IPFS.CommentObjectBuilder do
     hash_bin = Digests.sha256(body)
     hash_hex = Base.encode16(hash_bin, case: :lower)
 
-    upload =
-      LighthouseClient.upload_content!(
-        "comment-#{comment.id}.json",
-        body,
-        content_type: "application/json"
-      )
-
-    %{
-      cid: upload.cid,
-      uri: "ipfs://#{upload.cid}",
-      json: body,
-      sha256_bin: hash_bin,
-      sha256_hex: hash_hex
-    }
+    with {:ok, upload} <-
+           LighthouseClient.upload_content(
+             "comment-#{comment.id}.json",
+             body,
+             content_type: "application/json"
+           ) do
+      {:ok,
+       %{
+         cid: upload.cid,
+         uri: "ipfs://#{upload.cid}",
+         json: body,
+         sha256_bin: hash_bin,
+         sha256_hex: hash_hex
+       }}
+    end
+  rescue
+    error -> {:error, error}
   end
 
   @spec decimal_to_string(Decimal.t() | term()) :: String.t()

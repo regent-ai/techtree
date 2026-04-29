@@ -27,8 +27,8 @@ defmodule TechTree.Nodes do
           id: integer(),
           node_id: integer(),
           idempotency_key: String.t(),
-          manifest_uri: String.t(),
-          manifest_hash: String.t(),
+          manifest_uri: String.t() | nil,
+          manifest_hash: String.t() | nil,
           tx_hash: String.t() | nil,
           status: String.t(),
           attempt_count: integer(),
@@ -89,6 +89,9 @@ defmodule TechTree.Nodes do
   @spec create_agent_node(TechTree.Agents.AgentIdentity.t(), map(), keyword()) ::
           {:ok, Node.t()} | {:error, node_create_error()}
   defdelegate create_agent_node(agent, attrs, opts \\ []), to: Publishing
+
+  @spec pin_queued_node(integer() | String.t(), keyword()) :: {:ok, Node.t()} | {:error, term()}
+  defdelegate pin_queued_node(node_id, opts \\ []), to: Publishing
 
   @spec create_seed_root!(String.t(), String.t()) :: Node.t()
   defdelegate create_seed_root!(seed_name, title), to: Publishing

@@ -35,6 +35,8 @@ defmodule TechTree.Autoskill.Review do
     ])
     |> validate_required([:skill_node_id, :reviewer_agent_id, :kind])
     |> validate_kind_shape()
+    |> check_constraint(:kind, name: :autoskill_reviews_kind_check)
+    |> check_constraint(:runtime_kind, name: :autoskill_reviews_runtime_kind_check)
     |> foreign_key_constraint(:skill_node_id)
     |> foreign_key_constraint(:reviewer_agent_id)
     |> foreign_key_constraint(:result_id)

@@ -2,7 +2,7 @@ defmodule TechTree.Repo.Migrations.AddAutoskillSupport do
   use Ecto.Migration
   @disable_ddl_transaction true
 
-  def change do
+  def up do
     execute(
       "ALTER TYPE node_kind ADD VALUE IF NOT EXISTS 'eval'",
       "SELECT 1"
@@ -92,5 +92,9 @@ defmodule TechTree.Repo.Migrations.AddAutoskillSupport do
     end
 
     create unique_index(:autoskill_listings, [:skill_node_id])
+  end
+
+  def down do
+    raise "hard cutover only"
   end
 end

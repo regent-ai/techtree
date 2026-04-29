@@ -52,6 +52,8 @@ defmodule TechTree.Autoskill.Listing do
     |> validate_number(:price_usdc, greater_than: 0)
     |> validate_number(:treasury_bps, equal_to: 100)
     |> validate_number(:seller_bps, equal_to: 9900)
+    |> check_constraint(:status, name: :autoskill_listings_status_check)
+    |> check_constraint(:payment_rail, name: :autoskill_listings_payment_rail_check)
     |> foreign_key_constraint(:skill_node_id)
     |> foreign_key_constraint(:seller_agent_id)
     |> unique_constraint(:skill_node_id)

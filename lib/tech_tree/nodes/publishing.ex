@@ -12,7 +12,7 @@ defmodule TechTree.Nodes.Publishing do
   alias TechTree.Nodes.{Lineage, Node, NodeChainReceipt, NodeTagEdge}
   alias TechTree.Nodes.Reads
   alias TechTree.Repo
-  alias TechTree.Workers.AnchorNodeWorker
+  alias TechTree.Workers.{AnchorNodeWorker, PinNodeWorker}
 
   @transition_telemetry_event [:tech_tree, :nodes, :transition]
 
@@ -139,6 +139,30 @@ defmodule TechTree.Nodes.Publishing do
     )
   end
 
+  @spec pin_queued_node(integer() | String.t(), keyword()) :: {:ok, Node.t()} | {:error, term()}
+  def pin_queued_node(node_id, opts \\ []) do
+    node = Repo.get!(Node, Reads.normalize_id(node_id))
+
+    case node do
+      %Node{status: :pinned, manifest_cid: manifest_cid} = node when is_binary(manifest_cid) ->
+        enqueue_anchor_job(node)
+        {:ok, node}
+
+      %Node{status: :pinned} = node ->
+        materialize_queued_node(node, opts)
+
+      %Node{status: :failed_anchor} = node ->
+        {:ok, node}
+
+      %Node{status: :anchored} = node ->
+        {:ok, node}
+
+      %Node{} = node ->
+        {:error,
+         ArgumentError.exception("cannot pin node #{node.id} while status is #{node.status}")}
+    end
+  end
+
   @spec get_publish_attempt(String.t()) :: map() | nil
   def get_publish_attempt(idempotency_key) when is_binary(idempotency_key) do
     "node_publish_attempts"
@@ -194,20 +218,15 @@ defmodule TechTree.Nodes.Publishing do
              normalized_attrs,
              requested_publish_idempotency_key
            ),
-         {:ok, bundle} <-
-           build_bundle_for_node(
-             staged_node,
-             Map.put(normalized_attrs, "parent_cid", parent.manifest_cid),
-             opts
-           ),
          {:ok, node} <-
-           persist_published_node(
+           persist_staged_node(
              agent.id,
              staged_node,
              normalized_attrs,
-             bundle,
              requested_publish_idempotency_key
            ) do
+      _ = parent
+      _ = opts
       {:ok, node}
     else
       {:error, reason} -> {:error, reason}
@@ -373,12 +392,10 @@ defmodule TechTree.Nodes.Publishing do
   defp build_path(parent, id), do: {"#{parent.path}.n#{id}", parent.depth + 1}
 
   defp build_and_pin_bundle(node, payload, opts),
-    do: NodeBundleBuilder.build_and_pin!(node, payload, Keyword.take(opts, [:upload_fun]))
+    do: NodeBundleBuilder.build_and_pin(node, payload, Keyword.take(opts, [:upload_fun]))
 
   defp build_bundle_for_node(node, normalized_attrs, opts) do
-    {:ok, build_and_pin_bundle(node, Attrs.build_bundle_payload(normalized_attrs), opts)}
-  rescue
-    error -> {:error, error}
+    build_and_pin_bundle(node, Attrs.build_bundle_payload(normalized_attrs), opts)
   end
 
   defp build_staged_node(agent, parent, normalized_attrs, requested_publish_idempotency_key) do
@@ -417,17 +434,16 @@ defmodule TechTree.Nodes.Publishing do
     end
   end
 
-  defp persist_published_node(
+  defp persist_staged_node(
          agent_id,
          staged_node,
          normalized_attrs,
-         bundle,
          requested_publish_idempotency_key
        ) do
     publish_idempotency_key =
       Idempotency.normalize_publish_idempotency_key(
         staged_node.id,
-        bundle.manifest_hash_hex,
+        nil,
         normalized_attrs,
         requested_publish_idempotency_key
       )
@@ -435,16 +451,7 @@ defmodule TechTree.Nodes.Publishing do
     Multi.new()
     |> Multi.insert(:node, fn _changes ->
       staged_node
-      |> Node.materialized_artifact_changeset(%{
-        manifest_cid: bundle.manifest_cid,
-        manifest_uri: bundle.manifest_uri,
-        manifest_hash: bundle.manifest_hash_hex,
-        notebook_cid: bundle.notebook_cid,
-        skill_md_cid: bundle.skill_md_cid,
-        skill_md_body: bundle.skill_md_body,
-        publish_idempotency_key: publish_idempotency_key,
-        status: :pinned
-      })
+      |> Ecto.Changeset.change(%{publish_idempotency_key: publish_idempotency_key})
       |> Ecto.Changeset.unique_constraint(:publish_idempotency_key,
         name: :nodes_publish_idempotency_key_uidx
       )
@@ -456,14 +463,19 @@ defmodule TechTree.Nodes.Publishing do
       Lineage.create_initial_author_link(
         repo,
         node,
-        Agents.get_agent!(agent_id),
+        repo.get!(TechTree.Agents.AgentIdentity, agent_id),
         normalized_attrs["cross_chain_link"]
       )
     end)
-    |> Multi.run(:paid_payload, fn _repo, %{node: node} ->
+    |> Multi.run(:paid_payload, fn repo, %{node: node} ->
       case normalized_attrs["paid_payload"] do
         payload when is_map(payload) ->
-          NodeAccess.create_paid_payload(node, Agents.get_agent!(agent_id), payload)
+          NodeAccess.create_paid_payload(
+            node,
+            repo.get!(TechTree.Agents.AgentIdentity, agent_id),
+            payload,
+            repo
+          )
 
         _ ->
           {:ok, nil}
@@ -475,12 +487,12 @@ defmodule TechTree.Nodes.Publishing do
          repo,
          node.id,
          node.publish_idempotency_key,
-         node.manifest_uri,
-         node.manifest_hash,
-         "pinned"
+         nil,
+         nil,
+         "queued"
        )}
     end)
-    |> Multi.run(:oban, fn _repo, %{node: node} -> enqueue_anchor_job(node) end)
+    |> Oban.insert(:pin_job, fn %{node: node} -> pin_job(node) end)
     |> Repo.transaction()
     |> case do
       {:ok, %{node: node}} ->
@@ -498,16 +510,113 @@ defmodule TechTree.Nodes.Publishing do
     end
   end
 
+  defp materialize_queued_node(%Node{} = node, opts) do
+    normalized_attrs =
+      node
+      |> node_bundle_attrs()
+      |> maybe_put_parent_cid(node.parent_id)
+
+    case build_bundle_for_node(node, normalized_attrs, opts) do
+      {:ok, bundle} ->
+        finalize_published_node(node, bundle)
+
+      {:error, reason} ->
+        mark_pin_failed!(node, reason)
+        {:error, reason}
+    end
+  end
+
+  defp finalize_published_node(%Node{} = node, bundle) do
+    Multi.new()
+    |> Multi.update(:node, fn _changes ->
+      node
+      |> Node.materialized_artifact_changeset(%{
+        manifest_cid: bundle.manifest_cid,
+        manifest_uri: bundle.manifest_uri,
+        manifest_hash: bundle.manifest_hash_hex,
+        notebook_cid: bundle.notebook_cid,
+        skill_md_cid: bundle.skill_md_cid,
+        skill_md_body: bundle.skill_md_body,
+        publish_idempotency_key: node.publish_idempotency_key,
+        status: :pinned
+      })
+    end)
+    |> Multi.run(:publish_attempt, fn repo, %{node: node} ->
+      {:ok,
+       upsert_publish_attempt_with_repo!(
+         repo,
+         node.id,
+         node.publish_idempotency_key,
+         node.manifest_uri,
+         node.manifest_hash,
+         "pinned"
+       )}
+    end)
+    |> Oban.insert(:anchor_job, fn %{node: node} -> anchor_job(node) end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{node: node}} -> {:ok, node}
+      {:error, _step, reason, _changes} -> {:error, reason}
+    end
+  end
+
+  defp mark_pin_failed!(%Node{} = node, reason) do
+    Repo.transaction(fn ->
+      node
+      |> Ecto.Changeset.change(status: :failed_anchor)
+      |> Repo.update!()
+
+      update_publish_attempt_status!(node.publish_idempotency_key, "pin_failed", %{
+        last_error: Exception.message(reason)
+      })
+    end)
+  end
+
   defp enqueue_anchor_job(node) do
-    Oban.insert(
-      AnchorNodeWorker.new(
-        %{
-          "node_id" => node.id,
-          "idempotency_key" => node.publish_idempotency_key
-        },
-        unique: [period: 86_400, keys: [:node_id]]
-      )
+    Oban.insert(anchor_job(node))
+  end
+
+  defp pin_job(node) do
+    PinNodeWorker.new(
+      %{
+        "node_id" => node.id,
+        "idempotency_key" => node.publish_idempotency_key
+      },
+      unique: [period: 86_400, keys: [:node_id]]
     )
+  end
+
+  defp anchor_job(node) do
+    AnchorNodeWorker.new(
+      %{
+        "node_id" => node.id,
+        "idempotency_key" => node.publish_idempotency_key
+      },
+      unique: [period: 86_400, keys: [:node_id]]
+    )
+  end
+
+  defp node_bundle_attrs(%Node{} = node) do
+    %{
+      "seed" => node.seed,
+      "kind" => node.kind && Atom.to_string(node.kind),
+      "title" => node.title,
+      "slug" => node.slug,
+      "summary" => node.summary,
+      "notebook_source" => node.notebook_source,
+      "skill_slug" => node.skill_slug,
+      "skill_version" => node.skill_version,
+      "skill_md_body" => node.skill_md_body
+    }
+  end
+
+  defp maybe_put_parent_cid(attrs, nil), do: attrs
+
+  defp maybe_put_parent_cid(attrs, parent_id) do
+    case Repo.get(Node, parent_id) do
+      %Node{} = parent -> Map.put(attrs, "parent_cid", parent.manifest_cid)
+      nil -> attrs
+    end
   end
 
   defp upsert_publish_attempt_with_repo!(

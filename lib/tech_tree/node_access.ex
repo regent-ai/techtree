@@ -81,7 +81,7 @@ defmodule TechTree.NodeAccess do
     end)
   end
 
-  def create_paid_payload(%Node{} = node, %AgentIdentity{} = seller_agent, attrs)
+  def create_paid_payload(%Node{} = node, %AgentIdentity{} = seller_agent, attrs, repo \\ Repo)
       when is_map(attrs) do
     payload_attrs =
       attrs
@@ -92,12 +92,12 @@ defmodule TechTree.NodeAccess do
 
     %NodePaidPayload{}
     |> NodePaidPayload.changeset(payload_attrs)
-    |> Repo.insert()
+    |> repo.insert()
   end
 
-  def upsert_paid_payload(%Node{} = node, %AgentIdentity{} = seller_agent, attrs)
+  def upsert_paid_payload(%Node{} = node, %AgentIdentity{} = seller_agent, attrs, repo \\ Repo)
       when is_map(attrs) do
-    payload = Repo.get_by(NodePaidPayload, node_id: node.id) || %NodePaidPayload{}
+    payload = repo.get_by(NodePaidPayload, node_id: node.id) || %NodePaidPayload{}
 
     payload_attrs =
       attrs
@@ -108,7 +108,7 @@ defmodule TechTree.NodeAccess do
 
     payload
     |> NodePaidPayload.changeset(payload_attrs)
-    |> Repo.insert_or_update()
+    |> repo.insert_or_update()
   end
 
   def sync_autoskill_bundle(

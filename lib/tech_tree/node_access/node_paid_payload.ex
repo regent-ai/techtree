@@ -53,6 +53,9 @@ defmodule TechTree.NodeAccess.NodePaidPayload do
     ])
     |> validate_required([:node_id, :seller_agent_id, :status, :delivery_mode, :payment_rail])
     |> validate_location()
+    |> validate_encrypted_payload_uri()
+    |> validate_payload_hash()
+    |> validate_wallet_or_contract_addresses()
     |> validate_active_shape()
     |> foreign_key_constraint(:node_id)
     |> foreign_key_constraint(:seller_agent_id)
@@ -88,6 +91,55 @@ defmodule TechTree.NodeAccess.NodePaidPayload do
       _ ->
         changeset
     end
+  end
+
+  defp validate_encrypted_payload_uri(changeset) do
+    case get_field(changeset, :encrypted_payload_uri) do
+      value when is_binary(value) ->
+        if String.starts_with?(String.trim(value), "ipfs://") do
+          changeset
+        else
+          add_error(changeset, :encrypted_payload_uri, "must use ipfs://")
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp validate_payload_hash(changeset) do
+    case get_field(changeset, :payload_hash) do
+      value when is_binary(value) ->
+        if String.trim(value) == "" do
+          add_error(changeset, :payload_hash, "must be present")
+        else
+          changeset
+        end
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp validate_wallet_or_contract_addresses(changeset) do
+    [:settlement_contract_address, :usdc_token_address, :treasury_address, :seller_payout_address]
+    |> Enum.reduce(changeset, fn field, acc ->
+      case get_field(acc, field) do
+        value when is_binary(value) ->
+          if valid_evm_address?(value) do
+            acc
+          else
+            add_error(acc, field, "must be an EVM address")
+          end
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp valid_evm_address?(value) when is_binary(value) do
+    String.match?(String.trim(value), ~r/^0x[0-9a-fA-F]{40}$/)
   end
 
   defp present_text?(value) when is_binary(value), do: String.trim(value) != ""

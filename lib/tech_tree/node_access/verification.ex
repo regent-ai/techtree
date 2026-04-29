@@ -99,7 +99,12 @@ defmodule TechTree.NodeAccess.Verification do
         end
 
       _ ->
-        case Req.post(url: rpc_url, json: payload) do
+        case Req.post(
+               url: rpc_url,
+               json: payload,
+               receive_timeout: 10_000,
+               connect_options: [timeout: 5_000]
+             ) do
           {:ok, %Req.Response{status: status, body: %{"result" => result}}}
           when status in 200..299 ->
             {:ok, result}
@@ -223,28 +228,12 @@ defmodule TechTree.NodeAccess.Verification do
     chains = Keyword.get(config, :chains, %{})
     chain_config = Map.get(chains, chain_id) || Map.get(chains, Integer.to_string(chain_id))
 
-    rpc_url =
+    resolved =
       case chain_config do
         %{rpc_url: value} -> value
         %{"rpc_url" => value} -> value
         _ -> nil
       end
-
-    resolved =
-      rpc_url ||
-        case chain_id do
-          84_532 ->
-            System.get_env("BASE_SEPOLIA_RPC_URL") || System.get_env("ANVIL_RPC_URL")
-
-          8_453 ->
-            System.get_env("BASE_MAINNET_RPC_URL") || System.get_env("BASE_RPC_URL")
-
-          31_337 ->
-            System.get_env("ANVIL_RPC_URL")
-
-          _ ->
-            nil
-        end
 
     case resolved do
       value when is_binary(value) and value != "" -> {:ok, value}

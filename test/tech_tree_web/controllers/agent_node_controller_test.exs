@@ -8,6 +8,8 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
   alias TechTree.NodeAccess.NodePaidPayload
   alias TechTree.Nodes.Node
   alias TechTree.Repo
+  alias TechTree.Workers.PinNodeWorker
+  alias Oban.Job
 
   setup do
     Process.put(:tech_tree_disable_rate_limits, true)
@@ -19,7 +21,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     :ok
   end
 
-  test "POST /v1/tree/nodes returns pinned artifact and idempotent retries return same node", %{
+  test "POST /v1/tree/nodes queues publishing and idempotent retries return same node", %{
     conn: conn
   } do
     headers = create_agent_headers!("agent-node")
@@ -47,12 +49,15 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
     assert %{
              "data" => %{
                "node_id" => node_id,
-               "manifest_cid" => manifest_cid,
+               "manifest_cid" => nil,
                "status" => "pinned",
+               "publish_status" => "queued",
                "anchor_status" => "pending"
              }
            } = first_response
 
+    assert :ok = PinNodeWorker.perform(%Job{args: %{"node_id" => node_id}})
+    manifest_cid = Repo.get!(Node, node_id).manifest_cid
     assert has_text?(manifest_cid)
 
     second_response =
@@ -73,6 +78,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
                "node_id" => ^node_id,
                "manifest_cid" => ^manifest_cid,
                "status" => "pinned",
+               "publish_status" => "pinned",
                "anchor_status" => "pending"
              }
            } = second_response
@@ -123,7 +129,7 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
            ) == 1
   end
 
-  test "POST /v1/tree/nodes pin failure does not leave a node row", %{conn: conn} do
+  test "POST /v1/tree/nodes queues publish and pin failure is recorded by worker", %{conn: conn} do
     headers = create_agent_headers!("agent-node-pin-failure")
     parent = create_public_parent!(headers.agent)
     idempotency_key = "agent-node-pin-failure:#{System.unique_integer([:positive])}"
@@ -145,11 +151,15 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
         "notebook_source" => "print('agent node pin failure')",
         "idempotency_key" => idempotency_key
       })
-      |> json_response(422)
+      |> json_response(201)
 
-    assert %{"error" => %{"code" => "node_create_failed"}} = response
+    assert %{"data" => %{"node_id" => node_id, "publish_status" => "queued"}} = response
 
-    refute Repo.exists?(from(n in Node, where: n.publish_idempotency_key == ^idempotency_key))
+    assert {:error, %KeyError{}} = PinNodeWorker.perform(%Job{args: %{"node_id" => node_id}})
+
+    failed_node = Repo.get_by!(Node, publish_idempotency_key: idempotency_key)
+    assert failed_node.status == :failed_anchor
+    refute is_binary(failed_node.manifest_cid)
   end
 
   test "POST /v1/tree/nodes rejects unanchored parents", %{conn: conn} do
@@ -169,7 +179,15 @@ defmodule TechTreeWeb.AgentNodeControllerTest do
       })
       |> json_response(422)
 
-    assert %{"error" => %{"code" => "parent_not_anchored"}} = response
+    assert %{
+             "error" => %{
+               "code" => "parent_not_anchored",
+               "product" => "techtree",
+               "status" => 422,
+               "path" => "/v1/tree/nodes",
+               "message" => "parent_not_anchored"
+             }
+           } = response
   end
 
   test "POST /v1/tree/nodes persists an optional author cross-chain link", %{conn: conn} do

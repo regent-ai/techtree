@@ -36,13 +36,17 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
         registry_address: registry,
         token_id: "101"
       )
-      |> post("/v1/tree/nodes", %{
-        "seed" => "ML",
-        "kind" => "hypothesis",
-        "title" => "SIWA integration",
-        "parent_id" => 999_999,
-        "notebook_source" => "print('ok')"
-      })
+      |> put_req_header("content-type", "application/json")
+      |> post(
+        "/v1/tree/nodes",
+        Jason.encode!(%{
+          "seed" => "ML",
+          "kind" => "hypothesis",
+          "title" => "SIWA integration",
+          "parent_id" => 999_999,
+          "notebook_source" => "print('ok')"
+        })
+      )
 
     assert %{"error" => %{"code" => "parent_not_found"}} = json_response(conn, 422)
 
@@ -55,15 +59,160 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
            )
 
     assert %{
+             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
-             "path" => "/v1/tree/nodes"
+             "path" => "/v1/tree/nodes",
+             "body" => raw_body
            } = SiwaSupport.sidecar_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
     assert headers["x-agent-chain-id"] == "84532"
     assert headers["x-agent-registry-address"] == registry
     assert headers["x-agent-token-id"] == "101"
+    assert raw_body =~ "SIWA integration"
+
+    assert %{
+             "x-sidecar-key-id" => "sidecar-internal-v1",
+             "x-sidecar-timestamp" => timestamp,
+             "x-sidecar-signature" => "sha256=" <> signature
+           } = SiwaSupport.sidecar_last_trusted_headers()
+
+    assert {_timestamp, ""} = Integer.parse(timestamp)
+    assert byte_size(signature) == 64
+  end
+
+  test "protects runtime write routes with agent SIWA", %{conn: conn} do
+    SiwaSupport.put_sidecar_status(200)
+
+    wallet = SiwaSupport.random_eth_address()
+    registry = SiwaSupport.random_eth_address()
+
+    conn =
+      conn
+      |> SiwaSupport.with_siwa_headers(
+        wallet: wallet,
+        registry_address: registry,
+        token_id: "111"
+      )
+      |> put_req_header("content-type", "application/json")
+      |> post("/v1/agent/runtime/publish/submit", Jason.encode!(%{}))
+
+    assert %{"error" => %{"code" => "publish_submit_failed"}} = json_response(conn, 422)
+
+    assert Repo.exists?(
+             from(a in AgentIdentity,
+               where:
+                 a.wallet_address == ^wallet and a.chain_id == 84_532 and
+                   a.registry_address == ^registry
+             )
+           )
+
+    assert %{
+             "kind" => "http_verify_request",
+             "headers" => headers,
+             "method" => "POST",
+             "path" => "/v1/agent/runtime/publish/submit",
+             "body" => "{}"
+           } = SiwaSupport.sidecar_last_request()
+
+    assert headers["x-agent-wallet-address"] == wallet
+    assert headers["x-agent-chain-id"] == "84532"
+    assert headers["x-agent-registry-address"] == registry
+    assert headers["x-agent-token-id"] == "111"
+  end
+
+  test "shared SIWA verifier accepts a fully signed write request", %{conn: conn} do
+    with_strict_shared_siwa_client()
+
+    body =
+      Jason.encode!(%{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "Strict SIWA integration",
+        "parent_id" => 999_999,
+        "notebook_source" => "print('ok')"
+      })
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("content-type", "application/json")
+      |> SiwaSupport.with_shared_siwa_signed_request("POST", "/v1/tree/nodes", body,
+        token_id: "515"
+      )
+      |> post("/v1/tree/nodes", body)
+
+    assert %{"error" => %{"code" => "parent_not_found"}} = json_response(conn, 422)
+
+    assert Repo.exists?(
+             from(a in AgentIdentity,
+               where: a.token_id == ^Decimal.new("515") and a.chain_id == 84_532
+             )
+           )
+  end
+
+  test "shared SIWA verifier denies missing covered components", %{conn: conn} do
+    with_strict_shared_siwa_client()
+
+    body = Jason.encode!(%{"seed" => "ML", "title" => "Missing covered component"})
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("content-type", "application/json")
+      |> SiwaSupport.with_shared_siwa_signed_request("POST", "/v1/tree/nodes", body,
+        token_id: "616"
+      )
+      |> remove_signature_component("content-digest")
+      |> post("/v1/tree/nodes", body)
+
+    assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
+    refute Repo.exists?(from(a in AgentIdentity, where: a.token_id == ^Decimal.new("616")))
+  end
+
+  test "shared SIWA verifier denies body digest mismatch", %{conn: conn} do
+    with_strict_shared_siwa_client()
+
+    signed_body = Jason.encode!(%{"seed" => "ML", "title" => "Signed body"})
+    posted_body = Jason.encode!(%{"seed" => "ML", "title" => "Changed body"})
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("content-type", "application/json")
+      |> SiwaSupport.with_shared_siwa_signed_request("POST", "/v1/tree/nodes", signed_body,
+        token_id: "717"
+      )
+      |> post("/v1/tree/nodes", posted_body)
+
+    assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
+    refute Repo.exists?(from(a in AgentIdentity, where: a.token_id == ^Decimal.new("717")))
+  end
+
+  test "shared SIWA verifier denies mutated wallet registry and token headers" do
+    with_strict_shared_siwa_client()
+
+    for {header, value, token_id} <- [
+          {"x-agent-wallet-address", SiwaSupport.random_eth_address(), "818"},
+          {"x-agent-registry-address", SiwaSupport.random_eth_address(), "819"},
+          {"x-agent-token-id", "999999", "820"}
+        ] do
+      body = Jason.encode!(%{"seed" => "ML", "title" => "Mutated #{header}"})
+
+      denied_conn =
+        build_conn()
+        |> put_req_header("accept", "application/json")
+        |> put_req_header("content-type", "application/json")
+        |> SiwaSupport.with_shared_siwa_signed_request("POST", "/v1/tree/nodes", body,
+          token_id: token_id
+        )
+        |> put_req_header(header, value)
+        |> post("/v1/tree/nodes", body)
+
+      assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(denied_conn, 401)
+      refute Repo.exists?(from(a in AgentIdentity, where: a.token_id == ^Decimal.new(token_id)))
+    end
   end
 
   test "denies request when sidecar returns 401", %{conn: conn} do
@@ -116,9 +265,11 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
                     %{reason: :sidecar_http_422, sidecar_status: 422, source: :sidecar_http}}
   end
 
-  test "denies request when the signed receipt no longer matches the request headers", %{
+  test "lets the sidecar decide when the signed receipt no longer matches the request headers", %{
     conn: conn
   } do
+    SiwaSupport.put_sidecar_status(401)
+
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
     on_exit(fn -> :telemetry.detach(telemetry_ref) end)
 
@@ -131,6 +282,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       |> put_req_header("x-agent-wallet-address", wallet)
       |> put_req_header("x-agent-chain-id", "84532")
       |> put_req_header("x-agent-registry-address", registry)
+      |> put_req_header("x-agent-token-id", "202")
       |> put_req_header(
         "x-siwa-receipt",
         receipt_token(wallet, "84532", registry, "101", "techtree")
@@ -145,9 +297,18 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
 
-    assert SiwaSupport.sidecar_last_request() == nil
+    assert %{
+             "kind" => "http_verify_request",
+             "headers" => headers,
+             "method" => "POST",
+             "path" => "/v1/tree/nodes"
+           } = SiwaSupport.sidecar_last_request()
 
-    assert_receive {:siwa_deny, %{reason: :receipt_binding_mismatch, source: :receipt}}
+    assert headers["x-agent-wallet-address"] == wallet
+    assert headers["x-agent-registry-address"] == registry
+
+    assert_receive {:siwa_deny,
+                    %{reason: :sidecar_http_401, sidecar_status: 401, source: :sidecar_http}}
   end
 
   test "denies request when sidecar is unavailable and emits transport metadata", %{conn: conn} do
@@ -306,5 +467,27 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       |> Base.url_encode64(padding: false)
 
     "#{payload}.#{signature}"
+  end
+
+  defp with_strict_shared_siwa_client do
+    original_siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
+
+    Application.put_env(
+      :tech_tree,
+      :siwa,
+      Keyword.put(original_siwa_cfg, :client, TechTreeWeb.TestSupport.StrictSiwaSidecarClient)
+    )
+
+    on_exit(fn -> Application.put_env(:tech_tree, :siwa, original_siwa_cfg) end)
+  end
+
+  defp remove_signature_component(conn, component) do
+    [signature_input] = get_req_header(conn, "signature-input")
+
+    put_req_header(
+      conn,
+      "signature-input",
+      String.replace(signature_input, ~s( "#{component}"), "")
+    )
   end
 end

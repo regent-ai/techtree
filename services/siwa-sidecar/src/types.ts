@@ -10,7 +10,7 @@ export type DeepReadonly<T> = T extends (...args: never[]) => unknown
     : T;
 export type Result<Ok, Err> = { ok: true; value: Ok } | { ok: false; error: Err };
 
-export type Endpoint = "/v1/nonce" | "/v1/verify" | "/v1/http-verify";
+export type Endpoint = "/v1/agent/siwa/nonce" | "/v1/agent/siwa/verify" | "/v1/agent/siwa/http-verify";
 export type ApiVersion = "v1";
 
 export interface ResponseMeta<E extends Endpoint> {
@@ -45,15 +45,15 @@ export type HttpEnvelopeErrorCode =
   | "request_replayed";
 
 export type EndpointErrorCodeMap = {
-  "/v1/nonce": SharedErrorCode;
-  "/v1/verify": VerifyErrorCode;
-  "/v1/http-verify": SharedErrorCode | AuthErrorCode | ReceiptErrorCode | HttpEnvelopeErrorCode;
+  "/v1/agent/siwa/nonce": SharedErrorCode;
+  "/v1/agent/siwa/verify": VerifyErrorCode;
+  "/v1/agent/siwa/http-verify": SharedErrorCode | AuthErrorCode | ReceiptErrorCode | HttpEnvelopeErrorCode;
 };
 
 export type ErrorCode =
-  | EndpointErrorCodeMap["/v1/nonce"]
-  | EndpointErrorCodeMap["/v1/verify"]
-  | EndpointErrorCodeMap["/v1/http-verify"];
+  | EndpointErrorCodeMap["/v1/agent/siwa/nonce"]
+  | EndpointErrorCodeMap["/v1/agent/siwa/verify"]
+  | EndpointErrorCodeMap["/v1/agent/siwa/http-verify"];
 
 export interface ErrorDetailsByCode {
   nonce_expired: {
@@ -163,8 +163,7 @@ export interface HttpVerifyRequest {
   method: HttpMethod;
   path: AbsolutePath;
   headers: Record<string, string>;
-  rawBody?: string;
-  bodyDigest?: string;
+  body?: string;
 }
 
 export type SiwaRequest = NonceRequest | VerifyRequest | HttpVerifyRequest;
@@ -199,21 +198,21 @@ export interface HttpEnvelopeVerified {
 }
 
 export type EndpointRequestMap = {
-  "/v1/nonce": NonceRequest;
-  "/v1/verify": VerifyRequest;
-  "/v1/http-verify": HttpVerifyRequest;
+  "/v1/agent/siwa/nonce": NonceRequest;
+  "/v1/agent/siwa/verify": VerifyRequest;
+  "/v1/agent/siwa/http-verify": HttpVerifyRequest;
 };
 
 export type EndpointDataMap = {
-  "/v1/nonce": NonceIssued;
-  "/v1/verify": SiwaVerified;
-  "/v1/http-verify": HttpEnvelopeVerified;
+  "/v1/agent/siwa/nonce": NonceIssued;
+  "/v1/agent/siwa/verify": SiwaVerified;
+  "/v1/agent/siwa/http-verify": HttpEnvelopeVerified;
 };
 
 export type EndpointSuccessCodeMap = {
-  "/v1/nonce": "nonce_issued";
-  "/v1/verify": "siwa_verified";
-  "/v1/http-verify": "http_envelope_valid";
+  "/v1/agent/siwa/nonce": "nonce_issued";
+  "/v1/agent/siwa/verify": "siwa_verified";
+  "/v1/agent/siwa/http-verify": "http_envelope_valid";
 };
 
 export interface ApiSuccess<E extends Endpoint> {

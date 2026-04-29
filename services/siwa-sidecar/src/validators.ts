@@ -8,6 +8,8 @@ import type {
   VerifyRequest,
 } from "./types.js";
 
+const HTTP_VERIFY_REQUEST_FIELDS = new Set(["kind", "method", "path", "headers", "body"]);
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 };
@@ -39,11 +41,11 @@ const normalizeHeaders = (headers: unknown): Result<Record<string, string>, stri
   return { ok: true, value: output };
 };
 
-export const parseRequestBody = (rawBody: string): Result<SiwaRequest, string> => {
+export const parseRequestBody = (body: string): Result<SiwaRequest, string> => {
   let json: unknown;
 
   try {
-    json = JSON.parse(rawBody);
+    json = JSON.parse(body);
   } catch {
     return { ok: false, error: "request body must be valid JSON" };
   }
@@ -131,6 +133,16 @@ export const parseRequestBody = (rawBody: string): Result<SiwaRequest, string> =
     }
 
     case "http_verify_request": {
+      const unsupportedFields = Object.keys(json).filter(
+        (key) => !HTTP_VERIFY_REQUEST_FIELDS.has(key),
+      );
+      if (unsupportedFields.length > 0) {
+        return {
+          ok: false,
+          error: `unsupported http_verify_request field: ${unsupportedFields[0]}`,
+        };
+      }
+
       if (typeof json.method !== "string" || json.method.length === 0) {
         return { ok: false, error: "method is required" };
       }
@@ -141,14 +153,8 @@ export const parseRequestBody = (rawBody: string): Result<SiwaRequest, string> =
       if (!headersResult.ok) {
         return { ok: false, error: headersResult.error };
       }
-      if (json.rawBody !== undefined && typeof json.rawBody !== "string") {
-        return { ok: false, error: "rawBody must be a string when provided" };
-      }
-      if (json.raw_body !== undefined && typeof json.raw_body !== "string") {
-        return { ok: false, error: "raw_body must be a string when provided" };
-      }
-      if (json.bodyDigest !== undefined && typeof json.bodyDigest !== "string") {
-        return { ok: false, error: "bodyDigest must be a string when provided" };
+      if (json.body !== undefined && typeof json.body !== "string") {
+        return { ok: false, error: "body must be a string when provided" };
       }
 
       const valueBase: HttpVerifyRequest = {
@@ -157,16 +163,9 @@ export const parseRequestBody = (rawBody: string): Result<SiwaRequest, string> =
         path: json.path as AbsolutePath,
         headers: headersResult.value,
       };
-      const rawBody =
-        typeof json.rawBody === "string"
-          ? json.rawBody
-          : typeof json.raw_body === "string"
-            ? json.raw_body
-            : undefined;
       const value: HttpVerifyRequest = {
         ...valueBase,
-        ...(typeof rawBody === "string" ? { rawBody } : {}),
-        ...(typeof json.bodyDigest === "string" ? { bodyDigest: json.bodyDigest } : {}),
+        ...(typeof json.body === "string" ? { body: json.body } : {}),
       };
 
       return { ok: true, value };

@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import {
   buildHttpSignatureSigningMessage,
+  contentDigestMatchesBody,
+  contentDigestForBody,
   validateHttpSignatureEnvelope,
 } from "./lib/http-signature.js";
 import {
@@ -13,6 +15,7 @@ import {
   verifyReceiptToken,
 } from "./lib/receipt.js";
 import { InMemoryReplayStore } from "./lib/replay-store.js";
+import { parseRequestBody } from "./validators.js";
 import type { HexString, Result } from "./types.js";
 
 const assert = (condition: boolean, message: string): void => {
@@ -67,14 +70,17 @@ const main = async (): Promise<void> => {
   const signatureExpires = nowUnixSeconds + 90;
   const method = "POST";
   const path = "/v1/agent/nodes";
+  const rawBody = JSON.stringify({ title: "hello" });
+  const contentDigest = contentDigestForBody(rawBody);
 
   const signatureInput =
-    `sig1=("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" ` +
+    `sig1=("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" "content-digest" ` +
     `"x-agent-wallet-address" "x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
     `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`;
 
   const baseHeaders: Record<string, string> = {
     "x-siwa-receipt": receipt.token,
+    "content-digest": contentDigest,
     "x-key-id": keyId,
     "x-timestamp": String(nowUnixSeconds),
     "x-agent-wallet-address": walletAddress,
@@ -126,6 +132,12 @@ const main = async (): Promise<void> => {
       `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`,
   });
   assert(!vector4.ok && vector4.code === "http_required_components_missing", "Vector 4 failed");
+  if (!vector4.ok && vector4.code === "http_required_components_missing") {
+    assert(
+      vector4.details.missing.includes("content-digest"),
+      "Vector 4 failed: content-digest must be covered when present",
+    );
+  }
 
   // Vector 5: invalid receipt token verification
   const invalidReceipt = verifyReceiptToken("malformed.token", receiptSecret, nowUnixSeconds);
@@ -154,7 +166,23 @@ const main = async (): Promise<void> => {
     "Vector 8 failed: expected wallet binding mismatch",
   );
 
-  console.log("siwa-sidecar protocol vector harness passed (8 vectors)");
+  // Vector 9: body digest must match the forwarded body
+  assert(contentDigestMatchesBody(rawBody, contentDigest), "Vector 9 failed: digest should match body");
+  assert(!contentDigestMatchesBody("{}", contentDigest), "Vector 9 failed: changed body should not match");
+
+  // Vector 10: the shared-contract body field is accepted
+  const canonicalBody = parseRequestBody(
+    JSON.stringify({
+      kind: "http_verify_request",
+      method,
+      path,
+      headers: validHeaders,
+      body: rawBody,
+    }),
+  );
+  assert(canonicalBody.ok, "Vector 10 failed: canonical body field rejected");
+
+  console.log("siwa-sidecar protocol vector harness passed (10 vectors)");
 };
 
 await main();

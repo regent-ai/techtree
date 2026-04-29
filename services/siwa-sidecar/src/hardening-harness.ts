@@ -1,5 +1,6 @@
 import {
   buildHttpSignatureSigningMessage,
+  contentDigestForBody,
   validateHttpSignatureEnvelope,
 } from "./lib/http-signature.js";
 import { loadConfig } from "./config.js";
@@ -114,15 +115,18 @@ const main = async (): Promise<void> => {
 
   const method = "POST";
   const path = "/v1/agent/nodes";
+  const rawBody = JSON.stringify({ title: "hello" });
+  const contentDigest = contentDigestForBody(rawBody);
   const signatureExpires = nowUnixSeconds + 120;
   const signatureNonce = `nonce-${nowUnixSeconds}`;
   const signatureInputCanonical =
-    `("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" ` +
+    `("@method" "@path" "x-siwa-receipt" "x-key-id" "x-timestamp" "content-digest" ` +
     `"x-agent-wallet-address" "x-agent-chain-id" "x-agent-registry-address" "x-agent-token-id")` +
     `;created=${nowUnixSeconds};expires=${signatureExpires};nonce="${signatureNonce}";keyid="${keyId}"`;
 
   const placeholderHeaders = {
     "x-siwa-receipt": receipt.token,
+    "content-digest": contentDigest,
     signature: "sig1=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:",
     "signature-input": `sig1=${signatureInputCanonical}`,
     "x-key-id": keyId,

@@ -25,6 +25,59 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
     )
   end
 
+  @spec with_shared_siwa_signed_request(
+          Plug.Conn.t(),
+          String.t(),
+          String.t(),
+          String.t() | nil,
+          keyword()
+        ) :: Plug.Conn.t()
+  def with_shared_siwa_signed_request(conn, method, path, body, opts \\ []) do
+    {:ok, signer} = Siwa.LocalSigner.new()
+    {:ok, wallet} = Siwa.LocalSigner.get_address(signer)
+
+    chain_id = opts |> Keyword.get(:chain_id, 84_532) |> normalize_chain_id()
+    registry = Keyword.get(opts, :registry_address, random_eth_address())
+    token_id = Keyword.get(opts, :token_id, Integer.to_string(System.unique_integer([:positive])))
+    audience = Keyword.get(opts, :audience, "techtree")
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    secret = siwa_shared_secret!()
+
+    {:ok, receipt} =
+      Siwa.create_receipt(
+        %{
+          "typ" => "siwa_receipt",
+          "jti" => Ecto.UUID.generate(),
+          "sub" => wallet,
+          "aud" => audience,
+          "chain_id" => chain_id,
+          "nonce" => "nonce-#{System.unique_integer([:positive])}",
+          "key_id" => wallet,
+          "registry_address" => registry,
+          "token_id" => token_id
+        },
+        receipt_secret: secret,
+        now: now,
+        ttl_ms: 600_000
+      )
+
+    {:ok, signed_request} =
+      Siwa.sign_authenticated_request(
+        %{method: method, path: path, body: body, headers: %{}},
+        receipt.token,
+        signer,
+        audience: audience,
+        receipt_secret: secret,
+        created_at: now,
+        expires_in_seconds: 120,
+        nonce: "sig-nonce-#{System.unique_integer([:positive, :monotonic])}"
+      )
+
+    Enum.reduce(signed_request.headers, conn, fn {key, value}, acc ->
+      put_req_header(acc, key, value)
+    end)
+  end
+
   @spec attach_siwa_deny_handler() :: String.t()
   def attach_siwa_deny_handler do
     parent = self()
@@ -53,7 +106,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
   @spec reset_sidecar_state() :: :ok
   def reset_sidecar_state do
     Agent.update(TechTreeWeb.TestSupport.SiwaSidecarState, fn _state ->
-      %{status: 200, last_request: nil}
+      %{status: 200, last_request: nil, last_trusted_headers: nil}
     end)
   end
 
@@ -61,6 +114,13 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
   def sidecar_last_request do
     Agent.get(TechTreeWeb.TestSupport.SiwaSidecarState, fn state ->
       normalize_stub_state(state).last_request
+    end)
+  end
+
+  @spec sidecar_last_trusted_headers() :: map() | nil
+  def sidecar_last_trusted_headers do
+    Agent.get(TechTreeWeb.TestSupport.SiwaSidecarState, fn state ->
+      normalize_stub_state(state).last_trusted_headers
     end)
   end
 
@@ -170,31 +230,38 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
   end
 
   @spec signed_http_envelope_payload(map()) :: {String.t(), String.t()}
-  def signed_http_envelope_payload(%{
-        method: method,
-        path: path,
-        timestamp: timestamp,
-        key_id: key_id,
-        receipt: receipt,
-        wallet: wallet,
-        chain_id: chain_id,
-        registry: registry,
-        token_id: token_id
-      }) do
+  def signed_http_envelope_payload(
+        %{
+          method: method,
+          path: path,
+          timestamp: timestamp,
+          key_id: key_id,
+          receipt: receipt,
+          wallet: wallet,
+          chain_id: chain_id,
+          registry: registry,
+          token_id: token_id
+        } = input
+      ) do
     sig_nonce = "sig-nonce-#{System.unique_integer([:positive, :monotonic])}"
     expires = timestamp + 120
+    raw_body = Map.get(input, :body) || Map.get(input, "body")
+    content_digest = if is_binary(raw_body) and raw_body != "", do: content_digest(raw_body)
 
-    components = [
-      "@method",
-      "@path",
-      "x-siwa-receipt",
-      "x-key-id",
-      "x-timestamp",
-      "x-agent-wallet-address",
-      "x-agent-chain-id",
-      "x-agent-registry-address",
-      "x-agent-token-id"
-    ]
+    components =
+      [
+        "@method",
+        "@path",
+        "x-siwa-receipt",
+        "x-key-id",
+        "x-timestamp",
+        content_digest && "content-digest",
+        "x-agent-wallet-address",
+        "x-agent-chain-id",
+        "x-agent-registry-address",
+        "x-agent-token-id"
+      ]
+      |> Enum.reject(&is_nil/1)
 
     signature_params =
       "(#{Enum.map_join(components, " ", &~s("#{&1}"))})" <>
@@ -209,15 +276,31 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
         ~s("x-siwa-receipt": #{receipt}),
         ~s("x-key-id": #{key_id}),
         ~s("x-timestamp": #{timestamp}),
+        content_digest && ~s("content-digest": #{content_digest}),
         ~s("x-agent-wallet-address": #{wallet}),
         ~s("x-agent-chain-id": #{chain_id}),
         ~s("x-agent-registry-address": #{registry}),
         ~s("x-agent-token-id": #{token_id}),
         ~s("@signature-params": #{signature_params})
       ]
+      |> Enum.reject(&is_nil/1)
       |> Enum.join("\n")
 
     {signature_input, signing_message}
+  end
+
+  defp content_digest(raw_body) do
+    digest = :crypto.hash(:sha256, raw_body) |> Base.encode64()
+    "sha-256=:#{digest}:"
+  end
+
+  defp normalize_chain_id(value) when is_integer(value), do: value
+  defp normalize_chain_id(value) when is_binary(value), do: String.to_integer(value)
+
+  defp siwa_shared_secret! do
+    :tech_tree
+    |> Application.get_env(:siwa, [])
+    |> Keyword.fetch!(:shared_secret)
   end
 
   @spec wait_until_expired!(String.t()) :: :ok
@@ -236,10 +319,10 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
   end
 
   defp normalize_stub_state(state) when is_map(state),
-    do: Map.merge(%{status: 200, last_request: nil}, state)
+    do: Map.merge(%{status: 200, last_request: nil, last_trusted_headers: nil}, state)
 
   defp normalize_stub_state(status) when is_integer(status),
-    do: %{status: status, last_request: nil}
+    do: %{status: status, last_request: nil, last_trusted_headers: nil}
 
   defp receipt_token(wallet, chain_id, registry, token_id, audience) do
     secret =
@@ -327,7 +410,7 @@ defmodule TechTreeWeb.TestSupport.SiwaIntegrationSupport do
 
   defp wait_for_sidecar!(sidecar_url, attempts) do
     case Req.post(
-           url: "#{sidecar_url}/v1/nonce",
+           url: "#{sidecar_url}/v1/agent/siwa/nonce",
            json: %{
              "kind" => "nonce_request",
              "walletAddress" => random_eth_address(),

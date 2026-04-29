@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { loadConfig } from "./config.js";
 import {
   buildHttpSignatureSigningMessage,
+  contentDigestMatchesBody,
   requiredCoveredComponentsForHeaders,
   validateHttpSignatureEnvelope,
 } from "./lib/http-signature.js";
@@ -36,7 +37,7 @@ const config = loadConfig();
 const nonceStore = new InMemoryNonceStore();
 const replayStore = new InMemoryReplayStore();
 
-const TRUSTED_ENDPOINTS: ReadonlySet<Endpoint> = new Set(["/v1/http-verify"]);
+const TRUSTED_ENDPOINTS: ReadonlySet<Endpoint> = new Set(["/v1/agent/siwa/http-verify"]);
 const MAX_BODY_BYTES = 1_000_000;
 const HTTP_VERIFY_REQUIRED_HEADERS = [
   "x-siwa-receipt",
@@ -260,7 +261,7 @@ const handlers: {
     requestId: string,
   ) => Promise<EndpointResponse<E>>;
 } = {
-  "/v1/nonce": async (input, requestId) => {
+  "/v1/agent/siwa/nonce": async (input, requestId) => {
     const issueInputBase = {
       walletAddress: input.walletAddress,
       chainId: input.chainId,
@@ -273,7 +274,7 @@ const handlers: {
 
     const issued = await nonceStore.issue(issueInput);
 
-    return buildSuccess("/v1/nonce", requestId, "nonce_issued", {
+    return buildSuccess("/v1/agent/siwa/nonce", requestId, "nonce_issued", {
       nonce: issued.nonce,
       walletAddress: issued.walletAddress,
       chainId: issued.chainId,
@@ -281,10 +282,10 @@ const handlers: {
     });
   },
 
-  "/v1/verify": async (input, requestId) => {
+  "/v1/agent/siwa/verify": async (input, requestId) => {
     const signatureValidation = await verifySignedSiwaMessage(input);
     if (!signatureValidation.ok) {
-      return buildError("/v1/verify", requestId, "signature_invalid", signatureValidation.error.message);
+      return buildError("/v1/agent/siwa/verify", requestId, "signature_invalid", signatureValidation.error.message);
     }
 
     const nonceResult = await nonceStore.consume({
@@ -295,22 +296,22 @@ const handlers: {
 
     if (!nonceResult.ok) {
       if (nonceResult.error.kind === "not_found") {
-        return buildError("/v1/verify", requestId, "nonce_not_found", "nonce not found");
+        return buildError("/v1/agent/siwa/verify", requestId, "nonce_not_found", "nonce not found");
       }
       if (nonceResult.error.kind === "chain_mismatch") {
         return buildError(
-          "/v1/verify",
+          "/v1/agent/siwa/verify",
           requestId,
           "signature_invalid",
           "SIWA nonce is not valid for the requested chainId",
         );
       }
       if (nonceResult.error.kind === "expired") {
-        return buildError("/v1/verify", requestId, "nonce_expired", "nonce expired", {
+        return buildError("/v1/agent/siwa/verify", requestId, "nonce_expired", "nonce expired", {
           expiresAt: toIsoUtcString(new Date(nonceResult.error.expiresAtMs)),
         });
       }
-      return buildError("/v1/verify", requestId, "nonce_already_used", "nonce already used", {
+      return buildError("/v1/agent/siwa/verify", requestId, "nonce_already_used", "nonce already used", {
         consumedAt: toIsoUtcString(new Date(nonceResult.error.consumedAtMs)),
       });
     }
@@ -334,7 +335,7 @@ const handlers: {
       config.receiptSecret,
     );
 
-    return buildSuccess("/v1/verify", requestId, "siwa_verified", {
+    return buildSuccess("/v1/agent/siwa/verify", requestId, "siwa_verified", {
       verified: true,
       walletAddress: input.walletAddress,
       chainId: input.chainId,
@@ -346,11 +347,11 @@ const handlers: {
     });
   },
 
-  "/v1/http-verify": async (input, requestId) => {
+  "/v1/agent/siwa/http-verify": async (input, requestId) => {
     const envelopeCheck = validateHttpSignatureEnvelope(input.headers);
     if (!envelopeCheck.ok) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         envelopeCheck.code,
         envelopeCheck.message,
@@ -363,7 +364,7 @@ const handlers: {
 
     const parsedReceipt = parseReceiptFromHeaders(envelope.normalizedHeaders);
     if (!parsedReceipt.ok) {
-      return buildError("/v1/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
+      return buildError("/v1/agent/siwa/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
         expectedFormat: "x-siwa-receipt: <receipt-token>",
       });
     }
@@ -372,7 +373,7 @@ const handlers: {
     if (!verifiedReceipt.ok) {
       if (verifiedReceipt.error.kind === "expired") {
         return buildError(
-          "/v1/http-verify",
+          "/v1/agent/siwa/http-verify",
           requestId,
           "receipt_expired",
           "SIWA receipt is expired",
@@ -382,7 +383,7 @@ const handlers: {
         );
       }
 
-      return buildError("/v1/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
+      return buildError("/v1/agent/siwa/http-verify", requestId, "receipt_invalid", "invalid SIWA receipt token", {
         expectedFormat: "x-siwa-receipt: <receipt-token>",
       });
     }
@@ -391,7 +392,7 @@ const handlers: {
     const expectedKeyIdFromWallet = receiptClaims.sub.toLowerCase();
     if (receiptClaims.keyId !== expectedKeyIdFromWallet) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "receipt keyId is not bound to receipt walletAddress",
@@ -406,7 +407,7 @@ const handlers: {
     const keyIdHeader = envelope.normalizedHeaders["x-key-id"];
     if (typeof keyIdHeader !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-key-id does not match SIWA receipt",
@@ -420,7 +421,7 @@ const handlers: {
 
     if (keyIdHeader !== receiptClaims.keyId) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-key-id does not match SIWA receipt",
@@ -437,7 +438,7 @@ const handlers: {
       envelope.parsedSignatureInput.keyId !== receiptClaims.keyId
     ) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "signature-input keyid does not match SIWA receipt keyId",
@@ -452,7 +453,7 @@ const handlers: {
     const walletHeaderRaw = envelope.normalizedHeaders["x-agent-wallet-address"];
     if (typeof walletHeaderRaw !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-wallet-address does not match SIWA receipt",
@@ -467,7 +468,7 @@ const handlers: {
     const walletHeader = walletHeaderRaw.trim();
     if (!isHexAddress(walletHeader)) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-wallet-address must be a 0x-prefixed 20-byte hex address",
@@ -481,7 +482,7 @@ const handlers: {
 
     if (walletHeader.toLowerCase() !== receiptClaims.sub.toLowerCase()) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-wallet-address does not match SIWA receipt",
@@ -496,7 +497,7 @@ const handlers: {
     const chainIdHeaderRaw = envelope.normalizedHeaders["x-agent-chain-id"];
     if (typeof chainIdHeaderRaw !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-chain-id does not match SIWA receipt",
@@ -512,7 +513,7 @@ const handlers: {
     const parsedChainId = parsePositiveIntegerHeader(chainIdHeader);
     if (parsedChainId === null) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-chain-id must be a positive integer",
@@ -526,7 +527,7 @@ const handlers: {
 
     if (parsedChainId !== receiptClaims.chainId) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-chain-id does not match SIWA receipt",
@@ -541,7 +542,7 @@ const handlers: {
     const timestampHeader = envelope.normalizedHeaders["x-timestamp"];
     if (typeof timestampHeader !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "x-timestamp must be a positive unix timestamp",
@@ -554,7 +555,7 @@ const handlers: {
     const timestampSeconds = parsePositiveIntegerHeader(timestampHeader);
     if (timestampSeconds === null) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "x-timestamp must be a positive unix timestamp",
@@ -566,7 +567,7 @@ const handlers: {
 
     if (Math.abs(nowUnixSeconds - timestampSeconds) > config.httpSignatureMaxAgeSeconds) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "x-timestamp is outside allowed freshness window",
@@ -581,7 +582,7 @@ const handlers: {
       config.httpSignatureCreatedDriftSeconds
     ) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "signature-input created value drift exceeds allowed tolerance",
@@ -593,7 +594,7 @@ const handlers: {
 
     if (envelope.parsedSignatureInput.expiresUnixSeconds <= nowUnixSeconds) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "signature-input has expired",
@@ -606,7 +607,7 @@ const handlers: {
     const registryHeaderRaw = envelope.normalizedHeaders["x-agent-registry-address"];
     if (typeof registryHeaderRaw !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-registry-address does not match SIWA receipt",
@@ -620,7 +621,7 @@ const handlers: {
 
     if (!receiptClaims.registryAddress) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "SIWA receipt missing registry address binding",
@@ -635,7 +636,7 @@ const handlers: {
     const registryHeader = registryHeaderRaw.trim();
     if (!isHexAddress(registryHeader)) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-registry-address must be a 0x-prefixed 20-byte hex address",
@@ -649,7 +650,7 @@ const handlers: {
 
     if (registryHeader.toLowerCase() !== receiptClaims.registryAddress.toLowerCase()) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-registry-address does not match SIWA receipt",
@@ -664,7 +665,7 @@ const handlers: {
     const tokenIdHeaderRaw = envelope.normalizedHeaders["x-agent-token-id"];
     if (typeof tokenIdHeaderRaw !== "string") {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-token-id does not match SIWA receipt",
@@ -678,7 +679,7 @@ const handlers: {
 
     if (!receiptClaims.tokenId) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "SIWA receipt missing token id binding",
@@ -694,7 +695,7 @@ const handlers: {
     const parsedTokenId = parsePositiveIntegerHeader(tokenIdHeader);
     if (parsedTokenId === null) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-token-id must be a positive integer",
@@ -708,7 +709,7 @@ const handlers: {
 
     if (tokenIdHeader !== receiptClaims.tokenId) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "receipt_binding_mismatch",
         "x-agent-token-id does not match SIWA receipt",
@@ -720,10 +721,38 @@ const handlers: {
       );
     }
 
+    if (typeof input.body === "string" && Buffer.byteLength(input.body) > 0) {
+      const contentDigest = envelope.normalizedHeaders["content-digest"];
+
+      if (typeof contentDigest !== "string" || contentDigest.trim() === "") {
+        return buildError(
+          "/v1/agent/siwa/http-verify",
+          requestId,
+          "http_signature_input_invalid",
+          "content-digest is required for signed requests with a body",
+          {
+            expectedFormat: HTTP_SIGNATURE_INPUT_FORMAT,
+          },
+        );
+      }
+
+      if (!contentDigestMatchesBody(input.body, contentDigest)) {
+        return buildError(
+          "/v1/agent/siwa/http-verify",
+          requestId,
+          "http_signature_input_invalid",
+          "content-digest does not match request body",
+          {
+            expectedFormat: HTTP_SIGNATURE_INPUT_FORMAT,
+          },
+        );
+      }
+    }
+
     const signingMessage = buildHttpSignatureSigningMessage(input.method, input.path, envelope);
     if (!signingMessage.ok) {
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_input_invalid",
         "signature-input references components missing from headers",
@@ -739,17 +768,6 @@ const handlers: {
       )
       .digest("hex");
 
-    const replayClaimed = replayStore.claim(replayKey, config.httpReplayTtlSeconds * 1000);
-    if (!replayClaimed) {
-      return buildError(
-        "/v1/http-verify",
-        requestId,
-        "request_replayed",
-        "request signature has already been used",
-        { replayKey },
-      );
-    }
-
     const signatureVerified = await verifyPersonalSignMessage(
       signingMessage.value,
       envelope.signatureHex,
@@ -762,7 +780,7 @@ const handlers: {
       }
 
       return buildError(
-        "/v1/http-verify",
+        "/v1/agent/siwa/http-verify",
         requestId,
         "http_signature_mismatch",
         "http signature does not match SIWA receipt wallet",
@@ -772,9 +790,20 @@ const handlers: {
       );
     }
 
+    const replayClaimed = replayStore.claim(replayKey, config.httpReplayTtlSeconds * 1000);
+    if (!replayClaimed) {
+      return buildError(
+        "/v1/agent/siwa/http-verify",
+        requestId,
+        "request_replayed",
+        "request signature has already been used",
+        { replayKey },
+      );
+    }
+
     const requiredCoveredComponents = requiredCoveredComponentsForHeaders(envelope.normalizedHeaders);
 
-    return buildSuccess("/v1/http-verify", requestId, "http_envelope_valid", {
+    return buildSuccess("/v1/agent/siwa/http-verify", requestId, "http_envelope_valid", {
       verified: true,
       walletAddress: receiptClaims.sub,
       chainId: receiptClaims.chainId,
@@ -788,7 +817,7 @@ const handlers: {
 };
 
 const endpointFromPath = (path: string): Endpoint | null => {
-  if (path === "/v1/nonce" || path === "/v1/verify" || path === "/v1/http-verify") {
+  if (path === "/v1/agent/siwa/nonce" || path === "/v1/agent/siwa/verify" || path === "/v1/agent/siwa/http-verify") {
     return path;
   }
   return null;
@@ -803,7 +832,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(404, { "content-type": "application/json" });
     res.end(
       JSON.stringify(
-        buildError("/v1/nonce", requestId, "bad_request", "unknown endpoint, use /v1/* paths"),
+        buildError("/v1/agent/siwa/nonce", requestId, "bad_request", "unknown endpoint, use /v1/* paths"),
       ),
     );
     return;
@@ -819,9 +848,9 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  let rawBody = "";
+  let body = "";
   try {
-    rawBody = await readBody(req);
+    body = await readBody(req);
   } catch (error) {
     const response = buildError(
       endpoint,
@@ -839,7 +868,7 @@ const server = createServer(async (req, res) => {
       {
         method: req.method,
         path: endpoint,
-        body: rawBody,
+        body: body,
         headers: req.headers,
       },
       {
@@ -857,7 +886,7 @@ const server = createServer(async (req, res) => {
     }
   }
 
-  const parseResult = parseRequestBody(rawBody);
+  const parseResult = parseRequestBody(body);
   if (!parseResult.ok) {
     const response = buildError(endpoint, requestId, "bad_request", parseResult.error);
     res.writeHead(400, { "content-type": "application/json" });
@@ -868,9 +897,9 @@ const server = createServer(async (req, res) => {
   const parsed = parseResult.value;
 
   const expectedKindByEndpoint: Record<Endpoint, string> = {
-    "/v1/nonce": "nonce_request",
-    "/v1/verify": "verify_request",
-    "/v1/http-verify": "http_verify_request",
+    "/v1/agent/siwa/nonce": "nonce_request",
+    "/v1/agent/siwa/verify": "verify_request",
+    "/v1/agent/siwa/http-verify": "http_verify_request",
   };
 
   if (parsed.kind !== expectedKindByEndpoint[endpoint]) {
@@ -888,12 +917,12 @@ const server = createServer(async (req, res) => {
   try {
     let response: EndpointResponse<Endpoint>;
 
-    if (endpoint === "/v1/nonce" && parsed.kind === "nonce_request") {
-      response = await handlers["/v1/nonce"](parsed, requestId);
-    } else if (endpoint === "/v1/verify" && parsed.kind === "verify_request") {
-      response = await handlers["/v1/verify"](parsed, requestId);
-    } else if (endpoint === "/v1/http-verify" && parsed.kind === "http_verify_request") {
-      response = await handlers["/v1/http-verify"](parsed, requestId);
+    if (endpoint === "/v1/agent/siwa/nonce" && parsed.kind === "nonce_request") {
+      response = await handlers["/v1/agent/siwa/nonce"](parsed, requestId);
+    } else if (endpoint === "/v1/agent/siwa/verify" && parsed.kind === "verify_request") {
+      response = await handlers["/v1/agent/siwa/verify"](parsed, requestId);
+    } else if (endpoint === "/v1/agent/siwa/http-verify" && parsed.kind === "http_verify_request") {
+      response = await handlers["/v1/agent/siwa/http-verify"](parsed, requestId);
     } else {
       const mismatch = buildError(
         endpoint,

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type {
   AbsolutePath,
   ErrorDetails,
@@ -52,6 +54,7 @@ const REQUIRED_BASE_COMPONENTS = [
   "x-key-id",
   "x-timestamp",
 ] as const;
+const CONTENT_DIGEST_HEADER = "content-digest";
 
 const COMPONENT_VALUE = /^"([^\s"]+)"$/;
 const HEADER_COMPONENT = /^[a-z0-9-]+$/;
@@ -232,6 +235,10 @@ export const requiredCoveredComponentsForHeaders = (
 ): readonly string[] => {
   const required: string[] = [...REQUIRED_BASE_COMPONENTS];
 
+  if (typeof normalizedHeaders[CONTENT_DIGEST_HEADER] === "string") {
+    required.push(CONTENT_DIGEST_HEADER);
+  }
+
   if (typeof normalizedHeaders["x-agent-wallet-address"] === "string") {
     required.push("x-agent-wallet-address");
   }
@@ -250,6 +257,16 @@ export const requiredCoveredComponentsForHeaders = (
 
   return required;
 };
+
+export const contentDigestForBody = (body: string): string => {
+  const digest = createHash("sha256").update(body).digest("base64");
+  return `sha-256=:${digest}:`;
+};
+
+export const contentDigestMatchesBody = (
+  body: string,
+  contentDigest: string,
+): boolean => contentDigest.trim() === contentDigestForBody(body);
 
 export const validateHttpSignatureEnvelope = (
   headers: Record<string, string>,

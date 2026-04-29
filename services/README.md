@@ -5,9 +5,9 @@ Strict TypeScript workspace for sidecar services under `techtree/services`.
 ## Packages
 
 - `siwa-sidecar`: SIWA verification sidecar with endpoints:
-  - `POST /v1/nonce`
-  - `POST /v1/verify`
-  - `POST /v1/http-verify` (internal trusted path with HMAC middleware)
+  - `POST /v1/agent/siwa/nonce`
+  - `POST /v1/agent/siwa/verify`
+  - `POST /v1/agent/siwa/http-verify` (internal trusted path with HMAC middleware)
 
 ## Commands
 
@@ -34,7 +34,7 @@ cd siwa-sidecar && bun run validate:vectors
 
 ## HMAC trusted-call headers
 
-Trusted calls (currently `POST /v1/http-verify`) must include:
+Trusted calls (currently `POST /v1/agent/siwa/http-verify`) must include:
 
 - `x-sidecar-key-id`
 - `x-sidecar-timestamp` (unix seconds)
@@ -48,9 +48,9 @@ The payload to sign is:
 
 HMAC algorithm: `sha256` using `SIWA_HMAC_SECRET`.
 
-## SIWA Contract: `POST /v1/verify`
+## SIWA Contract: `POST /v1/agent/siwa/verify`
 
-`/v1/verify` now performs full EVM `personal_sign` verification against `walletAddress`, consumes the nonce, and returns a signed SIWA receipt token:
+`/v1/agent/siwa/verify` now performs full EVM `personal_sign` verification against `walletAddress`, consumes the nonce, and returns a signed SIWA receipt token:
 
 ```json
 {
@@ -68,14 +68,14 @@ HMAC algorithm: `sha256` using `SIWA_HMAC_SECRET`.
   },
   "meta": {
     "version": "v1",
-    "endpoint": "/v1/verify",
+    "endpoint": "/v1/agent/siwa/verify",
     "requestId": "uuid",
     "timestamp": "2026-03-04T12:00:00.000Z"
   }
 }
 ```
 
-## Phoenix Contract: `POST /v1/http-verify`
+## Phoenix Contract: `POST /v1/agent/siwa/http-verify`
 
 This endpoint is usable by `TechTreeWeb.Plugs.RequireAgentSiwa` as a deterministic allow/deny verifier.
 
@@ -97,18 +97,19 @@ Request body contract:
   "headers": {
     "x-siwa-receipt": "<signed-receipt-token>",
     "signature": "sig1=:BASE64_SIGNATURE:",
-    "signature-input": "sig1=(\"@method\" \"@path\" \"x-siwa-receipt\" \"x-key-id\" \"x-timestamp\");created=1700000000;expires=1700000300;nonce=\"7f5e7f0f3a1f4d1f\";keyid=\"0x1111111111111111111111111111111111111111\"",
+    "content-digest": "sha-256=:BASE64_DIGEST:",
+    "signature-input": "sig1=(\"@method\" \"@path\" \"x-siwa-receipt\" \"x-key-id\" \"x-timestamp\" \"content-digest\");created=1700000000;expires=1700000300;nonce=\"7f5e7f0f3a1f4d1f\";keyid=\"0x1111111111111111111111111111111111111111\"",
     "x-key-id": "0x1111111111111111111111111111111111111111",
     "x-timestamp": "1700000000"
   },
-  "raw_body": "{\"title\":\"hello\"}",
-  "bodyDigest": "sha-256=:BASE64_DIGEST:"
+  "body": "{\"title\":\"hello\"}"
 }
 ```
 
 Notes:
 
-- `raw_body` and `rawBody` are both accepted.
+- `body` is the only accepted request-body field.
+- Requests with a non-empty body must include a matching `content-digest` header and cover it in `signature-input`.
 - `method` is normalized to uppercase.
 - `path` must be absolute (`/...`).
 
@@ -131,12 +132,12 @@ Success response contract:
       "x-key-id",
       "x-timestamp"
     ],
-    "requiredCoveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id"],
-    "coveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id"]
+    "requiredCoveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id", "x-timestamp", "content-digest"],
+    "coveredComponents": ["@method", "@path", "x-siwa-receipt", "x-key-id", "x-timestamp", "content-digest"]
   },
   "meta": {
     "version": "v1",
-    "endpoint": "/v1/http-verify",
+    "endpoint": "/v1/agent/siwa/http-verify",
     "requestId": "uuid",
     "timestamp": "2026-03-04T12:00:00.000Z"
   }
@@ -175,7 +176,7 @@ All failures return:
   },
   "meta": {
     "version": "v1",
-    "endpoint": "/v1/http-verify",
+    "endpoint": "/v1/agent/siwa/http-verify",
     "requestId": "uuid",
     "timestamp": "2026-03-04T12:00:00.000Z"
   }

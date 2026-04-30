@@ -50,7 +50,7 @@ defmodule TechTree.Chatbox do
   def create_human_message(%HumanUser{} = human, attrs) when is_map(attrs) do
     with :ok <- TechTree.Chatbox.Actor.ensure_can_post(human),
          {:ok, message, status} <-
-           Messages.create_message({:human, human}, Map.put_new(attrs, :room_id, @global_room),
+           Messages.create_message({:human, human}, Map.put_new(attrs, "room_id", @global_room),
              default_room: @global_room,
              max_message_length: @max_message_length
            ) do
@@ -72,7 +72,7 @@ defmodule TechTree.Chatbox do
          {:ok, message, status} <-
            Messages.create_message(
              {:agent, agent},
-             Map.put_new(attrs, :room_id, Payload.normalize_agent_room(attrs, agent)),
+             Map.put_new(attrs, "room_id", Payload.normalize_agent_room(attrs, agent)),
              default_room: @global_room,
              max_message_length: @max_message_length
            ) do

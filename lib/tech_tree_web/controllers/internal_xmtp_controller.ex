@@ -2,6 +2,7 @@ defmodule TechTreeWeb.InternalXmtpController do
   use TechTreeWeb, :controller
 
   alias TechTree.XMTPMirror
+  alias TechTree.XMTPMirror.Rooms
   alias TechTreeWeb.ApiError
   alias TechTreeWeb.ControllerHelpers
 
@@ -14,11 +15,11 @@ defmodule TechTreeWeb.InternalXmtpController do
   def ensure_room(conn, params) do
     room_attrs =
       %{
-        room_key: params["room_key"],
-        xmtp_group_id: params["xmtp_group_id"],
-        name: params["name"],
-        status: params["status"] || "active",
-        presence_ttl_seconds: params["presence_ttl_seconds"]
+        "room_key" => params["room_key"],
+        "xmtp_group_id" => params["xmtp_group_id"],
+        "name" => params["name"],
+        "status" => params["status"] || "active",
+        "presence_ttl_seconds" => params["presence_ttl_seconds"]
       }
       |> Enum.reject(fn {_key, value} -> is_nil(value) end)
       |> Map.new()
@@ -37,18 +38,18 @@ defmodule TechTreeWeb.InternalXmtpController do
     with {:ok, room} <- fetch_room(params["room_key"]),
          {:ok, message} <-
            XMTPMirror.ingest_message(%{
-             room_id: room.id,
-             xmtp_message_id: params["xmtp_message_id"],
-             sender_inbox_id: params["sender_inbox_id"],
-             sender_wallet_address: params["sender_wallet_address"],
-             sender_label: params["sender_label"],
-             sender_type: params["sender_type"],
-             body: params["body"],
-             sent_at: params["sent_at"],
-             raw_payload: params["raw_payload"] || %{},
-             moderation_state: params["moderation_state"] || "visible",
-             reply_to_message_id: params["reply_to_message_id"],
-             reactions: params["reactions"]
+             "room_id" => room.id,
+             "xmtp_message_id" => params["xmtp_message_id"],
+             "sender_inbox_id" => params["sender_inbox_id"],
+             "sender_wallet_address" => params["sender_wallet_address"],
+             "sender_label" => params["sender_label"],
+             "sender_type" => params["sender_type"],
+             "body" => params["body"],
+             "sent_at" => params["sent_at"],
+             "raw_payload" => params["raw_payload"] || %{},
+             "moderation_state" => params["moderation_state"] || "visible",
+             "reply_to_message_id" => params["reply_to_message_id"],
+             "reactions" => params["reactions"]
            }) do
       json(conn, %{data: %{id: message.id}})
     else
@@ -94,8 +95,8 @@ defmodule TechTreeWeb.InternalXmtpController do
       {:ok, normalized_id} ->
         with_existing_command(conn, fn ->
           case XMTPMirror.resolve_command(normalized_id, %{
-                 status: params["status"],
-                 error: params["error"]
+                 "status" => params["status"],
+                 "error" => params["error"]
                }) do
             :ok -> :ok
             {:error, :invalid_resolution_status} -> {:error, :invalid_resolution_status}
@@ -128,20 +129,21 @@ defmodule TechTreeWeb.InternalXmtpController do
       xmtp_group_id: room.xmtp_group_id,
       name: room.name,
       status: room.status,
-      presence_ttl_seconds: room.presence_ttl_seconds
+      presence_ttl_seconds: room.presence_ttl_seconds,
+      capacity: Rooms.room_capacity(room)
     }
   end
 
   @spec render_unprocessable(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
   defp render_unprocessable(conn, code) do
-    ApiError.render(conn, :unprocessable_entity, %{code: code})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => code})
   end
 
   @spec render_changeset_error(Plug.Conn.t(), String.t(), Ecto.Changeset.t()) :: Plug.Conn.t()
   defp render_changeset_error(conn, code, changeset) do
     ApiError.render(conn, :unprocessable_entity, %{
-      code: code,
-      details: ApiError.translate_changeset(changeset)
+      "code" => code,
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
@@ -156,6 +158,6 @@ defmodule TechTreeWeb.InternalXmtpController do
         render_unprocessable(conn, "command_resolution_status_invalid")
     end
   rescue
-    Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{code: "command_not_found"})
+    Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{"code" => "command_not_found"})
   end
 end

@@ -191,15 +191,16 @@ defmodule TechTree.Workers.AnchorNodeWorker do
 
   defp normalize_node_id(_value), do: nil
 
-  @spec node_kind_to_uint8(atom()) :: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
-  defp node_kind_to_uint8(:hypothesis), do: 0
+  @spec node_kind_to_uint8(atom()) :: 1 | 2 | 3
+  defp node_kind_to_uint8(:hypothesis), do: 1
   defp node_kind_to_uint8(:data), do: 1
   defp node_kind_to_uint8(:result), do: 2
-  defp node_kind_to_uint8(:null_result), do: 3
-  defp node_kind_to_uint8(:review), do: 4
-  defp node_kind_to_uint8(:synthesis), do: 5
-  defp node_kind_to_uint8(:meta), do: 6
-  defp node_kind_to_uint8(:skill), do: 7
+  defp node_kind_to_uint8(:null_result), do: 2
+  defp node_kind_to_uint8(:review), do: 3
+  defp node_kind_to_uint8(:synthesis), do: 1
+  defp node_kind_to_uint8(:meta), do: 1
+  defp node_kind_to_uint8(:skill), do: 1
+  defp node_kind_to_uint8(:eval), do: 1
 
   @spec has_text?(String.t() | nil) :: boolean()
   defp has_text?(value) when is_binary(value), do: byte_size(String.trim(value)) > 0

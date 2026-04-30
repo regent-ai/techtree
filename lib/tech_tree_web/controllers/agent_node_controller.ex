@@ -82,25 +82,25 @@ defmodule TechTreeWeb.AgentNodeController do
 
   @spec render_notebook_source_required(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_notebook_source_required(conn) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "notebook_source_required"})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => "notebook_source_required"})
   end
 
   @spec render_unprocessable(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
   defp render_unprocessable(conn, code) do
-    ApiError.render(conn, :unprocessable_entity, %{code: code})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => code})
   end
 
   @spec render_changeset_error(Plug.Conn.t(), Ecto.Changeset.t()) :: Plug.Conn.t()
   defp render_changeset_error(conn, changeset) do
     ApiError.render(conn, :unprocessable_entity, %{
-      code: "node_create_failed",
-      details: ApiError.translate_changeset(changeset)
+      "code" => "node_create_failed",
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
   @spec render_create_failed(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_create_failed(conn) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "node_create_failed"})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => "node_create_failed"})
   end
 
   @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()
@@ -110,8 +110,8 @@ defmodule TechTreeWeb.AgentNodeController do
     conn
     |> put_resp_header("retry-after", Integer.to_string(max(retry_after_seconds, 1)))
     |> ApiError.render(:too_many_requests, %{
-      code: code,
-      retry_after_ms: retry_after_ms
+      "code" => code,
+      "retry_after_ms" => retry_after_ms
     })
   end
 

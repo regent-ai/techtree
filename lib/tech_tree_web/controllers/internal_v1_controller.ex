@@ -14,13 +14,13 @@ defmodule TechTreeWeb.InternalV1Controller do
 
       :not_found ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "publish_receipt_not_found",
-          message: "publish receipt is not available yet"
+          "code" => "publish_receipt_not_found",
+          "message" => "publish receipt is not available yet"
         })
 
       {:error, _reason} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "publish_ingest_failed"
+          "code" => "publish_ingest_failed"
         })
     end
   end

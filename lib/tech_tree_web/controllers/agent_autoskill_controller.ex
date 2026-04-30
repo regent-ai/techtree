@@ -101,7 +101,7 @@ defmodule TechTreeWeb.AgentAutoskillController do
 
       {:error, :replicable_review_threshold_not_met} ->
         ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "autoskill_listing_threshold_not_met"
+          "code" => "autoskill_listing_threshold_not_met"
         })
 
       {:error, %Ecto.Changeset{} = cs} ->
@@ -168,7 +168,7 @@ defmodule TechTreeWeb.AgentAutoskillController do
             })
 
           {:error, :payment_required} ->
-            ApiError.render_halted(conn, 402, %{code: "autoskill_payment_required"})
+            ApiError.render_halted(conn, 402, %{"code" => "autoskill_payment_required"})
 
           {:error, reason} ->
             AgentApiResult.render_reason(
@@ -180,7 +180,7 @@ defmodule TechTreeWeb.AgentAutoskillController do
         end
 
       {:error, _reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 

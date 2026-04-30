@@ -14,7 +14,7 @@ defmodule TechTreeWeb.Runtime.ControllerHelpers do
     |> json(%{data: data})
   end
 
-  def render_not_found(conn, code), do: ApiError.render(conn, :not_found, %{code: code})
+  def render_not_found(conn, code), do: ApiError.render(conn, :not_found, %{"code" => code})
 
   def render_when_present(conn, nil, not_found_code, _render_fun),
     do: render_not_found(conn, not_found_code)
@@ -25,10 +25,10 @@ defmodule TechTreeWeb.Runtime.ControllerHelpers do
   def render_unprocessable(conn, code, reason, opts \\ []) do
     case Keyword.get(opts, :message, default_message(reason)) do
       :omit ->
-        ApiError.render(conn, :unprocessable_entity, %{code: code})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => code})
 
       message ->
-        ApiError.render(conn, :unprocessable_entity, %{code: code, message: message})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => code, "message" => message})
     end
   end
 

@@ -34,22 +34,22 @@ defmodule TechTreeWeb.AdminModerationController do
             json(conn, %{ok: true, data: %{status: Atom.to_string(status)}})
 
           {:error, :human_not_found} ->
-            ApiError.render(conn, :not_found, %{code: "human_not_found"})
+            ApiError.render(conn, :not_found, %{"code" => "human_not_found"})
 
           {:error, :room_not_found} ->
-            ApiError.render(conn, :unprocessable_entity, %{code: "room_not_found"})
+            ApiError.render(conn, :unprocessable_entity, %{"code" => "room_not_found"})
 
           {:error, :xmtp_identity_required} ->
-            ApiError.render(conn, :unprocessable_entity, %{code: "chat_identity_required"})
+            ApiError.render(conn, :unprocessable_entity, %{"code" => "chat_identity_required"})
 
           {:error, :human_banned} ->
-            ApiError.render(conn, :unprocessable_entity, %{code: "human_banned"})
+            ApiError.render(conn, :unprocessable_entity, %{"code" => "human_banned"})
         end
 
       {:error, _reason} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_human_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_human_id"})
     end
   rescue
-    Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{code: "human_not_found"})
+    Ecto.NoResultsError -> ApiError.render(conn, :not_found, %{"code" => "human_not_found"})
   end
 end

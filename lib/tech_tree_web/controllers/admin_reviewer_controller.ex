@@ -38,14 +38,14 @@ defmodule TechTreeWeb.AdminReviewerController do
   end
 
   defp invalid(conn, code, message) do
-    ApiError.render_halted(conn, :unprocessable_entity, %{code: code, message: message})
+    ApiError.render_halted(conn, :unprocessable_entity, %{"code" => code, "message" => message})
   end
 
   defp invalid_with_changeset(conn, code, message, changeset) do
     ApiError.render_halted(conn, :unprocessable_entity, %{
-      code: code,
-      message: message,
-      details: %{errors: translate_errors(changeset)}
+      "code" => code,
+      "message" => message,
+      "details" => %{errors: translate_errors(changeset)}
     })
   end
 

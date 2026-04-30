@@ -157,78 +157,78 @@ defmodule TechTreeWeb.NodeLineageController do
   defp render_node_error(conn, :error), do: render_node_not_found(conn)
 
   defp render_claim_error(conn, {:error, :invalid_claim_id}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_claim_id"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_claim_id"})
 
   defp render_claim_error(conn, {:error, {:required, field}}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "#{field}_required"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "#{field}_required"})
 
   defp render_claim_error(conn, {:error, :invalid_payload}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_lineage_payload"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_lineage_payload"})
 
   defp render_claim_error(conn, {:error, :invalid_relation}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_lineage_relation"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_lineage_relation"})
 
   defp render_claim_error(conn, {:error, :invalid_target_chain_id}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_target_chain_id"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_target_chain_id"})
 
   defp render_claim_error(conn, {:error, :target_node_not_found}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_node_not_found"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_node_not_found"})
 
   defp render_claim_error(conn, {:error, :target_node_chain_unavailable}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_node_chain_unavailable"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_node_chain_unavailable"})
 
   defp render_claim_error(conn, {:error, :target_chain_mismatch}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_chain_mismatch"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_chain_mismatch"})
 
   defp render_claim_error(conn, {:error, :claim_not_found}),
-    do: ApiError.render(conn, :not_found, %{code: "lineage_claim_not_found"})
+    do: ApiError.render(conn, :not_found, %{"code" => "lineage_claim_not_found"})
 
   defp render_claim_error(conn, {:error, :claim_not_owned}),
-    do: ApiError.render(conn, :forbidden, %{code: "lineage_claim_not_owned"})
+    do: ApiError.render(conn, :forbidden, %{"code" => "lineage_claim_not_owned"})
 
   defp render_claim_error(conn, {:error, %Ecto.Changeset{} = changeset}) do
     ApiError.render(conn, :unprocessable_entity, %{
-      code: "lineage_claim_create_failed",
-      details: ApiError.translate_changeset(changeset)
+      "code" => "lineage_claim_create_failed",
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
   defp render_link_error(conn, {:error, :not_node_author}),
-    do: ApiError.render(conn, :forbidden, %{code: "node_author_required"})
+    do: ApiError.render(conn, :forbidden, %{"code" => "node_author_required"})
 
   defp render_link_error(conn, {:error, {:required, field}}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "#{field}_required"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "#{field}_required"})
 
   defp render_link_error(conn, {:error, :invalid_payload}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_cross_chain_link"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_cross_chain_link"})
 
   defp render_link_error(conn, {:error, :invalid_relation}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_lineage_relation"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_lineage_relation"})
 
   defp render_link_error(conn, {:error, :invalid_target_chain_id}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_target_chain_id"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_target_chain_id"})
 
   defp render_link_error(conn, {:error, :target_node_not_found}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_node_not_found"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_node_not_found"})
 
   defp render_link_error(conn, {:error, :target_node_chain_unavailable}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_node_chain_unavailable"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_node_chain_unavailable"})
 
   defp render_link_error(conn, {:error, :target_chain_mismatch}),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "target_chain_mismatch"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "target_chain_mismatch"})
 
   defp render_link_error(conn, {:error, %Ecto.Changeset{} = changeset}) do
     ApiError.render(conn, :unprocessable_entity, %{
-      code: "cross_chain_link_create_failed",
-      details: ApiError.translate_changeset(changeset)
+      "code" => "cross_chain_link_create_failed",
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
   defp render_invalid_node_id(conn),
-    do: ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+    do: ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
   defp render_node_not_found(conn),
-    do: ApiError.render(conn, :not_found, %{code: "node_not_found"})
+    do: ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
 
   defp parse_node_id(value) do
     case ControllerHelpers.parse_positive_int(value) do

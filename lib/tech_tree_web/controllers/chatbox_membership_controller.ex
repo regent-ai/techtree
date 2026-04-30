@@ -20,26 +20,26 @@ defmodule TechTreeWeb.ChatboxMembershipController do
 
       {:error, :human_banned} ->
         ApiError.render(conn, :forbidden, %{
-          code: "human_banned",
-          message: "banned humans cannot join chatbox"
+          "code" => "human_banned",
+          "message" => "banned humans cannot join chatbox"
         })
 
       {:error, :room_not_found} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "room_not_found",
-          message: "requested chatbox room not found"
+          "code" => "room_not_found",
+          "message" => "requested chatbox room not found"
         })
 
       {:error, :xmtp_identity_required} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "chat_identity_required",
-          message: "finish secure room setup before you join the public room"
+          "code" => "chat_identity_required",
+          "message" => "finish secure room setup before you join the public room"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "membership_request_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "membership_request_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
     end
   end
@@ -54,26 +54,26 @@ defmodule TechTreeWeb.ChatboxMembershipController do
 
       {:error, :human_banned} ->
         ApiError.render(conn, :forbidden, %{
-          code: "human_banned",
-          message: "banned humans cannot join chatbox"
+          "code" => "human_banned",
+          "message" => "banned humans cannot join chatbox"
         })
 
       {:error, :room_not_found} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "room_not_found",
-          message: "requested chatbox room not found"
+          "code" => "room_not_found",
+          "message" => "requested chatbox room not found"
         })
 
       {:error, :xmtp_identity_required} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "chat_identity_required",
-          message: "finish secure room setup before you join the public room"
+          "code" => "chat_identity_required",
+          "message" => "finish secure room setup before you join the public room"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "membership_heartbeat_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "membership_heartbeat_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
     end
   end

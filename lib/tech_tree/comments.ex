@@ -124,7 +124,7 @@ defmodule TechTree.Comments do
   @spec normalize_idempotency_key(map()) :: String.t() | nil
   defp normalize_idempotency_key(attrs) do
     attrs
-    |> Map.get("idempotency_key", Map.get(attrs, :idempotency_key))
+    |> Map.get("idempotency_key")
     |> case do
       value when is_binary(value) ->
         case String.trim(value) do

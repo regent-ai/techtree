@@ -6,7 +6,7 @@ defmodule TechTree.Chatbox.Payload do
   @spec parse_limit(map(), pos_integer(), pos_integer()) :: pos_integer()
   def parse_limit(params, default_limit, max_limit) when is_map(params) do
     params
-    |> Map.get("limit", Map.get(params, :limit, default_limit))
+    |> Map.get("limit", default_limit)
     |> case do
       value when is_integer(value) and value > 0 ->
         min(value, max_limit)
@@ -25,7 +25,7 @@ defmodule TechTree.Chatbox.Payload do
   @spec parse_before_id(map()) :: integer() | nil
   def parse_before_id(params) when is_map(params) do
     params
-    |> Map.get("before", Map.get(params, :before))
+    |> Map.get("before")
     |> case do
       nil ->
         nil
@@ -68,7 +68,7 @@ defmodule TechTree.Chatbox.Payload do
       attrs
       |> Map.get("body")
       |> case do
-        nil -> Map.get(attrs, :body)
+        nil -> nil
         value -> value
       end
 
@@ -91,7 +91,7 @@ defmodule TechTree.Chatbox.Payload do
           {:ok, String.t() | nil} | {:error, :invalid_client_message_id}
   def normalize_client_message_id(attrs) when is_map(attrs) do
     attrs
-    |> Map.get("client_message_id", Map.get(attrs, :client_message_id))
+    |> Map.get("client_message_id")
     |> case do
       nil ->
         {:ok, nil}
@@ -113,7 +113,7 @@ defmodule TechTree.Chatbox.Payload do
     attrs
     |> Map.get(
       "emoji",
-      Map.get(attrs, :emoji, Map.get(attrs, "reaction", Map.get(attrs, :reaction)))
+      Map.get(attrs, "emoji")
     )
     |> case do
       value when is_binary(value) ->
@@ -134,7 +134,7 @@ defmodule TechTree.Chatbox.Payload do
     attrs
     |> Map.get(
       "op",
-      Map.get(attrs, :op, Map.get(attrs, "action", Map.get(attrs, :action, "add")))
+      Map.get(attrs, "op", "add")
     )
     |> case do
       value when is_binary(value) ->
@@ -152,7 +152,7 @@ defmodule TechTree.Chatbox.Payload do
   @spec normalize_room_param(map(), String.t()) :: String.t()
   def normalize_room_param(params, default) when is_map(params) do
     params
-    |> Map.get("room_id", Map.get(params, :room_id, default))
+    |> Map.get("room_id", default)
     |> case do
       value when is_binary(value) ->
         case String.trim(value) do
@@ -167,8 +167,8 @@ defmodule TechTree.Chatbox.Payload do
 
   @spec normalize_agent_room(map(), AgentIdentity.t()) :: String.t()
   def normalize_agent_room(attrs, %AgentIdentity{id: id}) when is_map(attrs) do
-    case Map.get(attrs, "room", Map.get(attrs, :room, "agent")) do
-      value when value in ["agent", :agent] -> "agent:#{id}"
+    case Map.get(attrs, "room", "agent") do
+      "agent" -> "agent:#{id}"
       _ -> "agent:#{id}"
     end
   end

@@ -71,38 +71,38 @@ defmodule TechTreeWeb.AgentCommentController do
 
   @spec render_node_id_required(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_node_id_required(conn) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => "node_id_required"})
   end
 
   @spec render_invalid_node_id(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_invalid_node_id(conn) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
   end
 
   @spec render_node_not_found(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_node_not_found(conn) do
-    ApiError.render(conn, :not_found, %{code: "node_not_found"})
+    ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
   end
 
   @spec render_comments_locked(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_comments_locked(conn) do
     ApiError.render(conn, :forbidden, %{
-      code: "comments_locked",
-      message: "Comments are locked on this node"
+      "code" => "comments_locked",
+      "message" => "Comments are locked on this node"
     })
   end
 
   @spec render_changeset_error(Plug.Conn.t(), Ecto.Changeset.t()) :: Plug.Conn.t()
   defp render_changeset_error(conn, changeset) do
     ApiError.render(conn, :unprocessable_entity, %{
-      code: "comment_create_failed",
-      details: ApiError.translate_changeset(changeset)
+      "code" => "comment_create_failed",
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
   @spec render_create_failed(Plug.Conn.t()) :: Plug.Conn.t()
   defp render_create_failed(conn) do
-    ApiError.render(conn, :unprocessable_entity, %{code: "comment_create_failed"})
+    ApiError.render(conn, :unprocessable_entity, %{"code" => "comment_create_failed"})
   end
 
   @spec render_rate_limit(Plug.Conn.t(), String.t(), pos_integer()) :: Plug.Conn.t()
@@ -112,8 +112,8 @@ defmodule TechTreeWeb.AgentCommentController do
     conn
     |> put_resp_header("retry-after", Integer.to_string(max(retry_after_seconds, 1)))
     |> ApiError.render(:too_many_requests, %{
-      code: code,
-      retry_after_ms: retry_after_ms
+      "code" => code,
+      "retry_after_ms" => retry_after_ms
     })
   end
 

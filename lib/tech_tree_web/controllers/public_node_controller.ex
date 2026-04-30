@@ -26,10 +26,10 @@ defmodule TechTreeWeb.PublicNodeController do
       json(conn, %{data: PublicEncoding.encode_node(node)})
     else
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 
@@ -43,10 +43,10 @@ defmodule TechTreeWeb.PublicNodeController do
       json(conn, %{data: PublicEncoding.encode_node(node)})
     else
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 
@@ -67,7 +67,7 @@ defmodule TechTreeWeb.PublicNodeController do
         )
 
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 
@@ -92,10 +92,10 @@ defmodule TechTreeWeb.PublicNodeController do
       )
     else
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 
@@ -107,7 +107,7 @@ defmodule TechTreeWeb.PublicNodeController do
         json(conn, %{data: PublicEncoding.encode_tag_edges(sidelinks)})
 
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 
@@ -128,7 +128,7 @@ defmodule TechTreeWeb.PublicNodeController do
         )
 
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 
@@ -151,10 +151,10 @@ defmodule TechTreeWeb.PublicNodeController do
       )
     else
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 
@@ -181,10 +181,10 @@ defmodule TechTreeWeb.PublicNodeController do
       )
     else
       {:error, :invalid_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       :error ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 

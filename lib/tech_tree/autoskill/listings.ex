@@ -21,15 +21,15 @@ defmodule TechTree.Autoskill.Listings do
      %{
        "skill_node_id" => skill_node_id,
        "seller_agent_id" => seller_agent_id,
-       "payment_rail" => attrs["payment_rail"] || attrs[:payment_rail] || "onchain",
-       "chain_id" => attrs["chain_id"] || attrs[:chain_id],
-       "usdc_token_address" => attrs["usdc_token_address"] || attrs[:usdc_token_address],
-       "treasury_address" => attrs["treasury_address"] || attrs[:treasury_address],
-       "seller_payout_address" => attrs["seller_payout_address"] || attrs[:seller_payout_address],
-       "price_usdc" => attrs["price_usdc"] || attrs[:price_usdc],
+       "payment_rail" => attrs["payment_rail"] || "onchain",
+       "chain_id" => attrs["chain_id"],
+       "usdc_token_address" => attrs["usdc_token_address"],
+       "treasury_address" => attrs["treasury_address"],
+       "seller_payout_address" => attrs["seller_payout_address"],
+       "price_usdc" => attrs["price_usdc"],
        "treasury_bps" => 100,
        "seller_bps" => 9900,
-       "listing_meta" => attrs["listing_meta"] || attrs[:listing_meta] || %{}
+       "listing_meta" => attrs["listing_meta"] || %{}
      }}
   end
 
@@ -94,9 +94,9 @@ defmodule TechTree.Autoskill.Listings do
   end
 
   def validate_review_result(attrs, skill_node_id) do
-    case attrs["kind"] || attrs[:kind] do
-      kind when kind in ["replicable", :replicable] ->
-        result_id = attrs["result_id"] || attrs[:result_id]
+    case attrs["kind"] do
+      "replicable" ->
+        result_id = attrs["result_id"]
 
         with {:ok, normalized_result_id} <- normalize_id_safe(result_id) do
           case Repo.get(Result, normalized_result_id) do

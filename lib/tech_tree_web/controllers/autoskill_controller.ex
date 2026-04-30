@@ -27,7 +27,7 @@ defmodule TechTreeWeb.AutoskillController do
         })
 
       {:error, _reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 
@@ -35,12 +35,15 @@ defmodule TechTreeWeb.AutoskillController do
     case ControllerHelpers.parse_positive_int(id) do
       {:ok, node_id} ->
         case Autoskill.get_listing(node_id) do
-          nil -> ApiError.render_halted(conn, :not_found, %{code: "autoskill_listing_not_found"})
-          listing -> json(conn, %{data: listing})
+          nil ->
+            ApiError.render_halted(conn, :not_found, %{"code" => "autoskill_listing_not_found"})
+
+          listing ->
+            json(conn, %{data: listing})
         end
 
       {:error, _reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 
@@ -67,16 +70,16 @@ defmodule TechTreeWeb.AutoskillController do
             })
 
           {:error, :payment_required} ->
-            ApiError.render_halted(conn, 402, %{code: "autoskill_payment_required"})
+            ApiError.render_halted(conn, 402, %{"code" => "autoskill_payment_required"})
 
           {:error, _reason} ->
             ApiError.render_halted(conn, :unprocessable_entity, %{
-              code: "autoskill_bundle_access_failed"
+              "code" => "autoskill_bundle_access_failed"
             })
         end
 
       {:error, _reason} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 end

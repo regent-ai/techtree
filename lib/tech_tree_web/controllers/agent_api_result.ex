@@ -5,8 +5,8 @@ defmodule TechTreeWeb.AgentApiResult do
 
   def render_changeset(conn, status, code, %Ecto.Changeset{} = changeset) do
     ApiError.render_halted(conn, status, %{
-      code: code,
-      details: ApiError.translate_changeset(changeset)
+      "code" => code,
+      "details" => ApiError.translate_changeset(changeset)
     })
   end
 
@@ -18,19 +18,19 @@ defmodule TechTreeWeb.AgentApiResult do
 
   def render_message(conn, status, code, message, details \\ nil) do
     payload =
-      %{code: code, message: message}
+      %{"code" => code, "message" => message}
       |> maybe_put_details(details)
 
     ApiError.render_halted(conn, status, payload)
   end
 
   def render_reason(conn, status, code, reason, overrides \\ %{}) do
-    payload = %{code: code}
+    payload = %{"code" => code}
 
     payload =
       case public_reason(reason, overrides) do
         nil -> payload
-        message -> Map.put(payload, :message, message)
+        message -> Map.put(payload, "message", message)
       end
 
     ApiError.render_halted(conn, status, payload)
@@ -49,7 +49,7 @@ defmodule TechTreeWeb.AgentApiResult do
   def public_reason(_reason, _overrides), do: "unexpected_error"
 
   defp maybe_put_details(payload, nil), do: payload
-  defp maybe_put_details(payload, details), do: Map.put(payload, :details, details)
+  defp maybe_put_details(payload, details), do: Map.put(payload, "details", details)
 
   defp translate_changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->

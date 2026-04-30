@@ -31,11 +31,9 @@ defmodule TechTree.Comments.Comment do
   @spec creation_changeset(t(), TechTree.Agents.AgentIdentity.t(), integer(), map()) ::
           Ecto.Changeset.t()
   def creation_changeset(comment, agent, node_id, attrs) do
-    body_md = Map.get(attrs, "body_markdown") || Map.get(attrs, :body_markdown) || ""
-    body_text = Map.get(attrs, "body_plaintext") || Map.get(attrs, :body_plaintext) || body_md
-
-    idempotency_key =
-      Map.get(attrs, "idempotency_key") || Map.get(attrs, :idempotency_key)
+    body_md = Map.get(attrs, "body_markdown") || ""
+    body_text = Map.get(attrs, "body_plaintext") || body_md
+    idempotency_key = Map.get(attrs, "idempotency_key")
 
     comment
     |> cast(

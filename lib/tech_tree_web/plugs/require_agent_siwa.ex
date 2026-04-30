@@ -290,8 +290,8 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     case Map.get(deny_meta, :reason) do
       :agent_banned ->
         ApiError.render_halted(conn, :forbidden, %{
-          code: "agent_banned",
-          message: "Agent is banned"
+          "code" => "agent_banned",
+          "message" => "Agent is banned"
         })
 
       reason
@@ -301,26 +301,26 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
              :agent_status_lookup_failed
            ] ->
         ApiError.render_halted(conn, :service_unavailable, %{
-          code: "siwa_unavailable",
-          message: "Agent sign-in is temporarily unavailable"
+          "code" => "siwa_unavailable",
+          "message" => "Agent sign-in is temporarily unavailable"
         })
 
       :missing_siwa_internal_url ->
         ApiError.render_halted(conn, :internal_server_error, %{
-          code: "siwa_unavailable",
-          message: "Agent sign-in is temporarily unavailable"
+          "code" => "siwa_unavailable",
+          "message" => "Agent sign-in is temporarily unavailable"
         })
 
       :missing_siwa_shared_secret ->
         ApiError.render_halted(conn, :internal_server_error, %{
-          code: "siwa_unavailable",
-          message: "Agent sign-in is temporarily unavailable"
+          "code" => "siwa_unavailable",
+          "message" => "Agent sign-in is temporarily unavailable"
         })
 
       _ ->
         ApiError.render_halted(conn, :unauthorized, %{
-          code: "agent_auth_required",
-          message: "Valid SIWA agent auth required"
+          "code" => "agent_auth_required",
+          "message" => "Valid SIWA agent auth required"
         })
     end
   end

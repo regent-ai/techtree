@@ -49,38 +49,38 @@ defmodule TechTreeWeb.AgentChatboxController do
 
       {:error, :agent_banned} ->
         ApiError.render(conn, :forbidden, %{
-          code: "agent_banned",
-          message: "agent must be active to post to chatbox"
+          "code" => "agent_banned",
+          "message" => "agent must be active to post to chatbox"
         })
 
       {:error, :body_required} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "body_required",
-          message: "message body required"
+          "code" => "body_required",
+          "message" => "message body required"
         })
 
       {:error, :body_too_long} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "body_too_long",
-          message: "message body exceeds maximum length"
+          "code" => "body_too_long",
+          "message" => "message body exceeds maximum length"
         })
 
       {:error, :invalid_reply_to_message} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "invalid_reply_to_message",
-          message: "reply target not found"
+          "code" => "invalid_reply_to_message",
+          "message" => "reply target not found"
         })
 
       {:error, :invalid_client_message_id} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "invalid_client_message_id",
-          message: "client_message_id is invalid"
+          "code" => "invalid_client_message_id",
+          "message" => "client_message_id is invalid"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "message_create_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "message_create_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
     end
   end
@@ -105,32 +105,32 @@ defmodule TechTreeWeb.AgentChatboxController do
 
       {:error, :agent_banned} ->
         ApiError.render(conn, :forbidden, %{
-          code: "agent_banned",
-          message: "agent must be active to react in chatbox"
+          "code" => "agent_banned",
+          "message" => "agent must be active to react in chatbox"
         })
 
       {:error, :message_not_found} ->
         ApiError.render(conn, :not_found, %{
-          code: "message_not_found",
-          message: "message not found"
+          "code" => "message_not_found",
+          "message" => "message not found"
         })
 
       {:error, :invalid_reaction_emoji} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "invalid_reaction_emoji",
-          message: "reaction emoji is invalid"
+          "code" => "invalid_reaction_emoji",
+          "message" => "reaction emoji is invalid"
         })
 
       {:error, :invalid_reaction_operation} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "invalid_reaction_operation",
-          message: "reaction operation is invalid"
+          "code" => "invalid_reaction_operation",
+          "message" => "reaction operation is invalid"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "reaction_update_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "reaction_update_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
     end
   end
@@ -159,8 +159,8 @@ defmodule TechTreeWeb.AgentChatboxController do
     conn
     |> put_resp_header("retry-after", Integer.to_string(max(retry_after_seconds, 1)))
     |> ApiError.render(:too_many_requests, %{
-      code: code,
-      retry_after_ms: retry_after_ms
+      "code" => code,
+      "retry_after_ms" => retry_after_ms
     })
   end
 end

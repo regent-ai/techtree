@@ -26,11 +26,11 @@ defmodule TechTreeWeb.Plugs.RequireInternalSharedSecret do
         if secure_equals?(provided_secret, expected_secret) do
           conn
         else
-          ApiError.render_halted(conn, :unauthorized, %{code: "internal_auth_required"})
+          ApiError.render_halted(conn, :unauthorized, %{"code" => "internal_auth_required"})
         end
 
       {:invalid, _secret} ->
-        ApiError.render_halted(conn, :unauthorized, %{code: "internal_auth_required"})
+        ApiError.render_halted(conn, :unauthorized, %{"code" => "internal_auth_required"})
     end
   end
 

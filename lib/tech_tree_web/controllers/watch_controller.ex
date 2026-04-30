@@ -32,23 +32,23 @@ defmodule TechTreeWeb.WatchController do
       json(conn, %{data: PublicEncoding.encode_watch(watch)})
     else
       {:error, :node_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
 
       {:error, :node_id_required} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "node_id_required"})
 
       {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "watch_create_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "watch_create_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
 
       {:error, _reason} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "watch_create_failed"
+          "code" => "watch_create_failed"
         })
     end
   end
@@ -60,13 +60,13 @@ defmodule TechTreeWeb.WatchController do
       json(conn, %{ok: true})
     else
       {:error, :node_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
 
       {:error, :node_id_required} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "node_id_required"})
 
       {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
     end
   end
 

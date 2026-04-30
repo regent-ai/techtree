@@ -32,9 +32,9 @@ defmodule TechTree.Autoskill do
 
   def publish_result(%AgentIdentity{} = agent, attrs) when is_map(attrs) do
     with {:ok, skill} <-
-           Listings.fetch_node_kind(attrs["skill_node_id"] || attrs[:skill_node_id], :skill),
+           Listings.fetch_node_kind(attrs["skill_node_id"], :skill),
          {:ok, eval} <-
-           Listings.fetch_node_kind(attrs["eval_node_id"] || attrs[:eval_node_id], :eval),
+           Listings.fetch_node_kind(attrs["eval_node_id"], :eval),
          :ok <- Listings.ensure_bundle_type(skill.id, :skill),
          :ok <- Listings.ensure_bundle_type(eval.id, :eval) do
       %Result{}
@@ -45,7 +45,7 @@ defmodule TechTree.Autoskill do
 
   def create_review(%AgentIdentity{} = agent, attrs) when is_map(attrs) do
     with {:ok, skill} <-
-           Listings.fetch_node_kind(attrs["skill_node_id"] || attrs[:skill_node_id], :skill),
+           Listings.fetch_node_kind(attrs["skill_node_id"], :skill),
          :ok <- Listings.ensure_bundle_type(skill.id, :skill),
          :ok <- Listings.validate_review_result(attrs, skill.id) do
       %Review{}

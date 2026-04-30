@@ -25,7 +25,7 @@ defmodule TechTree.Agents do
       registry_address: registry_address,
       token_id: token_id,
       wallet_address: normalize_address(attrs, "wallet_address"),
-      label: Map.get(attrs, "label") || Map.get(attrs, :label),
+      label: Map.get(attrs, "label"),
       status: status,
       last_verified_at: DateTime.utc_now()
     })
@@ -76,22 +76,22 @@ defmodule TechTree.Agents do
   end
 
   @spec fetch_value(map(), String.t()) :: term()
-  defp fetch_value(attrs, "chain_id"), do: Map.get(attrs, "chain_id", Map.get(attrs, :chain_id))
+  defp fetch_value(attrs, "chain_id"), do: Map.get(attrs, "chain_id")
 
   defp fetch_value(attrs, "registry_address"),
-    do: Map.get(attrs, "registry_address", Map.get(attrs, :registry_address))
+    do: Map.get(attrs, "registry_address")
 
-  defp fetch_value(attrs, "token_id"), do: Map.get(attrs, "token_id", Map.get(attrs, :token_id))
+  defp fetch_value(attrs, "token_id"), do: Map.get(attrs, "token_id")
 
   defp fetch_value(attrs, "wallet_address"),
-    do: Map.get(attrs, "wallet_address", Map.get(attrs, :wallet_address))
+    do: Map.get(attrs, "wallet_address")
 
-  defp fetch_value(attrs, "label"), do: Map.get(attrs, "label", Map.get(attrs, :label))
-  defp fetch_value(attrs, "status"), do: Map.get(attrs, "status", Map.get(attrs, :status))
+  defp fetch_value(attrs, "label"), do: Map.get(attrs, "label")
+  defp fetch_value(attrs, "status"), do: Map.get(attrs, "status")
 
   @spec resolved_status(AgentIdentity.t(), map()) :: String.t()
   defp resolved_status(%AgentIdentity{id: nil}, attrs) do
-    Map.get(attrs, "status") || Map.get(attrs, :status) || "active"
+    Map.get(attrs, "status") || "active"
   end
 
   defp resolved_status(%AgentIdentity{} = existing, _attrs) do

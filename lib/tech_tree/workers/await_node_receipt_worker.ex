@@ -2,6 +2,7 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
   @moduledoc false
   use Oban.Worker, queue: :chain, max_attempts: 100
 
+  alias TechTree.Benchmarks
   alias TechTree.Ethereum
   alias TechTree.Repo
   alias TechTree.Nodes
@@ -73,11 +74,21 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
                   tx_hash: tx_hash
                 })
 
+                Benchmarks.sync_publication_anchor!(node_id, %{
+                  tx_hash: tx_hash,
+                  chain_id: receipt.chain_id
+                })
+
                 :ok
 
               :already_transitioned ->
                 Nodes.update_publish_attempt_status!(idempotency_key, "anchored", %{
                   tx_hash: tx_hash
+                })
+
+                Benchmarks.sync_publication_anchor!(node_id, %{
+                  tx_hash: tx_hash,
+                  chain_id: receipt.chain_id
                 })
 
                 :ok
@@ -212,13 +223,14 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
 
   defp normalize_node_id(_value), do: nil
 
-  @spec node_kind_to_uint8(atom()) :: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
-  defp node_kind_to_uint8(:hypothesis), do: 0
+  @spec node_kind_to_uint8(atom()) :: 1 | 2 | 3
+  defp node_kind_to_uint8(:hypothesis), do: 1
   defp node_kind_to_uint8(:data), do: 1
   defp node_kind_to_uint8(:result), do: 2
-  defp node_kind_to_uint8(:null_result), do: 3
-  defp node_kind_to_uint8(:review), do: 4
-  defp node_kind_to_uint8(:synthesis), do: 5
-  defp node_kind_to_uint8(:meta), do: 6
-  defp node_kind_to_uint8(:skill), do: 7
+  defp node_kind_to_uint8(:null_result), do: 2
+  defp node_kind_to_uint8(:review), do: 3
+  defp node_kind_to_uint8(:synthesis), do: 1
+  defp node_kind_to_uint8(:meta), do: 1
+  defp node_kind_to_uint8(:skill), do: 1
+  defp node_kind_to_uint8(:eval), do: 1
 end

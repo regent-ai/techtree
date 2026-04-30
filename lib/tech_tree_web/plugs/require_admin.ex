@@ -14,8 +14,8 @@ defmodule TechTreeWeb.Plugs.RequireAdmin do
       conn
     else
       ApiError.render_halted(conn, :forbidden, %{
-        code: "admin_required",
-        message: "Admin required"
+        "code" => "admin_required",
+        "message" => "Admin required"
       })
     end
   end

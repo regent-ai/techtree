@@ -567,10 +567,13 @@ defmodule TechTree.Nodes.Publishing do
       |> Repo.update!()
 
       update_publish_attempt_status!(node.publish_idempotency_key, "pin_failed", %{
-        last_error: Exception.message(reason)
+        last_error: format_pin_failure_reason(reason)
       })
     end)
   end
+
+  defp format_pin_failure_reason(reason) when is_exception(reason), do: Exception.message(reason)
+  defp format_pin_failure_reason(reason), do: inspect(reason)
 
   defp enqueue_anchor_job(node) do
     Oban.insert(anchor_job(node))
@@ -690,12 +693,12 @@ defmodule TechTree.Nodes.Publishing do
 
     Repo.get_by(TechTree.Agents.AgentIdentity, id: system_id) ||
       Agents.upsert_verified_agent!(%{
-        chain_id: configured_registry_chain_id(),
-        registry_address: "0x0000000000000000000000000000000000000001",
-        token_id: system_id,
-        wallet_address: "0x" <> String.pad_leading(Integer.to_string(system_id, 16), 40, "0"),
-        label: "system-agent-#{system_id}",
-        status: "active"
+        "chain_id" => configured_registry_chain_id(),
+        "registry_address" => "0x0000000000000000000000000000000000000001",
+        "token_id" => system_id,
+        "wallet_address" => "0x" <> String.pad_leading(Integer.to_string(system_id, 16), 40, "0"),
+        "label" => "system-agent-#{system_id}",
+        "status" => "active"
       })
   end
 

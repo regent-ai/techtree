@@ -5,7 +5,7 @@ defmodule TechTreeWeb.ApiError do
   import Phoenix.Controller, only: [json: 2]
 
   @spec render(Plug.Conn.t(), Plug.Conn.status(), map()) :: Plug.Conn.t()
-  def render(conn, status, error_payload) when is_map(error_payload) do
+  def render(conn, status, %{"code" => _code} = error_payload) do
     status_code = Plug.Conn.Status.code(status)
 
     conn
@@ -14,7 +14,7 @@ defmodule TechTreeWeb.ApiError do
   end
 
   @spec render_halted(Plug.Conn.t(), Plug.Conn.status(), map()) :: Plug.Conn.t()
-  def render_halted(conn, status, error_payload) do
+  def render_halted(conn, status, %{"code" => _code} = error_payload) do
     conn
     |> render(status, error_payload)
     |> halt()
@@ -26,7 +26,7 @@ defmodule TechTreeWeb.ApiError do
   end
 
   defp stable_error(conn, status_code, payload) do
-    code = Map.get(payload, :code) || Map.get(payload, "code") || "request_failed"
+    code = Map.fetch!(payload, "code")
 
     %{
       code: code,
@@ -34,13 +34,13 @@ defmodule TechTreeWeb.ApiError do
       status: status_code,
       path: conn.request_path,
       request_id: request_id(conn),
-      message: Map.get(payload, :message) || Map.get(payload, "message") || code,
-      next_steps: Map.get(payload, :next_steps) || Map.get(payload, "next_steps")
+      message: Map.get(payload, "message") || code,
+      next_steps: Map.get(payload, "next_steps")
     }
-    |> maybe_put(:details, Map.get(payload, :details) || Map.get(payload, "details"))
+    |> maybe_put(:details, Map.get(payload, "details"))
     |> maybe_put(
       :retry_after_ms,
-      Map.get(payload, :retry_after_ms) || Map.get(payload, "retry_after_ms")
+      Map.get(payload, "retry_after_ms")
     )
   end
 

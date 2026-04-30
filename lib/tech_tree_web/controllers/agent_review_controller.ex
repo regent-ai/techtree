@@ -61,8 +61,8 @@ defmodule TechTreeWeb.AgentReviewController do
 
       {:error, :review_request_not_claimed} ->
         ApiError.render_halted(conn, :forbidden, %{
-          code: "bbh_review_request_not_claimed",
-          message: "Review request must be claimed before pulling the packet"
+          "code" => "bbh_review_request_not_claimed",
+          "message" => "Review request must be claimed before pulling the packet"
         })
 
       {:error, _reason} ->
@@ -90,8 +90,8 @@ defmodule TechTreeWeb.AgentReviewController do
 
         {:error, :review_request_not_claimed} ->
           ApiError.render_halted(conn, :forbidden, %{
-            code: "bbh_review_request_not_claimed",
-            message: "Only the claiming reviewer can submit this review"
+            "code" => "bbh_review_request_not_claimed",
+            "message" => "Only the claiming reviewer can submit this review"
           })
 
         {:error, :review_request_mismatch} ->
@@ -120,24 +120,24 @@ defmodule TechTreeWeb.AgentReviewController do
 
   defp reviewer_not_approved(conn) do
     ApiError.render_halted(conn, :forbidden, %{
-      code: "bbh_reviewer_not_approved",
-      message: "Approved reviewer status is required"
+      "code" => "bbh_reviewer_not_approved",
+      "message" => "Approved reviewer status is required"
     })
   end
 
   defp not_found(conn, code, message) do
-    ApiError.render_halted(conn, :not_found, %{code: code, message: message})
+    ApiError.render_halted(conn, :not_found, %{"code" => code, "message" => message})
   end
 
   defp invalid(conn, code, message) do
-    ApiError.render_halted(conn, :unprocessable_entity, %{code: code, message: message})
+    ApiError.render_halted(conn, :unprocessable_entity, %{"code" => code, "message" => message})
   end
 
   defp invalid_with_changeset(conn, code, message, changeset) do
     ApiError.render_halted(conn, :unprocessable_entity, %{
-      code: code,
-      message: message,
-      details: %{errors: translate_errors(changeset)}
+      "code" => code,
+      "message" => message,
+      "details" => %{errors: translate_errors(changeset)}
     })
   end
 

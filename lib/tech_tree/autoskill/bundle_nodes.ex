@@ -11,7 +11,7 @@ defmodule TechTree.Autoskill.BundleNodes do
   def resolve_parent_id(kind, attrs) do
     seed = seed_for(kind)
 
-    case attrs["parent_id"] || attrs[:parent_id] do
+    case attrs["parent_id"] do
       nil ->
         {:ok, Nodes.create_seed_root!(seed, seed).id}
 
@@ -81,11 +81,11 @@ defmodule TechTree.Autoskill.BundleNodes do
     |> NodeBundle.changeset(%{
       node_id: node.id,
       bundle_type: kind,
-      access_mode: attrs["access_mode"] || attrs[:access_mode],
+      access_mode: attrs["access_mode"],
       preview_md: optional_text(attrs, "preview_md"),
-      bundle_manifest: attrs["bundle_manifest"] || attrs[:bundle_manifest],
+      bundle_manifest: attrs["bundle_manifest"],
       primary_file: optional_text(attrs, "primary_file"),
-      marimo_entrypoint: attrs["marimo_entrypoint"] || attrs[:marimo_entrypoint],
+      marimo_entrypoint: attrs["marimo_entrypoint"],
       bundle_uri:
         Map.get(uploaded_bundle_attrs, :bundle_uri) || optional_text(attrs, "bundle_uri"),
       bundle_cid:
@@ -98,9 +98,9 @@ defmodule TechTree.Autoskill.BundleNodes do
       encrypted_bundle_cid:
         Map.get(uploaded_bundle_attrs, :encrypted_bundle_cid) ||
           optional_text(attrs, "encrypted_bundle_cid"),
-      encryption_meta: attrs["encryption_meta"] || attrs[:encryption_meta],
-      payment_rail: attrs["payment_rail"] || attrs[:payment_rail],
-      access_policy: attrs["access_policy"] || attrs[:access_policy]
+      encryption_meta: attrs["encryption_meta"],
+      payment_rail: attrs["payment_rail"],
+      access_policy: attrs["access_policy"]
     })
     |> Repo.insert()
   end
@@ -124,7 +124,7 @@ defmodule TechTree.Autoskill.BundleNodes do
   def required_text(attrs, key), do: optional_text(attrs, key)
 
   def optional_text(attrs, key) do
-    case Map.get(attrs, to_string(key), Map.get(attrs, key)) do
+    case Map.get(attrs, to_string(key)) do
       value when is_binary(value) ->
         case String.trim(value) do
           "" -> nil
@@ -137,30 +137,18 @@ defmodule TechTree.Autoskill.BundleNodes do
   end
 
   def maybe_upload_bundle_archive(attrs) do
-    access_mode = attrs["access_mode"] || attrs[:access_mode]
+    access_mode = attrs["access_mode"]
 
     case access_mode do
       "public_free" ->
         archive_upload_attrs(
-          attrs["bundle_archive_b64"] || attrs[:bundle_archive_b64],
-          "autoskill-bundle.json"
-        )
-
-      :public_free ->
-        archive_upload_attrs(
-          attrs["bundle_archive_b64"] || attrs[:bundle_archive_b64],
+          attrs["bundle_archive_b64"],
           "autoskill-bundle.json"
         )
 
       "gated_paid" ->
         archive_upload_attrs(
-          attrs["encrypted_bundle_archive_b64"] || attrs[:encrypted_bundle_archive_b64],
-          "autoskill-bundle.encrypted.json"
-        )
-
-      :gated_paid ->
-        archive_upload_attrs(
-          attrs["encrypted_bundle_archive_b64"] || attrs[:encrypted_bundle_archive_b64],
+          attrs["encrypted_bundle_archive_b64"],
           "autoskill-bundle.encrypted.json"
         )
 

@@ -76,9 +76,9 @@ defmodule TechTreeWeb.RequirePrivyJWTTest do
 
     {:ok, _room} =
       TechTree.XMTPMirror.ensure_room(%{
-        room_key: "public-chatbox",
-        name: "Public Chat",
-        description: "Pending wallet coverage"
+        "room_key" => "public-chatbox",
+        "name" => "Public Chat",
+        "description" => "Pending wallet coverage"
       })
 
     {:ok, human} =

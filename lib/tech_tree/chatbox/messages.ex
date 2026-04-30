@@ -225,7 +225,7 @@ defmodule TechTree.Chatbox.Messages do
     room_id = Payload.normalize_room_param(attrs, default_room)
 
     attrs
-    |> Map.get("reply_to_message_id", Map.get(attrs, :reply_to_message_id))
+    |> Map.get("reply_to_message_id")
     |> case do
       nil ->
         {:ok, nil}

@@ -13,16 +13,16 @@ defmodule TechTreeWeb.AgentNodeAccessController do
       json(conn, %{data: payload})
     else
       {:error, :invalid} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       {:error, :paid_payload_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "paid_payload_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "paid_payload_not_found"})
 
       {:error, :paid_payload_not_active} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "paid_payload_not_active"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "paid_payload_not_active"})
 
       {:error, :payment_required} ->
-        ApiError.render(conn, 402, %{code: "paid_payload_payment_required"})
+        ApiError.render(conn, 402, %{"code" => "paid_payload_payment_required"})
 
       {:error, reason} ->
         AgentApiResult.render_reason(
@@ -54,16 +54,16 @@ defmodule TechTreeWeb.AgentNodeAccessController do
       })
     else
       {:error, :invalid} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       {:error, :duplicate_purchase_tx} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "duplicate_purchase_tx"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "duplicate_purchase_tx"})
 
       {:error, :paid_payload_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "paid_payload_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "paid_payload_not_found"})
 
       {:error, :paid_payload_not_active} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "paid_payload_not_active"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "paid_payload_not_active"})
 
       {:error, reason} ->
         AgentApiResult.render_reason(

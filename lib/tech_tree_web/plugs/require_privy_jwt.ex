@@ -46,16 +46,16 @@ defmodule TechTreeWeb.Plugs.RequirePrivyJWT do
   @spec unauthorized(Plug.Conn.t()) :: Plug.Conn.t()
   defp unauthorized(conn) do
     ApiError.render_halted(conn, :unauthorized, %{
-      code: "privy_required",
-      message: "Valid Privy JWT required"
+      "code" => "privy_required",
+      "message" => "Valid Privy JWT required"
     })
   end
 
   @spec forbidden(Plug.Conn.t()) :: Plug.Conn.t()
   defp forbidden(conn) do
     ApiError.render_halted(conn, :forbidden, %{
-      code: "human_banned",
-      message: "Banned humans cannot perform authenticated actions"
+      "code" => "human_banned",
+      "message" => "Banned humans cannot perform authenticated actions"
     })
   end
 

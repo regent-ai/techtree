@@ -16,8 +16,8 @@ defmodule TechTreeWeb.BbhController do
     case BBH.get_public_capsule(capsule_id) do
       nil ->
         ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_capsule_not_found",
-          message: "BBH capsule not found"
+          "code" => "bbh_capsule_not_found",
+          "message" => "BBH capsule not found"
         })
 
       capsule ->
@@ -29,8 +29,8 @@ defmodule TechTreeWeb.BbhController do
     case BBH.get_genome(genome_id) do
       nil ->
         ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_genome_not_found",
-          message: "BBH genome not found"
+          "code" => "bbh_genome_not_found",
+          "message" => "BBH genome not found"
         })
 
       genome ->
@@ -42,8 +42,8 @@ defmodule TechTreeWeb.BbhController do
     case BBH.get_run(run_id) do
       nil ->
         ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_run_not_found",
-          message: "BBH run not found"
+          "code" => "bbh_run_not_found",
+          "message" => "BBH run not found"
         })
 
       run ->
@@ -62,8 +62,8 @@ defmodule TechTreeWeb.BbhController do
 
       {:error, :capsule_not_found} ->
         ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_capsule_not_found",
-          message: "BBH capsule not found"
+          "code" => "bbh_capsule_not_found",
+          "message" => "BBH capsule not found"
         })
     end
   end

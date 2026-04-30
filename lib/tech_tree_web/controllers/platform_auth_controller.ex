@@ -334,28 +334,26 @@ defmodule TechTreeWeb.PlatformAuthController do
     {:ok, inbox_id} = XmtpIdentity.ready_inbox_id(human)
 
     %{
-      status: "ready",
-      inbox_id: inbox_id,
-      wallet_address: human.wallet_address
+      "status" => "ready",
+      "inbox_id" => inbox_id,
+      "wallet_address" => human.wallet_address
     }
   end
 
   defp signature_required_xmtp_state(human, attrs) do
     %{
-      status: "signature_required",
-      inbox_id: nil,
-      wallet_address: human.wallet_address,
-      client_id: Map.get(attrs, :client_id) || Map.get(attrs, "client_id"),
-      signature_request_id:
-        Map.get(attrs, :signature_request_id) || Map.get(attrs, "signature_request_id"),
-      signature_text: Map.get(attrs, :signature_text) || Map.get(attrs, "signature_text")
+      "status" => "signature_required",
+      "inbox_id" => nil,
+      "wallet_address" => human.wallet_address,
+      "client_id" => Map.get(attrs, "client_id"),
+      "signature_request_id" => Map.get(attrs, "signature_request_id"),
+      "signature_text" => Map.get(attrs, "signature_text")
     }
   end
 
   defp response_inbox_id(_human, xmtp_state) do
     case xmtp_state do
       %{"status" => "ready", "inbox_id" => inbox_id} -> inbox_id
-      %{status: "ready", inbox_id: inbox_id} -> inbox_id
       _ -> nil
     end
   end

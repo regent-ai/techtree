@@ -82,10 +82,10 @@ defmodule TechTree.PhaseDSecurityPerfTest do
     test "membership command failure can be retried without duplicate in-flight queueing" do
       {:ok, _room} =
         XMTPMirror.ensure_room(%{
-          room_key: "public-chatbox",
-          xmtp_group_id: "phase-d-group-#{System.unique_integer([:positive])}",
-          name: "Public Chatbox",
-          status: "active"
+          "room_key" => "public-chatbox",
+          "xmtp_group_id" => "phase-d-group-#{System.unique_integer([:positive])}",
+          "name" => "Public Chatbox",
+          "status" => "active"
         })
 
       {:ok, human} =

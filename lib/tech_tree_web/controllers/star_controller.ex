@@ -14,18 +14,18 @@ defmodule TechTreeWeb.StarController do
       json(conn, %{data: PublicEncoding.encode_star(star)})
     else
       {:error, :node_id_required} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "node_id_required"})
 
       {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       {:error, :node_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ApiError.render(conn, :unprocessable_entity, %{
-          code: "star_create_failed",
-          details: ApiError.translate_changeset(changeset)
+          "code" => "star_create_failed",
+          "details" => ApiError.translate_changeset(changeset)
         })
     end
   end
@@ -37,13 +37,13 @@ defmodule TechTreeWeb.StarController do
       json(conn, %{ok: true})
     else
       {:error, :node_id_required} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "node_id_required"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "node_id_required"})
 
       {:error, :invalid_node_id} ->
-        ApiError.render(conn, :unprocessable_entity, %{code: "invalid_node_id"})
+        ApiError.render(conn, :unprocessable_entity, %{"code" => "invalid_node_id"})
 
       {:error, :node_not_found} ->
-        ApiError.render(conn, :not_found, %{code: "node_not_found"})
+        ApiError.render(conn, :not_found, %{"code" => "node_not_found"})
     end
   end
 

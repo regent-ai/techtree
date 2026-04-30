@@ -36,8 +36,8 @@ defmodule TechTreeWeb.AgentReviewerController do
 
       {:error, :orcid_request_not_found} ->
         ApiError.render_halted(conn, :not_found, %{
-          code: "bbh_orcid_request_not_found",
-          message: "ORCID link request not found"
+          "code" => "bbh_orcid_request_not_found",
+          "message" => "ORCID link request not found"
         })
 
       {:error, %ArgumentError{} = error} ->
@@ -57,8 +57,8 @@ defmodule TechTreeWeb.AgentReviewerController do
 
       {:error, :reviewer_orcid_required} ->
         ApiError.render_halted(conn, :unprocessable_entity, %{
-          code: "bbh_reviewer_orcid_required",
-          message: "An authenticated ORCID link is required before reviewer application"
+          "code" => "bbh_reviewer_orcid_required",
+          "message" => "An authenticated ORCID link is required before reviewer application"
         })
 
       {:error, %Ecto.Changeset{} = changeset} ->
@@ -93,14 +93,14 @@ defmodule TechTreeWeb.AgentReviewerController do
   end
 
   defp invalid(conn, code, message) do
-    ApiError.render_halted(conn, :unprocessable_entity, %{code: code, message: message})
+    ApiError.render_halted(conn, :unprocessable_entity, %{"code" => code, "message" => message})
   end
 
   defp invalid_with_changeset(conn, code, message, changeset) do
     ApiError.render_halted(conn, :unprocessable_entity, %{
-      code: code,
-      message: message,
-      details: %{errors: translate_errors(changeset)}
+      "code" => code,
+      "message" => message,
+      "details" => %{errors: translate_errors(changeset)}
     })
   end
 

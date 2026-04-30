@@ -147,6 +147,42 @@ defmodule TechTree.NodesPublishPipelineTest do
       assert is_binary(attempt.last_error)
     end
 
+    test "pin failure records plain upload error reasons" do
+      creator = create_agent!("publish-plain-pin-failure")
+      parent = create_public_parent!(creator)
+      idempotency_key = "publish-plain-pin-failure:#{System.unique_integer([:positive])}"
+
+      {:ok, node} =
+        Nodes.create_agent_node(creator, %{
+          "seed" => "ML",
+          "kind" => "hypothesis",
+          "title" => "plain-pin-failure",
+          "parent_id" => parent.id,
+          "notebook_source" => "print('plain pin failure')",
+          "idempotency_key" => idempotency_key
+        })
+
+      on_exit(fn ->
+        Process.delete({LighthouseClient, :upload_fun})
+      end)
+
+      Process.put({LighthouseClient, :upload_fun}, plain_error_upload_fun(:missing_cid))
+
+      assert {:error, :missing_cid} =
+               PinNodeWorker.perform(%Job{
+                 args: %{"node_id" => node.id}
+               })
+
+      failed_node = Repo.get_by!(Node, publish_idempotency_key: idempotency_key)
+      assert failed_node.status == :failed_anchor
+      refute has_text?(failed_node.manifest_cid)
+
+      attempt = Nodes.get_publish_attempt(idempotency_key)
+      assert attempt.node_id == failed_node.id
+      assert attempt.status == "pin_failed"
+      assert attempt.last_error == ":missing_cid"
+    end
+
     test "full publish pipeline transitions create->pin->anchor->await->anchored" do
       creator = create_agent!("full-pipeline")
       parent = create_public_parent!(creator)
@@ -187,6 +223,83 @@ defmodule TechTree.NodesPublishPipelineTest do
       attempt = Nodes.get_publish_attempt(node.publish_idempotency_key)
       assert attempt.status == "anchored"
       assert attempt.tx_hash == anchored.tx_hash
+    end
+
+    test "anchor worker sends registry-compatible node type ids" do
+      previous_ethereum_cfg = Application.get_env(:tech_tree, :ethereum)
+      test_pid = self()
+
+      on_exit(fn ->
+        if is_nil(previous_ethereum_cfg) do
+          Application.delete_env(:tech_tree, :ethereum)
+        else
+          Application.put_env(:tech_tree, :ethereum, previous_ethereum_cfg)
+        end
+      end)
+
+      Application.put_env(:tech_tree, :ethereum,
+        mode: :rpc,
+        rpc_url: "http://127.0.0.1:8545",
+        registry_address: random_eth_address(),
+        writer_private_key: String.duplicate("1", 64),
+        cast_runner: fn _cast_bin, args ->
+          send(test_pid, {:cast_args, args})
+          {"0x" <> String.duplicate("c", 64), 0}
+        end
+      )
+
+      for {kind, expected_type} <- [
+            hypothesis: "1",
+            data: "1",
+            skill: "1",
+            result: "2",
+            null_result: "2",
+            review: "3"
+          ] do
+        creator = create_agent!("registry-type-#{kind}")
+
+        node =
+          create_node!(
+            creator,
+            %{
+              kind: kind,
+              status: :pinned,
+              manifest_cid: "bafy-registry-#{kind}",
+              manifest_uri: "ipfs://registry-#{kind}",
+              manifest_hash: String.duplicate("a", 64),
+              notebook_cid: "bafy-registry-notebook-#{kind}",
+              publish_idempotency_key:
+                "node:#{System.unique_integer([:positive])}:registry-#{kind}"
+            }
+            |> maybe_put_skill_fields(kind)
+          )
+
+        _ =
+          Repo.insert_all("node_publish_attempts", [
+            %{
+              node_id: node.id,
+              idempotency_key: node.publish_idempotency_key,
+              manifest_uri: node.manifest_uri,
+              manifest_hash: node.manifest_hash,
+              tx_hash: nil,
+              status: "pinned",
+              attempt_count: 0,
+              inserted_at: DateTime.utc_now(),
+              updated_at: DateTime.utc_now()
+            }
+          ])
+
+        assert :ok =
+                 AnchorNodeWorker.perform(%Job{
+                   args: %{
+                     "node_id" => node.id,
+                     "idempotency_key" => node.publish_idempotency_key
+                   }
+                 })
+
+        assert_receive {:cast_args, args}
+        assert List.last(args) == expected_type
+      end
     end
   end
 
@@ -419,6 +532,24 @@ defmodule TechTree.NodesPublishPipelineTest do
       raise KeyError, key: :api_key, term: []
     end
   end
+
+  defp plain_error_upload_fun(reason) do
+    fn _filename, _content, _opts ->
+      {:error, reason}
+    end
+  end
+
+  defp maybe_put_skill_fields(attrs, :skill) do
+    unique = System.unique_integer([:positive])
+
+    Map.merge(attrs, %{
+      skill_slug: "registry-type-#{unique}",
+      skill_version: "1.0.0",
+      skill_md_body: "# Registry type"
+    })
+  end
+
+  defp maybe_put_skill_fields(attrs, _kind), do: attrs
 
   defp random_eth_address do
     "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)

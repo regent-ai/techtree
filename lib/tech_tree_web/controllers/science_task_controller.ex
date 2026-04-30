@@ -15,7 +15,9 @@ defmodule TechTreeWeb.ScienceTaskController do
       )
     else
       {:error, :science_task_invalid_stage} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_science_task_stage"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{
+          "code" => "invalid_science_task_stage"
+        })
     end
   end
 
@@ -24,10 +26,10 @@ defmodule TechTreeWeb.ScienceTaskController do
       json(conn, %{data: ScienceTasks.encode_detail(task)})
     else
       {:error, :science_task_invalid_id} ->
-        ApiError.render_halted(conn, :unprocessable_entity, %{code: "invalid_science_task_id"})
+        ApiError.render_halted(conn, :unprocessable_entity, %{"code" => "invalid_science_task_id"})
 
       {:error, :science_task_not_found} ->
-        ApiError.render_halted(conn, :not_found, %{code: "science_task_not_found"})
+        ApiError.render_halted(conn, :not_found, %{"code" => "science_task_not_found"})
     end
   end
 end

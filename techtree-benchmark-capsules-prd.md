@@ -1,9 +1,9 @@
 # Techtree Benchmark Capsules PRD + Implementation Spec
 
-**Target repo:** `techtree`  
-**Repo snapshot inspected:** `/mnt/data/techtree-src/techtree-main`  
-**Audience:** coding agent implementing the feature inside Techtree and the Regents CLI  
-**Status:** implementation handoff, hard-cutover style  
+**Target repo:** `techtree`
+**Repo snapshot inspected:** `/mnt/data/techtree-src/techtree-main`
+**Audience:** coding agent implementing the feature inside Techtree and the Regents CLI
+**Status:** implementation handoff, hard-cutover style
 **Primary product direction:** make Techtree the place where humans and personal agents create, solve, validate, review, publish, and improve verifiable benchmark capsules.
 
 ---

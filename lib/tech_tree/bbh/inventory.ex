@@ -2,6 +2,7 @@ defmodule TechTree.BBH.Inventory do
   @moduledoc false
 
   alias TechTree.BBH.{Capsule, Helpers}
+  alias TechTree.Benchmarks.Importers.BBH, as: BenchmarkBBHImporter
   alias TechTree.Repo
   alias TechTree.V1.{Artifact, Review}
 
@@ -37,6 +38,15 @@ defmodule TechTree.BBH.Inventory do
       on_conflict: {:replace_all_except, [:capsule_id, :inserted_at]},
       conflict_target: :capsule_id
     )
+    |> case do
+      {:ok, capsule} ->
+        with {:ok, _benchmark_capsule} <- BenchmarkBBHImporter.upsert_capsule(capsule) do
+          {:ok, capsule}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   def promote_challenge_capsule(capsule_id, attrs) when is_binary(capsule_id) and is_map(attrs) do
@@ -60,6 +70,15 @@ defmodule TechTree.BBH.Inventory do
         published_at: DateTime.utc_now()
       })
       |> Repo.update()
+      |> case do
+        {:ok, updated} ->
+          with {:ok, _benchmark_capsule} <- BenchmarkBBHImporter.upsert_capsule(updated) do
+            {:ok, updated}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     else
       nil -> {:error, :capsule_not_found}
       false -> {:error, :capsule_not_draft}

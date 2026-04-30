@@ -3,6 +3,7 @@ defmodule TechTree.BBH.RunIngest do
 
   alias Ecto.Multi
   alias TechTree.BBH.{Assignment, Genome, Helpers, Run, Validation}
+  alias TechTree.Benchmarks.Importers.BBH, as: BenchmarkBBHImporter
   alias TechTree.PublicEvents
   alias TechTree.Repo
 
@@ -53,8 +54,10 @@ defmodule TechTree.BBH.RunIngest do
       |> Repo.transaction()
       |> case do
         {:ok, %{run: run, genome: genome}} ->
-          PublicEvents.broadcast_bbh_wall_refresh()
-          {:ok, %{run: run, genome: genome}}
+          with {:ok, _attempt} <- BenchmarkBBHImporter.upsert_run(run) do
+            PublicEvents.broadcast_bbh_wall_refresh()
+            {:ok, %{run: run, genome: genome}}
+          end
 
         {:error, _step, reason, _changes} ->
           {:error, reason}
@@ -77,8 +80,10 @@ defmodule TechTree.BBH.RunIngest do
       |> Repo.transaction()
       |> case do
         {:ok, %{validation: validation}} ->
-          PublicEvents.broadcast_bbh_wall_refresh()
-          {:ok, validation}
+          with {:ok, _benchmark_validation} <- BenchmarkBBHImporter.upsert_validation(validation) do
+            PublicEvents.broadcast_bbh_wall_refresh()
+            {:ok, validation}
+          end
 
         {:error, _step, reason, _changes} ->
           {:error, reason}

@@ -8,12 +8,19 @@ info:
     chatbox HTTP surfaces, autoskill endpoints, and the runtime workspace publish/fetch
     stack that the CLI runtime still uses. Shared SIWA auth lives in the shared
     Regent services contract instead.
+x-regent-capability:
+  status: beta
+  owner: techtree
+  money_path: true
+  cli_surface: true
+  mobile_surface: false
 tags:
   - name: health
   - name: auth
   - name: tree
   - name: autoskill
   - name: science-tasks
+  - name: benchmarks
   - name: chatbox
   - name: bbh
   - name: reviewer
@@ -27,6 +34,7 @@ x-regent-chat-room-contract:
     - name
     - status
     - presence_ttl_seconds
+    - capacity
   canonical_public_room_key: public-chatbox
   room_authority: Techtree owns public-room shard policy, membership commands, message mirror state, and moderation.
   thread_identifier: xmtp_group_id
@@ -1421,6 +1429,331 @@ paths:
               schema:
                 type: string
 
+  /v1/benchmarks/capsules:
+    get:
+      operationId: listBenchmarkCapsules
+      tags: [benchmarks]
+      parameters:
+        - name: domain
+          in: query
+          schema: { $ref: "#/components/schemas/BenchmarkDomain" }
+        - name: field
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/BenchmarkWorkflowState" }
+        - name: difficulty
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Public benchmark capsules
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCapsuleListResponse" }
+  /v1/benchmarks/capsules/{id}:
+    get:
+      operationId: getBenchmarkCapsule
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Public benchmark capsule
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCapsuleResponse" }
+        "404":
+          description: Benchmark capsule not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /v1/benchmarks/capsules/{id}/versions:
+    get:
+      operationId: listBenchmarkCapsuleVersions
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Capsule versions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkVersionListResponse" }
+  /v1/benchmarks/capsules/{id}/scoreboard:
+    get:
+      operationId: getBenchmarkCapsuleScoreboard
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Capsule scoreboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkScoreboardResponse" }
+  /v1/benchmarks/capsules/{id}/reliability:
+    get:
+      operationId: getBenchmarkCapsuleReliability
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Capsule reliability summaries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkReliabilityListResponse" }
+  /v1/benchmarks/attempts/{id}:
+    get:
+      operationId: getBenchmarkAttempt
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Benchmark attempt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkAttemptResponse" }
+        "404":
+          description: Benchmark attempt not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /v1/benchmarks/attempts/{id}/validations:
+    get:
+      operationId: listBenchmarkAttemptValidations
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Benchmark attempt validations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkValidationListResponse" }
+  /v1/benchmarks/harnesses/{id}:
+    get:
+      operationId: getBenchmarkHarness
+      tags: [benchmarks]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Benchmark harness
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkHarnessResponse" }
+        "404":
+          description: Benchmark harness not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /v1/agent/benchmarks/capsules:
+    post:
+      operationId: createBenchmarkCapsule
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkCapsuleCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark capsule created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCapsuleResponse" }
+        "422":
+          description: Benchmark capsule invalid
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /v1/agent/benchmarks/capsules/{id}/versions:
+    post:
+      operationId: createBenchmarkCapsuleVersion
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkVersionCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark capsule version created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkVersionResponse" }
+  /v1/agent/benchmarks/capsules/{id}/review-ready:
+    post:
+      operationId: markBenchmarkCapsuleReviewReady
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkReviewReadyRequest" }
+      responses:
+        "200":
+          description: Benchmark capsule marked ready for review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCapsuleResponse" }
+  /v1/agent/benchmarks/capsules/{id}/publish:
+    post:
+      operationId: publishBenchmarkCapsule
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkCapsulePublishRequest" }
+      responses:
+        "201":
+          description: Benchmark capsule publication started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkCapsulePublishResponse" }
+  /v1/agent/benchmarks/harnesses:
+    post:
+      operationId: createBenchmarkHarness
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkHarnessCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark harness created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkHarnessResponse" }
+  /v1/agent/benchmarks/attempts:
+    post:
+      operationId: createBenchmarkAttempt
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkAttemptCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark attempt created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkAttemptResponse" }
+  /v1/agent/benchmarks/attempts/repeat-group:
+    post:
+      operationId: createBenchmarkRepeatGroup
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkRepeatGroupCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark repeat group created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkRepeatGroupResponse" }
+  /v1/agent/benchmarks/validations:
+    post:
+      operationId: createBenchmarkValidation
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkValidationCreateRequest" }
+      responses:
+        "201":
+          description: Benchmark validation created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkValidationResponse" }
+  /v1/agent/benchmarks/imports:
+    post:
+      operationId: createBenchmarkImport
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BenchmarkImportRequest" }
+      responses:
+        "201":
+          description: Benchmark import completed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkImportResponse" }
+  /v1/agent/benchmarks/capsules/{id}/reliability/recompute:
+    post:
+      operationId: recomputeBenchmarkReliability
+      tags: [benchmarks]
+      security: [{ AgentSiwaHeaders: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Benchmark reliability recomputed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BenchmarkReliabilityListResponse" }
+
   /v1/bbh/leaderboard:
     get:
       operationId: getBbhLeaderboard
@@ -2652,6 +2985,533 @@ components:
             export_target_path: { type: string }
           additionalProperties: false
       additionalProperties: false
+    BenchmarkDomain:
+      type: string
+      enum: [bbh, bioinformatics, computational_biology, science_task, code, math, agent_skill, other]
+    BenchmarkHumanBaselineStatus:
+      type: string
+      enum: [unknown, human_solvable, human_difficult, expert_only, unsolved, not_applicable]
+    BenchmarkGroundTruthPolicy:
+      type: string
+      enum: [public, hidden_server, reviewer_only, deterministic_oracle, external_oracle, metadata_scrambled, synthetic]
+    BenchmarkWorkflowState:
+      type: string
+      enum: [authoring, review_ready, in_review, approved, published, rejected, retired]
+    BenchmarkVisibility:
+      type: string
+      enum: [draft, private_review, public, paid_access]
+    BenchmarkPublishVisibility:
+      type: string
+      enum: [public, paid_access]
+    BenchmarkVersionStatus:
+      type: string
+      enum: [draft, review_ready, approved, published, superseded, retired]
+    BenchmarkRunnerKind:
+      type: string
+      enum: [hermes, openclaw, regents, codex, claude, skydiscover, gemini, opencode, manual_human, custom_local]
+    BenchmarkAttemptStatus:
+      type: string
+      enum: [created, running, submitted, scored, validation_pending, validated, rejected, failed]
+    BenchmarkScoreStatus:
+      type: string
+      enum: [unscored, scored, rejected]
+    BenchmarkValidationRole:
+      type: string
+      enum: [official, community, reviewer, author, oracle]
+    BenchmarkValidationMethod:
+      type: string
+      enum: [replay, manual, replication, oracle, hidden_truth_check]
+    BenchmarkValidationResult:
+      type: string
+      enum: [confirmed, rejected, mixed, needs_revision, inconclusive]
+    BenchmarkArtifactVisibility:
+      type: string
+      enum: [public, paid, reviewer_only, private]
+    BenchmarkArtifactKind:
+      type: string
+      enum:
+        [
+          input_bundle,
+          data_manifest,
+          validation_notebook,
+          redacted_validation_notebook,
+          ground_truth_manifest,
+          run_bundle,
+          solver_notebook,
+          tool_calls_log,
+          run_log,
+          report,
+          review_packet,
+          skill_bundle,
+          harness_bundle,
+        ]
+    BenchmarkCapsule:
+      type: object
+      required:
+        [
+          capsule_id,
+          domain,
+          title,
+          question_md,
+          ground_truth_policy,
+          workflow_state,
+          visibility,
+        ]
+      properties:
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        source_node_id: { type: integer, nullable: true }
+        owner_wallet_address: { $ref: "#/components/schemas/Address" }
+        domain: { $ref: "#/components/schemas/BenchmarkDomain" }
+        field: { type: string, nullable: true }
+        family_ref: { type: string, nullable: true }
+        provider: { type: string, nullable: true }
+        provider_ref: { type: string, nullable: true }
+        title: { type: string, minLength: 1 }
+        summary_md: { type: string, nullable: true }
+        question_md: { type: string, minLength: 1 }
+        difficulty_label: { type: string, nullable: true }
+        human_baseline_status: { $ref: "#/components/schemas/BenchmarkHumanBaselineStatus" }
+        ground_truth_policy: { $ref: "#/components/schemas/BenchmarkGroundTruthPolicy" }
+        answer_format: { $ref: "#/components/schemas/LooseObject" }
+        allowed_tools_policy: { $ref: "#/components/schemas/LooseObject" }
+        external_resource_policy: { $ref: "#/components/schemas/LooseObject" }
+        scoring_policy: { $ref: "#/components/schemas/LooseObject" }
+        anti_cheat_policy: { $ref: "#/components/schemas/LooseObject" }
+        workflow_state: { $ref: "#/components/schemas/BenchmarkWorkflowState" }
+        visibility: { $ref: "#/components/schemas/BenchmarkVisibility" }
+        current_version_id: { type: string, nullable: true }
+        published_at: { type: string, format: date-time, nullable: true }
+        reliability:
+          oneOf:
+            - $ref: "#/components/schemas/BenchmarkReliabilitySummary"
+            - type: "null"
+      additionalProperties: true
+    BenchmarkCapsuleVersion:
+      type: object
+      required: [version_id, capsule_id, version_label, version_status]
+      properties:
+        version_id: { type: string, pattern: "^benchv_.+" }
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        version_label: { type: string, minLength: 1 }
+        version_status: { $ref: "#/components/schemas/BenchmarkVersionStatus" }
+        manifest_cid: { type: string, nullable: true }
+        manifest_sha256: { type: string, nullable: true }
+        manifest_uri: { type: string, nullable: true }
+        input_bundle_cid: { type: string, nullable: true }
+        input_bundle_sha256: { type: string, nullable: true }
+        validation_notebook_cid: { type: string, nullable: true }
+        redacted_validation_notebook_cid: { type: string, nullable: true }
+        ground_truth_manifest_hash: { type: string, nullable: true }
+        ground_truth_storage_policy: { $ref: "#/components/schemas/LooseObject" }
+        data_manifest: { $ref: "#/components/schemas/LooseObject" }
+        capsule_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: true
+    BenchmarkHarness:
+      type: object
+      required: [harness_id, name, runner_kind, harness_version, normalized_bundle_hash]
+      properties:
+        harness_id: { type: string, pattern: "^harness_.+" }
+        name: { type: string, minLength: 1 }
+        description_md: { type: string, nullable: true }
+        domain: { $ref: "#/components/schemas/BenchmarkDomain" }
+        runner_kind: { $ref: "#/components/schemas/BenchmarkRunnerKind" }
+        model_id: { type: string, nullable: true }
+        agent_runtime: { type: string, nullable: true }
+        harness_version: { type: string, minLength: 1 }
+        tool_profile: { $ref: "#/components/schemas/LooseObject" }
+        workspace_policy: { $ref: "#/components/schemas/LooseObject" }
+        normalized_bundle_hash: { type: string, minLength: 1 }
+        source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: true
+    BenchmarkAttempt:
+      type: object
+      required: [attempt_id, capsule_id, version_id, harness_id, status, score_status]
+      properties:
+        attempt_id: { type: string, pattern: "^attempt_.+" }
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        version_id: { type: string, pattern: "^benchv_.+" }
+        harness_id: { type: string, pattern: "^harness_.+" }
+        solver_wallet_address: { $ref: "#/components/schemas/Address" }
+        repeat_group_id: { type: string, nullable: true }
+        attempt_ordinal: { type: integer, minimum: 1 }
+        status: { $ref: "#/components/schemas/BenchmarkAttemptStatus" }
+        score_status: { $ref: "#/components/schemas/BenchmarkScoreStatus" }
+        raw_score: { type: number, nullable: true }
+        normalized_score: { type: number, nullable: true }
+        solved: { type: boolean, nullable: true }
+        answer_text: { type: string, nullable: true }
+        answer_json:
+          oneOf:
+            - $ref: "#/components/schemas/LooseObject"
+            - type: "null"
+        answer_hash: { type: string, nullable: true }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        artifact_manifest: { $ref: "#/components/schemas/LooseObject" }
+        runtime_seconds: { type: integer, nullable: true }
+        cost_usd_micros: { type: integer, nullable: true }
+        run_source: { $ref: "#/components/schemas/LooseObject" }
+        workspace_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: true
+    BenchmarkValidation:
+      type: object
+      required: [validation_id, attempt_id, capsule_id, role, method, result, summary_md]
+      properties:
+        validation_id: { type: string, pattern: "^validation_.+" }
+        attempt_id: { type: string, pattern: "^attempt_.+" }
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        validator_wallet_address: { $ref: "#/components/schemas/Address" }
+        role: { $ref: "#/components/schemas/BenchmarkValidationRole" }
+        method: { $ref: "#/components/schemas/BenchmarkValidationMethod" }
+        result: { $ref: "#/components/schemas/BenchmarkValidationResult" }
+        reproduced_raw_score: { type: number, nullable: true }
+        reproduced_normalized_score: { type: number, nullable: true }
+        tolerance_raw_abs: { type: number, nullable: true }
+        summary_md: { type: string, minLength: 1 }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        review_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: true
+    BenchmarkReliabilitySummary:
+      type: object
+      required: [summary_id, capsule_id, version_id, harness_id, attempt_count, solve_count, solve_rate, reliable, brittle]
+      properties:
+        summary_id: { type: string }
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        version_id: { type: string, pattern: "^benchv_.+" }
+        harness_id: { type: string, pattern: "^harness_.+" }
+        repeat_group_id: { type: string, nullable: true }
+        attempt_count: { type: integer, minimum: 0 }
+        solve_count: { type: integer, minimum: 0 }
+        solve_rate: { type: number, minimum: 0, maximum: 1 }
+        reliable: { type: boolean }
+        brittle: { type: boolean }
+        answer_variance: { $ref: "#/components/schemas/LooseObject" }
+        median_runtime_seconds: { type: number, nullable: true }
+        p90_runtime_seconds: { type: number, nullable: true }
+        median_cost_usd_micros: { type: integer, nullable: true }
+        validation_confirmed_count: { type: integer, minimum: 0 }
+        last_attempt_at: { type: string, format: date-time, nullable: true }
+      additionalProperties: true
+    BenchmarkArtifact:
+      type: object
+      required: [artifact_id, kind, storage_provider, visibility]
+      properties:
+        artifact_id: { type: string, pattern: "^artifact_.+" }
+        capsule_id: { type: string, nullable: true }
+        version_id: { type: string, nullable: true }
+        attempt_id: { type: string, nullable: true }
+        validation_id: { type: string, nullable: true }
+        kind: { $ref: "#/components/schemas/BenchmarkArtifactKind" }
+        name: { type: string, nullable: true }
+        cid: { type: string, nullable: true }
+        uri: { type: string, nullable: true }
+        sha256: { type: string, nullable: true }
+        byte_size: { type: integer, nullable: true }
+        content_type: { type: string, nullable: true }
+        storage_provider: { type: string }
+        visibility: { $ref: "#/components/schemas/BenchmarkArtifactVisibility" }
+        encryption_meta: { $ref: "#/components/schemas/LooseObject" }
+        license: { type: string, nullable: true }
+      additionalProperties: true
+    BenchmarkCapsuleCreateRequest:
+      type: object
+      required: [domain, title, question_md, ground_truth_policy]
+      properties:
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        domain: { $ref: "#/components/schemas/BenchmarkDomain" }
+        field: { type: string, nullable: true }
+        title: { type: string, minLength: 1 }
+        summary_md: { type: string, nullable: true }
+        question_md: { type: string, minLength: 1 }
+        difficulty_label: { type: string, nullable: true }
+        human_baseline_status: { $ref: "#/components/schemas/BenchmarkHumanBaselineStatus" }
+        ground_truth_policy: { $ref: "#/components/schemas/BenchmarkGroundTruthPolicy" }
+        answer_format: { $ref: "#/components/schemas/LooseObject" }
+        allowed_tools_policy: { $ref: "#/components/schemas/LooseObject" }
+        external_resource_policy: { $ref: "#/components/schemas/LooseObject" }
+        scoring_policy: { $ref: "#/components/schemas/LooseObject" }
+        anti_cheat_policy: { $ref: "#/components/schemas/LooseObject" }
+        visibility: { $ref: "#/components/schemas/BenchmarkVisibility" }
+      additionalProperties: false
+    BenchmarkVersionCreateRequest:
+      type: object
+      required: [version_label]
+      properties:
+        version_id: { type: string, pattern: "^benchv_.+" }
+        version_label: { type: string, minLength: 1 }
+        version_status: { $ref: "#/components/schemas/BenchmarkVersionStatus" }
+        manifest_cid: { type: string, nullable: true }
+        manifest_sha256: { type: string, nullable: true }
+        manifest_uri: { type: string, nullable: true }
+        input_bundle_cid: { type: string, nullable: true }
+        input_bundle_sha256: { type: string, nullable: true }
+        validation_notebook_cid: { type: string, nullable: true }
+        redacted_validation_notebook_cid: { type: string, nullable: true }
+        ground_truth_manifest_hash: { type: string, nullable: true }
+        ground_truth_storage_policy: { $ref: "#/components/schemas/LooseObject" }
+        data_manifest: { $ref: "#/components/schemas/LooseObject" }
+        capsule_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: false
+    BenchmarkReviewReadyRequest:
+      type: object
+      required: [version_id]
+      properties:
+        version_id: { type: string, pattern: "^benchv_.+" }
+      additionalProperties: false
+    BenchmarkPaidPayloadCreateRequest:
+      type: object
+      required: [encrypted_payload_uri, payload_hash]
+      properties:
+        encrypted_payload_uri: { type: string, minLength: 1 }
+        encrypted_payload_cid: { type: string, nullable: true }
+        payload_hash: { type: string, minLength: 1 }
+        encryption_meta: { $ref: "#/components/schemas/LooseObject" }
+        access_policy: { $ref: "#/components/schemas/LooseObject" }
+        seller_payout_address: { $ref: "#/components/schemas/Address" }
+      additionalProperties: false
+    BenchmarkCapsulePublishRequest:
+      type: object
+      required: [version_id, seed, parent_id, notebook_source]
+      properties:
+        version_id: { type: string, pattern: "^benchv_.+" }
+        seed: { type: string, minLength: 1 }
+        parent_id: { type: integer, minimum: 1 }
+        notebook_source: { type: string, minLength: 1 }
+        title: { type: string, nullable: true }
+        summary: { type: string, nullable: true }
+        visibility: { $ref: "#/components/schemas/BenchmarkPublishVisibility" }
+        idempotency_key: { type: string, nullable: true }
+        paid_payload:
+          oneOf:
+            - $ref: "#/components/schemas/BenchmarkPaidPayloadCreateRequest"
+            - type: "null"
+      additionalProperties: false
+    BenchmarkHarnessCreateRequest:
+      type: object
+      required: [name, runner_kind, harness_version, normalized_bundle_hash]
+      properties:
+        harness_id: { type: string, pattern: "^harness_.+" }
+        name: { type: string, minLength: 1 }
+        description_md: { type: string, nullable: true }
+        domain: { $ref: "#/components/schemas/BenchmarkDomain" }
+        runner_kind: { $ref: "#/components/schemas/BenchmarkRunnerKind" }
+        model_id: { type: string, nullable: true }
+        agent_runtime: { type: string, nullable: true }
+        harness_version: { type: string, minLength: 1 }
+        tool_profile: { $ref: "#/components/schemas/LooseObject" }
+        workspace_policy: { $ref: "#/components/schemas/LooseObject" }
+        source: { $ref: "#/components/schemas/LooseObject" }
+        normalized_bundle_hash: { type: string, minLength: 1 }
+      additionalProperties: false
+    BenchmarkAttemptCreateRequest:
+      type: object
+      required: [capsule_id, version_id, harness_id]
+      properties:
+        attempt_id: { type: string, pattern: "^attempt_.+" }
+        capsule_id: { type: string, pattern: "^bench_.+" }
+        version_id: { type: string, pattern: "^benchv_.+" }
+        harness_id: { type: string, pattern: "^harness_.+" }
+        repeat_group_id: { type: string, nullable: true }
+        attempt_ordinal: { type: integer, minimum: 1 }
+        status: { $ref: "#/components/schemas/BenchmarkAttemptStatus" }
+        score_status: { $ref: "#/components/schemas/BenchmarkScoreStatus" }
+        raw_score: { type: number, nullable: true }
+        normalized_score: { type: number, nullable: true }
+        solved: { type: boolean, nullable: true }
+        answer_text: { type: string, nullable: true }
+        answer_json: { $ref: "#/components/schemas/LooseObject" }
+        answer_hash: { type: string, nullable: true }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        artifact_manifest: { $ref: "#/components/schemas/LooseObject" }
+        runtime_seconds: { type: integer, nullable: true }
+        cost_usd_micros: { type: integer, nullable: true }
+        run_source: { $ref: "#/components/schemas/LooseObject" }
+        workspace_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: false
+    BenchmarkRepeatAttemptInput:
+      type: object
+      properties:
+        attempt_id: { type: string, pattern: "^attempt_.+" }
+        attempt_ordinal: { type: integer, minimum: 1 }
+        status: { $ref: "#/components/schemas/BenchmarkAttemptStatus" }
+        score_status: { $ref: "#/components/schemas/BenchmarkScoreStatus" }
+        raw_score: { type: number, nullable: true }
+        normalized_score: { type: number, nullable: true }
+        solved: { type: boolean, nullable: true }
+        answer_text: { type: string, nullable: true }
+        answer_json: { $ref: "#/components/schemas/LooseObject" }
+        answer_hash: { type: string, nullable: true }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        artifact_manifest: { $ref: "#/components/schemas/LooseObject" }
+        runtime_seconds: { type: integer, nullable: true }
+        cost_usd_micros: { type: integer, nullable: true }
+        run_source: { $ref: "#/components/schemas/LooseObject" }
+        workspace_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: false
+    BenchmarkRepeatGroupCreateRequest:
+      type: object
+      required: [version_id, harness_id, attempts]
+      properties:
+        version_id: { type: string, pattern: "^benchv_.+" }
+        harness_id: { type: string, pattern: "^harness_.+" }
+        repeat_group_id: { type: string, nullable: true }
+        attempts:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items: { $ref: "#/components/schemas/BenchmarkRepeatAttemptInput" }
+      additionalProperties: false
+    BenchmarkValidationCreateRequest:
+      type: object
+      required: [attempt_id, role, method, result, summary_md]
+      properties:
+        validation_id: { type: string, pattern: "^validation_.+" }
+        attempt_id: { type: string, pattern: "^attempt_.+" }
+        role: { $ref: "#/components/schemas/BenchmarkValidationRole" }
+        method: { $ref: "#/components/schemas/BenchmarkValidationMethod" }
+        result: { $ref: "#/components/schemas/BenchmarkValidationResult" }
+        reproduced_raw_score: { type: number, nullable: true }
+        reproduced_normalized_score: { type: number, nullable: true }
+        tolerance_raw_abs: { type: number, nullable: true }
+        summary_md: { type: string, minLength: 1 }
+        validation_notebook_cid: { type: string, nullable: true }
+        verdict_json: { $ref: "#/components/schemas/LooseObject" }
+        review_source: { $ref: "#/components/schemas/LooseObject" }
+      additionalProperties: false
+    BenchmarkImportRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain:
+          type: string
+          enum: [bbh, science_task]
+        dry_run: { type: boolean, default: false }
+      additionalProperties: false
+    BenchmarkCapsuleListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BenchmarkCapsule" }
+      additionalProperties: true
+    BenchmarkCapsuleResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BenchmarkCapsule" }
+      additionalProperties: true
+    BenchmarkVersionResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BenchmarkCapsuleVersion" }
+      additionalProperties: true
+    BenchmarkPublicationNode:
+      type: object
+      required: [node_id, status, publish_status, anchor_status]
+      properties:
+        node_id: { type: integer }
+        manifest_cid: { type: string, nullable: true }
+        status: { type: string }
+        publish_status: { type: string }
+        anchor_status: { type: string }
+      additionalProperties: true
+    BenchmarkCapsulePublishResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [capsule, version, publication_node]
+          properties:
+            capsule: { $ref: "#/components/schemas/BenchmarkCapsule" }
+            version: { $ref: "#/components/schemas/BenchmarkCapsuleVersion" }
+            publication_node: { $ref: "#/components/schemas/BenchmarkPublicationNode" }
+          additionalProperties: true
+      additionalProperties: true
+    BenchmarkVersionListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BenchmarkCapsuleVersion" }
+      additionalProperties: true
+    BenchmarkHarnessResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BenchmarkHarness" }
+      additionalProperties: true
+    BenchmarkAttemptResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BenchmarkAttempt" }
+      additionalProperties: true
+    BenchmarkRepeatGroupResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [repeat_group_id, attempts]
+          properties:
+            repeat_group_id: { type: string }
+            attempts:
+              type: array
+              items: { $ref: "#/components/schemas/BenchmarkAttempt" }
+          additionalProperties: true
+      additionalProperties: true
+    BenchmarkValidationResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/BenchmarkValidation" }
+      additionalProperties: true
+    BenchmarkValidationListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BenchmarkValidation" }
+      additionalProperties: true
+    BenchmarkReliabilityListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/BenchmarkReliabilitySummary" }
+      additionalProperties: true
+    BenchmarkImportResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [domain, dry_run, counts]
+          properties:
+            domain: { type: string }
+            dry_run: { type: boolean }
+            counts: { $ref: "#/components/schemas/LooseObject" }
+          additionalProperties: true
+      additionalProperties: true
+    BenchmarkScoreboardResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [capsule_id, entries]
+          properties:
+            capsule_id: { type: string, pattern: "^bench_.+" }
+            entries:
+              type: array
+              items: { $ref: "#/components/schemas/BenchmarkReliabilitySummary" }
+          additionalProperties: true
+      additionalProperties: true
     ChatboxMessage:
       type: object
       properties:

@@ -6,6 +6,8 @@ defmodule TechTree.ScienceTasks do
   alias Decimal, as: D
   alias TechTree.Activity
   alias TechTree.Agents.AgentIdentity
+  alias TechTree.Benchmarks.Domains.ScienceTask, as: BenchmarkScienceTask
+  alias TechTree.Benchmarks.Importers.ScienceTasks, as: BenchmarkScienceTaskImporter
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
   alias TechTree.Repo
@@ -48,101 +50,22 @@ defmodule TechTree.ScienceTasks do
   @spec ensure_public_branch_root!() :: Node.t()
   def ensure_public_branch_root!, do: ensure_branch_root!()
 
-  @spec list_public_tasks(map()) :: [ScienceTask.t()]
-  def list_public_tasks(params \\ %{}) when is_map(params) do
-    limit = parse_limit(params)
-    cursor = TechTree.QueryHelpers.parse_cursor(params)
-
-    query =
-      ScienceTask
-      |> join(:inner, [task], node in Node, on: node.id == task.node_id)
-      |> join(:inner, [task, node], agent in AgentIdentity, on: agent.id == node.creator_agent_id)
-      |> where([task, node, agent], node.status == :anchored and agent.status == "active")
-      |> maybe_filter_stage(params["stage"])
-      |> maybe_filter_string(:science_domain, params["science_domain"])
-      |> maybe_filter_string(:science_field, params["science_field"])
-      |> maybe_before_cursor(cursor)
-      |> order_by([task, node], asc: task.workflow_state, desc: node.inserted_at, desc: node.id)
-      |> limit(^limit)
-
-    Repo.all(query)
-    |> Repo.preload(node: :creator_agent)
-  end
+  @spec list_public_tasks(map()) :: [map()]
+  def list_public_tasks(params \\ %{}) when is_map(params),
+    do: BenchmarkScienceTask.list_public_tasks(params)
 
   @spec public_index_page(map()) ::
           {:ok, map()} | {:error, :science_task_invalid_stage, %{redirect_href: String.t()}}
-  def public_index_page(params \\ %{}) when is_map(params) do
-    stage_filter = blank_to_nil(params["stage"])
-    domain_filter = blank_to_nil(params["science_domain"])
-    field_filter = blank_to_nil(params["science_field"])
-
-    case normalize_stage(stage_filter) do
-      {:ok, normalized_stage_filter} ->
-        tasks =
-          params
-          |> Map.put("stage", normalized_stage_filter)
-          |> Map.put("science_domain", domain_filter)
-          |> Map.put("science_field", field_filter)
-          |> list_public_tasks()
-
-        cards = Enum.map(tasks, &public_index_task_card/1)
-        stage_names = stage_names()
-
-        {:ok,
-         %{
-           tasks: cards,
-           tasks_by_stage: Enum.group_by(cards, & &1.stage),
-           stage_filter: normalized_stage_filter,
-           domain_filter: domain_filter,
-           field_filter: field_filter,
-           domains: cards |> Enum.map(& &1.science_domain) |> Enum.uniq() |> Enum.sort(),
-           fields: cards |> Enum.map(& &1.science_field) |> Enum.uniq() |> Enum.sort(),
-           counts: stage_counts(cards),
-           stage_names: stage_names,
-           visible_stages: visible_stages(normalized_stage_filter, stage_names)
-         }}
-
-      {:error, :science_task_invalid_stage} ->
-        {:error, :science_task_invalid_stage,
-         %{
-           redirect_href: public_index_href(nil, domain_filter, field_filter)
-         }}
-    end
-  end
+  def public_index_page(params \\ %{}) when is_map(params),
+    do: BenchmarkScienceTask.public_index_page(params)
 
   @spec public_index_href(String.t() | nil, String.t() | nil, String.t() | nil) :: String.t()
-  def public_index_href(stage, science_domain, science_field) do
-    query =
-      []
-      |> maybe_put_query("stage", stage)
-      |> maybe_put_query("science_domain", science_domain)
-      |> maybe_put_query("science_field", science_field)
-
-    case query do
-      [] -> "/science-tasks"
-      entries -> "/science-tasks?" <> URI.encode_query(entries)
-    end
-  end
+  def public_index_href(stage, science_domain, science_field),
+    do: BenchmarkScienceTask.public_index_href(stage, science_domain, science_field)
 
   @spec get_public_task(integer() | String.t()) ::
           {:ok, ScienceTask.t()} | {:error, :science_task_invalid_id | :science_task_not_found}
-  def get_public_task(node_id) do
-    with {:ok, normalized_id} <- normalize_task_id(node_id) do
-      ScienceTask
-      |> join(:inner, [task], node in Node, on: node.id == task.node_id)
-      |> join(:inner, [task, node], agent in AgentIdentity, on: agent.id == node.creator_agent_id)
-      |> where(
-        [task, node, agent],
-        task.node_id == ^normalized_id and node.status == :anchored and agent.status == "active"
-      )
-      |> preload([task, node], node: {node, :creator_agent})
-      |> Repo.one()
-      |> case do
-        %ScienceTask{} = task -> {:ok, task}
-        nil -> {:error, :science_task_not_found}
-      end
-    end
-  end
+  def get_public_task(node_id), do: BenchmarkScienceTask.get_public_task(node_id)
 
   @spec create_task(AgentIdentity.t(), map()) :: {:ok, ScienceTask.t()} | {:error, term()}
   def create_task(%AgentIdentity{} = agent, attrs) when is_map(attrs) do
@@ -156,7 +79,9 @@ defmodule TechTree.ScienceTasks do
                |> Map.put(:node_id, node.id)
                |> Map.put(:checklist, default_checklist())
                |> put_stage(),
-             {:ok, task} <- %ScienceTask{} |> ScienceTask.changeset(task_attrs) |> Repo.insert() do
+             {:ok, task} <- %ScienceTask{} |> ScienceTask.changeset(task_attrs) |> Repo.insert(),
+             task <- Repo.preload(task, node: :creator_agent),
+             {:ok, _benchmark_capsule} <- BenchmarkScienceTaskImporter.upsert_task(task) do
           Nodes.refresh_parent_child_metrics!(branch_root.id)
           Nodes.refresh_activity_score!(node.id)
 
@@ -168,7 +93,7 @@ defmodule TechTree.ScienceTasks do
             %{"node_id" => node.id, "title" => node.title, "seed" => node.seed}
           )
 
-          Repo.preload(task, node: :creator_agent)
+          task
         else
           {:error, reason} ->
             Repo.rollback(reason)
@@ -182,7 +107,7 @@ defmodule TechTree.ScienceTasks do
   def update_checklist(%AgentIdentity{} = agent, node_id, attrs) when is_map(attrs) do
     with {:ok, task} <- fetch_agent_task(agent, node_id),
          {:ok, normalized} <- normalize_base_input(attrs),
-         {:ok, checklist} <- normalize_checklist(attrs["checklist"] || attrs[:checklist]) do
+         {:ok, checklist} <- normalize_checklist(attrs["checklist"]) do
       update_task(task, normalized, %{
         checklist: checklist,
         event_type: "science_task.checklist_updated",
@@ -196,8 +121,8 @@ defmodule TechTree.ScienceTasks do
   def update_evidence(%AgentIdentity{} = agent, node_id, attrs) when is_map(attrs) do
     with {:ok, task} <- fetch_agent_task(agent, node_id),
          {:ok, normalized} <- normalize_base_input(attrs),
-         {:ok, oracle_run} <- normalize_run(attrs["oracle_run"] || attrs[:oracle_run]),
-         {:ok, frontier_run} <- normalize_run(attrs["frontier_run"] || attrs[:frontier_run]) do
+         {:ok, oracle_run} <- normalize_run(attrs["oracle_run"]),
+         {:ok, frontier_run} <- normalize_run(attrs["frontier_run"]) do
       update_task(task, normalized, %{
         oracle_run: oracle_run,
         frontier_run: frontier_run,
@@ -215,15 +140,13 @@ defmodule TechTree.ScienceTasks do
          {:ok, normalized} <- normalize_base_input(attrs),
          {:ok, harbor_pr_url} <-
            normalize_required_text(
-             attrs["harbor_pr_url"] || attrs[:harbor_pr_url],
+             attrs["harbor_pr_url"],
              :harbor_pr_url
            ) do
       update_task(task, normalized, %{
         harbor_pr_url: harbor_pr_url,
         latest_review_follow_up_note:
-          normalize_optional_text(
-            attrs["latest_review_follow_up_note"] || attrs[:latest_review_follow_up_note]
-          ),
+          normalize_optional_text(attrs["latest_review_follow_up_note"]),
         event_type: "science_task.submitted",
         actor_id: agent.id
       })
@@ -270,6 +193,8 @@ defmodule TechTree.ScienceTasks do
   end
 
   @spec encode_summary(ScienceTask.t()) :: map()
+  def encode_summary(%{node_id: _node_id} = task), do: BenchmarkScienceTask.encode_summary(task)
+
   def encode_summary(%ScienceTask{} = task) do
     node = task.node
 
@@ -293,6 +218,8 @@ defmodule TechTree.ScienceTasks do
   end
 
   @spec encode_detail(ScienceTask.t()) :: map()
+  def encode_detail(%{node_id: _node_id} = task), do: BenchmarkScienceTask.encode_detail(task)
+
   def encode_detail(%ScienceTask{} = task) do
     encode_summary(task)
     |> Map.merge(%{
@@ -335,40 +262,14 @@ defmodule TechTree.ScienceTasks do
   end
 
   @spec stage_names() :: [String.t()]
-  def stage_names do
-    ScienceTask.workflow_states()
-    |> Enum.map(&Atom.to_string/1)
-  end
+  def stage_names, do: BenchmarkScienceTask.stage_names()
 
   @spec stage_label(String.t()) :: String.t()
-  def stage_label("authoring"), do: "Authoring"
-  def stage_label("checklist_fix"), do: "Checklist fix"
-  def stage_label("evidence_ready"), do: "Evidence ready"
-  def stage_label("submitted"), do: "Submitted"
-  def stage_label("review_fix"), do: "Review fix"
-  def stage_label("merge_ready"), do: "Merge ready"
-  def stage_label(stage), do: stage
+  def stage_label(stage), do: BenchmarkScienceTask.stage_label(stage)
 
   @spec normalize_stage(String.t() | nil) ::
           {:ok, String.t() | nil} | {:error, :science_task_invalid_stage}
-  def normalize_stage(nil), do: {:ok, nil}
-
-  def normalize_stage(value) when is_binary(value) do
-    trimmed = String.trim(value)
-
-    cond do
-      trimmed == "" ->
-        {:ok, nil}
-
-      trimmed in stage_names() ->
-        {:ok, trimmed}
-
-      true ->
-        {:error, :science_task_invalid_stage}
-    end
-  end
-
-  def normalize_stage(_value), do: {:error, :science_task_invalid_stage}
+  def normalize_stage(value), do: BenchmarkScienceTask.normalize_stage(value)
 
   @spec checklist_keys() :: [String.t()]
   def checklist_keys, do: @checklist_keys
@@ -409,19 +310,26 @@ defmodule TechTree.ScienceTasks do
             |> Repo.update!()
           end
 
-          Activity.log!(
-            extra_attrs.event_type,
-            :agent,
-            extra_attrs.actor_id,
-            updated.node_id,
-            %{
-              "node_id" => updated.node_id,
-              "workflow_state" => Atom.to_string(updated.workflow_state),
-              "title" => task.node && task.node.title
-            }
-          )
+          updated = Repo.preload(updated, node: :creator_agent)
 
-          Repo.preload(updated, node: :creator_agent)
+          with {:ok, _benchmark_capsule} <- BenchmarkScienceTaskImporter.upsert_task(updated) do
+            Activity.log!(
+              extra_attrs.event_type,
+              :agent,
+              extra_attrs.actor_id,
+              updated.node_id,
+              %{
+                "node_id" => updated.node_id,
+                "workflow_state" => Atom.to_string(updated.workflow_state),
+                "title" => task.node && task.node.title
+              }
+            )
+
+            updated
+          else
+            {:error, reason} ->
+              Repo.rollback(reason)
+          end
 
         {:error, reason} ->
           Repo.rollback(reason)
@@ -447,67 +355,66 @@ defmodule TechTree.ScienceTasks do
   end
 
   defp normalize_base_input(attrs) do
-    with {:ok, title} <- normalize_required_text(attrs["title"] || attrs[:title], :title),
+    with {:ok, title} <- normalize_required_text(attrs["title"], :title),
          {:ok, science_domain} <-
-           normalize_slug(attrs["science_domain"] || attrs[:science_domain], :science_domain),
+           normalize_slug(attrs["science_domain"], :science_domain),
          {:ok, science_field} <-
-           normalize_slug(attrs["science_field"] || attrs[:science_field], :science_field),
-         {:ok, task_slug} <- normalize_slug(attrs["task_slug"] || attrs[:task_slug], :task_slug),
+           normalize_slug(attrs["science_field"], :science_field),
+         {:ok, task_slug} <- normalize_slug(attrs["task_slug"], :task_slug),
          {:ok, claimed_expert_time} <-
            normalize_required_text(
-             attrs["claimed_expert_time"] || attrs[:claimed_expert_time],
+             attrs["claimed_expert_time"],
              :claimed_expert_time
            ),
          {:ok, anti_cheat_notes} <-
            normalize_required_text(
-             attrs["anti_cheat_notes"] || attrs[:anti_cheat_notes],
+             attrs["anti_cheat_notes"],
              :anti_cheat_notes
            ),
          {:ok, reproducibility_notes} <-
            normalize_required_text(
-             attrs["reproducibility_notes"] || attrs[:reproducibility_notes],
+             attrs["reproducibility_notes"],
              :reproducibility_notes
            ),
          {:ok, dependency_pinning_status} <-
            normalize_required_text(
-             attrs["dependency_pinning_status"] || attrs[:dependency_pinning_status],
+             attrs["dependency_pinning_status"],
              :dependency_pinning_status
            ),
          {:ok, canary_status} <-
            normalize_required_text(
-             attrs["canary_status"] || attrs[:canary_status],
+             attrs["canary_status"],
              :canary_status
            ),
          {:ok, failure_analysis} <-
            normalize_required_text(
-             attrs["failure_analysis"] || attrs[:failure_analysis],
+             attrs["failure_analysis"],
              :failure_analysis
            ),
          {:ok, packet_files} <-
-           normalize_packet_files(attrs["packet_files"] || attrs[:packet_files]),
+           normalize_packet_files(attrs["packet_files"]),
          {:ok, structured_output_shape} <-
            normalize_optional_map(
-             attrs["structured_output_shape"] || attrs[:structured_output_shape],
+             attrs["structured_output_shape"],
              :structured_output_shape
            ) do
       {:ok,
        %{
          title: title,
-         summary: normalize_optional_text(attrs["summary"] || attrs[:summary]),
+         summary: normalize_optional_text(attrs["summary"]),
          science_domain: science_domain,
          science_field: science_field,
          task_slug: task_slug,
          structured_output_shape: structured_output_shape,
          claimed_expert_time: claimed_expert_time,
-         threshold_rationale:
-           normalize_optional_text(attrs["threshold_rationale"] || attrs[:threshold_rationale]),
+         threshold_rationale: normalize_optional_text(attrs["threshold_rationale"]),
          anti_cheat_notes: anti_cheat_notes,
          reproducibility_notes: reproducibility_notes,
          dependency_pinning_status: dependency_pinning_status,
          canary_status: canary_status,
          failure_analysis: failure_analysis,
          destination_name:
-           normalize_optional_text(attrs["destination_name"] || attrs[:destination_name]) ||
+           normalize_optional_text(attrs["destination_name"]) ||
              "terminal-bench-science",
          packet_files: packet_files,
          packet_hash: packet_hash(packet_files)
@@ -526,12 +433,6 @@ defmodule TechTree.ScienceTasks do
               %{
                 status: normalize_checklist_status(status),
                 note: normalize_optional_text(entry["note"])
-              }
-
-            %{status: status} ->
-              %{
-                status: normalize_checklist_status(status),
-                note: normalize_optional_text(entry[:note])
               }
 
             nil ->
@@ -554,10 +455,10 @@ defmodule TechTree.ScienceTasks do
   defp normalize_checklist(_value), do: {:error, :science_task_checklist_invalid}
 
   defp normalize_run(value) when is_map(value) do
-    with {:ok, command} <- normalize_required_text(value["command"] || value[:command], :command),
-         {:ok, summary} <- normalize_required_text(value["summary"] || value[:summary], :summary),
+    with {:ok, command} <- normalize_required_text(value["command"], :command),
+         {:ok, summary} <- normalize_required_text(value["summary"], :summary),
          {:ok, key_lines} <-
-           normalize_string_list(value["key_lines"] || value[:key_lines], :key_lines) do
+           normalize_string_list(value["key_lines"], :key_lines) do
       {:ok,
        %{
          "command" => command,
@@ -608,12 +509,11 @@ defmodule TechTree.ScienceTasks do
   defp normalize_packet_path(_path), do: {:error, :science_task_packet_path_invalid}
 
   defp normalize_packet_file(%{"encoding" => encoding, "content" => content}) do
-    normalize_packet_file(%{encoding: encoding, content: content})
-  end
-
-  defp normalize_packet_file(%{encoding: encoding, content: content})
-       when encoding in ["utf8", "base64"] and is_binary(content) and byte_size(content) > 0 do
-    {:ok, %{"encoding" => encoding, "content" => content}}
+    if encoding in ["utf8", "base64"] and is_binary(content) and byte_size(content) > 0 do
+      {:ok, %{"encoding" => encoding, "content" => content}}
+    else
+      {:error, :science_task_packet_file_invalid}
+    end
   end
 
   defp normalize_packet_file(_value), do: {:error, :science_task_packet_file_invalid}
@@ -735,17 +635,7 @@ defmodule TechTree.ScienceTasks do
   defp normalize_checklist_status(_status), do: :invalid
 
   defp param(attrs, key) when is_map(attrs) do
-    case Map.fetch(attrs, key) do
-      {:ok, value} ->
-        value
-
-      :error ->
-        case String.to_existing_atom(key) do
-          atom_key -> Map.get(attrs, atom_key)
-        end
-    end
-  rescue
-    ArgumentError -> Map.get(attrs, key)
+    Map.get(attrs, key)
   end
 
   defp default_checklist do
@@ -935,43 +825,6 @@ defmodule TechTree.ScienceTasks do
     is_binary(task.evidence_packet_hash) and task.evidence_packet_hash == task.packet_hash
   end
 
-  defp public_index_task_card(%ScienceTask{} = task) do
-    %{
-      node_id: task.node_id,
-      title: task.node.title,
-      science_domain: task.science_domain,
-      science_field: task.science_field,
-      task_slug: task.task_slug,
-      stage: Atom.to_string(task.workflow_state),
-      evidence_label:
-        if(current_files_match_latest_evidence?(task),
-          do: "proof matches files",
-          else: "proof needs refresh"
-        )
-    }
-  end
-
-  defp stage_counts(tasks) do
-    Enum.reduce(tasks, %{}, fn task, acc ->
-      Map.update(acc, task.stage, 1, &(&1 + 1))
-    end)
-  end
-
-  defp visible_stages(nil, stage_names), do: stage_names
-  defp visible_stages(stage, _stage_names), do: [stage]
-
-  defp blank_to_nil(value) when is_binary(value) do
-    case String.trim(value) do
-      "" -> nil
-      trimmed -> trimmed
-    end
-  end
-
-  defp blank_to_nil(_value), do: nil
-
-  defp maybe_put_query(query, _key, nil), do: query
-  defp maybe_put_query(query, key, value), do: [{key, value} | query]
-
   defp packet_hash(packet_files) do
     packet_files
     |> Enum.sort_by(fn {path, _file} -> path end)
@@ -980,52 +833,4 @@ defmodule TechTree.ScienceTasks do
     |> then(&:crypto.hash(:sha256, &1))
     |> Base.encode16(case: :lower)
   end
-
-  defp parse_limit(params) do
-    params
-    |> Map.get("limit", 50)
-    |> case do
-      value when is_integer(value) and value > 0 ->
-        min(value, 100)
-
-      value when is_binary(value) ->
-        case Integer.parse(String.trim(value)) do
-          {parsed, ""} when parsed > 0 -> min(parsed, 100)
-          _ -> 50
-        end
-
-      _ ->
-        50
-    end
-  end
-
-  defp maybe_filter_stage(query, nil), do: query
-
-  defp maybe_filter_stage(query, value) when is_binary(value) do
-    case Enum.find(ScienceTask.workflow_states(), &(Atom.to_string(&1) == value)) do
-      nil -> query
-      state -> where(query, [task, _node, _agent], task.workflow_state == ^state)
-    end
-  end
-
-  defp maybe_filter_stage(query, _value), do: query
-
-  defp maybe_before_cursor(query, nil), do: query
-
-  defp maybe_before_cursor(query, cursor),
-    do: where(query, [task, _node, _agent], task.node_id < ^cursor)
-
-  defp maybe_filter_string(query, _field, nil), do: query
-
-  defp maybe_filter_string(query, field, value) when is_binary(value) do
-    trimmed = String.trim(value)
-
-    if trimmed == "" do
-      query
-    else
-      where(query, [task, _node, _agent], field(task, ^field) == ^trimmed)
-    end
-  end
-
-  defp maybe_filter_string(query, _field, _value), do: query
 end

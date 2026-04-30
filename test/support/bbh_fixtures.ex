@@ -14,6 +14,7 @@ defmodule TechTree.BBHFixtures do
     Validation
   }
 
+  alias TechTree.Benchmarks.Importers.BBH, as: BenchmarkBBHImporter
   alias TechTree.Repo
 
   def insert_capsule!(attrs \\ %{}) do
@@ -74,6 +75,26 @@ defmodule TechTree.BBHFixtures do
     %Capsule{}
     |> Capsule.changeset(attrs)
     |> Repo.insert!()
+    |> tap(fn capsule ->
+      {:ok, _benchmark_capsule} = BenchmarkBBHImporter.upsert_capsule(capsule)
+    end)
+  end
+
+  def certify_capsule!(%Capsule{} = capsule, attrs \\ %{}) do
+    defaults = %{
+      certificate_status: Map.get(attrs, :certificate_status, :active),
+      certificate_review_id:
+        Map.get(attrs, :certificate_review_id, "0xreview#{String.duplicate("1", 58)}"),
+      certificate_scope: Map.get(attrs, :certificate_scope, "publication"),
+      certificate_expires_at: Map.get(attrs, :certificate_expires_at)
+    }
+
+    capsule
+    |> Ecto.Changeset.change(defaults)
+    |> Repo.update!()
+    |> tap(fn updated ->
+      {:ok, _benchmark_capsule} = BenchmarkBBHImporter.upsert_capsule(updated)
+    end)
   end
 
   def insert_assignment!(%Capsule{} = capsule, attrs \\ %{}) do
@@ -218,11 +239,13 @@ defmodule TechTree.BBHFixtures do
     case Repo.get_by(Genome, normalized_bundle_hash: bundle_hash) do
       %Genome{} = existing ->
         ensure_compatible_genome_fixture!(existing, requested_attrs)
+        |> tap(fn genome -> {:ok, _harness} = BenchmarkBBHImporter.upsert_harness(genome) end)
 
       nil ->
         %Genome{}
         |> Genome.changeset(attrs)
         |> Repo.insert!()
+        |> tap(fn genome -> {:ok, _harness} = BenchmarkBBHImporter.upsert_harness(genome) end)
     end
   end
 
@@ -292,6 +315,7 @@ defmodule TechTree.BBHFixtures do
     %Run{}
     |> Run.changeset(Map.merge(defaults, attrs))
     |> Repo.insert!()
+    |> tap(fn run -> {:ok, _attempt} = BenchmarkBBHImporter.upsert_run(run) end)
   end
 
   def insert_validation!(%Run{} = run, attrs \\ %{}) do
@@ -319,6 +343,9 @@ defmodule TechTree.BBHFixtures do
     %Validation{}
     |> Validation.changeset(Map.merge(defaults, attrs))
     |> Repo.insert!()
+    |> tap(fn validation ->
+      {:ok, _benchmark_validation} = BenchmarkBBHImporter.upsert_validation(validation)
+    end)
   end
 
   def insert_validated_benchmark_bundle!(attrs \\ %{}) do
@@ -349,6 +376,7 @@ defmodule TechTree.BBHFixtures do
         Map.merge(
           %{role: "official", method: "replay", result: "confirmed"},
           Map.take(attrs, [:validation_id])
+          |> Map.put(:result, Map.get(attrs, :validation_result, "confirmed"))
         )
       )
 
@@ -724,6 +752,7 @@ defmodule TechTree.BBHFixtures do
         Map.merge(
           %{role: "official", method: "replay", result: "confirmed"},
           Map.take(attrs, [:validation_id])
+          |> Map.put(:result, Map.get(attrs, :validation_result, "confirmed"))
         )
       )
 

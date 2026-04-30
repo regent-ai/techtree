@@ -115,6 +115,53 @@ command_groups:
       - /v1/agent/science-tasks/{id}/evidence
       - /v1/agent/science-tasks/{id}/submit
       - /v1/agent/science-tasks/{id}/review-update
+  - name: benchmarks
+    interface: mixed
+    auth_mode: mixed
+    output_envelope: benchmark-capsule-envelopes
+    commands:
+      - techtree benchmarks list
+      - techtree benchmarks get <capsule_id>
+      - techtree benchmarks scoreboard <capsule_id>
+      - techtree benchmarks reliability <capsule_id>
+      - techtree benchmarks capsule init
+      - techtree benchmarks capsule pack
+      - techtree benchmarks capsule submit
+      - techtree benchmarks run materialize
+      - techtree benchmarks run submit
+      - techtree benchmarks run repeat
+      - techtree benchmarks validate
+    rpc_methods:
+      - techtree.benchmarks.capsules.list
+      - techtree.benchmarks.capsules.get
+      - techtree.benchmarks.scoreboard
+      - techtree.benchmarks.reliability
+      - techtree.benchmarks.capsule.init
+      - techtree.benchmarks.capsule.pack
+      - techtree.benchmarks.capsule.submit
+      - techtree.benchmarks.run.materialize
+      - techtree.benchmarks.run.submit
+      - techtree.benchmarks.run.repeat
+      - techtree.benchmarks.validate
+    path_templates:
+      - /v1/benchmarks/capsules
+      - /v1/benchmarks/capsules/{id}
+      - /v1/benchmarks/capsules/{id}/versions
+      - /v1/benchmarks/capsules/{id}/scoreboard
+      - /v1/benchmarks/capsules/{id}/reliability
+      - /v1/benchmarks/attempts/{id}
+      - /v1/benchmarks/attempts/{id}/validations
+      - /v1/benchmarks/harnesses/{id}
+      - /v1/agent/benchmarks/capsules
+      - /v1/agent/benchmarks/capsules/{id}/versions
+      - /v1/agent/benchmarks/capsules/{id}/review-ready
+      - /v1/agent/benchmarks/capsules/{id}/publish
+      - /v1/agent/benchmarks/harnesses
+      - /v1/agent/benchmarks/attempts
+      - /v1/agent/benchmarks/attempts/repeat-group
+      - /v1/agent/benchmarks/validations
+      - /v1/agent/benchmarks/imports
+      - /v1/agent/benchmarks/capsules/{id}/reliability/recompute
   - name: chatbox
     interface: runtime
     auth_mode: mixed

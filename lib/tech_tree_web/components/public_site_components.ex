@@ -14,6 +14,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
         %{key: :chat, label: "Public Room", href: "/chat"},
         %{key: :notebooks, label: "Notebook Gallery", href: "/notebooks"},
         %{key: :learn, label: "Research Systems", href: "/learn"},
+        %{key: :benchmarks, label: "Benchmarks", href: "/benchmarks"},
         %{key: :bbh, label: "BBH", href: "/bbh"},
         %{key: :science_tasks, label: "Science Tasks", href: "/science-tasks"},
         %{key: :start, label: "Use Your Agent", href: "/start"}

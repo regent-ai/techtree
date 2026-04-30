@@ -15,6 +15,7 @@ defmodule TechTree.BBH.Reviews do
     Reviewers
   }
 
+  alias TechTree.Benchmarks.Importers.BBH, as: BenchmarkBBHImporter
   alias TechTree.Repo
   alias TechTree.V1.{Node, Review}
 
@@ -164,8 +165,12 @@ defmodule TechTree.BBH.Reviews do
       )
       |> Repo.transaction()
       |> case do
-        {:ok, %{submission: submission}} ->
-          {:ok, %{submission: review_submission_payload(submission)}}
+        {:ok, %{capsule: capsule, submission: submission}} ->
+          with {:ok, _benchmark_capsule} <- BenchmarkBBHImporter.upsert_capsule(capsule),
+               {:ok, _benchmark_validation} <-
+                 BenchmarkBBHImporter.upsert_review_submission(submission) do
+            {:ok, %{submission: review_submission_payload(submission)}}
+          end
 
         {:error, _step, reason, _changes} ->
           {:error, reason}

@@ -57,6 +57,8 @@ defmodule TechTreeWeb.Router do
     live "/chat", Public.ChatLive, :index
     live "/learn", Public.LearnLive, :index
     live "/learn/:topic", Public.LearnLive, :show
+    live "/benchmarks", Public.BenchmarksLive, :index
+    live "/benchmarks/:id", Public.BenchmarkLive, :show
     live "/bbh", Public.BbhHomeLive, :index
     live "/bbh/wall", Human.BbhLeaderboardLive, :index
     live "/bbh/runs/:id", Human.BbhRunLive, :show
@@ -153,6 +155,15 @@ defmodule TechTreeWeb.Router do
   scope "/", TechTreeWeb do
     pipe_through :api
 
+    get "/v1/benchmarks/capsules", BenchmarkController, :capsules
+    get "/v1/benchmarks/capsules/:id", BenchmarkController, :capsule
+    get "/v1/benchmarks/capsules/:id/versions", BenchmarkController, :versions
+    get "/v1/benchmarks/capsules/:id/scoreboard", BenchmarkController, :scoreboard
+    get "/v1/benchmarks/capsules/:id/reliability", BenchmarkController, :reliability
+    get "/v1/benchmarks/attempts/:id", BenchmarkController, :attempt
+    get "/v1/benchmarks/attempts/:id/validations", BenchmarkController, :attempt_validations
+    get "/v1/benchmarks/harnesses/:id", BenchmarkController, :harness
+
     get "/v1/bbh/leaderboard", BbhController, :leaderboard
     get "/v1/bbh/capsules", BbhController, :capsules
     get "/v1/bbh/capsules/:id", BbhController, :capsule
@@ -201,6 +212,31 @@ defmodule TechTreeWeb.Router do
 
   scope "/", TechTreeWeb do
     pipe_through :api_agent
+
+    post "/v1/agent/benchmarks/capsules", AgentBenchmarkController, :create_capsule
+    post "/v1/agent/benchmarks/capsules/:id/versions", AgentBenchmarkController, :create_version
+
+    post "/v1/agent/benchmarks/capsules/:id/review-ready",
+         AgentBenchmarkController,
+         :mark_review_ready
+
+    post "/v1/agent/benchmarks/capsules/:id/publish",
+         AgentBenchmarkController,
+         :publish_capsule
+
+    post "/v1/agent/benchmarks/harnesses", AgentBenchmarkController, :create_harness
+    post "/v1/agent/benchmarks/attempts", AgentBenchmarkController, :create_attempt
+
+    post "/v1/agent/benchmarks/attempts/repeat-group",
+         AgentBenchmarkController,
+         :create_repeat_group
+
+    post "/v1/agent/benchmarks/validations", AgentBenchmarkController, :create_validation
+    post "/v1/agent/benchmarks/imports", AgentBenchmarkController, :create_import
+
+    post "/v1/agent/benchmarks/capsules/:id/reliability/recompute",
+         AgentBenchmarkController,
+         :recompute_reliability
 
     post "/v1/agent/bbh/assignments/next", AgentBbhController, :next_assignment
     post "/v1/agent/bbh/assignments/select", AgentBbhController, :select_assignment

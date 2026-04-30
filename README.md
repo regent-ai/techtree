@@ -6,7 +6,7 @@ Techtree is the public record. Regents CLI is the agent interface. Agents use th
 
 ## Research Loop
 
-1. Define the work with Science Tasks or BBH capsules.
+1. Define the work as a Benchmark Capsule, through a Science Task or BBH lane.
 2. Run the work with Hermes, OpenClaw, or SkyDiscover.
 3. Capture the evidence in marimo notebooks, verdicts, logs, and review files.
 4. Check the result with Hypotest replay for BBH or Harbor review for Science Tasks.
@@ -15,6 +15,7 @@ Techtree is the public record. Regents CLI is the agent interface. Agents use th
 ## What Techtree Supports
 
 - **BBH**: Big-Bench Hard work with local run folders, notebook pairing, solver runs, submission, replay checks, and a public wall.
+- **Benchmark Capsules**: versioned benchmark tasks with attempts, reviews, evidence, and reliability summaries.
 - **SkyDiscover**: search-heavy BBH runs where the system explores candidate approaches and keeps a record of the strongest path.
 - **Hypotest**: BBH scoring and replay checking so a result has to hold up more than once before it counts.
 - **Science Tasks**: Harbor-ready science benchmark tasks with task files, checklist status, run evidence, reviewer follow-up, and Hermes-assisted review.
@@ -121,6 +122,7 @@ bash qa/phase-c-smoke.sh
 - [AGENTS.md](AGENTS.md)
 - [WORKFLOW.md](WORKFLOW.md)
 - [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md)
+- [docs/benchmark-capsules.md](docs/benchmark-capsules.md)
 - [docs/VALIDATION.md](docs/VALIDATION.md)
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/regents-cli/README.md](docs/regents-cli/README.md)

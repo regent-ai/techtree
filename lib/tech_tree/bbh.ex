@@ -8,15 +8,15 @@ defmodule TechTree.BBH do
   defdelegate create_validation(attrs), to: TechTree.BBH.RunIngest
 
   defdelegate sync_status(run_ids), to: TechTree.BBH.RunReads
-  defdelegate leaderboard(opts \\ %{}), to: TechTree.BBH.RunReads
+  defdelegate leaderboard(opts \\ %{}), to: TechTree.Benchmarks.Domains.BBH
 
-  defdelegate list_runs(opts \\ %{}), to: TechTree.BBH.PublicReads
-  defdelegate list_capsules(opts \\ %{}), to: TechTree.BBH.PublicReads
-  defdelegate list_public_capsules(opts \\ %{}), to: TechTree.BBH.PublicReads
-  defdelegate get_public_capsule(capsule_id), to: TechTree.BBH.PublicReads
-  defdelegate get_run(run_id), to: TechTree.BBH.PublicReads
-  defdelegate get_genome(genome_id), to: TechTree.BBH.PublicReads
-  defdelegate list_validations(run_id), to: TechTree.BBH.PublicReads
+  defdelegate list_runs(opts \\ %{}), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate list_capsules(opts \\ %{}), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate list_public_capsules(opts \\ %{}), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate get_public_capsule(capsule_id), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate get_run(run_id), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate get_genome(genome_id), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate list_validations(run_id), to: TechTree.Benchmarks.Domains.BBH
 
   defdelegate create_draft(agent_claims, attrs), to: TechTree.BBH.Drafts
   defdelegate list_drafts(agent_claims), to: TechTree.BBH.Drafts
@@ -41,8 +41,8 @@ defmodule TechTree.BBH do
   defdelegate get_review_packet(agent_claims, request_id), to: TechTree.BBH.Reviews
   defdelegate submit_review(agent_claims, request_id, attrs), to: TechTree.BBH.Reviews
 
-  defdelegate certificate_summary(capsule_id), to: TechTree.BBH.PublicReads
-  defdelegate review_open_count(capsule_id), to: TechTree.BBH.PublicReads
+  defdelegate certificate_summary(capsule_id), to: TechTree.Benchmarks.Domains.BBH
+  defdelegate review_open_count(capsule_id), to: TechTree.Benchmarks.Domains.BBH
 
   defdelegate upsert_capsule(attrs), to: TechTree.BBH.Inventory
   defdelegate promote_challenge_capsule(capsule_id, attrs), to: TechTree.BBH.Inventory

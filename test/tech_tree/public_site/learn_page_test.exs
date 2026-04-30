@@ -15,7 +15,7 @@ defmodule TechTree.PublicSite.LearnPageTest do
     topics = PublicSite.learn_topics()
 
     assert Enum.map(topics, & &1.id) == [
-             "bbh-train",
+             "bbh-runs",
              "skydiscover",
              "hypotest",
              "techtree",

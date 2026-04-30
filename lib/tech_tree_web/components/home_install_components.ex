@@ -152,7 +152,7 @@ defmodule TechTreeWeb.HomeInstallComponents do
                 Copy {String.capitalize(@install_agent)} line
               </button>
 
-              <.link navigate={~p"/learn/bbh-train"} class="btn fp-command-secondary">
+              <.link navigate={~p"/learn/bbh-runs"} class="btn fp-command-secondary">
                 Open the BBH guide
               </.link>
 

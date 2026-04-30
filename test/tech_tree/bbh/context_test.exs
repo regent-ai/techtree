@@ -7,6 +7,8 @@ defmodule TechTree.BBH.ContextTest do
   alias TechTree.BBHFixtures
   alias TechTree.Repo
   alias TechTree.BBH.{Assignment, Capsule, ReviewRequest, Validation}
+  alias TechTree.Benchmarks.Capsule, as: BenchmarkCapsule
+  alias TechTree.Benchmarks.Validation, as: BenchmarkValidation
 
   test "promote_challenge_capsule publishes a reviewed draft capsule into the challenge lane" do
     %{capsule: capsule, publication_artifact_id: artifact_id, publication_review_id: review_id} =
@@ -198,5 +200,22 @@ defmodule TechTree.BBH.ContextTest do
     assert updated.workflow_state == :approved
     assert updated.certificate_status == :active
     assert updated.certificate_review_id == review_node_id
+
+    benchmark_capsule =
+      Repo.get_by!(BenchmarkCapsule, legacy_bbh_capsule_id: capsule.capsule_id)
+
+    benchmark_validation =
+      Repo.get_by!(BenchmarkValidation,
+        capsule_id: benchmark_capsule.capsule_id,
+        role: :reviewer
+      )
+
+    assert benchmark_capsule.workflow_state == :approved
+    assert benchmark_capsule.visibility == :private_review
+    assert benchmark_validation.result == :confirmed
+    assert benchmark_validation.validator_wallet_address == reviewer.wallet_address
+
+    assert get_in(benchmark_validation.review_source, ["bbh_review_submission", "review_node_id"]) ==
+             review_node_id
   end
 end

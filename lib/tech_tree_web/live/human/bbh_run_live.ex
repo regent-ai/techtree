@@ -61,7 +61,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
               <span class="bbh-chip">{@run.lane_label}</span>
               <span class="bbh-chip">{@run.operator_lane_tag}</span>
               <span class="bbh-chip">{@run.status_label}</span>
-              <.link navigate={~p"/learn/bbh-train"} class="hu-ghost-link">BBH guide</.link>
+              <.link navigate={~p"/learn/bbh-runs"} class="hu-ghost-link">BBH guide</.link>
               <span class="bbh-chip">{Float.round(@run.score_percent, 1)}%</span>
             </:actions>
           </.human_header>

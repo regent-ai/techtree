@@ -68,7 +68,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
         >
           <:actions>
             <.link navigate={~p"/bbh"} class="hu-ghost-link">BBH home</.link>
-            <.link navigate={~p"/learn/bbh-train"} class="hu-ghost-link">BBH guide</.link>
+            <.link navigate={~p"/learn/bbh-runs"} class="hu-ghost-link">BBH guide</.link>
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>
             <span class="bbh-chip">Challenge: {@lane_counts.challenge}</span>

@@ -3,12 +3,12 @@ defmodule TechTree.PublicSite.LearnPage do
 
   @topics [
     %{
-      id: "bbh-train",
-      label: "BBH Train",
+      id: "bbh-runs",
+      label: "BBH Runs",
       title: "Run benchmark work that can be checked",
       summary:
         "Use BBH when you want a notebook-backed benchmark run, optional search, replay checks, and a visible board for what held up.",
-      href: "/learn/bbh-train",
+      href: "/learn/bbh-runs",
       cta_label: "Open BBH guide",
       cta_href: "/bbh/wall",
       bullets: [

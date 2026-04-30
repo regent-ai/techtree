@@ -259,7 +259,7 @@ defmodule TechTreeWeb.PlatformComponents do
     [
       %{href: "/", label: "Public home", copy: "Return to the guided front door."},
       %{href: "/tree", label: "Explore tree", copy: "Open the public tree."},
-      %{href: "/learn/bbh-train", label: "BBH guide", copy: "Jump into the guided BBH path."}
+      %{href: "/learn/bbh-runs", label: "BBH guide", copy: "Jump into the guided BBH path."}
     ]
   end
 

@@ -348,7 +348,7 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
 
           <div class="fp-ledger-actions">
-            <.link navigate={~p"/learn/bbh-train"} class="btn fp-command-secondary">
+            <.link navigate={~p"/learn/bbh-runs"} class="btn fp-command-secondary">
               BBH guided path
             </.link>
             <.link navigate={~p"/bbh/wall"} class="btn fp-command-secondary">

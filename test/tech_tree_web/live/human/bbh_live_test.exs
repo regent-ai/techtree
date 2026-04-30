@@ -4,7 +4,6 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
   import Phoenix.LiveViewTest
 
   alias TechTree.BBHFixtures
-  alias TechTree.Repo
 
   test "renders the wall-first leaderboard with separated official strip", %{conn: conn} do
     %{capsule: capsule} =
@@ -64,12 +63,7 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
         title: "Seeded Frontier Capsule"
       })
 
-    TechTree.Repo.get!(TechTree.BBH.Capsule, seeded_capsule.capsule_id)
-    |> Ecto.Changeset.change(%{
-      certificate_status: :active,
-      certificate_review_id: "0xreview#{String.duplicate("1", 58)}"
-    })
-    |> TechTree.Repo.update!()
+    BBHFixtures.certify_capsule!(seeded_capsule)
 
     %{run: challenge_run} =
       BBHFixtures.insert_published_challenge_bundle!(%{
@@ -157,16 +151,13 @@ defmodule TechTreeWeb.Human.BbhLiveTest do
   end
 
   test "run page failure copy no longer points every lane to the next climb", %{conn: conn} do
-    %{run: run, validation: validation} =
+    %{run: run} =
       BBHFixtures.insert_validated_benchmark_bundle!(%{
         genome_label: "rejected-run",
         title: "Rejected Run",
-        model_id: "gpt-rejected"
+        model_id: "gpt-rejected",
+        validation_result: "rejected"
       })
-
-    validation
-    |> Ecto.Changeset.change(%{result: :rejected})
-    |> Repo.update!()
 
     {:ok, view, _html} = live(conn, ~p"/bbh/runs/#{run.run_id}")
 

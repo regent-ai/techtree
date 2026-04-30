@@ -34,7 +34,7 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
 
             <div class="tt-public-hero-actions">
               <.link navigate={~p"/bbh/wall"} class="tt-public-primary-button">Open BBH Wall</.link>
-              <.link navigate={~p"/learn/bbh-train"} class="tt-public-secondary-button">
+              <.link navigate={~p"/learn/bbh-runs"} class="tt-public-secondary-button">
                 Read the BBH Guide
               </.link>
             </div>

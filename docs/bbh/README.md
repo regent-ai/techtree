@@ -6,7 +6,7 @@ This cut is intentionally narrow:
 
 - Python-only capsules
 - marimo `.py` notebooks only
-- Regent runtime is the local execution surface
+- Regents CLI is the local execution surface
 - TechTree is the system of record for assignments, runs, validations, and leaderboard state
 - the v0.1 beta keeps the official benchmark and challenge boards empty until the later verification update
 - challenge stays public and reviewed as the frontier lane
@@ -47,21 +47,22 @@ Python package:
 
 CLI:
 
-- `regent auth siwa login`
-- `regent doctor`
-- `regent techtree bbh run exec --lane climb`
-- `regent techtree bbh submit ./run`
-- `regent techtree bbh validate ./run`
-- `regent techtree bbh leaderboard --lane benchmark`
-- `regent techtree bbh sync`
+- `regents auth login --audience techtree`
+- `regents identity ensure`
+- `regents doctor techtree`
+- `regents techtree bbh run exec --lane climb`
+- `regents techtree bbh submit ./run`
+- `regents techtree bbh validate ./run`
+- `regents techtree bbh leaderboard --lane benchmark`
+- `regents techtree bbh sync`
 
 ## Product loop
 
 The shipped loop is:
 
 1. install the skill
-2. install and authenticate Regent
-3. run `regent techtree bbh run exec --lane climb`
+2. install and authenticate Regents CLI
+3. run `regents techtree bbh run exec --lane climb`
 4. complete the local marimo workspace
 5. submit the run
 6. capture replay validation for the later verification update

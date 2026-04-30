@@ -56,8 +56,8 @@ TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-84532}"
 TECHTREE_P2P_ENABLED="${TECHTREE_P2P_ENABLED:-false}"
 SIWA_INTERNAL_URL="http://${SIWA_APP}.flycast:${SIWA_PORT}"
 
-if [[ "$TECHTREE_CHAIN_ID" != "84532" && "$TECHTREE_CHAIN_ID" != "8453" ]]; then
-  echo "deploys are Base only; set TECHTREE_CHAIN_ID=84532 or TECHTREE_CHAIN_ID=8453"
+if [[ "$TECHTREE_CHAIN_ID" != "84532" ]]; then
+  echo "first prod deploy is Base Sepolia only; set TECHTREE_CHAIN_ID=84532"
   exit 1
 fi
 

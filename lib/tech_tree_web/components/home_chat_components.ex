@@ -73,7 +73,7 @@ defmodule TechTreeWeb.HomeChatComponents do
           data-room-joined={to_string(@public_chat.joined?)}
           data-room-can-join={to_string(@public_chat.can_join?)}
           data-room-can-send={to_string(@public_chat.can_send?)}
-          data-room-pending={to_string(@public_chat.membership_state == :join_pending_signature)}
+          data-room-pending={to_string(@public_chat.membership_state == :join_pending)}
           data-server-signed-in={to_string(@server_signed_in?)}
         >
           <div class="fp-chat-section-head">
@@ -245,7 +245,7 @@ defmodule TechTreeWeb.HomeChatComponents do
   end
 
   defp room_state_label(%{joined?: true}), do: "Joined"
-  defp room_state_label(%{membership_state: :join_pending_signature}), do: "Confirming"
+  defp room_state_label(%{membership_state: :join_pending}), do: "Joining"
   defp room_state_label(%{membership_state: :full}), do: "Full"
   defp room_state_label(%{ready?: false}), do: "Opening soon"
   defp room_state_label(_room), do: "Open to read"

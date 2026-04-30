@@ -58,7 +58,7 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
 
   @spec normalize_default_status(map()) :: String.t()
   defp normalize_default_status(attrs) do
-    case value_for(attrs, :status) do
+    case value_for(attrs, "status") do
       nil ->
         "pending"
 
@@ -69,9 +69,6 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
           "pending"
         end
 
-      value when is_atom(value) ->
-        Atom.to_string(value)
-
       _ ->
         "pending"
     end
@@ -79,7 +76,7 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
 
   @spec normalize_default_attempt_count(map()) :: integer()
   defp normalize_default_attempt_count(attrs) do
-    case value_for(attrs, :attempt_count) do
+    case value_for(attrs, "attempt_count") do
       value when is_integer(value) and value >= 0 ->
         value
 
@@ -94,8 +91,6 @@ defmodule TechTree.XMTPMirror.XmtpMembershipCommand do
     end
   end
 
-  @spec value_for(map(), atom()) :: term()
-  defp value_for(attrs, key) when is_map(attrs) do
-    Map.get(attrs, key, Map.get(attrs, Atom.to_string(key)))
-  end
+  @spec value_for(map(), String.t()) :: term()
+  defp value_for(attrs, key) when is_map(attrs) and is_binary(key), do: Map.get(attrs, key)
 end

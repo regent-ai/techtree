@@ -39,7 +39,13 @@ defmodule TechTree.XMTPMirror do
   def resolve_command(command_id, attrs), do: Membership.resolve_command(command_id, attrs)
 
   @spec request_join(HumanUser.t(), map()) ::
-          {:ok, map()} | {:error, :room_not_found | :human_banned | :xmtp_identity_required}
+          {:ok, map()}
+          | {:error,
+             :already_in_room
+             | :human_banned
+             | :room_full
+             | :room_not_found
+             | :xmtp_identity_required}
   def request_join(human, attrs \\ %{})
 
   def request_join(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
@@ -50,7 +56,11 @@ defmodule TechTree.XMTPMirror do
   @spec create_human_message(HumanUser.t(), map()) ::
           {:ok, XmtpMessage.t()}
           | {:error,
-             :human_banned | :room_not_found | :xmtp_identity_required | Ecto.Changeset.t()}
+             :human_banned
+             | :room_not_found
+             | :xmtp_identity_required
+             | :xmtp_membership_required
+             | Ecto.Changeset.t()}
   def create_human_message(%HumanUser{role: "banned"}, _attrs), do: {:error, :human_banned}
 
   def create_human_message(%HumanUser{} = human, attrs) when is_map(attrs),

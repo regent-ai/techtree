@@ -41,16 +41,17 @@ defmodule TechTreeWeb.PublicLiveUpdatesTest do
 
     assert {:ok, _message} =
              XMTPMirror.ingest_message(%{
-               room_id: room.id,
-               xmtp_message_id: "public-live-streamed",
-               sender_inbox_id: PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
-               sender_wallet_address: sender_wallet_address,
-               sender_label: "Streamed Sender",
-               sender_type: :human,
-               body: "streamed mirrored xmtp message",
-               sent_at: DateTime.utc_now(),
-               raw_payload: %{"kind" => "message"},
-               moderation_state: "visible"
+               "room_id" => room.id,
+               "xmtp_message_id" => "public-live-streamed",
+               "sender_inbox_id" =>
+                 PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+               "sender_wallet_address" => sender_wallet_address,
+               "sender_label" => "Streamed Sender",
+               "sender_type" => "human",
+               "body" => "streamed mirrored xmtp message",
+               "sent_at" => DateTime.utc_now(),
+               "raw_payload" => %{"kind" => "message"},
+               "moderation_state" => "visible"
              })
 
     assert render(view) =~ "streamed mirrored xmtp message"

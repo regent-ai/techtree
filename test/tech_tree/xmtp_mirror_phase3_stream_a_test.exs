@@ -233,7 +233,7 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     add_pending = insert_membership_command!(room, human, "add_member", "pending")
     assert %{state: "join_pending"} = XMTPMirror.membership_for(human)
 
-    assert :ok = XMTPMirror.resolve_command(add_pending.id, %{status: "done"})
+    assert :ok = XMTPMirror.resolve_command(add_pending.id, %{"status" => "done"})
     assert %{state: "joined"} = XMTPMirror.membership_for(human)
 
     remove_pending = insert_membership_command!(room, human, "remove_member", "pending")
@@ -241,14 +241,14 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
 
     assert :ok =
              XMTPMirror.resolve_command(remove_pending.id, %{
-               status: "failed",
-               error: "membership op failed"
+               "status" => "failed",
+               "error" => "membership op failed"
              })
 
     assert %{state: "leave_failed"} = XMTPMirror.membership_for(human)
 
     remove_done = insert_membership_command!(room, human, "remove_member", "pending")
-    assert :ok = XMTPMirror.resolve_command(remove_done.id, %{status: "done"})
+    assert :ok = XMTPMirror.resolve_command(remove_done.id, %{"status" => "done"})
     assert %{state: "not_joined"} = XMTPMirror.membership_for(human)
   end
 
@@ -269,7 +269,7 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     assert :ok =
              XMTPMirror.resolve_command(
                latest_command_id!(room.id, human.id, "add_member"),
-               %{status: "done"}
+               %{"status" => "done"}
              )
 
     assert {:ok, :enqueued} = XMTPMirror.remove_human_from_canonical_room(human.id)
@@ -355,11 +355,11 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
   defp insert_membership_command!(room, human, op, status) do
     %XmtpMembershipCommand{}
     |> XmtpMembershipCommand.enqueue_changeset(%{
-      room_id: room.id,
-      human_user_id: human.id,
-      op: op,
-      xmtp_inbox_id: human.xmtp_inbox_id,
-      status: status
+      "room_id" => room.id,
+      "human_user_id" => human.id,
+      "op" => op,
+      "xmtp_inbox_id" => human.xmtp_inbox_id,
+      "status" => status
     })
     |> Repo.insert!()
   end
@@ -403,10 +403,10 @@ defmodule TechTree.XMTPMirrorPhase3StreamATest do
     Enum.each(1..count, fn idx ->
       %XmtpMembershipCommand{}
       |> XmtpMembershipCommand.enqueue_changeset(%{
-        room_id: room.id,
-        op: "add_member",
-        xmtp_inbox_id: "saturated-inbox-#{room.id}-#{idx}",
-        status: "done"
+        "room_id" => room.id,
+        "op" => "add_member",
+        "xmtp_inbox_id" => "saturated-inbox-#{room.id}-#{idx}",
+        "status" => "done"
       })
       |> Repo.insert!()
     end)

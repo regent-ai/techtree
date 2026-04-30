@@ -10,7 +10,11 @@ defmodule TechTree.PublicEvents do
   @type event ::
           {:public_site_event, %{event: :activity_refresh}}
           | {:public_site_event,
-             %{event: :xmtp_room_message, room_key: String.t(), message: XmtpMessage.t()}}
+             %{
+               event: :xmtp_room_message | :xmtp_room_membership,
+               room_key: String.t(),
+               message: XmtpMessage.t() | nil
+             }}
           | {:public_site_event, %{event: :bbh_wall_refresh}}
 
   @spec topic() :: String.t()
@@ -27,6 +31,11 @@ defmodule TechTree.PublicEvents do
   @spec broadcast_xmtp_room_message(XmtpMessage.t(), String.t()) :: :ok | {:error, term()}
   def broadcast_xmtp_room_message(%XmtpMessage{} = message, room_key) when is_binary(room_key) do
     broadcast(%{event: :xmtp_room_message, room_key: room_key, message: message})
+  end
+
+  @spec broadcast_xmtp_room_membership(String.t()) :: :ok | {:error, term()}
+  def broadcast_xmtp_room_membership(room_key) when is_binary(room_key) do
+    broadcast(%{event: :xmtp_room_membership, room_key: room_key, message: nil})
   end
 
   @spec broadcast_bbh_wall_refresh() :: :ok | {:error, term()}

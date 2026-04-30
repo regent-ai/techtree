@@ -46,12 +46,17 @@ defmodule TechTree.XMTPMirror.Messages do
 
   @spec create_human_message(HumanUser.t(), map()) ::
           {:ok, XmtpMessage.t()}
-          | {:error, :room_not_found | :xmtp_identity_required | Ecto.Changeset.t()}
+          | {:error,
+             :room_not_found
+             | :xmtp_identity_required
+             | :xmtp_membership_required
+             | Ecto.Changeset.t()}
   def create_human_message(%HumanUser{} = human, attrs) when is_map(attrs) do
     with {:ok, inbox_id} <- Membership.require_human_inbox_id(human),
-         {:ok, room} <- Rooms.resolve_message_room(attrs) do
+         {:ok, room} <- Rooms.resolve_message_room(attrs),
+         :ok <- require_joined_room(human, room) do
       message_id =
-        Rooms.value_for(attrs, :xmtp_message_id) ||
+        Rooms.value_for(attrs, "xmtp_message_id") ||
           "xmtp-#{room.id}-#{human.id}-#{System.unique_integer([:positive, :monotonic])}"
 
       message_attrs = %{
@@ -61,17 +66,25 @@ defmodule TechTree.XMTPMirror.Messages do
         sender_wallet_address: human.wallet_address,
         sender_label: human.display_name,
         sender_type: :human,
-        body: Rooms.value_for(attrs, :body) || "",
-        sent_at: normalize_sent_at(Rooms.value_for(attrs, :sent_at)),
-        raw_payload: Rooms.value_for(attrs, :raw_payload) || %{},
-        moderation_state: Rooms.value_for(attrs, :moderation_state) || "visible",
-        reply_to_message_id: Rooms.value_for(attrs, :reply_to_message_id),
-        reactions: Rooms.value_for(attrs, :reactions) || %{}
+        body: Rooms.value_for(attrs, "body") || "",
+        sent_at: normalize_sent_at(Rooms.value_for(attrs, "sent_at")),
+        raw_payload: Rooms.value_for(attrs, "raw_payload") || %{},
+        moderation_state: Rooms.value_for(attrs, "moderation_state") || "visible",
+        reply_to_message_id: Rooms.value_for(attrs, "reply_to_message_id"),
+        reactions: Rooms.value_for(attrs, "reactions") || %{}
       }
 
       %XmtpMessage{}
       |> XmtpMessage.changeset(message_attrs)
       |> Repo.insert()
+      |> case do
+        {:ok, %XmtpMessage{} = message} ->
+          maybe_broadcast_public_message(message, room)
+          {:ok, message}
+
+        {:error, changeset} ->
+          {:error, changeset}
+      end
     end
   end
 
@@ -80,7 +93,13 @@ defmodule TechTree.XMTPMirror.Messages do
     case Rooms.resolve_message_room(attrs) do
       {:ok, room} ->
         XmtpMessage
+        |> join(:left, [m], h in HumanUser,
+          on:
+            fragment("lower(?)", h.wallet_address) ==
+              fragment("lower(?)", m.sender_wallet_address)
+        )
         |> where([m], m.room_id == ^room.id and m.moderation_state == "visible")
+        |> where([m, h], m.sender_type != :human or is_nil(h.id) or h.role != "banned")
         |> order_by([m], desc: m.sent_at, desc: m.id)
         |> limit(^QueryHelpers.parse_limit(attrs, 50))
         |> Repo.all()
@@ -93,22 +112,26 @@ defmodule TechTree.XMTPMirror.Messages do
   defp normalize_message_attrs(attrs, room) do
     %{
       room_id: room.id,
-      xmtp_message_id: Rooms.value_for(attrs, :xmtp_message_id),
-      sender_inbox_id: Rooms.value_for(attrs, :sender_inbox_id),
-      sender_wallet_address: Rooms.value_for(attrs, :sender_wallet_address),
-      sender_label: Rooms.value_for(attrs, :sender_label),
-      sender_type: Rooms.value_for(attrs, :sender_type) || :human,
-      body: Rooms.value_for(attrs, :body),
-      sent_at: normalize_sent_at(Rooms.value_for(attrs, :sent_at)),
-      raw_payload: Rooms.value_for(attrs, :raw_payload) || %{},
-      moderation_state: Rooms.value_for(attrs, :moderation_state) || "visible",
-      reply_to_message_id: Rooms.value_for(attrs, :reply_to_message_id),
-      reactions: Rooms.value_for(attrs, :reactions) || %{}
+      xmtp_message_id: Rooms.value_for(attrs, "xmtp_message_id"),
+      sender_inbox_id: Rooms.value_for(attrs, "sender_inbox_id"),
+      sender_wallet_address: Rooms.value_for(attrs, "sender_wallet_address"),
+      sender_label: Rooms.value_for(attrs, "sender_label"),
+      sender_type: Rooms.value_for(attrs, "sender_type") || :human,
+      body: Rooms.value_for(attrs, "body"),
+      sent_at: normalize_sent_at(Rooms.value_for(attrs, "sent_at")),
+      raw_payload: Rooms.value_for(attrs, "raw_payload") || %{},
+      moderation_state: Rooms.value_for(attrs, "moderation_state") || "visible",
+      reply_to_message_id: Rooms.value_for(attrs, "reply_to_message_id"),
+      reactions: Rooms.value_for(attrs, "reactions") || %{}
     }
   end
 
+  defp require_joined_room(%HumanUser{} = human, room) do
+    if Membership.joined?(human, room), do: :ok, else: {:error, :xmtp_membership_required}
+  end
+
   defp validate_reply_to_message(attrs) do
-    case Rooms.value_for(attrs, :reply_to_message_id) do
+    case Rooms.value_for(attrs, "reply_to_message_id") do
       nil ->
         :ok
 
@@ -130,7 +153,7 @@ defmodule TechTree.XMTPMirror.Messages do
   end
 
   defp validate_reaction_payload(attrs) do
-    case Rooms.value_for(attrs, :reactions) do
+    case Rooms.value_for(attrs, "reactions") do
       nil -> :ok
       reactions when is_map(reactions) -> :ok
       _ -> {:error, :invalid_reactions}

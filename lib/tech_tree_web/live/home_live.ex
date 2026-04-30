@@ -35,9 +35,12 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   @impl true
-  def handle_info({:xmtp_public_room, :refresh}, socket) do
+  def handle_info({:public_site_event, %{event: event}}, socket)
+      when event in [:xmtp_room_message, :xmtp_room_membership] do
     {:noreply, assign_public_chatbox_panels(socket)}
   end
+
+  def handle_info({:public_site_event, _payload}, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("frontpage_chat_join", _params, socket) do
@@ -45,39 +48,9 @@ defmodule TechTreeWeb.HomeLive do
       {:ok, panel} ->
         {:noreply, assign_public_chatbox_panels(socket, panel)}
 
-      {:needs_signature, %{request_id: request_id, signature_text: signature_text, panel: panel}} ->
-        {:noreply,
-         socket
-         |> assign_public_chatbox_panels(panel)
-         |> push_event("xmtp:sign-request", %{
-           request_id: request_id,
-           signature_text: signature_text,
-           wallet_address: panel.connected_wallet
-         })}
-
       {:error, reason} ->
         {:noreply, put_public_chatbox_status(socket, PublicChat.reason_message(reason))}
     end
-  end
-
-  @impl true
-  def handle_event(
-        "frontpage_chat_join_signature_signed",
-        %{"request_id" => request_id, "signature" => signature},
-        socket
-      ) do
-    case PublicChat.complete_join_signature(socket.assigns[:current_human], request_id, signature) do
-      {:ok, panel} ->
-        {:noreply, assign_public_chatbox_panels(socket, panel)}
-
-      {:error, reason} ->
-        {:noreply, put_public_chatbox_status(socket, PublicChat.reason_message(reason))}
-    end
-  end
-
-  @impl true
-  def handle_event("frontpage_chat_join_signature_failed", %{"message" => message}, socket) do
-    {:noreply, put_public_chatbox_status(socket, message)}
   end
 
   @impl true

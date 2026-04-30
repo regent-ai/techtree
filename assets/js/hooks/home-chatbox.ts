@@ -13,7 +13,6 @@ import {
   type PrivyLike,
   type PrivyUser,
   requireEthereumProvider,
-  signWithConnectedWallet,
 } from "./privy-wallet";
 
 const ROOM_HEARTBEAT_MS = 30_000;
@@ -342,38 +341,6 @@ export const HomeChatbox: Hook = {
         });
       }
     };
-
-    this.handleEvent("xmtp:sign-request", async (payload) => {
-      const { request_id, signature_text, wallet_address } = payload as {
-        request_id: string;
-        signature_text: string;
-        wallet_address?: string | null;
-      };
-
-      try {
-        setState("Check your wallet to finish joining.");
-        const provider = await requireEthereumProvider();
-        const { signature } = await signWithConnectedWallet(
-          provider,
-          String(signature_text ?? ""),
-          typeof wallet_address === "string" ? wallet_address : null,
-        );
-
-        setState("Joining room...");
-        this.pushEvent("frontpage_chat_join_signature_signed", {
-          request_id,
-          signature,
-        });
-      } catch (error) {
-        const message =
-          error instanceof Error && error.message
-            ? error.message
-            : "We could not finish joining this room.";
-
-        setState(message);
-        this.pushEvent("frontpage_chat_join_signature_failed", { message });
-      }
-    });
 
     const handleInput = () => syncComposerState();
     const handleAuthClick = () => void toggleAuth();

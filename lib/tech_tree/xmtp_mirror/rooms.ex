@@ -27,12 +27,15 @@ defmodule TechTree.XMTPMirror.Rooms do
   @spec default_capacity() :: pos_integer()
   def default_capacity, do: @default_capacity
 
+  @spec room_capacity(XmtpRoom.t() | nil) :: pos_integer()
+  def room_capacity(_room), do: @default_capacity
+
   @spec default_presence_ttl_seconds() :: pos_integer()
   def default_presence_ttl_seconds, do: @default_presence_ttl_seconds
 
   @spec ensure_room(map()) :: {:ok, XmtpRoom.t()} | {:error, Ecto.Changeset.t()}
   def ensure_room(attrs) when is_map(attrs) do
-    key = value_for(attrs, :room_key)
+    key = value_for(attrs, "room_key")
 
     case get_room_by_key(key) do
       nil ->
@@ -80,13 +83,13 @@ defmodule TechTree.XMTPMirror.Rooms do
   @spec resolve_room(map() | String.t() | integer() | nil) :: XmtpRoom.t() | nil
   def resolve_room(%{} = attrs) do
     cond do
-      room_id = value_for(attrs, :room_id) ->
+      room_id = value_for(attrs, "room_id") ->
         Repo.get(XmtpRoom, QueryHelpers.normalize_id(room_id))
 
-      shard_key = value_for(attrs, :shard_key) ->
+      shard_key = value_for(attrs, "shard_key") ->
         get_room_by_key(shard_key)
 
-      room_key = value_for(attrs, :room_key) ->
+      room_key = value_for(attrs, "room_key") ->
         get_room_by_key(room_key)
 
       true ->
@@ -122,15 +125,13 @@ defmodule TechTree.XMTPMirror.Rooms do
     max(add_count - remove_count, 0)
   end
 
-  @spec value_for(map(), atom()) :: term()
-  def value_for(attrs, key) when is_map(attrs) do
-    Map.get(attrs, key, Map.get(attrs, Atom.to_string(key)))
-  end
+  @spec value_for(map(), String.t()) :: term()
+  def value_for(attrs, key) when is_map(attrs) and is_binary(key), do: Map.get(attrs, key)
 
   defp explicit_room_reference?(attrs) when is_map(attrs) do
-    not is_nil(value_for(attrs, :room_id)) or
-      not is_nil(value_for(attrs, :shard_key)) or
-      not is_nil(value_for(attrs, :room_key))
+    not is_nil(value_for(attrs, "room_id")) or
+      not is_nil(value_for(attrs, "shard_key")) or
+      not is_nil(value_for(attrs, "room_key"))
   end
 
   defp select_join_room do
@@ -145,7 +146,7 @@ defmodule TechTree.XMTPMirror.Rooms do
     |> where([r], r.status == "active" and like(r.room_key, ^"#{@canonical_room_key}%"))
     |> Repo.all()
     |> Enum.sort_by(&room_sort_key/1)
-    |> Enum.filter(&(active_member_count(&1.id) < @default_capacity))
+    |> Enum.filter(&(active_member_count(&1.id) < room_capacity(&1)))
   end
 
   defp ensure_next_shard_room do
@@ -164,12 +165,13 @@ defmodule TechTree.XMTPMirror.Rooms do
       shard_key = "#{@canonical_room_key}-shard-#{next_number}"
 
       case ensure_room(%{
-             room_key: shard_key,
-             xmtp_group_id: "xmtp-#{shard_key}",
-             name: "#{canonical_room.name || "Public Chatbox"} ##{next_number}",
-             status: canonical_room.status || "active",
-             presence_ttl_seconds:
-               canonical_room.presence_ttl_seconds || @default_presence_ttl_seconds
+             "room_key" => shard_key,
+             "xmtp_group_id" => "xmtp-#{shard_key}",
+             "name" => "#{canonical_room.name || "Public Chatbox"} ##{next_number}",
+             "status" => canonical_room.status || "active",
+             "presence_ttl_seconds" =>
+               canonical_room.presence_ttl_seconds || @default_presence_ttl_seconds,
+             "capacity" => @default_capacity
            }) do
         {:ok, room} -> room
         {:error, _changeset} -> get_room_by_key(shard_key)
@@ -187,20 +189,21 @@ defmodule TechTree.XMTPMirror.Rooms do
       name: room.name,
       status: room.status,
       presence_ttl_seconds: room.presence_ttl_seconds,
-      capacity: @default_capacity,
+      capacity: room_capacity(room),
       active_members: active_members,
-      joinable: active_members < @default_capacity
+      joinable: active_members < room_capacity(room)
     }
   end
 
   defp normalize_room_attrs(attrs) do
     %{
-      room_key: value_for(attrs, :room_key),
-      xmtp_group_id: value_for(attrs, :xmtp_group_id),
-      name: value_for(attrs, :name),
-      status: value_for(attrs, :status) || "active",
+      room_key: value_for(attrs, "room_key"),
+      xmtp_group_id: value_for(attrs, "xmtp_group_id"),
+      name: value_for(attrs, "name"),
+      status: value_for(attrs, "status") || "active",
       presence_ttl_seconds:
-        value_for(attrs, :presence_ttl_seconds) || @default_presence_ttl_seconds
+        value_for(attrs, "presence_ttl_seconds") || @default_presence_ttl_seconds,
+      capacity: @default_capacity
     }
   end
 

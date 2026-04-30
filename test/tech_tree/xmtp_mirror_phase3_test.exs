@@ -10,25 +10,26 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "ingest_message is idempotent for repeated xmtp_message_id" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-chatbox",
-        xmtp_group_id: "xmtp-public-chatbox",
-        name: "Public Chatbox",
-        status: "active"
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox",
+        "name" => "Public Chatbox",
+        "status" => "active"
       })
 
     sender_wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
 
     attrs = %{
-      room_id: room.id,
-      xmtp_message_id: "msg-1",
-      sender_inbox_id: TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
-      sender_wallet_address: sender_wallet_address,
-      sender_label: "sender",
-      sender_type: :human,
-      body: "hello world",
-      sent_at: DateTime.utc_now(),
-      raw_payload: %{"kind" => "message"},
-      moderation_state: "visible"
+      "room_id" => room.id,
+      "xmtp_message_id" => "msg-1",
+      "sender_inbox_id" =>
+        TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+      "sender_wallet_address" => sender_wallet_address,
+      "sender_label" => "sender",
+      "sender_type" => "human",
+      "body" => "hello world",
+      "sent_at" => DateTime.utc_now(),
+      "raw_payload" => %{"kind" => "message"},
+      "moderation_state" => "visible"
     }
 
     {:ok, first} = XMTPMirror.ingest_message(attrs)
@@ -47,10 +48,10 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "ingest_message broadcasts once for a newly saved public room message" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-chatbox",
-        xmtp_group_id: "xmtp-public-chatbox-broadcast",
-        name: "Public Chatbox",
-        status: "active"
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox-broadcast",
+        "name" => "Public Chatbox",
+        "status" => "active"
       })
 
     :ok = PublicEvents.subscribe()
@@ -80,10 +81,10 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "ingest_message does not broadcast private room messages to public listeners" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "team-room",
-        xmtp_group_id: "xmtp-team-room",
-        name: "Team Room",
-        status: "active"
+        "room_key" => "team-room",
+        "xmtp_group_id" => "xmtp-team-room",
+        "name" => "Team Room",
+        "status" => "active"
       })
 
     :ok = PublicEvents.subscribe()
@@ -96,18 +97,18 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "leasing and processing command path is idempotent for one pending command" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "lease-room",
-        xmtp_group_id: "xmtp-lease-room",
-        name: "Lease Room",
-        status: "active"
+        "room_key" => "lease-room",
+        "xmtp_group_id" => "xmtp-lease-room",
+        "name" => "Lease Room",
+        "status" => "active"
       })
 
     command =
       %XmtpMembershipCommand{}
       |> XmtpMembershipCommand.enqueue_changeset(%{
-        room_id: room.id,
-        op: "add_member",
-        xmtp_inbox_id: "inbox-lease"
+        "room_id" => room.id,
+        "op" => "add_member",
+        "xmtp_inbox_id" => "inbox-lease"
       })
       |> Repo.insert!()
 
@@ -118,7 +119,7 @@ defmodule TechTree.XMTPMirrorPhase3Test do
 
     assert XMTPMirror.lease_next_command(room.room_key) == nil
 
-    assert :ok = XMTPMirror.resolve_command(leased.id, %{status: "done"})
+    assert :ok = XMTPMirror.resolve_command(leased.id, %{"status" => "done"})
     completed = Repo.get!(XmtpMembershipCommand, leased.id)
     assert completed.status == "done"
   end
@@ -126,18 +127,18 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "resolve_command with failed status records error and status" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "fail-room",
-        xmtp_group_id: "xmtp-fail-room",
-        name: "Fail Room",
-        status: "active"
+        "room_key" => "fail-room",
+        "xmtp_group_id" => "xmtp-fail-room",
+        "name" => "Fail Room",
+        "status" => "active"
       })
 
     command =
       %XmtpMembershipCommand{}
       |> XmtpMembershipCommand.enqueue_changeset(%{
-        room_id: room.id,
-        op: "remove_member",
-        xmtp_inbox_id: "inbox-fail"
+        "room_id" => room.id,
+        "op" => "remove_member",
+        "xmtp_inbox_id" => "inbox-fail"
       })
       |> Repo.insert!()
 
@@ -146,8 +147,8 @@ defmodule TechTree.XMTPMirrorPhase3Test do
 
     assert :ok =
              XMTPMirror.resolve_command(leased.id, %{
-               status: "failed",
-               error: "membership op failed"
+               "status" => "failed",
+               "error" => "membership op failed"
              })
 
     failed = Repo.get!(XmtpMembershipCommand, leased.id)
@@ -158,18 +159,18 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "request_join and create_human_message are shard-aware" do
     {:ok, _canonical} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-chatbox",
-        xmtp_group_id: "xmtp-public-chatbox-shard-aware",
-        name: "Public Chatbox",
-        status: "active"
+        "room_key" => "public-chatbox",
+        "xmtp_group_id" => "xmtp-public-chatbox-shard-aware",
+        "name" => "Public Chatbox",
+        "status" => "active"
       })
 
     {:ok, shard_room} =
       XMTPMirror.ensure_room(%{
-        room_key: "public-chatbox-shard-2",
-        xmtp_group_id: "xmtp-public-chatbox-shard-2",
-        name: "Public Chatbox #2",
-        status: "active"
+        "room_key" => "public-chatbox-shard-2",
+        "xmtp_group_id" => "xmtp-public-chatbox-shard-2",
+        "name" => "Public Chatbox #2",
+        "status" => "active"
       })
 
     human = create_human!("shard-aware")
@@ -198,11 +199,11 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   test "heartbeat_presence enqueues stale leave commands for expired presences" do
     {:ok, room} =
       XMTPMirror.ensure_room(%{
-        room_key: "presence-room",
-        xmtp_group_id: "xmtp-presence-room",
-        name: "Presence Room",
-        status: "active",
-        presence_ttl_seconds: 120
+        "room_key" => "presence-room",
+        "xmtp_group_id" => "xmtp-presence-room",
+        "name" => "Presence Room",
+        "status" => "active",
+        "presence_ttl_seconds" => 120
       })
 
     active_human = create_human!("presence-active")
@@ -257,11 +258,11 @@ defmodule TechTree.XMTPMirrorPhase3Test do
   defp mark_human_joined!(room_id, human_id, inbox_id) do
     %XmtpMembershipCommand{}
     |> XmtpMembershipCommand.enqueue_changeset(%{
-      room_id: room_id,
-      human_user_id: human_id,
-      op: "add_member",
-      xmtp_inbox_id: inbox_id,
-      status: "done"
+      "room_id" => room_id,
+      "human_user_id" => human_id,
+      "op" => "add_member",
+      "xmtp_inbox_id" => inbox_id,
+      "status" => "done"
     })
     |> Repo.insert!()
   end
@@ -270,16 +271,17 @@ defmodule TechTree.XMTPMirrorPhase3Test do
     sender_wallet_address = TechTree.PhaseDApiSupport.random_eth_address()
 
     %{
-      room_id: room.id,
-      xmtp_message_id: xmtp_message_id,
-      sender_inbox_id: TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
-      sender_wallet_address: sender_wallet_address,
-      sender_label: "sender",
-      sender_type: :human,
-      body: "hello world",
-      sent_at: DateTime.utc_now(),
-      raw_payload: %{"kind" => "message"},
-      moderation_state: "visible"
+      "room_id" => room.id,
+      "xmtp_message_id" => xmtp_message_id,
+      "sender_inbox_id" =>
+        TechTree.PhaseDApiSupport.deterministic_inbox_id(sender_wallet_address),
+      "sender_wallet_address" => sender_wallet_address,
+      "sender_label" => "sender",
+      "sender_type" => "human",
+      "body" => "hello world",
+      "sent_at" => DateTime.utc_now(),
+      "raw_payload" => %{"kind" => "message"},
+      "moderation_state" => "visible"
     }
   end
 end

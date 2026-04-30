@@ -331,11 +331,11 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
 
     %XmtpMembershipCommand{}
     |> XmtpMembershipCommand.enqueue_changeset(%{
-      room_id: room.id,
-      human_user_id: human.id,
-      op: "add_member",
-      xmtp_inbox_id: human.xmtp_inbox_id,
-      status: "done"
+      "room_id" => room.id,
+      "human_user_id" => human.id,
+      "op" => "add_member",
+      "xmtp_inbox_id" => human.xmtp_inbox_id,
+      "status" => "done"
     })
     |> Repo.insert!()
   end

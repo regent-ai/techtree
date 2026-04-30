@@ -82,11 +82,11 @@ defmodule TechTree.XmtpIdentity do
       {:ok,
        {:signature_required, human,
         %{
-          inbox_id: nil,
-          wallet_address: wallet_address,
-          client_id: client.id,
-          signature_request_id: challenge.signature_request_id,
-          signature_text: challenge.signature_text
+          "inbox_id" => nil,
+          "wallet_address" => wallet_address,
+          "client_id" => client.id,
+          "signature_request_id" => challenge.signature_request_id,
+          "signature_text" => challenge.signature_text
         }}}
     end
   end

@@ -250,9 +250,9 @@ defmodule TechTreeWeb.InternalXmtpControllerTest do
 
     command_changeset =
       XmtpMembershipCommand.enqueue_changeset(%XmtpMembershipCommand{}, %{
-        room_id: room_data["id"],
-        op: command_attrs["op"],
-        xmtp_inbox_id: command_attrs["xmtp_inbox_id"]
+        "room_id" => room_data["id"],
+        "op" => command_attrs["op"],
+        "xmtp_inbox_id" => command_attrs["xmtp_inbox_id"]
       })
 
     {:ok, _command} = Repo.insert(command_changeset)

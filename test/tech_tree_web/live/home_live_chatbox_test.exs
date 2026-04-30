@@ -2,17 +2,12 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
   use TechTreeWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
+  import TechTree.PhaseDApiSupport, only: [create_canonical_room!: 0, create_visible_message!: 2]
 
-  alias TechTree.Repo
-  alias TechTree.Xmtp
-  alias Elixir.Xmtp.MessageLog
-  alias Elixir.Xmtp.Room
-
-  @test_agent_private_key "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+  alias TechTree.{PhaseDApiSupport, XMTPMirror}
 
   setup do
-    configure_xmtp_room!()
-    :ok
+    %{room: create_canonical_room!()}
   end
 
   test "homepage chatbox shells stay in the chrome contract", %{conn: conn} do
@@ -41,11 +36,23 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
     assert render(view) =~ "There are 200 seats in the first room."
   end
 
-  test "homepage chatbox panels render shared public room messages by sender kind", %{conn: conn} do
-    room = bootstrap_public_room!()
+  test "homepage chatbox panels render shared public room messages by sender kind", %{
+    conn: conn,
+    room: room
+  } do
+    human_message =
+      create_visible_message!(room, %{
+        sender_type: :human,
+        sender_label: "human sender",
+        body: "human shared panel message"
+      })
 
-    human_message = insert_room_message!(room, "human", "human shared panel message")
-    agent_message = insert_room_message!(room, "agent", "agent shared panel message")
+    agent_message =
+      create_visible_message!(room, %{
+        sender_type: :agent,
+        sender_label: "agent sender",
+        body: "agent shared panel message"
+      })
 
     {:ok, view, _html} = live(conn, ~p"/app")
 
@@ -66,50 +73,28 @@ defmodule TechTreeWeb.HomeLiveChatboxTest do
     refute render(view) =~ "<time class=\"ml-2 opacity-70\">-</time>"
   end
 
-  defp configure_xmtp_room! do
-    original = Application.get_env(:tech_tree, TechTree.Xmtp, [])
-    rooms = Keyword.fetch!(original, :rooms)
+  test "homepage chatbox refreshes when the mirror receives a public room message", %{
+    conn: conn,
+    room: room
+  } do
+    {:ok, view, _html} = live(conn, ~p"/app")
 
-    configured_rooms =
-      Enum.map(rooms, fn
-        %{key: "public-chatbox"} = room -> %{room | agent_private_key: @test_agent_private_key}
-        room -> room
-      end)
+    wallet = PhaseDApiSupport.random_eth_address()
 
-    Application.put_env(
-      :tech_tree,
-      TechTree.Xmtp,
-      Keyword.put(original, :rooms, configured_rooms)
-    )
+    assert {:ok, _message} =
+             XMTPMirror.ingest_message(%{
+               "room_id" => room.id,
+               "xmtp_message_id" => "homepage-live-message-#{PhaseDApiSupport.unique_suffix()}",
+               "sender_inbox_id" => PhaseDApiSupport.deterministic_inbox_id(wallet),
+               "sender_wallet_address" => wallet,
+               "sender_label" => "live sender",
+               "sender_type" => "human",
+               "body" => "arrived after mount",
+               "sent_at" => DateTime.utc_now(),
+               "raw_payload" => %{"kind" => "message"},
+               "moderation_state" => "visible"
+             })
 
-    on_exit(fn ->
-      Xmtp.reset_for_test!("public-chatbox")
-      Application.put_env(:tech_tree, TechTree.Xmtp, original)
-    end)
-  end
-
-  defp bootstrap_public_room! do
-    {:ok, _info} = Xmtp.bootstrap_room!(room_key: "public-chatbox", reuse: true)
-    Repo.get_by!(Room, room_key: "public-chatbox")
-  end
-
-  defp insert_room_message!(%Room{} = room, sender_kind, body) do
-    unique = System.unique_integer([:positive])
-
-    %MessageLog{}
-    |> MessageLog.changeset(%{
-      room_id: room.id,
-      xmtp_message_id: "homepage-room-message-#{sender_kind}-#{unique}",
-      conversation_id: room.conversation_id,
-      sender_inbox_id: "inbox-#{sender_kind}-#{unique}",
-      sender_wallet: "0x#{String.duplicate(Integer.to_string(rem(unique, 10)), 40)}",
-      sender_kind: sender_kind,
-      sender_label: "#{sender_kind} #{unique}",
-      body: body,
-      sent_at: DateTime.utc_now(),
-      website_visibility_state: "visible",
-      message_snapshot: %{"content_type_id" => "text"}
-    })
-    |> Repo.insert!()
+    assert render(view) =~ "arrived after mount"
   end
 end

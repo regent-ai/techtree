@@ -676,7 +676,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LooseObject"
+                $ref: "#/components/schemas/NodePurchaseVerificationResponse"
+        "404":
+          description: Paid payload not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+        "422":
+          description: Purchase verification failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
   /v1/tree/seeds/{seed}/hot:
     get:
       operationId: getHotSeed
@@ -2494,6 +2504,30 @@ components:
               additionalProperties: true
             - type: "null"
       additionalProperties: true
+    NodePurchaseVerificationResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [node_id, tx_hash, chain_id, amount_usdc, listing_ref, bundle_ref]
+          properties:
+            node_id:
+              type: integer
+              minimum: 1
+            tx_hash:
+              $ref: "#/components/schemas/TransactionHash"
+            chain_id:
+              $ref: "#/components/schemas/TechtreeIdentityChainId"
+            amount_usdc:
+              type: string
+              pattern: "^[0-9]+(\\.[0-9]+)?$"
+            listing_ref:
+              $ref: "#/components/schemas/TransactionHash"
+            bundle_ref:
+              $ref: "#/components/schemas/TransactionHash"
+          additionalProperties: false
+      additionalProperties: false
     CursorPagination:
       type: object
       required: [limit, next_cursor]

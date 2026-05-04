@@ -3,7 +3,7 @@ defmodule TechTree.BenchmarksTest do
 
   alias TechTree.Agents
   alias TechTree.Benchmarks
-  alias TechTree.Benchmarks.CapsuleVersion
+  alias TechTree.Benchmarks.{Artifact, Capsule, CapsuleVersion}
   alias TechTree.NodeAccess.NodePaidPayload
   alias TechTree.Nodes.Node
   alias TechTree.Repo
@@ -148,6 +148,92 @@ defmodule TechTree.BenchmarksTest do
       assert rejected_attempt.status == :rejected
       assert rejected_attempt.score_status == :rejected
       assert rejected_attempt.solved == false
+    end
+  end
+
+  describe "public reads" do
+    test "lists public capsules before applying the limit" do
+      agent = agent!("0x0000000000000000000000000000000000000108")
+
+      {:ok, public_capsule} =
+        Benchmarks.create_capsule(
+          agent,
+          capsule_attrs(%{
+            "title" => "Visible benchmark",
+            "workflow_state" => "published",
+            "visibility" => "public"
+          })
+        )
+
+      now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+      _public_capsule = set_timestamps!(public_capsule, DateTime.add(now, -60, :second))
+
+      for index <- 1..55 do
+        {:ok, private_capsule} =
+          Benchmarks.create_capsule(
+            agent,
+            capsule_attrs(%{
+              "title" => "Private benchmark #{index}",
+              "workflow_state" => "authoring",
+              "visibility" => "draft"
+            })
+          )
+
+        set_timestamps!(private_capsule, DateTime.add(now, index, :second))
+      end
+
+      assert [listed] = Benchmarks.list_public_capsules(%{"limit" => "1"})
+      assert listed.capsule_id == public_capsule.capsule_id
+    end
+
+    test "public details hide non-public versions and artifacts" do
+      agent = agent!("0x0000000000000000000000000000000000000109")
+
+      {:ok, capsule} =
+        Benchmarks.create_capsule(
+          agent,
+          capsule_attrs(%{
+            "title" => "Filtered benchmark",
+            "workflow_state" => "published",
+            "visibility" => "public"
+          })
+        )
+
+      {:ok, draft_version} =
+        Benchmarks.create_capsule_version(
+          agent,
+          capsule.capsule_id,
+          version_attrs(%{"version_label" => "draft", "version_status" => "draft"})
+        )
+
+      {:ok, published_version} =
+        Benchmarks.create_capsule_version(
+          agent,
+          capsule.capsule_id,
+          version_attrs(%{"version_label" => "v1", "version_status" => "published"})
+        )
+
+      _private_artifact =
+        insert_artifact!(capsule, draft_version, %{
+          "artifact_id" => "artifact_private_#{System.unique_integer([:positive])}",
+          "kind" => "ground_truth_manifest",
+          "name" => "Private review packet",
+          "sha256" => "private-artifact-hash",
+          "visibility" => "private"
+        })
+
+      public_artifact =
+        insert_artifact!(capsule, published_version, %{
+          "artifact_id" => "artifact_public_#{System.unique_integer([:positive])}",
+          "kind" => "data_manifest",
+          "name" => "Public data manifest",
+          "sha256" => "public-artifact-hash",
+          "visibility" => "public"
+        })
+
+      assert {:ok, detail} = Benchmarks.public_detail_page(capsule.capsule_id)
+      assert Enum.map(detail.versions, & &1.version_id) == [published_version.version_id]
+      assert Enum.map(detail.artifacts, & &1.artifact_id) == [public_artifact.artifact_id]
     end
   end
 
@@ -363,5 +449,28 @@ defmodule TechTree.BenchmarksTest do
       },
       extra
     )
+  end
+
+  defp set_timestamps!(%Capsule{} = capsule, datetime) do
+    capsule
+    |> Ecto.Changeset.change(inserted_at: datetime, updated_at: datetime)
+    |> Repo.update!()
+  end
+
+  defp insert_artifact!(capsule, version, attrs) do
+    attrs =
+      Map.merge(
+        %{
+          "capsule_id" => capsule.capsule_id,
+          "version_id" => version.version_id,
+          "storage_provider" => "techtree",
+          "encryption_meta" => %{}
+        },
+        attrs
+      )
+
+    %Artifact{}
+    |> Artifact.changeset(attrs)
+    |> Repo.insert!()
   end
 end

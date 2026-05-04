@@ -28,7 +28,7 @@ defmodule TechTreeWeb.BenchmarkController do
       {:ok, _capsule} ->
         data =
           capsule_id
-          |> Benchmarks.list_capsule_versions()
+          |> Benchmarks.list_public_capsule_versions()
           |> Enum.map(&Benchmarks.encode_capsule_version/1)
 
         json(conn, %{data: data})

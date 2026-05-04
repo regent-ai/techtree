@@ -4,6 +4,7 @@ defmodule TechTree.Benchmarks.Presentation do
   import Ecto.Query
 
   alias TechTree.Benchmarks.{
+    Artifact,
     Attempt,
     Capsule,
     CapsuleVersion,
@@ -15,6 +16,8 @@ defmodule TechTree.Benchmarks.Presentation do
   alias TechTree.Repo
 
   @public_states [:approved, :published]
+  @public_version_statuses [:approved, :published, :superseded]
+  @public_artifact_visibilities [:public]
   @domain_filters [
     {"all", "All"},
     {"bbh", "BBH"},
@@ -65,7 +68,7 @@ defmodule TechTree.Benchmarks.Presentation do
         {:error, :capsule_not_found}
 
       %Capsule{} = capsule ->
-        capsule = Repo.preload(capsule, [:versions, :reliability_summaries, :artifacts])
+        capsule = Repo.preload(capsule, [:reliability_summaries])
         {:ok, capsule_detail(capsule)}
     end
   end
@@ -236,7 +239,7 @@ defmodule TechTree.Benchmarks.Presentation do
     reliability =
       capsule |> loaded_list(:reliability_summaries) |> Enum.map(&encode_reliability_summary/1)
 
-    versions = capsule |> loaded_list(:versions) |> Enum.map(&encode_capsule_version/1)
+    versions = capsule |> public_versions() |> Enum.map(&encode_capsule_version/1)
 
     %{
       capsule: encode_capsule(capsule),
@@ -246,7 +249,7 @@ defmodule TechTree.Benchmarks.Presentation do
         capsule_id: capsule.capsule_id,
         entries: reliability
       },
-      artifacts: capsule |> loaded_list(:artifacts) |> Enum.map(&encode_artifact/1),
+      artifacts: capsule |> public_artifacts() |> Enum.map(&encode_artifact/1),
       cards: detail_cards(capsule, reliability)
     }
   end
@@ -391,6 +394,22 @@ defmodule TechTree.Benchmarks.Presentation do
       nil -> []
       list when is_list(list) -> list
     end
+  end
+
+  defp public_versions(%Capsule{capsule_id: capsule_id}) do
+    CapsuleVersion
+    |> where([version], version.capsule_id == ^capsule_id)
+    |> where([version], version.version_status in ^@public_version_statuses)
+    |> order_by([version], desc: version.inserted_at)
+    |> Repo.all()
+  end
+
+  defp public_artifacts(%Capsule{capsule_id: capsule_id}) do
+    Artifact
+    |> where([artifact], artifact.capsule_id == ^capsule_id)
+    |> where([artifact], artifact.visibility in ^@public_artifact_visibilities)
+    |> order_by([artifact], desc: artifact.inserted_at)
+    |> Repo.all()
   end
 
   defp maybe_filter_string(query, _field, nil), do: query

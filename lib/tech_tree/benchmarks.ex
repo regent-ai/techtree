@@ -27,6 +27,7 @@ defmodule TechTree.Benchmarks do
   @recompute_unique [period: 300, keys: [:capsule_id, :version_id, :harness_id, :repeat_group_id]]
   @official_rejection_results [:rejected, :mixed, :needs_revision]
   @public_states [:approved, :published]
+  @public_version_statuses [:approved, :published, :superseded]
 
   @spec list_capsules(map()) :: [Capsule.t()]
   def list_capsules(params \\ %{}) when is_map(params) do
@@ -45,9 +46,18 @@ defmodule TechTree.Benchmarks do
 
   @spec list_public_capsules(map()) :: [Capsule.t()]
   def list_public_capsules(params \\ %{}) when is_map(params) do
-    params
-    |> list_capsules()
-    |> Enum.filter(&public_capsule?/1)
+    limit = TechTree.QueryHelpers.parse_limit(params, 50)
+
+    Capsule
+    |> where([capsule], capsule.visibility == :public)
+    |> where([capsule], capsule.workflow_state in ^@public_states)
+    |> maybe_filter_string_enum(:domain, params["domain"])
+    |> maybe_filter_string(:field, params["field"])
+    |> maybe_filter_string_enum(:workflow_state, params["workflow_state"] || params["status"])
+    |> maybe_filter_string(:difficulty_label, params["difficulty"])
+    |> order_by([capsule], desc: capsule.published_at, desc: capsule.inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
     |> Repo.preload(:reliability_summaries)
   end
 
@@ -86,6 +96,15 @@ defmodule TechTree.Benchmarks do
   def list_capsule_versions(capsule_id) when is_binary(capsule_id) do
     CapsuleVersion
     |> where([version], version.capsule_id == ^capsule_id)
+    |> order_by([version], desc: version.inserted_at)
+    |> Repo.all()
+  end
+
+  @spec list_public_capsule_versions(String.t()) :: [CapsuleVersion.t()]
+  def list_public_capsule_versions(capsule_id) when is_binary(capsule_id) do
+    CapsuleVersion
+    |> where([version], version.capsule_id == ^capsule_id)
+    |> where([version], version.version_status in ^@public_version_statuses)
     |> order_by([version], desc: version.inserted_at)
     |> Repo.all()
   end

@@ -2,6 +2,20 @@ This repository uses the root workflow as the canonical agent orchestration laye
 
 `AGENTS.md` is the short working map for Techtree. Keep it current. Do not turn it into an encyclopedia.
 
+## Regent Dependency Skills
+
+The Regent dependency skills are installed in `/Users/sean/Documents/regent/.agents/skills` and `/Users/sean/.codex/skills`. Open the matching skill before touching these areas:
+
+- `contract-first-cli-api`: Techtree API routes, CLI command surfaces, OpenAPI files, CLI YAML, generated clients, and CLI/backend alignment.
+- `shared-siwa`: SIWA sidecar behavior, receipts, signed request envelopes, nonce/replay rules, and protected agent routes.
+- `xmtp-rooms`: public rooms, agent rooms, XMTP group mirrors, membership, presence, moderation, and room sync shared with Autolaunch.
+- `oban-workers`: background jobs, queues, retries, idempotency, job args, and DB-backed lifecycle work.
+- `cachex-regent-cache`: cache keys, TTLs, invalidation, hot reads, and any cached public or paid payload view.
+- `privy-auth-boundary`: human auth, Privy token verification, session bootstrap, and human-vs-agent route boundaries.
+- `safe-viem-wallet-actions`: viem, prepared transactions, wallet actions, contract ABI calls, and transaction confirmation.
+- `techtree-research-runtime`: BBH, Science Tasks, marimo notebooks, Pydantic/PyYAML/PyCryptodome, deck.gl, libp2p, and evidence artifacts.
+- `observability-promex-sentry`: PromEx, Sentry, Telemetry, structured logs, health checks, and private-data redaction.
+
 ## Start Here
 
 1. Read [WORKFLOW.md](WORKFLOW.md) for the active workflow contract.

@@ -1,5 +1,13 @@
 This file governs the TechTree contract workspace at `/Users/sean/Documents/regent/techtree/contracts`.
 
+## Regent Dependency Skills
+
+The Regent dependency skills are installed in `/Users/sean/Documents/regent/.agents/skills` and `/Users/sean/.codex/skills`. Foundry remains the primary contracts workflow. Also open:
+
+- `safe-viem-wallet-actions` when contract changes affect prepared transactions, viem ABI calls, wallet action envelopes, or confirmation paths.
+- `contract-first-cli-api` when contract changes require app, API, CLI, generated binding, or operator-documentation changes.
+- `techtree-research-runtime` when contract behavior affects publishing, paid payloads, BBH, Science Tasks, or evidence artifacts.
+
 ## Core Rules
 
 - Hard cutover only. Do not add backwards compatibility shims, migration glue, or dual paths unless explicitly requested.

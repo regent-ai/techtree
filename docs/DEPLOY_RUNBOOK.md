@@ -22,6 +22,8 @@ This runbook is for the first production cut:
 
 Use `scripts/fly_deploy_stack.sh` as the deploy entrypoint.
 
+The Phoenix Dockerfile expects `../elixir-utils` and `../design-system` to be staged under `.fly-build/`. A direct Docker build is not the release path; run `scripts/fly_deploy_stack.sh` so those folders are staged before Fly builds Phoenix.
+
 ## Prerequisites
 
 - `flyctl` installed and authenticated

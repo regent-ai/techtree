@@ -6,6 +6,8 @@ TechTree is a single repo with multiple execution surfaces. The root workflow ro
 
 - `lib/`, `config/`, `priv/`, `test/`, `assets/`
   - Phoenix app, LiveView UI, controllers, Ecto schemas, Oban workers, telemetry, and app tests
+- `lib/tech_tree/platform*`, `lib/tech_tree_web/live/platform*`, and `platform_*` tables
+  - Techtree operator read model for Platform-adjacent records shown inside this app. Platform remains the owner for human identity, billing, formation, and shared Regent records; any source-data change starts in the Platform-owned contract or import path.
 - `services/`
   - Bun-based TypeScript sidecars
   - `siwa-sidecar` for SIWA verification and HTTP envelope validation

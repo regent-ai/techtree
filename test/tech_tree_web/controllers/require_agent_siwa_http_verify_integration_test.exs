@@ -152,6 +152,43 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
            )
   end
 
+  test "shared SIWA verifier denies a repeated signed write request", %{conn: conn} do
+    replay_store = start_test_replay_store!()
+    with_strict_shared_siwa_client(test_replay_store: replay_store)
+
+    body =
+      Jason.encode!(%{
+        "seed" => "ML",
+        "kind" => "hypothesis",
+        "title" => "Replay blocked",
+        "parent_id" => 999_999,
+        "notebook_source" => "print('ok')"
+      })
+
+    signed_headers =
+      build_conn()
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("content-type", "application/json")
+      |> SiwaSupport.with_shared_siwa_signed_request("POST", "/v1/tree/nodes", body,
+        token_id: "516"
+      )
+      |> Map.fetch!(:req_headers)
+
+    first_conn =
+      conn
+      |> put_signed_headers(signed_headers)
+      |> post("/v1/tree/nodes", body)
+
+    assert %{"error" => %{"code" => "parent_not_found"}} = json_response(first_conn, 422)
+
+    replayed_conn =
+      build_conn()
+      |> put_signed_headers(signed_headers)
+      |> post("/v1/tree/nodes", body)
+
+    assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(replayed_conn, 401)
+  end
+
   test "shared SIWA verifier denies missing covered components", %{conn: conn} do
     with_strict_shared_siwa_client()
 
@@ -469,16 +506,38 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     "#{payload}.#{signature}"
   end
 
-  defp with_strict_shared_siwa_client do
+  defp with_strict_shared_siwa_client(opts \\ []) do
     original_siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
 
     Application.put_env(
       :tech_tree,
       :siwa,
-      Keyword.put(original_siwa_cfg, :client, TechTreeWeb.TestSupport.StrictSiwaSidecarClient)
+      original_siwa_cfg
+      |> Keyword.put(:client, TechTreeWeb.TestSupport.StrictSiwaSidecarClient)
+      |> Keyword.merge(opts)
     )
 
     on_exit(fn -> Application.put_env(:tech_tree, :siwa, original_siwa_cfg) end)
+  end
+
+  defp start_test_replay_store! do
+    {:ok, replay_agent} = Agent.start_link(fn -> MapSet.new() end)
+
+    fn replay_key, _expires_at ->
+      Agent.get_and_update(replay_agent, fn replay_keys ->
+        if MapSet.member?(replay_keys, replay_key) do
+          {{:error, :replayed_request}, replay_keys}
+        else
+          {:ok, MapSet.put(replay_keys, replay_key)}
+        end
+      end)
+    end
+  end
+
+  defp put_signed_headers(conn, headers) do
+    Enum.reduce(headers, conn, fn {name, value}, acc ->
+      put_req_header(acc, name, value)
+    end)
   end
 
   defp remove_signature_component(conn, component) do

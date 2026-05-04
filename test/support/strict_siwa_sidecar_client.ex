@@ -16,10 +16,13 @@ defmodule TechTreeWeb.TestSupport.StrictSiwaSidecarClient do
       body: body
     }
 
+    replay_store =
+      Keyword.get(siwa_cfg, :test_replay_store, fn _replay_key, _expires_at -> :ok end)
+
     case Siwa.verify_authenticated_request(request,
            audience: "techtree",
            receipt_secret: secret,
-           replay_store: fn _replay_key, _expires_at -> :ok end
+           replay_store: replay_store
          ) do
       {:ok, verified} ->
         {:ok,

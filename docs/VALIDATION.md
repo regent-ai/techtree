@@ -22,6 +22,8 @@ mix precommit
 cd services
 bun run build
 bun run typecheck
+bun run validate:siwa-hardening
+bun run validate:siwa-vectors
 ```
 
 ### Regents CLI

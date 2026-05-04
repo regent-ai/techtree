@@ -159,6 +159,8 @@ jobs:
           path: techtree
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.21"
 
       - name: Install services deps
         working-directory: techtree/services
@@ -169,6 +171,8 @@ jobs:
         run: |
           bun run build
           bun run typecheck
+          bun run validate:siwa-hardening
+          bun run validate:siwa-vectors
 
   regents-cli:
     runs-on: ubuntu-latest
@@ -204,7 +208,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: "9.15.0"
+          version: "10.28.0"
 
       - name: Install regents-cli deps
         working-directory: regents-cli
@@ -230,11 +234,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: regents-ai/contracts
-          path: contracts-repo
+          path: techtree
 
       - uses: foundry-rs/foundry-toolchain@v1
 
       - name: Run Foundry tests
-        working-directory: contracts-repo/techtree
+        working-directory: techtree/contracts
         run: forge test --offline

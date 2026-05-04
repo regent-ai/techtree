@@ -18,9 +18,13 @@ bun install
 bun run dev:siwa
 bun run typecheck
 bun run build
-cd siwa-sidecar && bun run validate:hardening
-cd siwa-sidecar && bun run validate:vectors
+bun run validate:siwa-hardening
+bun run validate:siwa-vectors
 ```
+
+## Runtime Shape
+
+The SIWA sidecar keeps nonce and replay state in memory. Run one sidecar instance for this launch unless replay storage has been moved to shared durable state.
 
 ## SIWA Sidecar Env
 

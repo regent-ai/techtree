@@ -58,7 +58,7 @@ defmodule TechTree.Benchmarks do
     |> order_by([capsule], desc: capsule.published_at, desc: capsule.inserted_at)
     |> limit(^limit)
     |> Repo.all()
-    |> Repo.preload(:reliability_summaries)
+    |> preload_public_reliability_summaries()
   end
 
   @spec get_capsule(String.t()) :: {:ok, Capsule.t()} | {:error, :capsule_not_found}
@@ -74,12 +74,9 @@ defmodule TechTree.Benchmarks do
 
   @spec get_public_capsule(String.t()) :: {:ok, Capsule.t()} | {:error, :capsule_not_found}
   def get_public_capsule(capsule_id) when is_binary(capsule_id) do
-    with {:ok, %Capsule{} = capsule} <- get_capsule(capsule_id),
-         true <- public_capsule?(capsule) do
-      {:ok, capsule}
-    else
-      false -> {:error, :capsule_not_found}
-      {:error, :capsule_not_found} -> {:error, :capsule_not_found}
+    case fetch_public_capsule(capsule_id) do
+      %Capsule{} = capsule -> {:ok, preload_public_reliability_summaries([capsule]) |> hd()}
+      nil -> {:error, :capsule_not_found}
     end
   end
 
@@ -115,6 +112,14 @@ defmodule TechTree.Benchmarks do
   @spec get_attempt(String.t()) :: {:ok, Attempt.t()} | {:error, :attempt_not_found}
   def get_attempt(attempt_id) when is_binary(attempt_id), do: fetch_attempt(attempt_id)
 
+  @spec get_public_attempt(String.t()) :: {:ok, Attempt.t()} | {:error, :attempt_not_found}
+  def get_public_attempt(attempt_id) when is_binary(attempt_id) do
+    case fetch_public_attempt(attempt_id) do
+      %Attempt{} = attempt -> {:ok, attempt}
+      nil -> {:error, :attempt_not_found}
+    end
+  end
+
   @spec list_attempt_validations(String.t()) :: [Validation.t()]
   def list_attempt_validations(attempt_id) when is_binary(attempt_id) do
     Validation
@@ -127,6 +132,10 @@ defmodule TechTree.Benchmarks do
   def reliability_summaries(capsule_id) when is_binary(capsule_id) do
     ReliabilitySummary
     |> where([summary], summary.capsule_id == ^capsule_id)
+    |> join(:inner, [summary], version in CapsuleVersion,
+      on: version.version_id == summary.version_id and version.capsule_id == summary.capsule_id
+    )
+    |> where([summary, version], version.version_status in ^@public_version_statuses)
     |> order_by([summary],
       desc: summary.reliable,
       desc: summary.solve_rate,
@@ -431,6 +440,10 @@ defmodule TechTree.Benchmarks do
     entries =
       ReliabilitySummary
       |> where([summary], summary.capsule_id == ^capsule_id)
+      |> join(:inner, [summary], version in CapsuleVersion,
+        on: version.version_id == summary.version_id and version.capsule_id == summary.capsule_id
+      )
+      |> where([summary, version], version.version_status in ^@public_version_statuses)
       |> maybe_filter_string(:version_id, params["version_id"])
       |> order_by([summary],
         desc: summary.reliable,
@@ -656,6 +669,27 @@ defmodule TechTree.Benchmarks do
     end
   end
 
+  defp fetch_public_capsule(capsule_id) do
+    Capsule
+    |> where([capsule], capsule.capsule_id == ^capsule_id)
+    |> where([capsule], capsule.visibility == :public)
+    |> where([capsule], capsule.workflow_state in ^@public_states)
+    |> Repo.one()
+  end
+
+  defp fetch_public_attempt(attempt_id) do
+    Attempt
+    |> join(:inner, [attempt], capsule in Capsule, on: capsule.capsule_id == attempt.capsule_id)
+    |> join(:inner, [attempt, capsule], version in CapsuleVersion,
+      on: version.version_id == attempt.version_id and version.capsule_id == attempt.capsule_id
+    )
+    |> where([attempt], attempt.attempt_id == ^attempt_id)
+    |> where([attempt, capsule], capsule.visibility == :public)
+    |> where([attempt, capsule], capsule.workflow_state in ^@public_states)
+    |> where([attempt, capsule, version], version.version_status in ^@public_version_statuses)
+    |> Repo.one()
+  end
+
   defp fetch_attempt_from_attrs(attrs) do
     case required_attr(attrs, "attempt_id") do
       nil -> {:error, :attempt_id_required}
@@ -831,9 +865,23 @@ defmodule TechTree.Benchmarks do
     ArgumentError -> :error
   end
 
-  defp public_capsule?(%Capsule{visibility: :public, workflow_state: state})
-       when state in @public_states,
-       do: true
+  defp preload_public_reliability_summaries([]), do: []
 
-  defp public_capsule?(%Capsule{}), do: false
+  defp preload_public_reliability_summaries(capsules) when is_list(capsules) do
+    capsule_ids = Enum.map(capsules, & &1.capsule_id)
+
+    summaries_by_capsule_id =
+      ReliabilitySummary
+      |> join(:inner, [summary], version in CapsuleVersion,
+        on: version.version_id == summary.version_id and version.capsule_id == summary.capsule_id
+      )
+      |> where([summary], summary.capsule_id in ^capsule_ids)
+      |> where([summary, version], version.version_status in ^@public_version_statuses)
+      |> Repo.all()
+      |> Enum.group_by(& &1.capsule_id)
+
+    Enum.map(capsules, fn capsule ->
+      %{capsule | reliability_summaries: Map.get(summaries_by_capsule_id, capsule.capsule_id, [])}
+    end)
+  end
 end

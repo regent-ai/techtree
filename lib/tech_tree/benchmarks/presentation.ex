@@ -46,7 +46,7 @@ defmodule TechTree.Benchmarks.Presentation do
       |> order_by([capsule], desc: capsule.published_at, desc: capsule.inserted_at)
       |> limit(100)
       |> Repo.all()
-      |> Repo.preload(:reliability_summaries)
+      |> preload_public_reliability_summaries()
 
     cards = Enum.map(capsules, &capsule_card/1)
 
@@ -68,7 +68,7 @@ defmodule TechTree.Benchmarks.Presentation do
         {:error, :capsule_not_found}
 
       %Capsule{} = capsule ->
-        capsule = Repo.preload(capsule, [:reliability_summaries])
+        capsule = preload_public_reliability_summaries([capsule]) |> hd()
         {:ok, capsule_detail(capsule)}
     end
   end
@@ -406,10 +406,34 @@ defmodule TechTree.Benchmarks.Presentation do
 
   defp public_artifacts(%Capsule{capsule_id: capsule_id}) do
     Artifact
+    |> join(:inner, [artifact], version in CapsuleVersion,
+      on: version.version_id == artifact.version_id and version.capsule_id == artifact.capsule_id
+    )
     |> where([artifact], artifact.capsule_id == ^capsule_id)
     |> where([artifact], artifact.visibility in ^@public_artifact_visibilities)
+    |> where([artifact, version], version.version_status in ^@public_version_statuses)
     |> order_by([artifact], desc: artifact.inserted_at)
     |> Repo.all()
+  end
+
+  defp preload_public_reliability_summaries([]), do: []
+
+  defp preload_public_reliability_summaries(capsules) when is_list(capsules) do
+    capsule_ids = Enum.map(capsules, & &1.capsule_id)
+
+    summaries_by_capsule_id =
+      ReliabilitySummary
+      |> join(:inner, [summary], version in CapsuleVersion,
+        on: version.version_id == summary.version_id and version.capsule_id == summary.capsule_id
+      )
+      |> where([summary], summary.capsule_id in ^capsule_ids)
+      |> where([summary, version], version.version_status in ^@public_version_statuses)
+      |> Repo.all()
+      |> Enum.group_by(& &1.capsule_id)
+
+    Enum.map(capsules, fn capsule ->
+      %{capsule | reliability_summaries: Map.get(summaries_by_capsule_id, capsule.capsule_id, [])}
+    end)
   end
 
   defp maybe_filter_string(query, _field, nil), do: query

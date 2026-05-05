@@ -213,6 +213,28 @@ defmodule TechTree.BenchmarksTest do
           version_attrs(%{"version_label" => "v1", "version_status" => "published"})
         )
 
+      {:ok, harness} = Benchmarks.create_harness(agent, harness_attrs())
+
+      {:ok, draft_attempt} =
+        Benchmarks.create_attempt(
+          agent,
+          attempt_attrs(draft_version, harness, %{"repeat_group_id" => "draft-repeat"})
+        )
+
+      {:ok, published_attempt} =
+        Benchmarks.create_attempt(
+          agent,
+          attempt_attrs(published_version, harness, %{"repeat_group_id" => "published-repeat"})
+        )
+
+      assert {:ok, _summaries} = Benchmarks.recompute_reliability(capsule.capsule_id)
+
+      assert {:error, :attempt_not_found} =
+               Benchmarks.get_public_attempt(draft_attempt.attempt_id)
+
+      assert {:ok, public_attempt} = Benchmarks.get_public_attempt(published_attempt.attempt_id)
+      assert public_attempt.attempt_id == published_attempt.attempt_id
+
       _private_artifact =
         insert_artifact!(capsule, draft_version, %{
           "artifact_id" => "artifact_private_#{System.unique_integer([:positive])}",
@@ -220,6 +242,15 @@ defmodule TechTree.BenchmarksTest do
           "name" => "Private review packet",
           "sha256" => "private-artifact-hash",
           "visibility" => "private"
+        })
+
+      _public_artifact_on_draft_version =
+        insert_artifact!(capsule, draft_version, %{
+          "artifact_id" => "artifact_draft_public_#{System.unique_integer([:positive])}",
+          "kind" => "data_manifest",
+          "name" => "Draft public artifact",
+          "sha256" => "draft-public-artifact-hash",
+          "visibility" => "public"
         })
 
       public_artifact =
@@ -234,6 +265,25 @@ defmodule TechTree.BenchmarksTest do
       assert {:ok, detail} = Benchmarks.public_detail_page(capsule.capsule_id)
       assert Enum.map(detail.versions, & &1.version_id) == [published_version.version_id]
       assert Enum.map(detail.artifacts, & &1.artifact_id) == [public_artifact.artifact_id]
+      assert Enum.map(detail.reliability, & &1.version_id) == [published_version.version_id]
+
+      assert Enum.map(detail.scoreboard.entries, & &1.version_id) == [
+               published_version.version_id
+             ]
+
+      assert [listed] = Benchmarks.list_public_capsules(%{"limit" => "10"})
+
+      assert Enum.map(listed.reliability_summaries, & &1.version_id) == [
+               published_version.version_id
+             ]
+
+      assert Enum.map(Benchmarks.reliability_summaries(capsule.capsule_id), & &1.version_id) == [
+               published_version.version_id
+             ]
+
+      assert Enum.map(Benchmarks.scoreboard(capsule.capsule_id).entries, & &1.version_id) == [
+               published_version.version_id
+             ]
     end
   end
 

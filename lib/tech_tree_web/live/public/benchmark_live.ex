@@ -65,8 +65,18 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
           </div>
         </section>
 
-        <section class="tt-public-signal-strip" data-public-reveal>
-          <article :for={card <- @detail.cards} class="tt-public-signal-card">
+        <section
+          class="tt-public-signal-strip tt-public-live-panel"
+          data-public-reveal
+          data-public-live-panel="benchmark-metrics"
+        >
+          <article
+            :for={card <- @detail.cards}
+            class="tt-public-signal-card tt-public-metric-card"
+            data-public-metric-card={card.title}
+            data-public-live-item={"benchmark-metric-#{card.title}"}
+            data-public-live-revision={card.value}
+          >
             <p class="tt-public-signal-label">{card.title}</p>
             <p class="tt-public-signal-value">{card.value}</p>
           </article>
@@ -124,10 +134,24 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
                       <div class="tt-public-side-link">
                         <div>
                           <strong>{version.version_label}</strong>
-                          <p>
+                          <p
+                            class="tt-public-copy-value"
+                            data-copy-value={version.manifest_sha256}
+                            data-copy-label="Version fingerprint"
+                          >
                             {present(version.manifest_sha256, "No manifest fingerprint recorded.")}
                           </p>
                         </div>
+                        <button
+                          :if={version.manifest_sha256}
+                          type="button"
+                          class="tt-public-copy-action"
+                          data-copy-button
+                          data-copy-value={version.manifest_sha256}
+                          data-copy-label="Version fingerprint"
+                        >
+                          Copy
+                        </button>
                         <span>{labelize(version.version_status)}</span>
                       </div>
                     </li>
@@ -140,7 +164,13 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
                     <span class="tt-public-room-chip">{length(@detail.reliability)} groups</span>
                   </div>
                   <%= if @detail.reliability == [] do %>
-                    <div class="tt-public-empty-state">No attempts have been summarized yet.</div>
+                    <div class="tt-public-empty-state">
+                      No attempts have been summarized yet.
+                      <.link navigate={~p"/benchmarks"} class="tt-public-inline-link">
+                        Browse other capsules
+                      </.link>
+                      while this one fills in.
+                    </div>
                   <% else %>
                     <ul class="tt-public-side-list-items">
                       <li
@@ -171,7 +201,13 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
                 <p>Artifact fingerprints and review packets are listed here when they are public.</p>
               </div>
               <%= if @detail.artifacts == [] do %>
-                <div class="tt-public-empty-state">No public artifacts are listed yet.</div>
+                <div class="tt-public-empty-state">
+                  No public artifacts are listed yet.
+                  <.link navigate={~p"/benchmarks"} class="tt-public-inline-link">
+                    Browse other capsules
+                  </.link>
+                  for records with attached proof.
+                </div>
               <% else %>
                 <ul class="tt-public-side-list-items">
                   <li
@@ -181,10 +217,24 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
                     <div class="tt-public-side-link">
                       <div>
                         <strong>{artifact.name || labelize(artifact.kind)}</strong>
-                        <p>
+                        <p
+                          class="tt-public-copy-value"
+                          data-copy-value={artifact.cid || artifact.sha256 || artifact.uri}
+                          data-copy-label="Artifact fingerprint"
+                        >
                           {artifact.cid || artifact.sha256 || artifact.uri || "Fingerprint pending."}
                         </p>
                       </div>
+                      <button
+                        :if={artifact.cid || artifact.sha256 || artifact.uri}
+                        type="button"
+                        class="tt-public-copy-action"
+                        data-copy-button
+                        data-copy-value={artifact.cid || artifact.sha256 || artifact.uri}
+                        data-copy-label="Artifact fingerprint"
+                      >
+                        Copy
+                      </button>
                       <span>{labelize(artifact.visibility)}</span>
                     </div>
                   </li>

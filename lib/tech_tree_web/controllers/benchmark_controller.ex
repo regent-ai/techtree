@@ -66,32 +66,24 @@ defmodule TechTreeWeb.BenchmarkController do
   end
 
   def attempt(conn, %{"id" => attempt_id}) do
-    with {:ok, attempt} <- Benchmarks.get_attempt(attempt_id),
-         {:ok, _capsule} <- Benchmarks.get_public_capsule(attempt.capsule_id) do
+    with {:ok, attempt} <- Benchmarks.get_public_attempt(attempt_id) do
       json(conn, %{data: Benchmarks.encode_attempt(attempt)})
     else
       {:error, :attempt_not_found} ->
-        not_found(conn, "benchmark_attempt_not_found", "Benchmark attempt not found")
-
-      {:error, :capsule_not_found} ->
         not_found(conn, "benchmark_attempt_not_found", "Benchmark attempt not found")
     end
   end
 
   def attempt_validations(conn, %{"id" => attempt_id}) do
-    with {:ok, attempt} <- Benchmarks.get_attempt(attempt_id),
-         {:ok, _capsule} <- Benchmarks.get_public_capsule(attempt.capsule_id) do
+    with {:ok, attempt} <- Benchmarks.get_public_attempt(attempt_id) do
       data =
-        attempt_id
+        attempt.attempt_id
         |> Benchmarks.list_attempt_validations()
         |> Enum.map(&Benchmarks.encode_validation/1)
 
       json(conn, %{data: data})
     else
       {:error, :attempt_not_found} ->
-        not_found(conn, "benchmark_attempt_not_found", "Benchmark attempt not found")
-
-      {:error, :capsule_not_found} ->
         not_found(conn, "benchmark_attempt_not_found", "Benchmark attempt not found")
     end
   end

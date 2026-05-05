@@ -4,6 +4,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
 
   alias TechTree.Ethereum
   alias TechTree.Nodes
+  alias TechTree.Nodes.RegistryHeader
   alias TechTree.Repo
   alias TechTree.Nodes.Node
   alias TechTree.Workers.AwaitNodeReceiptWorker
@@ -41,13 +42,14 @@ defmodule TechTree.Workers.AnchorNodeWorker do
       :pinned ->
         manifest_uri = resolve_manifest_uri!(node)
         manifest_hash = resolve_manifest_hash!(node)
+        _manifest_cid = resolve_manifest_cid!(node)
+        _payload_cid = resolve_payload_cid!(node)
         idempotency_key = resolve_idempotency_key!(node, args)
 
         attempt =
           Nodes.touch_publish_attempt!(node.id, idempotency_key, manifest_uri, manifest_hash)
 
-        with {:ok, tx_hash} <-
-               resolve_tx_hash(node, attempt, idempotency_key, manifest_uri, manifest_hash) do
+        with {:ok, tx_hash} <- resolve_tx_hash(node, attempt, idempotency_key) do
           :ok = Nodes.update_publish_attempt_status!(idempotency_key, "awaiting_receipt")
 
           {:ok, _job} =
@@ -71,9 +73,9 @@ defmodule TechTree.Workers.AnchorNodeWorker do
     end
   end
 
-  @spec resolve_tx_hash(Node.t(), map(), String.t(), String.t(), String.t()) ::
+  @spec resolve_tx_hash(Node.t(), map(), String.t()) ::
           {:ok, String.t()} | {:error, term()}
-  defp resolve_tx_hash(%Node{} = node, attempt, idempotency_key, manifest_uri, manifest_hash) do
+  defp resolve_tx_hash(%Node{} = node, attempt, idempotency_key) do
     cond do
       has_text?(attempt.tx_hash) ->
         {:ok, attempt.tx_hash}
@@ -86,14 +88,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
         {:ok, node.tx_hash}
 
       true ->
-        case Ethereum.create_node(%{
-               node_id: node.id,
-               parent_id: node.parent_id || 0,
-               creator: node.creator_agent.wallet_address,
-               manifest_uri: manifest_uri,
-               manifest_hash: manifest_hash,
-               kind: node_kind_to_uint8(node.kind)
-             }) do
+        case Ethereum.publish_node(RegistryHeader.publish_params!(node)) do
           {:ok, created_tx_hash} ->
             node
             |> Ecto.Changeset.change(tx_hash: created_tx_hash)
@@ -106,7 +101,7 @@ defmodule TechTree.Workers.AnchorNodeWorker do
             {:ok, created_tx_hash}
 
           {:error, reason} ->
-            {:error, {:create_node_failed, reason}}
+            {:error, {:publish_node_failed, reason}}
         end
     end
   end
@@ -126,6 +121,24 @@ defmodule TechTree.Workers.AnchorNodeWorker do
       node.manifest_hash
     else
       raise ArgumentError, "manifest_hash missing for node #{node.id}"
+    end
+  end
+
+  @spec resolve_manifest_cid!(Node.t()) :: String.t()
+  defp resolve_manifest_cid!(%Node{} = node) do
+    if has_text?(node.manifest_cid) do
+      node.manifest_cid
+    else
+      raise ArgumentError, "manifest_cid missing for node #{node.id}"
+    end
+  end
+
+  @spec resolve_payload_cid!(Node.t()) :: String.t()
+  defp resolve_payload_cid!(%Node{} = node) do
+    if has_text?(node.notebook_cid) do
+      node.notebook_cid
+    else
+      raise ArgumentError, "payload_cid missing for node #{node.id}"
     end
   end
 
@@ -190,17 +203,6 @@ defmodule TechTree.Workers.AnchorNodeWorker do
   end
 
   defp normalize_node_id(_value), do: nil
-
-  @spec node_kind_to_uint8(atom()) :: 1 | 2 | 3
-  defp node_kind_to_uint8(:hypothesis), do: 1
-  defp node_kind_to_uint8(:data), do: 1
-  defp node_kind_to_uint8(:result), do: 2
-  defp node_kind_to_uint8(:null_result), do: 2
-  defp node_kind_to_uint8(:review), do: 3
-  defp node_kind_to_uint8(:synthesis), do: 1
-  defp node_kind_to_uint8(:meta), do: 1
-  defp node_kind_to_uint8(:skill), do: 1
-  defp node_kind_to_uint8(:eval), do: 1
 
   @spec has_text?(String.t() | nil) :: boolean()
   defp has_text?(value) when is_binary(value), do: byte_size(String.trim(value)) > 0

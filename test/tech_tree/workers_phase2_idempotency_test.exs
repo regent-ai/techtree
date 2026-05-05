@@ -22,10 +22,13 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
     node =
       create_node!(creator, %{
         status: :pinned,
+        manifest_cid: "bafy-manifest-anchor",
         manifest_uri: "ipfs://manifest-anchor",
-        manifest_hash: "deadbeefanchor",
+        manifest_hash: String.duplicate("a", 64),
+        notebook_cid: "bafy-notebook-anchor",
         tx_hash: "0x" <> String.duplicate("a", 64),
-        publish_idempotency_key: "node:#{System.unique_integer([:positive])}:deadbeefanchor"
+        publish_idempotency_key:
+          "node:#{System.unique_integer([:positive])}:#{String.duplicate("a", 8)}"
       })
 
     args = %{
@@ -52,10 +55,11 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
         status: :pinned,
         manifest_cid: "bafy-manifest-await",
         manifest_uri: "ipfs://manifest-await",
-        manifest_hash: "deadbeefawait",
+        manifest_hash: String.duplicate("b", 64),
         notebook_cid: "bafy-notebook-await",
         tx_hash: "0x" <> String.duplicate("b", 64),
-        publish_idempotency_key: "node:#{System.unique_integer([:positive])}:deadbeefawait"
+        publish_idempotency_key:
+          "node:#{System.unique_integer([:positive])}:#{String.duplicate("b", 8)}"
       })
 
     _ =

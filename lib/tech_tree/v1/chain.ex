@@ -297,13 +297,11 @@ defmodule TechTree.V1.Chain do
     end
   end
 
-  defp resolve_chain_id(%{chain_id: chain_id}) when is_integer(chain_id) and chain_id > 0,
-    do: {:ok, chain_id}
-
   defp resolve_chain_id(cfg) do
-    case rpc_request(cfg, "eth_chainId", []) do
-      {:ok, chain_id_hex} -> parse_hex_quantity(chain_id_hex)
-      {:error, reason} -> {:error, reason}
+    with {:ok, chain_id_hex} <- rpc_request(cfg, "eth_chainId", []),
+         {:ok, resolved_chain_id} <- parse_hex_quantity(chain_id_hex),
+         :ok <- ensure_chain_id_match(normalize_config_chain_id(cfg.chain_id), resolved_chain_id) do
+      {:ok, resolved_chain_id}
     end
   end
 
@@ -333,8 +331,8 @@ defmodule TechTree.V1.Chain do
   defp config do
     cfg = Application.get_env(:tech_tree, :ethereum, [])
 
-    rpc_url = Keyword.get(cfg, :rpc_url)
-    registry_address = Keyword.get(cfg, :registry_address)
+    rpc_url = cfg_fetch(cfg, :rpc_url)
+    registry_address = cfg_fetch(cfg, :registry_address)
 
     cond do
       not is_binary(rpc_url) or String.trim(rpc_url) == "" ->
@@ -348,11 +346,36 @@ defmodule TechTree.V1.Chain do
          %{
            rpc_url: rpc_url,
            registry_address: String.downcase(registry_address),
-           chain_id: Keyword.get(cfg, :chain_id),
-           request_timeout_ms: Keyword.get(cfg, :request_timeout_ms, 5_000),
-           rpc_client: Keyword.get(cfg, :rpc_client, &default_rpc_client/2)
+           chain_id: normalize_config_chain_id(cfg_fetch(cfg, :chain_id)),
+           request_timeout_ms: cfg_fetch(cfg, :request_timeout_ms) || 5_000,
+           rpc_client: cfg_fetch(cfg, :rpc_client) || (&default_rpc_client/2)
          }}
     end
+  end
+
+  defp cfg_fetch(cfg, key) when is_list(cfg), do: Keyword.get(cfg, key)
+
+  defp cfg_fetch(cfg, key) when is_map(cfg),
+    do: Map.get(cfg, key, Map.get(cfg, Atom.to_string(key)))
+
+  defp cfg_fetch(_cfg, _key), do: nil
+
+  defp normalize_config_chain_id(value) when is_integer(value) and value > 0, do: value
+
+  defp normalize_config_chain_id(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {parsed, ""} when parsed > 0 -> parsed
+      _ -> nil
+    end
+  end
+
+  defp normalize_config_chain_id(_value), do: nil
+
+  defp ensure_chain_id_match(nil, _resolved_chain_id), do: :ok
+  defp ensure_chain_id_match(chain_id, chain_id), do: :ok
+
+  defp ensure_chain_id_match(configured_chain_id, resolved_chain_id) do
+    {:error, {:chain_id_mismatch, configured: configured_chain_id, resolved: resolved_chain_id}}
   end
 
   defp default_rpc_client(rpc_url, payload) do

@@ -298,7 +298,8 @@ defmodule TechTree.NodesPublishPipelineTest do
                  })
 
         assert_receive {:cast_args, args}
-        assert List.last(args) == expected_type
+        header_tuple = Enum.find(args, &String.starts_with?(&1, "(0x"))
+        assert header_tuple =~ ",#{expected_type},1,0,"
       end
     end
   end
@@ -312,7 +313,7 @@ defmodule TechTree.NodesPublishPipelineTest do
           status: :pinned,
           manifest_cid: "bafy-await-failed-manifest",
           manifest_uri: "ipfs://await-failed-manifest",
-          manifest_hash: "deadbeefawaitfailed",
+          manifest_hash: String.duplicate("d", 64),
           notebook_cid: "bafy-await-failed-notebook",
           tx_hash: "0x" <> String.duplicate("a", 57) <> "pending",
           publish_idempotency_key: "node:#{System.unique_integer([:positive])}:await-failed"
@@ -357,7 +358,7 @@ defmodule TechTree.NodesPublishPipelineTest do
           status: :anchored,
           manifest_cid: "bafy-anchored-manifest",
           manifest_uri: "ipfs://anchored-manifest",
-          manifest_hash: "deadbeefanchored",
+          manifest_hash: String.duplicate("e", 64),
           notebook_cid: "bafy-anchored-notebook",
           publish_idempotency_key: "node:#{System.unique_integer([:positive])}:anchored",
           tx_hash: "0x" <> String.duplicate("b", 64),
@@ -393,7 +394,7 @@ defmodule TechTree.NodesPublishPipelineTest do
       assert Repo.get!(Node, node.id).status == :anchored
     end
 
-    test "maxed anchor worker marks pinned node failed_anchor when create_node cannot submit tx" do
+    test "maxed anchor worker marks pinned node failed_anchor when publish_node cannot submit tx" do
       creator = create_agent!("anchor-max-fail")
 
       node =
@@ -401,7 +402,7 @@ defmodule TechTree.NodesPublishPipelineTest do
           status: :pinned,
           manifest_cid: "bafy-anchor-max-fail-manifest",
           manifest_uri: "ipfs://anchor-max-fail-manifest",
-          manifest_hash: "deadbeefanchormaxfail",
+          manifest_hash: String.duplicate("f", 64),
           notebook_cid: "bafy-anchor-max-fail-notebook",
           tx_hash: nil,
           publish_idempotency_key: "node:#{System.unique_integer([:positive])}:anchor-max-fail"
@@ -434,7 +435,7 @@ defmodule TechTree.NodesPublishPipelineTest do
 
       Application.put_env(:tech_tree, :ethereum, mode: :rpc)
 
-      assert {:error, {:create_node_failed, {:rpc_config_missing, :rpc_url}}} =
+      assert {:error, {:publish_node_failed, {:rpc_config_missing, :rpc_url}}} =
                AnchorNodeWorker.perform(%Job{
                  args: %{
                    "node_id" => node.id,

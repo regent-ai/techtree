@@ -7,6 +7,7 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
   alias TechTree.Repo
   alias TechTree.Nodes
   alias TechTree.Nodes.Node
+  alias TechTree.Nodes.RegistryHeader
 
   alias TechTree.Workers.{
     IndexNodeWorker,
@@ -145,19 +146,7 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
 
   @spec build_verification_input!(Node.t()) :: map()
   defp build_verification_input!(%Node{} = node) do
-    creator = node.creator_agent && node.creator_agent.wallet_address
-
-    if not (is_binary(creator) and byte_size(String.trim(creator)) > 0) do
-      raise ArgumentError, "creator wallet missing while awaiting receipt for node #{node.id}"
-    end
-
-    %{
-      node_id: node.id,
-      parent_id: node.parent_id || 0,
-      creator: creator,
-      manifest_hash: node.manifest_hash,
-      kind: node_kind_to_uint8(node.kind)
-    }
+    RegistryHeader.receipt_verification!(node)
   end
 
   @spec resolve_idempotency_key!(Node.t(), map()) :: String.t()
@@ -222,15 +211,4 @@ defmodule TechTree.Workers.AwaitNodeReceiptWorker do
   end
 
   defp normalize_node_id(_value), do: nil
-
-  @spec node_kind_to_uint8(atom()) :: 1 | 2 | 3
-  defp node_kind_to_uint8(:hypothesis), do: 1
-  defp node_kind_to_uint8(:data), do: 1
-  defp node_kind_to_uint8(:result), do: 2
-  defp node_kind_to_uint8(:null_result), do: 2
-  defp node_kind_to_uint8(:review), do: 3
-  defp node_kind_to_uint8(:synthesis), do: 1
-  defp node_kind_to_uint8(:meta), do: 1
-  defp node_kind_to_uint8(:skill), do: 1
-  defp node_kind_to_uint8(:eval), do: 1
 end

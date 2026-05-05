@@ -17,6 +17,8 @@ type BbhCapsuleWallHook = HookContext &
   Hook & {
     previousCapsules?: Map<string, CapsuleState>
     reduceMotion?: MediaQueryList
+    previousDrilldownId?: string
+    cleanupMotionPreference?: () => void
   }
 
 function shouldReduceMotion(hook: BbhCapsuleWallHook): boolean {
@@ -50,6 +52,34 @@ function flashTarget(target: HTMLElement): HTMLElement | null {
   return target.querySelector<HTMLElement>("[data-bbh-motion-layer='flash']")
 }
 
+function clearCapsuleMotion(target: HTMLElement) {
+  target.style.transform = ""
+  target.style.opacity = ""
+
+  target.querySelectorAll<HTMLElement>(".bbh-capsule-core, .bbh-capsule-ring, .bbh-capsule-flash").forEach((node) => {
+    node.style.transform = ""
+    node.style.opacity = ""
+  })
+}
+
+function liveFlash(target: HTMLElement) {
+  const flash = document.createElement("span")
+  flash.className = "bbh-live-flash"
+  flash.setAttribute("aria-hidden", "true")
+  target.appendChild(flash)
+
+  animate(flash, {
+    opacity: [0, 1, 0],
+    translateX: ["-24%", "24%"],
+    duration: 260,
+    ease: "outQuad",
+  })
+
+  window.setTimeout(() => {
+    flash.remove()
+  }, 280)
+}
+
 function pulseTile(
   target: HTMLElement,
   options: { scale?: [number, number, number]; boxShadow?: string[] } = {},
@@ -62,12 +92,12 @@ function pulseTile(
         "0 0 0.85rem rgba(255,255,255,0.4), 0 1.5rem 3rem rgba(77, 53, 15, 0.18)",
         "0 1.25rem 2.8rem rgba(77, 53, 15, 0.12)",
       ],
-    duration: 520,
+    duration: 260,
     ease: "outCubic",
   })
 }
 
-function animateRing(target: HTMLElement, color: string, duration = 620) {
+function animateRing(target: HTMLElement, color: string, duration = 280) {
   const ring = ringTarget(target)
   if (!ring) return
 
@@ -81,7 +111,7 @@ function animateRing(target: HTMLElement, color: string, duration = 620) {
   })
 }
 
-function animateFlash(target: HTMLElement, background: string, duration = 420) {
+function animateFlash(target: HTMLElement, background: string, duration = 240) {
   const flash = flashTarget(target)
   if (!flash) return
 
@@ -116,14 +146,14 @@ function animateEvent(target: HTMLElement, next: CapsuleState, previous: Capsule
   if (becameCold) {
     animate(target, {
       opacity: [1, 0.72, 1],
-      duration: 680,
+      duration: 260,
       ease: "outQuad",
     })
   }
 
   switch (next.lastEventKind) {
     case "run_submitted":
-      animateFlash(target, "linear-gradient(135deg, rgba(140, 92, 255, 0.6), transparent 68%)", 520)
+      animateFlash(target, "linear-gradient(135deg, rgba(140, 92, 255, 0.6), transparent 68%)", 260)
       pulseTile(target)
       break
     case "personal_best":
@@ -141,8 +171,8 @@ function animateEvent(target: HTMLElement, next: CapsuleState, previous: Capsule
       animateFlash(target, "radial-gradient(circle, rgba(240, 185, 76, 0.52), transparent 68%)")
       break
     case "validated_official_best":
-      animateRing(target, "rgba(240, 185, 76, 1)", 760)
-      animateFlash(target, "radial-gradient(circle, rgba(255, 243, 201, 0.9), transparent 66%)", 520)
+      animateRing(target, "rgba(240, 185, 76, 1)", 300)
+      animateFlash(target, "radial-gradient(circle, rgba(255, 243, 201, 0.9), transparent 66%)", 280)
       pulseTile(target, {
         scale: [1, 1.035, 1],
         boxShadow: [
@@ -169,11 +199,11 @@ function animateEvent(target: HTMLElement, next: CapsuleState, previous: Capsule
   }
 
   if (next.routeMaturity === "new" && (!previous || previous.routeMaturity !== next.routeMaturity)) {
-    animateRing(target, "rgba(247, 157, 63, 0.9)", 560)
+    animateRing(target, "rgba(247, 157, 63, 0.9)", 260)
   }
 
   if (next.routeMaturity === "crowded" && (!previous || previous.routeMaturity !== next.routeMaturity)) {
-    animateRing(target, "rgba(111, 92, 255, 0.78)", 620)
+    animateRing(target, "rgba(111, 92, 255, 0.78)", 280)
   }
 
   if (validatedImproved && next.lastEventKind !== "validated_official_best") {
@@ -200,11 +230,25 @@ export const BbhCapsuleWall = {
   mounted(this: BbhCapsuleWallHook) {
     this.reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
     this.previousCapsules = readCapsules(this.el as HTMLElement)
+    this.previousDrilldownId = (this.el as HTMLElement).querySelector<HTMLElement>(".bbh-drilldown[id]")?.id
+
+    const syncReducedMotion = () => {
+      if (!shouldReduceMotion(this)) return
+      ;(this.el as HTMLElement)
+        .querySelectorAll<HTMLElement>("[data-capsule-id]")
+        .forEach(clearCapsuleMotion)
+    }
+
+    this.reduceMotion.addEventListener("change", syncReducedMotion)
+    this.cleanupMotionPreference = () => {
+      this.reduceMotion?.removeEventListener("change", syncReducedMotion)
+    }
   },
 
   updated(this: BbhCapsuleWallHook) {
     const root = this.el as HTMLElement
     const nextCapsules = readCapsules(root)
+    const reducedMotion = shouldReduceMotion(this)
 
     nextCapsules.forEach((next, capsuleId) => {
       const previous = this.previousCapsules?.get(capsuleId)
@@ -213,7 +257,13 @@ export const BbhCapsuleWall = {
       if (!target) return
 
       if (
-        !shouldReduceMotion(this) &&
+        reducedMotion
+      ) {
+        clearCapsuleMotion(target)
+        return
+      }
+
+      if (
         (!previous ||
           previous.lastEventAt !== next.lastEventAt ||
           previous.lastEventKind !== next.lastEventKind ||
@@ -227,6 +277,27 @@ export const BbhCapsuleWall = {
       }
     })
 
+    const drilldown = root.querySelector<HTMLElement>(".bbh-drilldown[id]")
+    if (drilldown?.id && drilldown.id !== this.previousDrilldownId) {
+      if (reducedMotion) {
+        drilldown.style.transform = "none"
+        drilldown.style.opacity = "1"
+      } else {
+        liveFlash(drilldown)
+        animate(drilldown, {
+          opacity: [0.82, 1],
+          scale: [0.995, 1],
+          duration: 240,
+          ease: "outExpo",
+        })
+      }
+    }
+
+    this.previousDrilldownId = drilldown?.id
     this.previousCapsules = nextCapsules
+  },
+
+  destroyed(this: BbhCapsuleWallHook) {
+    this.cleanupMotionPreference?.()
   },
 } as Hook

@@ -72,8 +72,6 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
             <span class="bbh-chip">Practice: {@lane_counts.practice}</span>
             <span class="bbh-chip">Proving: {@lane_counts.proving}</span>
             <span class="bbh-chip">Challenge: {@lane_counts.challenge}</span>
-            <span class="bbh-chip">Practice / Proving / Challenge</span>
-            <span class="bbh-chip bbh-chip-official">Pinned capsule stays selected</span>
           </:actions>
         </.human_header>
 
@@ -125,7 +123,11 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
 
               <div id="bbh-wall-grid" class="bbh-wall-grid" phx-hook="BbhCapsuleWall">
                 <%= for lane <- @lane_sections do %>
-                  <article id={"bbh-lane-#{lane.key}"} class={["bbh-lane-panel", "is-#{lane.key}"]}>
+                  <article
+                    id={"bbh-lane-#{lane.key}"}
+                    class={["bbh-lane-panel", "is-#{lane.key}"]}
+                    data-public-live-panel={"bbh-lane-#{lane.key}"}
+                  >
                     <div class="bbh-lane-header" data-motion="reveal">
                       <div>
                         <p class="bbh-rank">{lane.operator_tag}</p>
@@ -139,7 +141,10 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                     <div class="bbh-lane-capsules">
                       <%= if lane.capsules == [] do %>
                         <div class="bbh-lane-empty" data-motion="reveal">
-                          <p>No capsules are visible in {lane.label} yet.</p>
+                          <p>
+                            No capsules are visible in {lane.label} yet. Open the BBH guide for the
+                            next clean starting point.
+                          </p>
                         </div>
                       <% else %>
                         <%= for capsule <- lane.capsules do %>
@@ -160,6 +165,11 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                             ]}
                             style={"--bbh-score: #{capsule.score_percent}; --bbh-validated-score: #{capsule.validated_percent};"}
                             data-capsule-id={capsule.capsule_id}
+                            data-public-live-item={"bbh-capsule-#{capsule.capsule_id}"}
+                            data-public-live-revision={
+                              capsule.last_event_at || capsule.freshness_label
+                            }
+                            data-public-live-kind="bbh-capsule"
                             data-lane={capsule.operator_lane_tag}
                             data-last-event-kind={to_string(capsule.last_event_kind)}
                             data-last-event-at={
@@ -212,8 +222,18 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
           <div class="bbh-wall-sidebar">
             <.human_section id="bbh-wall-drilldown" title="Pinned drilldown">
               <%= if @drilldown_capsule do %>
-                <article id={"bbh-drilldown-#{@drilldown_capsule.capsule_id}"} class="bbh-drilldown">
-                  <div class="bbh-drilldown-header">
+                <article
+                  id={"bbh-drilldown-#{@drilldown_capsule.capsule_id}"}
+                  class="bbh-drilldown"
+                  data-public-live-panel="bbh-drilldown"
+                  data-public-live-revision={@drilldown_capsule.freshness_label}
+                >
+                  <div
+                    class="bbh-drilldown-header"
+                    data-bbh-drilldown-header={@drilldown_capsule.capsule_id}
+                    data-public-live-item={"bbh-drilldown-header-#{@drilldown_capsule.capsule_id}"}
+                    data-public-live-kind="bbh-drilldown-header"
+                  >
                     <div>
                       <p class="bbh-rank">{@drilldown_capsule.badge_kind}</p>
                       <h2 class="bbh-name">{@drilldown_capsule.title}</h2>
@@ -253,7 +273,7 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
                   </dl>
 
                   <div class="bbh-drilldown-block">
-                    <h3>Current best genome</h3>
+                    <h3>Current best route</h3>
                     <%= if @drilldown_capsule.current_best_genome do %>
                       <p class="bbh-drilldown-copy">
                         {@drilldown_capsule.current_best_genome.name}
@@ -398,7 +418,14 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
               <% else %>
                 <ol class="bbh-feed-list">
                   <%= for item <- @event_feed_items do %>
-                    <li id={"bbh-feed-#{item.id}"} class="bbh-feed-item" data-motion="reveal">
+                    <li
+                      id={"bbh-feed-#{item.id}"}
+                      class="bbh-feed-item"
+                      data-motion="reveal"
+                      data-public-live-item={"bbh-feed-#{item.id}"}
+                      data-public-live-revision={item.occurred_at || item.id}
+                      data-public-live-kind="bbh-feed-item"
+                    >
                       <span class={["bbh-feed-dot", "is-#{item.kind}"]}></span>
                       <div>
                         <p class="bbh-feed-headline">{item.headline}</p>

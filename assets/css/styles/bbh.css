@@ -16,6 +16,7 @@
 
 .bbh-chip,
 .bbh-badge {
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -28,6 +29,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .bbh-chip-official {
@@ -61,6 +63,10 @@
   box-shadow:
     0 1.2rem 2.8rem rgba(77, 53, 15, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  transition:
+    transform 180ms var(--bbh-ease-out),
+    border-color 180ms ease,
+    box-shadow 180ms var(--bbh-ease-out);
 }
 
 .bbh-wall-stage,
@@ -395,10 +401,12 @@
 
 .bbh-capsule-footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.6rem;
   margin-top: auto;
   padding-top: 0.4rem;
+  overflow-wrap: anywhere;
 }
 
 .bbh-capsule-pips {
@@ -512,6 +520,8 @@
 }
 
 .bbh-drilldown {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 1rem;
 }
@@ -571,6 +581,8 @@
   font-family: var(--tt-font-title);
   font-size: 1rem;
   line-height: 1.2;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .bbh-drilldown-block {
@@ -591,6 +603,7 @@
 }
 
 .bbh-run-link {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -602,6 +615,16 @@
   color: inherit;
   text-decoration: none;
   font-family: var(--tt-font-body);
+  transition:
+    transform 180ms var(--bbh-ease-out),
+    border-color 180ms ease,
+    box-shadow 180ms var(--bbh-ease-out);
+}
+
+.bbh-run-link:focus-visible,
+.bbh-capsule:focus-visible {
+  outline: 2px solid rgba(17, 76, 167, 0.8);
+  outline-offset: 4px;
 }
 
 .bbh-run-link-meta {
@@ -925,6 +948,18 @@
 .bbh-skill-code code {
   font-family: var(--tt-font-body);
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.bbh-live-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 0%, rgba(84, 197, 108, 0.18) 46%, transparent 84%);
+  opacity: 0;
+  transform: translateX(-24%);
 }
 
 @media (max-width: 1040px) {
@@ -1008,11 +1043,30 @@
   .bbh-capsule:hover .bbh-capsule-core {
     transform: translateY(-0.2rem);
   }
+
+  .bbh-official-card:hover,
+  .bbh-validation:hover,
+  .bbh-skill-card:hover,
+  .bbh-skill-boundary-card:hover,
+  .bbh-skill-raw-card:hover,
+  .bbh-run-link:hover {
+    transform: translateY(-0.14rem);
+    border-color: rgba(17, 76, 167, 0.24);
+    box-shadow:
+      0 1.4rem 3rem rgba(77, 53, 15, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bbh-capsule,
-  .bbh-capsule-core {
+  .bbh-capsule-core,
+  .bbh-official-card,
+  .bbh-validation,
+  .bbh-skill-card,
+  .bbh-skill-boundary-card,
+  .bbh-skill-raw-card,
+  .bbh-run-link {
     transition: none;
   }
 
@@ -1021,7 +1075,13 @@
   }
 
   .bbh-capsule:hover .bbh-capsule-core,
-  .bbh-capsule:active .bbh-capsule-core {
+  .bbh-capsule:active .bbh-capsule-core,
+  .bbh-official-card:hover,
+  .bbh-validation:hover,
+  .bbh-skill-card:hover,
+  .bbh-skill-boundary-card:hover,
+  .bbh-skill-raw-card:hover,
+  .bbh-run-link:hover {
     transform: none;
   }
 }

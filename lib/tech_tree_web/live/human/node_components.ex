@@ -115,7 +115,23 @@ defmodule TechTreeWeb.Human.NodeComponents do
             <%= for row <- @page.proof_rows do %>
               <li id={"node-proof-#{row.id}"}>
                 <span>{row.label}</span>
-                <strong>{row.value}</strong>
+                <strong
+                  class="tt-public-copy-value"
+                  data-copy-value={copyable_public_value(row.value)}
+                  data-copy-label={row.label}
+                >
+                  {row.value}
+                </strong>
+                <button
+                  :if={copyable_public_value(row.value)}
+                  type="button"
+                  class="tt-public-copy-action"
+                  data-copy-button
+                  data-copy-value={copyable_public_value(row.value)}
+                  data-copy-label={row.label}
+                >
+                  Copy
+                </button>
               </li>
             <% end %>
           </ul>
@@ -133,7 +149,12 @@ defmodule TechTreeWeb.Human.NodeComponents do
             <span :if={@autoskill.mode_label} class="tt-public-room-chip">
               {@autoskill.mode_label}
             </span>
-            <span :if={@autoskill.bundle_hash} class="tt-public-room-chip">
+            <span
+              :if={@autoskill.bundle_hash}
+              class="tt-public-room-chip tt-public-copy-value"
+              data-copy-value={@autoskill.bundle_hash}
+              data-copy-label="Bundle fingerprint"
+            >
               Bundle {@autoskill.bundle_hash}
             </span>
           </div>
@@ -141,7 +162,25 @@ defmodule TechTreeWeb.Human.NodeComponents do
             <li><span>Entrypoint</span><strong>{@autoskill.entrypoint}</strong></li>
             <li><span>Primary file</span><strong>{@autoskill.primary_file}</strong></li>
             <li><span>Access</span><strong>{@autoskill.access_copy}</strong></li>
-            <li><span>Pull command</span><strong>{@autoskill.pull_command}</strong></li>
+            <li>
+              <span>Pull command</span>
+              <strong
+                class="tt-public-copy-value"
+                data-copy-value={@autoskill.pull_command}
+                data-copy-label="Pull command"
+              >
+                {@autoskill.pull_command}
+              </strong>
+              <button
+                type="button"
+                class="tt-public-copy-action"
+                data-copy-button
+                data-copy-value={@autoskill.pull_command}
+                data-copy-label="Pull command"
+              >
+                Copy
+              </button>
+            </li>
           </ul>
           <div :if={@autoskill.score_rows != []} class="tt-public-chip-row">
             <span :for={row <- @autoskill.score_rows} class="tt-public-room-chip">{row}</span>
@@ -165,7 +204,11 @@ defmodule TechTreeWeb.Human.NodeComponents do
           </p>
 
           <%= if @page.lineage == [] do %>
-            <div class="hu-empty">This node is a seed root or has no visible lineage.</div>
+            <div class="hu-empty">
+              This node is a seed root or has no visible lineage.
+              <.link navigate={~p"/tree"} class="tt-public-inline-link">Open the live tree</.link>
+              to find related branches.
+            </div>
           <% else %>
             <ol class="tt-public-inline-list">
               <%= for ancestor <- @page.lineage do %>
@@ -179,7 +222,11 @@ defmodule TechTreeWeb.Human.NodeComponents do
           <% end %>
 
           <%= if @page.children == [] do %>
-            <div class="hu-empty">No public children are attached to this node yet.</div>
+            <div class="hu-empty">
+              No public children are attached to this node yet.
+              <.link navigate={~p"/tree"} class="tt-public-inline-link">Return to the tree</.link>
+              to keep exploring.
+            </div>
           <% else %>
             <ul class="tt-public-detail-list">
               <%= for child <- @page.children do %>
@@ -265,7 +312,11 @@ defmodule TechTreeWeb.Human.NodeComponents do
           </div>
 
           <%= if @page.related == [] do %>
-            <div class="hu-empty">No tagged links were found for this node.</div>
+            <div class="hu-empty">
+              No tagged links were found for this node.
+              <.link navigate={~p"/tree"} class="tt-public-inline-link">Open nearby branches</.link>
+              from the tree.
+            </div>
           <% else %>
             <ul class="tt-public-detail-list">
               <%= for rel <- @page.related do %>
@@ -280,7 +331,11 @@ defmodule TechTreeWeb.Human.NodeComponents do
           <% end %>
 
           <%= if @page.comments == [] do %>
-            <div class="hu-empty">No public comments yet.</div>
+            <div class="hu-empty">
+              No public comments yet.
+              <.link navigate={~p"/chat"} class="tt-public-inline-link">Open the public room</.link>
+              to follow live discussion.
+            </div>
           <% else %>
             <ol class="tt-public-comment-list">
               <%= for comment <- @page.comments do %>
@@ -321,7 +376,23 @@ defmodule TechTreeWeb.Human.NodeComponents do
             <%= for row <- @page.provenance_rows do %>
               <li id={"node-prov-#{row.id}"}>
                 <span>{row.label}</span>
-                <strong>{row.value}</strong>
+                <strong
+                  class="tt-public-copy-value"
+                  data-copy-value={copyable_public_value(row.value)}
+                  data-copy-label={row.label}
+                >
+                  {row.value}
+                </strong>
+                <button
+                  :if={copyable_public_value(row.value)}
+                  type="button"
+                  class="tt-public-copy-action"
+                  data-copy-button
+                  data-copy-value={copyable_public_value(row.value)}
+                  data-copy-label={row.label}
+                >
+                  Copy
+                </button>
               </li>
             <% end %>
           </ul>
@@ -345,4 +416,12 @@ defmodule TechTreeWeb.Human.NodeComponents do
     </section>
     """
   end
+
+  defp copyable_public_value(value) when is_binary(value) do
+    if String.length(value) >= 12 and value not in ["Unavailable", "Not anchored"] do
+      value
+    end
+  end
+
+  defp copyable_public_value(_value), do: nil
 end

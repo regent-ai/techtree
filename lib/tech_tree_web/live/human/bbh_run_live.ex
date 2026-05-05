@@ -97,12 +97,40 @@ defmodule TechTreeWeb.Human.BbhRunLive do
             <div class="bbh-copy">
               <p><strong>Model:</strong> {@run.genome.model}</p>
               <p><strong>Router:</strong> {@run.genome.router}</p>
-              <p><strong>Fingerprint:</strong> {@run.genome.fingerprint || "n/a"}</p>
+              <p>
+                <strong>Fingerprint:</strong>
+                <span
+                  class="tt-public-copy-value"
+                  data-copy-value={@run.genome.fingerprint}
+                  data-copy-label="Genome fingerprint"
+                >
+                  {@run.genome.fingerprint || "n/a"}
+                </span>
+                <button
+                  :if={@run.genome.fingerprint}
+                  type="button"
+                  class="tt-public-copy-action"
+                  data-copy-button
+                  data-copy-value={@run.genome.fingerprint}
+                  data-copy-label="Genome fingerprint"
+                >
+                  Copy
+                </button>
+              </p>
               <p><strong>Planner:</strong> {@run.genome.planner || "n/a"}</p>
               <p><strong>Critic:</strong> {@run.genome.critic || "n/a"}</p>
               <p><strong>Tool policy:</strong> {@run.genome.tool_policy || "n/a"}</p>
               <%= if @run.publication_review_id do %>
-                <p><strong>Challenge review:</strong> {@run.publication_review_id}</p>
+                <p>
+                  <strong>Challenge review:</strong>
+                  <span
+                    class="tt-public-copy-value"
+                    data-copy-value={@run.publication_review_id}
+                    data-copy-label="Challenge review"
+                  >
+                    {@run.publication_review_id}
+                  </span>
+                </p>
               <% end %>
               <%= if @run.published_at do %>
                 <p><strong>Published:</strong> {@run.published_at}</p>
@@ -114,7 +142,16 @@ defmodule TechTreeWeb.Human.BbhRunLive do
             <div class="bbh-copy">
               <p><strong>Status:</strong> {@run.certificate_status}</p>
               <%= if @run.certificate_review_id do %>
-                <p><strong>Certificate review:</strong> {@run.certificate_review_id}</p>
+                <p>
+                  <strong>Certificate review:</strong>
+                  <span
+                    class="tt-public-copy-value"
+                    data-copy-value={@run.certificate_review_id}
+                    data-copy-label="Certificate review"
+                  >
+                    {@run.certificate_review_id}
+                  </span>
+                </p>
               <% end %>
               <%= if @run.certificate_expires_at do %>
                 <p><strong>Certificate expires:</strong> {@run.certificate_expires_at}</p>
@@ -135,7 +172,23 @@ defmodule TechTreeWeb.Human.BbhRunLive do
                 <li id={"bbh-execution-#{row.id}"}>
                   <div class="hu-list-link">
                     <span>{row.label}</span>
-                    <span class="hu-list-meta">{row.value}</span>
+                    <span
+                      class="hu-list-meta tt-public-copy-value"
+                      data-copy-value={copyable_run_value(row.value)}
+                      data-copy-label={row.label}
+                    >
+                      {row.value}
+                    </span>
+                    <button
+                      :if={copyable_run_value(row.value)}
+                      type="button"
+                      class="tt-public-copy-action"
+                      data-copy-button
+                      data-copy-value={copyable_run_value(row.value)}
+                      data-copy-label={row.label}
+                    >
+                      Copy
+                    </button>
                   </div>
                 </li>
               <% end %>
@@ -144,14 +197,30 @@ defmodule TechTreeWeb.Human.BbhRunLive do
 
           <.human_section id="bbh-run-artifacts" title="Artifacts">
             <%= if @artifact_rows == [] do %>
-              <.empty_state message="No public artifact metadata was attached to this run." />
+              <.empty_state message="No public artifacts are attached to this run yet. Open the wall to compare runs with more proof." />
             <% else %>
               <ul class="hu-list">
                 <%= for row <- @artifact_rows do %>
                   <li id={"bbh-artifact-#{row.id}"}>
                     <div class="hu-list-link">
                       <span>{row.label}</span>
-                      <span class="hu-list-meta">{row.value}</span>
+                      <span
+                        class="hu-list-meta tt-public-copy-value"
+                        data-copy-value={copyable_run_value(row.value)}
+                        data-copy-label={row.label}
+                      >
+                        {row.value}
+                      </span>
+                      <button
+                        :if={copyable_run_value(row.value)}
+                        type="button"
+                        class="tt-public-copy-action"
+                        data-copy-button
+                        data-copy-value={copyable_run_value(row.value)}
+                        data-copy-label={row.label}
+                      >
+                        Copy
+                      </button>
                     </div>
                   </li>
                 <% end %>
@@ -161,7 +230,7 @@ defmodule TechTreeWeb.Human.BbhRunLive do
 
           <.human_section id="bbh-run-validations" title="Validations">
             <%= if @validations == [] do %>
-              <.empty_state message="This run has not been replayed by a validator yet." />
+              <.empty_state message="This run has not been checked again yet. Open the wall to compare checked runs." />
             <% else %>
               <div class="bbh-validation-stack">
                 <%= for validation <- @validations do %>
@@ -211,4 +280,12 @@ defmodule TechTreeWeb.Human.BbhRunLive do
   defp stringify_enum(value) when is_atom(value), do: Atom.to_string(value)
   defp stringify_enum(value) when is_binary(value), do: value
   defp stringify_enum(value), do: to_string(value)
+
+  defp copyable_run_value(value) when is_binary(value) do
+    if String.length(value) >= 12 and value != "n/a" do
+      value
+    end
+  end
+
+  defp copyable_run_value(_value), do: nil
 end

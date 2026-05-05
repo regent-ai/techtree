@@ -51,6 +51,58 @@ const animateActiveChatSection = (root: HomeChatboxElement) => {
   });
 };
 
+const flashChatEntry = (entry: HTMLElement) => {
+  const host =
+    entry.querySelector<HTMLElement>(".chat-bubble") ||
+    entry.querySelector<HTMLElement>("[data-chatbox-entry]") ||
+    entry;
+
+  host.style.position = "relative";
+  host.style.overflow = "hidden";
+
+  const flash = document.createElement("span");
+  flash.className = "fp-chat-live-flash";
+  flash.setAttribute("aria-hidden", "true");
+  host.appendChild(flash);
+
+  animate(flash, {
+    opacity: [0, 1, 0],
+    translateX: ["-24%", "24%"],
+    duration: 260,
+    ease: "outQuad",
+  });
+
+  window.setTimeout(() => {
+    flash.remove();
+  }, 280);
+};
+
+const animateChatEntries = (
+  root: HomeChatboxElement,
+  entries: HTMLElement[],
+) => {
+  if (entries.length === 0) return;
+
+  if (root._homeChatboxReduceMotion) {
+    entries.forEach((entry) => {
+      entry.style.transform = "none";
+      entry.style.opacity = "1";
+    });
+    return;
+  }
+
+  entries.forEach(flashChatEntry);
+
+  animate(entries, {
+    opacity: [0, 1],
+    translateY: [8, 0],
+    scale: [0.99, 1],
+    delay: stagger(38),
+    duration: 260,
+    ease: "outExpo",
+  });
+};
+
 export const HomeChatbox: Hook = {
   mounted() {
     const root = this.el as HomeChatboxElement;
@@ -288,7 +340,9 @@ export const HomeChatbox: Hook = {
       await disconnect();
     };
 
-    const sendMessage = async () => {
+    let sendPointerActivated = false;
+
+    const sendMessage = async (animatePress = false) => {
       if (!boolData(root, "roomCanSend") || sending) return;
 
       const body = input.value.trim();
@@ -306,10 +360,10 @@ export const HomeChatbox: Hook = {
       sending = false;
       syncComposerState();
 
-      if (!root._homeChatboxReduceMotion) {
+      if (animatePress && !root._homeChatboxReduceMotion) {
         animate(sendButton, {
           scale: [1, 0.96, 1],
-          duration: 380,
+          duration: 180,
           ease: "outExpo",
         });
       }
@@ -330,32 +384,34 @@ export const HomeChatbox: Hook = {
 
       root._homeChatboxSeenKeys = seenKeys;
 
-      if (!initial && newEntries.length > 0 && !root._homeChatboxReduceMotion) {
-        animate(newEntries, {
-          opacity: [0, 1],
-          translateY: [16, 0],
-          scale: [0.97, 1],
-          delay: stagger(70),
-          duration: 620,
-          ease: "outExpo",
-        });
+      if (!initial && newEntries.length > 0) {
+        animateChatEntries(root, newEntries);
       }
     };
 
     const handleInput = () => syncComposerState();
     const handleAuthClick = () => void toggleAuth();
     const handleDisconnectClick = () => void disconnect();
-    const handleSendClick = () => void sendMessage();
+    const handleSendPointerDown = () => {
+      sendPointerActivated = true;
+    };
+    const handleSendClick = () => {
+      const shouldAnimatePress = sendPointerActivated;
+      sendPointerActivated = false;
+      void sendMessage(shouldAnimatePress);
+    };
     const handleInputKeydown = (event: KeyboardEvent) => {
       if (event.key !== "Enter" || event.shiftKey) return;
       event.preventDefault();
-      void sendMessage();
+      sendPointerActivated = false;
+      void sendMessage(false);
     };
 
     input.addEventListener("input", handleInput);
     input.addEventListener("keydown", handleInputKeydown);
     authButton.addEventListener("click", handleAuthClick);
     disconnectButton.addEventListener("click", handleDisconnectClick);
+    sendButton.addEventListener("pointerdown", handleSendPointerDown);
     sendButton.addEventListener("click", handleSendClick);
 
     if ("addEventListener" in motionQuery) {
@@ -391,6 +447,7 @@ export const HomeChatbox: Hook = {
       input.removeEventListener("keydown", handleInputKeydown);
       authButton.removeEventListener("click", handleAuthClick);
       disconnectButton.removeEventListener("click", handleDisconnectClick);
+      sendButton.removeEventListener("pointerdown", handleSendPointerDown);
       sendButton.removeEventListener("click", handleSendClick);
 
       if ("removeEventListener" in motionQuery) {
@@ -419,15 +476,8 @@ export const HomeChatbox: Hook = {
       return true;
     });
 
-    if (newEntries.length > 0 && !root._homeChatboxReduceMotion) {
-      animate(newEntries, {
-        opacity: [0, 1],
-        translateY: [16, 0],
-        scale: [0.97, 1],
-        delay: stagger(70),
-        duration: 620,
-        ease: "outExpo",
-      });
+    if (newEntries.length > 0) {
+      animateChatEntries(root, newEntries);
     }
   },
 

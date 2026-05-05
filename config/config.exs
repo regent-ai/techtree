@@ -31,6 +31,12 @@ config :tech_tree, Oban,
 
 config :tech_tree, :system_agent_id, System.get_env("SYSTEM_AGENT_ID", "1")
 
+config :tech_tree, :home_unicorn_hero,
+  enabled?: false,
+  project_id: "eN0PH49tZnxMuJvuRExK",
+  script_url:
+    "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.1.11/dist/unicornStudio.umd.js"
+
 # Configure the endpoint
 config :tech_tree, TechTreeWeb.Endpoint,
   url: [host: "localhost"],

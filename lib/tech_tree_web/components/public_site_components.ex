@@ -70,11 +70,19 @@ defmodule TechTreeWeb.PublicSiteComponents do
 
   def signal_strip(assigns) do
     ~H"""
-    <div id={@strip_id} class="tt-public-signal-strip" data-public-reveal>
+    <div
+      id={@strip_id}
+      class="tt-public-signal-strip tt-public-live-panel"
+      data-public-reveal
+      data-public-live-panel={@strip_id}
+    >
       <article
         :for={item <- @items}
         id={"#{@strip_id}-#{item.id}"}
-        class="tt-public-signal-card"
+        class="tt-public-signal-card tt-public-metric-card"
+        data-public-metric-card={item.id}
+        data-public-live-item={"#{@strip_id}-#{item.id}"}
+        data-public-live-revision={item.value}
       >
         <p class="tt-public-signal-label">{item.label}</p>
         <%= if item.href do %>
@@ -106,16 +114,19 @@ defmodule TechTreeWeb.PublicSiteComponents do
 
       <%= if @messages == [] do %>
         <div class="tt-public-empty-state">
-          The public room is quiet right now. Check back soon or open another branch.
+          The public room is quiet right now.
+          <.link navigate={~p"/tree"} class="tt-public-inline-link">Open the live tree</.link>
+          while the next message arrives.
         </div>
       <% else %>
         <div class="tt-public-room-feed">
           <article
             :for={message <- @messages}
             id={"#{@panel_id}-#{message.key}"}
-            class="tt-public-room-entry"
+            class="tt-public-room-entry tt-public-live-item"
             data-public-live-item={"#{@panel_id}-#{message.key}"}
             data-public-live-revision={message.key}
+            data-public-live-kind="room-message"
           >
             <div class="tt-public-room-entry-top">
               <div class="tt-public-room-entry-copy">
@@ -224,7 +235,9 @@ defmodule TechTreeWeb.PublicSiteComponents do
 
       <%= if @items == [] do %>
         <div class="tt-public-empty-state">
-          Nothing public is visible here yet. Try the live tree or open recent activity.
+          Nothing public is visible here yet.
+          <.link navigate={~p"/activity"} class="tt-public-inline-link">Open recent activity</.link>
+          for the latest visible move.
         </div>
       <% else %>
         <ul class="tt-public-side-list-items">
@@ -234,6 +247,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
               class="tt-public-side-link"
               data-public-live-item={"#{@list_id}-#{item.id}"}
               data-public-live-revision={item.meta}
+              data-public-live-kind="public-list-item"
             >
               <div>
                 <strong>{item.title}</strong>
@@ -351,7 +365,9 @@ defmodule TechTreeWeb.PublicSiteComponents do
     <div class="tt-public-table-shell" data-public-reveal>
       <%= if @rows == [] do %>
         <div class="tt-public-empty-state">
-          No public activity is visible yet. The next visible move will appear here.
+          No public activity is visible yet.
+          <.link navigate={~p"/tree"} class="tt-public-inline-link">Open the live tree</.link>
+          while the next visible move arrives.
         </div>
       <% else %>
         <table id={@table_id} class="tt-public-table">
@@ -369,6 +385,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
               id={"#{@table_id}-row-#{row.id || index}"}
               data-public-live-item={"#{@table_id}-row-#{row.id || index}"}
               data-public-live-revision={row.id || index}
+              data-public-live-kind="activity-row"
             >
               <td>{row.time}</td>
               <td>{row.agent}</td>
@@ -397,7 +414,9 @@ defmodule TechTreeWeb.PublicSiteComponents do
     <div class="tt-public-table-shell" data-public-reveal>
       <%= if @empty? do %>
         <div class="tt-public-empty-state">
-          No public activity is visible yet. The next visible move will appear here.
+          No public activity is visible yet.
+          <.link navigate={~p"/tree"} class="tt-public-inline-link">Open the live tree</.link>
+          while the next visible move arrives.
         </div>
       <% else %>
         <table id={@table_id} class="tt-public-table">
@@ -415,6 +434,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
               id={dom_id}
               data-public-live-item={dom_id}
               data-public-live-revision={row.id}
+              data-public-live-kind="activity-row"
             >
               <td>{row.time}</td>
               <td>{row.agent}</td>
@@ -454,16 +474,19 @@ defmodule TechTreeWeb.PublicSiteComponents do
 
       <%= if @empty? do %>
         <div class="tt-public-empty-state">
-          The public room is quiet right now. The next visible message will appear here.
+          The public room is quiet right now.
+          <.link navigate={~p"/activity"} class="tt-public-inline-link">Check recent activity</.link>
+          while the next message arrives.
         </div>
       <% else %>
         <div id={"#{@panel_id}-feed"} class="tt-public-room-feed" phx-update="stream">
           <article
             :for={{dom_id, message} <- @messages}
             id={dom_id}
-            class="tt-public-room-entry"
+            class="tt-public-room-entry tt-public-live-item"
             data-public-live-item={dom_id}
             data-public-live-revision={message.key}
+            data-public-live-kind="room-message"
           >
             <div class="tt-public-room-entry-top">
               <div class="tt-public-room-entry-copy">

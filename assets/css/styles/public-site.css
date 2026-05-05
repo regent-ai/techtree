@@ -26,6 +26,7 @@
 .tt-public-shell {
   --tt-public-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --tt-public-ease-state: cubic-bezier(0.77, 0, 0.175, 1);
+  --tt-public-focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-bg-primary) 28%, transparent);
   min-height: 100dvh;
   color: var(--color-fg);
   font-family: var(--font-family-ui);
@@ -71,6 +72,7 @@
   display: inline-flex;
   align-items: center;
   gap: 14px;
+  border-radius: 18px;
   color: inherit;
   text-decoration: none;
 }
@@ -147,6 +149,7 @@
 .tt-public-secondary-button,
 .tt-public-card-link,
 .tt-public-agent-pill {
+  position: relative;
   min-height: 44px;
   padding: 0 16px;
   display: inline-flex;
@@ -166,6 +169,28 @@
     background-color 160ms ease,
     box-shadow 160ms var(--tt-public-ease-out);
   cursor: pointer;
+}
+
+.tt-public-brand:focus-visible,
+.tt-public-nav-link:focus-visible,
+.tt-public-app-link:focus-visible,
+.tt-public-ios-link:focus-visible,
+.tt-public-primary-button:focus-visible,
+.tt-public-secondary-button:focus-visible,
+.tt-public-card-link:focus-visible,
+.tt-public-agent-pill:focus-visible,
+.tt-public-room-chip:focus-visible,
+.tt-public-tree-node-link:focus-visible,
+.tt-public-side-link:focus-visible,
+.tt-public-detail-link:focus-visible,
+.tt-public-graph-link:focus-visible,
+.tt-public-table-link:focus-visible,
+.tt-public-inline-link:focus-visible,
+a.tt-public-signal-value:focus-visible,
+[data-copy-button]:focus-visible {
+  outline: 2px solid var(--color-bg-primary);
+  outline-offset: 3px;
+  box-shadow: var(--tt-public-focus-ring);
 }
 
 .tt-public-nav-link:active,
@@ -199,6 +224,15 @@
   border-color: color-mix(in srgb, var(--color-bg-primary) 76%, transparent);
   color: var(--color-fg-on-primary);
   box-shadow: 0 18px 34px -28px color-mix(in srgb, var(--color-bg-primary) 42%, transparent);
+}
+
+.tt-public-nav-link.is-active,
+.tt-public-nav-link[aria-current="page"],
+.tt-public-room-chip.is-active,
+.tt-public-agent-pill.is-active {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, white 34%, transparent),
+    0 18px 34px -28px color-mix(in srgb, var(--color-bg-primary) 42%, transparent);
 }
 
 .tt-public-room-entry,
@@ -343,6 +377,26 @@
   background: color-mix(in srgb, var(--color-bg) 76%, white);
   color: var(--color-fg-primary);
   font-size: 0.85rem;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms var(--tt-public-ease-out);
+}
+
+.tt-public-copy-feedback[data-copy-state="success"],
+[data-copy-button][data-copy-state="success"] {
+  border-color: color-mix(in srgb, #2c8f4f 42%, var(--color-bg-secondary));
+  background: color-mix(in srgb, #2c8f4f 12%, var(--color-bg));
+  color: color-mix(in srgb, #166338 82%, var(--color-fg));
+}
+
+.tt-public-copy-feedback[data-copy-state="error"],
+[data-copy-button][data-copy-state="error"] {
+  border-color: color-mix(in srgb, #b94a3a 38%, var(--color-bg-secondary));
+  background: color-mix(in srgb, #b94a3a 10%, var(--color-bg));
+  color: color-mix(in srgb, #8b2f25 78%, var(--color-fg));
 }
 
 .tt-public-hero-media {
@@ -371,6 +425,53 @@
       color-mix(in srgb, var(--color-bg) 82%, var(--color-bg-alt)) 100%
     );
   box-shadow: 0 28px 64px -50px color-mix(in srgb, var(--color-fg) 24%, transparent);
+}
+
+.tt-public-signal-card,
+.tt-public-node-card,
+.tt-public-learn-card,
+.tt-public-tree-card,
+.tt-public-detail-card,
+.tt-public-command-card,
+.tt-public-collection-card,
+.tt-public-room-entry,
+.tt-public-tree-node-link,
+.tt-public-side-link,
+.tt-public-detail-link,
+.tt-public-graph-link {
+  min-width: 0;
+  transition:
+    transform 180ms var(--tt-public-ease-out),
+    border-color 180ms ease,
+    box-shadow 180ms var(--tt-public-ease-out);
+}
+
+.tt-public-signal-card:focus-within,
+.tt-public-node-card:focus-within,
+.tt-public-learn-card:focus-within,
+.tt-public-tree-card:focus-within,
+.tt-public-detail-card:focus-within,
+.tt-public-command-card:focus-within,
+.tt-public-collection-card:focus-within,
+.tt-public-room-shell:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--color-bg-primary) 84%, transparent);
+  outline-offset: 4px;
+}
+
+.tt-public-live-motion-target {
+  position: relative;
+  overflow: hidden;
+}
+
+.tt-public-live-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 0%, rgba(70, 179, 99, 0.18) 44%, transparent 82%);
+  opacity: 0;
+  transform: translateX(-24%);
 }
 
 .tt-public-hero-video-surface {
@@ -832,6 +933,7 @@ a.tt-public-signal-value {
 .tt-public-node-meta,
 .tt-public-room-count,
 .tt-public-room-chip {
+  max-width: 100%;
   min-height: 30px;
   padding: 0 12px;
   display: inline-flex;
@@ -840,6 +942,13 @@ a.tt-public-signal-value {
   background: color-mix(in srgb, var(--color-bg-primary) 10%, white);
   color: var(--color-fg-primary);
   font-size: 0.78rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tt-public-room-chip.is-active {
+  background: color-mix(in srgb, var(--color-bg-primary) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--color-bg-primary) 42%, var(--color-bg-secondary));
 }
 
 a.tt-public-room-chip {
@@ -874,6 +983,7 @@ a.tt-public-room-chip {
   margin: 8px 0 0;
   font-family: var(--font-family-title);
   font-size: 1.05rem;
+  overflow-wrap: anywhere;
 }
 
 .tt-public-bullet-list {
@@ -952,6 +1062,14 @@ a.tt-public-room-chip {
   text-decoration: none;
 }
 
+.tt-public-tree-node-link > *,
+.tt-public-side-link > *,
+.tt-public-detail-link > *,
+.tt-public-graph-link > *,
+.tt-public-detail-list li > * {
+  min-width: 0;
+}
+
 .tt-public-side-link {
   background: color-mix(in srgb, var(--color-bg) 66%, white);
   border: 1px solid color-mix(in srgb, var(--color-bg-primary) 10%, var(--color-bg-secondary));
@@ -975,6 +1093,7 @@ a.tt-public-room-chip {
 .tt-public-graph-link span {
   color: var(--color-fg-muted);
   font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }
 
 .tt-public-room-feed {
@@ -1128,6 +1247,7 @@ a.tt-public-room-chip {
   font-family: var(--font-family-title);
   color: var(--color-fg-primary);
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .tt-public-comment-card,
@@ -1149,6 +1269,25 @@ a.tt-public-room-chip {
   padding: 10px 14px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-bg) 72%, white);
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tt-public-signal-card:hover,
+  .tt-public-node-card:hover,
+  .tt-public-learn-card:hover,
+  .tt-public-tree-card:hover,
+  .tt-public-detail-card:hover,
+  .tt-public-command-card:hover,
+  .tt-public-collection-card:hover,
+  .tt-public-tree-node-link:hover,
+  .tt-public-side-link:hover,
+  .tt-public-detail-link:hover,
+  .tt-public-graph-link:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--color-bg-primary) 28%, var(--color-bg-secondary));
+    box-shadow: 0 28px 54px -44px color-mix(in srgb, var(--color-fg) 30%, transparent);
+  }
 }
 
 .tt-public-collection-card {
@@ -1232,11 +1371,12 @@ a.tt-public-room-chip {
     max-width: 100%;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 0 4px 6px;
-    margin-inline: -4px;
+    padding: 0 12px 8px;
+    margin-inline: -12px;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, transparent 0, black 18px, black calc(100% - 18px), transparent 100%);
   }
 
   .tt-public-nav::-webkit-scrollbar,
@@ -1250,6 +1390,7 @@ a.tt-public-room-chip {
   .tt-public-tree-canvas > .tt-public-chip-row > * {
     flex: 0 0 auto;
     scroll-snap-align: start;
+    white-space: nowrap;
   }
 
   .tt-public-hero,
@@ -1381,6 +1522,21 @@ a.tt-public-room-chip {
     transition: none;
   }
 
+  .tt-public-signal-card,
+  .tt-public-node-card,
+  .tt-public-learn-card,
+  .tt-public-tree-card,
+  .tt-public-detail-card,
+  .tt-public-command-card,
+  .tt-public-collection-card,
+  .tt-public-tree-node-link,
+  .tt-public-side-link,
+  .tt-public-detail-link,
+  .tt-public-graph-link,
+  .tt-public-copy-feedback {
+    transition: none;
+  }
+
   .tt-public-nav-link:hover,
   .tt-public-app-link:hover,
   .tt-public-ios-link:hover,
@@ -1390,5 +1546,19 @@ a.tt-public-room-chip {
   .tt-public-agent-pill:hover {
     transform: none;
     box-shadow: none;
+  }
+
+  .tt-public-signal-card:hover,
+  .tt-public-node-card:hover,
+  .tt-public-learn-card:hover,
+  .tt-public-tree-card:hover,
+  .tt-public-detail-card:hover,
+  .tt-public-command-card:hover,
+  .tt-public-collection-card:hover,
+  .tt-public-tree-node-link:hover,
+  .tt-public-side-link:hover,
+  .tt-public-detail-link:hover,
+  .tt-public-graph-link:hover {
+    transform: none;
   }
 }

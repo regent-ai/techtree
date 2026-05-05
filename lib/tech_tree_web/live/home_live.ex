@@ -26,6 +26,7 @@ defmodule TechTreeWeb.HomeLive do
        :privy_app_id,
        Keyword.get(Application.get_env(:tech_tree, :privy, []), :app_id, "")
      )
+     |> assign(:home_unicorn_hero, home_unicorn_hero_config())
      |> assign(:view_mode, @default_view_mode)
      |> assign(:install_agent, @default_install_agent)
      |> assign(:chat_tab, @default_chat_tab)
@@ -292,6 +293,22 @@ defmodule TechTreeWeb.HomeLive do
 
   @impl true
   def render(assigns), do: HomeComponents.home_page(assigns)
+
+  defp home_unicorn_hero_config do
+    cfg = Application.get_env(:tech_tree, :home_unicorn_hero, [])
+    project_id = Keyword.get(cfg, :project_id, "")
+    script_url = Keyword.get(cfg, :script_url, "")
+
+    %{
+      enabled?:
+        Keyword.get(cfg, :enabled?, false) && present?(project_id) && present?(script_url),
+      project_id: project_id,
+      script_url: script_url
+    }
+  end
+
+  defp present?(value) when is_binary(value), do: String.trim(value) != ""
+  defp present?(_value), do: false
 
   defp assign_dataset(socket, requested_mode) do
     socket

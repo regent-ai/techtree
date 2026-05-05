@@ -15,7 +15,18 @@ defmodule TechTreeWeb.HomeComponents do
       data-data-mode={@data_mode}
       data-chat-tab={@chat_tab}
       data-install-agent={@install_agent}
+      data-dashboard-home="techtree"
     >
+      <div
+        :if={@home_unicorn_hero.enabled?}
+        id="frontpage-unicorn-hero"
+        class="fp-unicorn-hero"
+        phx-hook="UnicornHero"
+        phx-update="ignore"
+        aria-hidden="true"
+        data-us-project={@home_unicorn_hero.project_id}
+        data-unicorn-script-url={@home_unicorn_hero.script_url}
+      />
       <HomeSurfaceComponents.regent_home_surface
         regent_scene={@regent_scene}
         regent_scene_version={@regent_scene_version}

@@ -36,7 +36,11 @@ defmodule TechTreeWeb.HomeSurfaceComponents do
       )
 
     ~H"""
-    <section id="frontpage-regent-shell" class="fp-stage-shell rg-regent-theme-techtree">
+    <section
+      id="frontpage-regent-shell"
+      class="fp-stage-shell fp-dashboard-shell rg-regent-theme-techtree"
+      data-dashboard-surface="techtree-home"
+    >
       <.surface
         id="techtree-home-surface"
         class="rg-regent-theme-techtree fp-terrain-surface"
@@ -48,15 +52,14 @@ defmodule TechTreeWeb.HomeSurfaceComponents do
         camera_distance={28}
       >
         <:header_strip>
-          <div class="fp-terrain-strip">
+          <div class="fp-terrain-strip fp-dashboard-header" data-dashboard-header>
             <div class="fp-terrain-strip-brand">
               <p class="fp-terrain-kicker">TechTree</p>
               <div>
-                <h1>Start TechTree once, then move through the next branch with the same story.</h1>
+                <h1>Welcome back to TechTree.</h1>
                 <p>
-                  Install Regent, run the guided start, and hand the run folder to OpenClaw or
-                  Hermes. Then move through the live tree, open BBH as the first research branch,
-                  and keep the homepage rooms visible while the next move takes shape.
+                  Continue the live tree, inspect BBH runs, review Science Tasks, and keep the
+                  public rooms in view while the next move takes shape.
                 </p>
               </div>
             </div>
@@ -75,9 +78,9 @@ defmodule TechTreeWeb.HomeSurfaceComponents do
             </div>
           </div>
 
-          <div class="fp-terrain-strip-meta">
+          <div class="fp-terrain-strip-meta fp-dashboard-guide-rail" data-dashboard-guide-rail>
             <div class="fp-terrain-chip-row">
-              <span class="badge badge-outline font-body">Start path first</span>
+              <span class="badge badge-outline font-body">Guided start</span>
               <span class="badge badge-outline font-body">
                 {HomePresenter.view_mode_badge(@view_mode)}
               </span>

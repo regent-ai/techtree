@@ -12,7 +12,11 @@ defmodule TechTreeWeb.HomeStoryComponents do
       subtitle="Use the live tree, step into BBH as the first research branch, and keep the homepage rooms open while you follow what is moving."
       kind="table"
     >
-      <div id="frontpage-home-briefing" class="fp-ledger-briefing">
+      <div
+        id="frontpage-home-briefing"
+        class="fp-ledger-briefing fp-dashboard-briefing"
+        data-dashboard-briefing
+      >
         The top of the page handles the first run. The branch map below helps you move between
         the public tree, the first BBH branch, and the homepage rooms without rereading the same
         setup story.
@@ -21,8 +25,9 @@ defmodule TechTreeWeb.HomeStoryComponents do
       <div id="frontpage-branch-paths" class="fp-story-stack" phx-hook="HomeStoryRail">
         <article
           id="frontpage-start-branch"
-          class="fp-story-card fp-story-card-featured"
+          class="fp-story-card fp-story-card-featured fp-dashboard-card"
           data-story-reveal
+          data-dashboard-card="start-branch"
         >
           <div class="fp-story-card-head">
             <div>
@@ -42,7 +47,13 @@ defmodule TechTreeWeb.HomeStoryComponents do
 
           <div class="fp-story-highlight">
             <div class="fp-command-card-code fp-command-card-code-hero">
-              <code>{@agent_handoff_command}</code>
+              <code
+                class="tt-public-copy-value"
+                data-copy-value={@agent_handoff_command}
+                data-copy-label="Agent handoff line"
+              >
+                {@agent_handoff_command}
+              </code>
             </div>
             <p>
               Keep the selected agent visible in the top path so the handoff stays clear and easy to copy.
@@ -55,7 +66,13 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
         </article>
 
-        <article id="frontpage-tree-path" class="fp-story-card" data-story-reveal>
+        <article
+          id="frontpage-tree-path"
+          class="fp-story-card fp-dashboard-card fp-dashboard-live-panel"
+          data-story-reveal
+          data-dashboard-card="live-tree"
+          data-public-live-panel="frontpage-tree-path"
+        >
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Explore the live tree</p>
@@ -206,8 +223,11 @@ defmodule TechTreeWeb.HomeStoryComponents do
 
         <article
           id="frontpage-selected-node"
-          class="fp-story-card fp-story-card-detail"
+          class="fp-story-card fp-story-card-detail fp-dashboard-card fp-dashboard-live-panel"
           data-story-reveal
+          data-dashboard-card="selected-node"
+          data-public-live-panel="frontpage-selected-node"
+          data-public-live-revision={@detail_node && @detail_node.id}
         >
           <%= if @detail_node do %>
             <p class="fp-ledger-kicker">Selected node</p>
@@ -221,7 +241,13 @@ defmodule TechTreeWeb.HomeStoryComponents do
               <span class="badge badge-outline font-body">
                 {HomePresenter.selected_kind(@detail_node)}
               </span>
-              <span class="badge badge-outline font-body">{@detail_node.id}</span>
+              <span
+                class="badge badge-outline font-body tt-public-copy-value"
+                data-copy-value={@detail_node.id}
+                data-copy-label="Node"
+              >
+                {@detail_node.id}
+              </span>
             </div>
 
             <div class="stats stats-vertical mt-4 border border-[var(--fp-panel-border)] bg-[var(--fp-accent-soft)] shadow-none md:stats-horizontal">
@@ -334,7 +360,12 @@ defmodule TechTreeWeb.HomeStoryComponents do
           <% end %>
         </article>
 
-        <article id="frontpage-bbh-branch" class="fp-story-card" data-story-reveal>
+        <article
+          id="frontpage-bbh-branch"
+          class="fp-story-card fp-dashboard-card"
+          data-story-reveal
+          data-dashboard-card="bbh-branch"
+        >
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">BBH branch</p>
@@ -357,7 +388,12 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
         </article>
 
-        <article id="frontpage-science-tasks-branch" class="fp-story-card" data-story-reveal>
+        <article
+          id="frontpage-science-tasks-branch"
+          class="fp-story-card fp-dashboard-card"
+          data-story-reveal
+          data-dashboard-card="science-tasks"
+        >
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Science Tasks branch</p>
@@ -379,7 +415,13 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
         </article>
 
-        <article id="frontpage-chat-path" class="fp-story-card" data-story-reveal>
+        <article
+          id="frontpage-chat-path"
+          class="fp-story-card fp-dashboard-card fp-dashboard-live-panel"
+          data-story-reveal
+          data-dashboard-card="public-rooms"
+          data-public-live-panel="frontpage-chat-path"
+        >
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Homepage rooms</p>
@@ -402,7 +444,13 @@ defmodule TechTreeWeb.HomeStoryComponents do
           </div>
         </article>
 
-        <article id="frontpage-tree-stats" class="fp-story-card" data-story-reveal>
+        <article
+          id="frontpage-tree-stats"
+          class="fp-story-card fp-dashboard-card fp-dashboard-live-panel"
+          data-story-reveal
+          data-dashboard-card="tree-stats"
+          data-public-live-panel="frontpage-tree-stats"
+        >
           <div class="fp-story-card-head">
             <div>
               <p class="fp-ledger-kicker">Live tree snapshot</p>
@@ -412,19 +460,19 @@ defmodule TechTreeWeb.HomeStoryComponents do
 
           <table class="rg-table fp-story-table">
             <tbody>
-              <tr>
+              <tr data-public-metric-card="seeds">
                 <th scope="row">Seeds</th>
                 <td>{@graph_meta.seed_count}</td>
               </tr>
-              <tr>
+              <tr data-public-metric-card="nodes">
                 <th scope="row">Nodes</th>
                 <td>{@graph_meta.node_count}</td>
               </tr>
-              <tr>
+              <tr data-public-metric-card="edges">
                 <th scope="row">Edges</th>
                 <td>{@graph_meta.edge_count}</td>
               </tr>
-              <tr>
+              <tr data-public-metric-card="grid-path">
                 <th scope="row">Grid path</th>
                 <td>{@grid_view_key}</td>
               </tr>

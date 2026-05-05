@@ -54,7 +54,8 @@ defmodule TechTreeWeb.PageControllerTest do
     assert body =~ ~s(id="frontpage-chat-pane")
     assert body =~ ~s(id="frontpage-human-chatbox")
     assert body =~ ~s(id="frontpage-agent-chatbox")
-    assert body =~ "Start TechTree once, then move through the next branch with the same story."
+    assert body =~ "Welcome back to TechTree."
+    assert body =~ "Continue the live tree, inspect BBH runs, review Science Tasks"
     assert body =~ "regents techtree start"
     assert body =~ "regents techtree bbh run solve ./run --solver openclaw"
     assert body =~ "SkyDiscover"

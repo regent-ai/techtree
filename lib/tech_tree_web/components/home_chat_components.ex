@@ -17,7 +17,12 @@ defmodule TechTreeWeb.HomeChatComponents do
     assigns = assign(assigns, :server_signed_in?, not is_nil(assigns[:current_human]))
 
     ~H"""
-    <aside id="frontpage-chat-pane" class="fp-chat-pane" data-chat-tab={@chat_tab}>
+    <aside
+      id="frontpage-chat-pane"
+      class="fp-chat-pane fp-dashboard-live-panel"
+      data-chat-tab={@chat_tab}
+      data-public-live-panel="frontpage-chat-pane"
+    >
       <div class="fp-chat-pane-head">
         <div>
           <p class="fp-terrain-kicker">Public room snapshot</p>
@@ -218,6 +223,8 @@ defmodule TechTreeWeb.HomeChatComponents do
       <%= if @messages == [] do %>
         <div class="rounded-[1.2rem] border border-dashed border-[var(--fp-panel-border)] px-4 py-5 text-sm leading-6 text-[var(--fp-muted)]">
           No live public posts yet.
+          <a href="#frontpage-branch-paths" class="tt-public-inline-link">Open the branch map</a>
+          while the room is quiet.
         </div>
       <% else %>
         <%= for {message, index} <- Enum.with_index(@messages) do %>
@@ -226,6 +233,9 @@ defmodule TechTreeWeb.HomeChatComponents do
             class={["chat", HomePresenter.chat_direction(@side, index)]}
             data-chatbox-entry
             data-message-key={message.key}
+            data-public-live-item={"#{@id}-message-#{message.key}"}
+            data-public-live-revision={message.key}
+            data-public-live-kind="homepage-room-message"
           >
             <div class="chat-header font-body text-[0.72rem] tracking-[0.08em] text-[var(--fp-chat-meta)]">
               {message.author}

@@ -14,10 +14,11 @@ defmodule TechTreeWeb.HomeInstallComponents do
     >
       <div
         id="frontpage-install-panel"
-        class="fp-install-panel"
+        class="fp-install-panel fp-dashboard-panel"
         phx-hook="HomeInstallPanel"
         data-copy-value={@agent_handoff_command}
         data-copy-label={@install_agent_label}
+        data-dashboard-panel="guided-start"
       >
         <div class="fp-hero-shell">
           <div class="fp-install-copy">
@@ -38,7 +39,11 @@ defmodule TechTreeWeb.HomeInstallComponents do
             </div>
           </div>
 
-          <aside class="fp-hero-proof" data-install-reveal>
+          <aside
+            class="fp-hero-proof fp-dashboard-guide-card"
+            data-install-reveal
+            data-dashboard-card="next-steps"
+          >
             <p class="fp-ledger-kicker">What opens next</p>
             <div class="fp-proof-stack">
               <article class="fp-proof-item">
@@ -71,27 +76,51 @@ defmodule TechTreeWeb.HomeInstallComponents do
         </div>
 
         <div class="fp-install-command-stack">
-          <article class="fp-command-card fp-command-card-secondary" data-install-reveal>
+          <article
+            class="fp-command-card fp-command-card-secondary fp-dashboard-card"
+            data-install-reveal
+            data-dashboard-card="install-regent"
+          >
             <div class="fp-command-card-topline">
               <span class="fp-command-card-label">1. Install Regent</span>
               <span class="fp-command-card-note">One time</span>
             </div>
             <div class="fp-command-card-code">
-              <code>{@install_command}</code>
+              <code
+                class="tt-public-copy-value"
+                data-copy-value={@install_command}
+                data-copy-label="Install command"
+              >
+                {@install_command}
+              </code>
             </div>
           </article>
 
-          <article class="fp-command-card fp-command-card-secondary" data-install-reveal>
+          <article
+            class="fp-command-card fp-command-card-secondary fp-dashboard-card"
+            data-install-reveal
+            data-dashboard-card="start-techtree"
+          >
             <div class="fp-command-card-topline">
               <span class="fp-command-card-label">2. Start TechTree</span>
               <span class="fp-command-card-note">Guided setup</span>
             </div>
             <div class="fp-command-card-code">
-              <code>{@start_command}</code>
+              <code
+                class="tt-public-copy-value"
+                data-copy-value={@start_command}
+                data-copy-label="Start command"
+              >
+                {@start_command}
+              </code>
             </div>
           </article>
 
-          <article class="fp-command-card fp-command-card-primary" data-install-reveal>
+          <article
+            class="fp-command-card fp-command-card-primary fp-dashboard-card"
+            data-install-reveal
+            data-dashboard-card="agent-handoff"
+          >
             <div class="fp-command-card-head">
               <div>
                 <p class="fp-command-card-caption">3. Hand off the run folder</p>
@@ -139,7 +168,14 @@ defmodule TechTreeWeb.HomeInstallComponents do
               id="frontpage-install-command"
               class="fp-command-card-code fp-command-card-code-hero"
             >
-              <code data-install-command>{@agent_handoff_command}</code>
+              <code
+                data-install-command
+                class="tt-public-copy-value"
+                data-copy-value={@agent_handoff_command}
+                data-copy-label="Agent handoff line"
+              >
+                {@agent_handoff_command}
+              </code>
             </div>
 
             <div class="fp-command-card-actions">
@@ -148,6 +184,9 @@ defmodule TechTreeWeb.HomeInstallComponents do
                 type="button"
                 class="btn border-0 bg-[var(--fp-accent)] text-black hover:brightness-110"
                 data-install-copy
+                data-copy-button
+                data-copy-value={@agent_handoff_command}
+                data-copy-label="Agent handoff line"
               >
                 Copy {String.capitalize(@install_agent)} line
               </button>
@@ -175,7 +214,12 @@ defmodule TechTreeWeb.HomeInstallComponents do
           </article>
         </div>
 
-        <article id="frontpage-tree-peek" class="fp-tree-peek" data-install-reveal>
+        <article
+          id="frontpage-tree-peek"
+          class="fp-tree-peek fp-dashboard-live-panel"
+          data-install-reveal
+          data-public-live-panel="frontpage-tree-peek"
+        >
           <div>
             <p class="fp-ledger-kicker">What opens next</p>
             <h3>The lower half of the page is the live tree and the first research branch.</h3>

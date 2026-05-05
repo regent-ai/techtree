@@ -21,11 +21,22 @@ interface ITechTreeRegistry {
         bytes payloadCid
     );
 
+    event PublisherSet(address indexed publisher, bool allowed);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     function publishNode(
         NodeHeaderV1 calldata header,
         bytes calldata manifestCid,
         bytes calldata payloadCid
     ) external;
+
+    function setPublisher(address publisher, bool allowed) external;
+
+    function transferOwnership(address newOwner) external;
+
+    function owner() external view returns (address);
+
+    function publishers(address publisher) external view returns (bool);
 
     function exists(bytes32 id) external view returns (bool);
 

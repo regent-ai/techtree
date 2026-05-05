@@ -6,9 +6,9 @@ Foundry workspace for the TechTree contracts inside the main Techtree repo at `/
 
 Use this wording consistently when talking about the product around this repo:
 
-- `autolaunch` is purely on Base mainnet, with Base Sepolia for testing
-- the current Techtree launch target is Base Sepolia for registry-backed publishing
-- Techtree agent identity login uses Base Sepolia for this launch
+- `autolaunch` is purely on Base mainnet; use staging chains only for rehearsal
+- the current Techtree public beta target is Base mainnet for registry-backed publishing
+- Techtree agent identity login uses Base mainnet for this launch
 - `Techtree` contract scope here is the registry, TECH token, staking, emissions, and paid-node settlement surfaces
 
 ## Scope
@@ -55,46 +55,46 @@ The TECH staking and emissions tests include unit, fuzz, and invariant coverage.
 This repo's current registry and settlement deploy helpers are Base-targeted. For the current v0.1 launch path, both the registry deploy and the paid-node settlement deploy are in scope. Use `forge script` with `DEPLOY_TARGET` to pick key env vars:
 
 - `DEPLOY_TARGET=anvil` uses `ANVIL_PRIVATE_KEY`
-- `DEPLOY_TARGET=base-sepolia` uses `BASE_SEPOLIA_PRIVATE_KEY`
+- `DEPLOY_TARGET=base-sepolia` uses `BASE_SEPOLIA_PRIVATE_KEY` for rehearsals
 - `DEPLOY_TARGET=base-mainnet` uses `BASE_MAINNET_PRIVATE_KEY`
 
 `DeployTechTreeContentSettlement.s.sol` is the settlement deploy helper for paid node unlocks on Base-targeted environments.
 `DeployLocalTestUSDC.s.sol` is only for local Anvil rehearsals.
 
-Base Sepolia registry deploy:
+Base mainnet registry deploy:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree/contracts
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=...
-export BASE_SEPOLIA_PRIVATE_KEY=...
+export DEPLOY_TARGET=base-mainnet
+export BASE_MAINNET_RPC_URL=...
+export BASE_MAINNET_PRIVATE_KEY=...
 
 forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --rpc-url "$BASE_MAINNET_RPC_URL" \
   --broadcast
 ```
 
-Base Sepolia content settlement deploy:
+Base mainnet content settlement deploy:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree/contracts
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=...
-export BASE_SEPOLIA_PRIVATE_KEY=...
-export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=0x...
-export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=0x...
+export DEPLOY_TARGET=base-mainnet
+export BASE_MAINNET_RPC_URL=...
+export BASE_MAINNET_PRIVATE_KEY=...
+export AUTOSKILL_BASE_MAINNET_USDC_TOKEN=0x...
+export AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS=0x...
 
 forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --rpc-url "$BASE_MAINNET_RPC_URL" \
   --broadcast
 ```
 
 After deployment, check both addresses:
 
 ```bash
-cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 Each call should return bytecode. The full app, CLI, and Fly run sheet lives at [../docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md](../docs/REGENT_CLI_LOCAL_AND_FLY_TESTING.md).

@@ -114,9 +114,22 @@ contract TechEmissionController is Ownable {
             block.timestamp >= uint256(currentEpochStart) + uint256(epochDuration), "epoch active"
         );
 
-        uint256 emission = emissionForEpoch(currentEpoch);
-        uint256 scienceAmount = Math.mulDiv(emission, currentScienceShareWad, WAD);
+        uint64 settledEpoch = currentEpoch;
+        uint256 settledScienceShareWad = currentScienceShareWad;
+        uint256 emission = emissionForEpoch(settledEpoch);
+        uint256 scienceAmount = Math.mulDiv(emission, settledScienceShareWad, WAD);
         uint256 researchRevenueAmount = emission - scienceAmount;
+        uint64 nextEpoch = settledEpoch + 1;
+        uint256 nextScienceShareWad = STAKING.scienceShareWad();
+
+        currentEpoch = nextEpoch;
+        currentEpochStart = uint64(block.timestamp);
+        currentScienceShareWad = nextScienceShareWad;
+
+        emit EpochSettled(
+            settledEpoch, emission, settledScienceShareWad, scienceAmount, researchRevenueAmount
+        );
+        emit NextEpochConfigured(nextEpoch, nextScienceShareWad, WAD - nextScienceShareWad);
 
         if (scienceAmount > 0) {
             TECH.mint(scienceWallDistributor, scienceAmount);
@@ -124,18 +137,5 @@ contract TechEmissionController is Ownable {
         if (researchRevenueAmount > 0) {
             TECH.mint(researchRevenueDistributor, researchRevenueAmount);
         }
-
-        emit EpochSettled(
-            currentEpoch, emission, currentScienceShareWad, scienceAmount, researchRevenueAmount
-        );
-
-        uint64 nextEpoch = currentEpoch + 1;
-        uint256 nextScienceShareWad = STAKING.scienceShareWad();
-
-        currentEpoch = nextEpoch;
-        currentEpochStart = uint64(block.timestamp);
-        currentScienceShareWad = nextScienceShareWad;
-
-        emit NextEpochConfigured(nextEpoch, nextScienceShareWad, WAD - nextScienceShareWad);
     }
 }

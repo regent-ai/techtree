@@ -55,9 +55,9 @@ contract TechTreeContentSettlementTest is TestBase {
         settlement.settlePurchase(LISTING_REF, SELLER, BUNDLE_REF, amount);
 
         (bytes32[] memory topics, bytes memory data, address emitter, uint256 totalLogs) =
-            readRecordedLog(2);
+            readRecordedLog(0);
 
-        assertEq(totalLogs, 3, "expected transfer + transfer + settlement logs");
+        assertEq(totalLogs, 3, "expected settlement + transfer + transfer logs");
         assertEq(emitter, address(settlement), "settlement emitter mismatch");
         assertEq(
             topics[0],

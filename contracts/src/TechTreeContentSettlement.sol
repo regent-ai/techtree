@@ -3,10 +3,11 @@ pragma solidity ^0.8.24;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @notice Base-first USDC settlement rail for paid TechTree content.
 /// @dev Keeps listing policy offchain and only records the payment split onchain.
-contract TechTreeContentSettlement {
+contract TechTreeContentSettlement is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     uint16 public constant TREASURY_BPS = 100;
@@ -40,6 +41,7 @@ contract TechTreeContentSettlement {
 
     function settlePurchase(bytes32 listingRef, address seller, bytes32 bundleRef, uint256 amount)
         external
+        nonReentrant
     {
         if (listingRef == bytes32(0)) revert ZeroListingRef();
         if (seller == address(0)) revert ZeroAddress();
@@ -48,11 +50,11 @@ contract TechTreeContentSettlement {
         uint256 treasuryAmount = amount / 100;
         uint256 sellerAmount = amount - treasuryAmount;
 
-        usdcToken.safeTransferFrom(msg.sender, treasury, treasuryAmount);
-        usdcToken.safeTransferFrom(msg.sender, seller, sellerAmount);
-
         emit PurchaseSettled(
             listingRef, msg.sender, seller, bundleRef, amount, treasuryAmount, sellerAmount
         );
+
+        usdcToken.safeTransferFrom(msg.sender, treasury, treasuryAmount);
+        usdcToken.safeTransferFrom(msg.sender, seller, sellerAmount);
     }
 }

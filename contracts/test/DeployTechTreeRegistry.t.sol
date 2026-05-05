@@ -23,19 +23,19 @@ contract DeployTechTreeRegistryTest is Test {
         harness = new DeployTechTreeRegistryHarness();
     }
 
-    function testCheckChainIdAcceptsBaseSepolia() external {
-        vm.chainId(84_532);
-        harness.exposedCheckChainId("base-sepolia");
+    function testCheckChainIdAcceptsBaseMainnet() external {
+        vm.chainId(8_453);
+        harness.exposedCheckChainId("base-mainnet");
     }
 
-    function testCheckChainIdRejectsWrongChainForBaseSepolia() external {
+    function testCheckChainIdRejectsWrongChainForBaseMainnet() external {
         vm.chainId(31_337);
         vm.expectRevert(
             abi.encodeWithSelector(
-                DeployTechTreeRegistry.UnexpectedChainId.selector, uint256(84_532), uint256(31_337)
+                DeployTechTreeRegistry.UnexpectedChainId.selector, uint256(8_453), uint256(31_337)
             )
         );
-        harness.exposedCheckChainId("base-sepolia");
+        harness.exposedCheckChainId("base-mainnet");
     }
 
     function testCheckChainIdRejectsUnknownTarget() external {
@@ -47,19 +47,19 @@ contract DeployTechTreeRegistryTest is Test {
         harness.exposedCheckChainId("unsupported-target");
     }
 
-    function testRunBaseSepoliaDeploysRegistry() external {
-        vm.chainId(84_532);
-        vm.setEnv("BASE_SEPOLIA_PRIVATE_KEY", "12345");
+    function testRunBaseMainnetDeploysRegistry() external {
+        vm.chainId(8_453);
+        vm.setEnv("BASE_MAINNET_PRIVATE_KEY", "12345");
 
-        TechTreeRegistry deployed = harness.runBaseSepolia();
+        TechTreeRegistry deployed = harness.runBaseMainnet();
 
         assertEq(address(deployed) != address(0), true);
         assertEq(deployed.exists(bytes32(uint256(1))), false);
     }
 
     function testPrivateKeySelectionUsesTargetSpecificEnv() external {
-        vm.setEnv("BASE_SEPOLIA_PRIVATE_KEY", "12345");
+        vm.setEnv("BASE_MAINNET_PRIVATE_KEY", "12345");
 
-        assertEq(harness.exposedPrivateKeyForTarget("base-sepolia"), 12345);
+        assertEq(harness.exposedPrivateKeyForTarget("base-mainnet"), 12345);
     }
 }

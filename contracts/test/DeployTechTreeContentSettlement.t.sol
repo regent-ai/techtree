@@ -23,21 +23,21 @@ contract DeployTechTreeContentSettlementTest is Test {
         harness = new DeployTechTreeContentSettlementHarness();
     }
 
-    function testCheckChainIdAcceptsBaseSepolia() external {
-        vm.chainId(84_532);
-        harness.exposedCheckChainId("base-sepolia");
+    function testCheckChainIdAcceptsBaseMainnet() external {
+        vm.chainId(8_453);
+        harness.exposedCheckChainId("base-mainnet");
     }
 
-    function testCheckChainIdRejectsWrongChainForBaseSepolia() external {
+    function testCheckChainIdRejectsWrongChainForBaseMainnet() external {
         vm.chainId(31_337);
         vm.expectRevert(
             abi.encodeWithSelector(
                 DeployTechTreeContentSettlement.UnexpectedChainId.selector,
-                uint256(84_532),
+                uint256(8_453),
                 uint256(31_337)
             )
         );
-        harness.exposedCheckChainId("base-sepolia");
+        harness.exposedCheckChainId("base-mainnet");
     }
 
     function testCheckChainIdRejectsUnknownTarget() external {
@@ -49,23 +49,23 @@ contract DeployTechTreeContentSettlementTest is Test {
         harness.exposedCheckChainId("unsupported-target");
     }
 
-    function testRunBaseSepoliaDeploysSettlementWithConfiguredAddresses() external {
-        vm.chainId(84_532);
-        vm.setEnv("BASE_SEPOLIA_PRIVATE_KEY", "12345");
-        vm.setEnv("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", "0x00000000000000000000000000000000000000aa");
+    function testRunBaseMainnetDeploysSettlementWithConfiguredAddresses() external {
+        vm.chainId(8_453);
+        vm.setEnv("BASE_MAINNET_PRIVATE_KEY", "12345");
+        vm.setEnv("AUTOSKILL_BASE_MAINNET_USDC_TOKEN", "0x00000000000000000000000000000000000000aa");
         vm.setEnv(
-            "AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", "0x00000000000000000000000000000000000000bb"
+            "AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS", "0x00000000000000000000000000000000000000bb"
         );
 
-        TechTreeContentSettlement deployed = harness.runBaseSepolia();
+        TechTreeContentSettlement deployed = harness.runBaseMainnet();
 
         assertEq(address(deployed.usdcToken()), address(0x00000000000000000000000000000000000000AA));
         assertEq(deployed.treasury(), address(0x00000000000000000000000000000000000000bb));
     }
 
     function testPrivateKeySelectionUsesTargetSpecificEnv() external {
-        vm.setEnv("BASE_SEPOLIA_PRIVATE_KEY", "12345");
+        vm.setEnv("BASE_MAINNET_PRIVATE_KEY", "12345");
 
-        assertEq(harness.exposedPrivateKeyForTarget("base-sepolia"), 12345);
+        assertEq(harness.exposedPrivateKeyForTarget("base-mainnet"), 12345);
     }
 }

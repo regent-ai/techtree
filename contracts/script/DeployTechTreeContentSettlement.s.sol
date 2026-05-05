@@ -14,7 +14,7 @@ interface Vm {
 }
 
 /// @notice Deploys TechTreeContentSettlement for Base-first autoskill settlement.
-///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-sepolia)
+///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-mainnet)
 ///         Uses *_PRIVATE_KEY plus target-specific USDC and treasury address env vars.
 contract DeployTechTreeContentSettlement {
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
@@ -29,7 +29,7 @@ contract DeployTechTreeContentSettlement {
     error UnexpectedChainId(uint256 expected, uint256 actual);
 
     function run() external returns (TechTreeContentSettlement deployed) {
-        string memory target = vm.envOr("DEPLOY_TARGET", string("base-sepolia"));
+        string memory target = vm.envOr("DEPLOY_TARGET", string("base-mainnet"));
         deployed = _runTarget(target);
     }
 

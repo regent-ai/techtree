@@ -13,7 +13,7 @@ interface Vm {
 }
 
 /// @notice Deploys TechTreeRegistry with env-based config.
-///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-sepolia)
+///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-mainnet)
 ///         ANVIL_PRIVATE_KEY / BASE_SEPOLIA_PRIVATE_KEY / BASE_MAINNET_PRIVATE_KEY required per target.
 contract DeployTechTreeRegistry {
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
@@ -28,7 +28,7 @@ contract DeployTechTreeRegistry {
     error UnexpectedChainId(uint256 expected, uint256 actual);
 
     function run() external returns (TechTreeRegistry deployed) {
-        string memory target = vm.envOr("DEPLOY_TARGET", string("base-sepolia"));
+        string memory target = vm.envOr("DEPLOY_TARGET", string("base-mainnet"));
         deployed = _runTarget(target);
     }
 

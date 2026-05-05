@@ -110,8 +110,8 @@ contract TechStakingVote is ERC20, ERC20Permit, Ownable, ReentrancyGuard {
     function _deposit(address from, address receiver, uint256 amount) internal {
         require(receiver != address(0), "receiver=0");
         require(amount > 0, "amount=0");
-        TECH.safeTransferFrom(from, address(this), amount);
         _mint(receiver, amount);
+        TECH.safeTransferFrom(from, address(this), amount);
         emit Deposited(from, receiver, amount);
     }
 

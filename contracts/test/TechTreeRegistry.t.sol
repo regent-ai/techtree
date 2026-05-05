@@ -10,6 +10,7 @@ contract TechTreeRegistryTest is TestBase {
 
     address internal constant AUTHOR = address(0xA11CE);
     address internal constant OTHER = address(0xD00D);
+    address internal constant PUBLISHER = address(0xBEEF);
 
     bytes32 internal constant ARTIFACT_ID =
         0x7f8f2f5700db5a0b5cbec5f3668228f1f3149449f86b6f295d55f266f9af680d;
@@ -40,6 +41,11 @@ contract TechTreeRegistryTest is TestBase {
         assertEq(uint256(header.schemaVersion), 0, "schema version should default to zero");
         assertEq(uint256(header.flags), 0, "flags should default to zero");
         assertEq(header.author, address(0), "author should default to zero address");
+    }
+
+    function testConstructorAuthorizesDeployerAsPublisher() public view {
+        assertEq(registry.owner(), address(this), "deployer should own registry");
+        assertEq(registry.publishers(address(this)), true, "deployer should be publisher");
     }
 
     function testPublishNodeStoresHeaderAndEmitsEvent() public {
@@ -125,6 +131,68 @@ contract TechTreeRegistryTest is TestBase {
         assertEq(registry.exists(bytes32(uint256(3))), true, "review should exist");
     }
 
+    function testOwnerCanAuthorizePublisher() public {
+        recordLogs();
+        registry.setPublisher(PUBLISHER, true);
+
+        assertEq(registry.publishers(PUBLISHER), true, "publisher should be authorized");
+
+        (bytes32[] memory topics, bytes memory data, address emitter, uint256 logCount) =
+            readRecordedLog(0);
+        assertEq(logCount, 1, "expected one publisher event");
+        assertEq(emitter, address(registry), "event emitter mismatch");
+        assertEq(topics[0], keccak256("PublisherSet(address,bool)"), "topic0 mismatch");
+        assertEq(address(uint160(uint256(topics[1]))), PUBLISHER, "publisher topic mismatch");
+        assertEq(abi.decode(data, (bool)), true, "publisher allowed mismatch");
+    }
+
+    function testOnlyOwnerCanSetPublisher() public {
+        vm.expectRevert(abi.encodeWithSelector(TechTreeRegistry.NotOwner.selector, OTHER));
+        vm.prank(OTHER);
+        registry.setPublisher(PUBLISHER, true);
+    }
+
+    function testTransferOwnership() public {
+        recordLogs();
+        registry.transferOwnership(OTHER);
+
+        assertEq(registry.owner(), OTHER, "owner should change");
+
+        (bytes32[] memory topics, bytes memory data, address emitter, uint256 logCount) =
+            readRecordedLog(0);
+        assertEq(logCount, 1, "expected one ownership event");
+        assertEq(emitter, address(registry), "event emitter mismatch");
+        assertEq(topics[0], keccak256("OwnershipTransferred(address,address)"), "topic0 mismatch");
+        assertEq(address(uint160(uint256(topics[1]))), address(this), "old owner mismatch");
+        assertEq(address(uint160(uint256(topics[2]))), OTHER, "new owner mismatch");
+        assertEq(data.length, 0, "ownership event data should be empty");
+
+        vm.prank(OTHER);
+        registry.setPublisher(PUBLISHER, true);
+        assertEq(registry.publishers(PUBLISHER), true, "new owner should manage publishers");
+    }
+
+    function testAuthorizedPublisherCanPublishForCreator() public {
+        registry.setPublisher(PUBLISHER, true);
+
+        ITechTreeRegistry.NodeHeaderV1 memory header = ITechTreeRegistry.NodeHeaderV1({
+            id: ARTIFACT_ID,
+            subjectId: SUBJECT_ID,
+            auxId: AUX_ID,
+            payloadHash: PAYLOAD_HASH,
+            nodeType: 1,
+            schemaVersion: 1,
+            flags: 0,
+            author: AUTHOR
+        });
+
+        vm.prank(PUBLISHER);
+        registry.publishNode(header, bytes(MANIFEST_CID), bytes(PAYLOAD_CID));
+
+        ITechTreeRegistry.NodeHeaderV1 memory stored = registry.getHeader(ARTIFACT_ID);
+        assertEq(stored.author, AUTHOR, "creator author should be preserved");
+    }
+
     function testRevertIfNodeIdIsZero() public {
         ITechTreeRegistry.NodeHeaderV1 memory header = ITechTreeRegistry.NodeHeaderV1({
             id: bytes32(0),
@@ -179,7 +247,7 @@ contract TechTreeRegistryTest is TestBase {
         registry.publishNode(header, bytes(MANIFEST_CID), bytes(PAYLOAD_CID));
     }
 
-    function testRevertIfAuthorDoesNotMatchCaller() public {
+    function testRevertIfPublisherIsNotAuthorizedForAnotherCreator() public {
         ITechTreeRegistry.NodeHeaderV1 memory header = ITechTreeRegistry.NodeHeaderV1({
             id: ARTIFACT_ID,
             subjectId: SUBJECT_ID,
@@ -192,7 +260,7 @@ contract TechTreeRegistryTest is TestBase {
         });
 
         vm.expectRevert(
-            abi.encodeWithSelector(TechTreeRegistry.AuthorMismatch.selector, AUTHOR, OTHER)
+            abi.encodeWithSelector(TechTreeRegistry.UnauthorizedPublisher.selector, OTHER)
         );
         vm.prank(OTHER);
         registry.publishNode(header, bytes(MANIFEST_CID), bytes(PAYLOAD_CID));

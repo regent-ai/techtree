@@ -4,6 +4,19 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+env:
+  ELIXIR_VERSION: "1.19.5"
+  OTP_VERSION: "28.4"
+  ELIXIR_UTILS_REF: "a5b25614055eb71b48f619f2d405ea7d763b8a10"
+  DESIGN_SYSTEM_REF: "eb1c67265c3f0f831373c06f292a7badfb50a5e7"
+  AUTOLAUNCH_REF: "876207e76301ca4a8da96a7b8563e77357718b59"
+  PLATFORM_REF: "9cf5a21b1f0ccb9a0f610aa07f9ed3efca0de8cf"
+  REGENTS_CLI_REF: "f7d3cbe1d426427762db9739010bc0c67e158052"
+  SIWA_SERVER_REF: "3b8c6c2cdefc0094d73910d5f5ce9ca7e7da02b2"
+
 jobs:
   phoenix:
     runs-on: ubuntu-latest
@@ -35,17 +48,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/elixir-utils
+          ref: ${{ env.ELIXIR_UTILS_REF }}
           path: elixir-utils
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/design-system
+          ref: ${{ env.DESIGN_SYSTEM_REF }}
           path: design-system
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.19.5"
-          otp-version: "28.4"
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
       - name: Install Phoenix deps
         working-directory: techtree
@@ -88,17 +105,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/elixir-utils
+          ref: ${{ env.ELIXIR_UTILS_REF }}
           path: elixir-utils
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/design-system
+          ref: ${{ env.DESIGN_SYSTEM_REF }}
           path: design-system
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.19.5"
-          otp-version: "28.4"
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+          otp-version: ${{ env.OTP_VERSION }}
 
       - uses: actions/setup-node@v4
         with:
@@ -185,22 +206,30 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/regents-cli
+          ref: ${{ env.REGENTS_CLI_REF }}
           path: regents-cli
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/platform
+          ref: ${{ env.PLATFORM_REF }}
           path: platform
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/autolaunch
+          ref: ${{ env.AUTOLAUNCH_REF }}
           path: autolaunch
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/checkout@v4
         with:
           repository: regents-ai/siwa-server
+          ref: ${{ env.SIWA_SERVER_REF }}
           path: siwa-server
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
 
       - uses: actions/setup-node@v4
         with:
@@ -241,3 +270,34 @@ jobs:
       - name: Run Foundry tests
         working-directory: techtree/contracts
         run: forge test --offline
+
+  release-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: techtree
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/elixir-utils
+          ref: ${{ env.ELIXIR_UTILS_REF }}
+          path: elixir-utils
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
+
+      - uses: actions/checkout@v4
+        with:
+          repository: regents-ai/design-system
+          ref: ${{ env.DESIGN_SYSTEM_REF }}
+          path: design-system
+          token: ${{ secrets.REGENTS_CI_GITHUB_TOKEN || github.token }}
+
+      - name: Stage sibling packages for Phoenix image
+        run: |
+          mkdir -p techtree/.fly-build
+          cp -a elixir-utils techtree/.fly-build/elixir-utils
+          cp -a design-system techtree/.fly-build/design-system
+
+      - name: Build release image from assembled workspace
+        run: docker build -f techtree/Dockerfile techtree

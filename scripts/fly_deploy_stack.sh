@@ -28,6 +28,13 @@ if ! command -v rsync >/dev/null 2>&1; then
   exit 1
 fi
 
+CAST_BIN="${CAST_BIN:-cast}"
+
+if ! command -v "$CAST_BIN" >/dev/null 2>&1; then
+  echo "${CAST_BIN} is required to verify Base mainnet contracts before deploy"
+  exit 1
+fi
+
 require_env() {
   local name="$1"
 
@@ -52,12 +59,14 @@ SIWA_RECEIPT_SECRET="${SIWA_RECEIPT_SECRET:-$(openssl rand -hex 32)}"
 INTERNAL_SHARED_SECRET="${INTERNAL_SHARED_SECRET:-$(openssl rand -hex 32)}"
 SIWA_HMAC_KEY_ID="${SIWA_HMAC_KEY_ID:-sidecar-internal-v1}"
 SIWA_PORT="${SIWA_PORT:-4100}"
-TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-84532}"
+TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-8453}"
 TECHTREE_P2P_ENABLED="${TECHTREE_P2P_ENABLED:-false}"
+TECHTREE_HOME_UNICORN_HERO_ENABLED="${TECHTREE_HOME_UNICORN_HERO_ENABLED:-false}"
+PROMEX_METRICS_ENABLED="${PROMEX_METRICS_ENABLED:-false}"
 SIWA_INTERNAL_URL="http://${SIWA_APP}.flycast:${SIWA_PORT}"
 
-if [[ "$TECHTREE_CHAIN_ID" != "84532" ]]; then
-  echo "first prod deploy is Base Sepolia only; set TECHTREE_CHAIN_ID=84532"
+if [[ "$TECHTREE_CHAIN_ID" != "8453" ]]; then
+  echo "public beta deploy is Base mainnet only; set TECHTREE_CHAIN_ID=8453"
   exit 1
 fi
 
@@ -142,12 +151,65 @@ require_prod_env() {
   require_env PRIVY_APP_ID
   require_env PRIVY_VERIFICATION_KEY
   require_env LIGHTHOUSE_API_KEY
-  require_env BASE_SEPOLIA_RPC_URL
+  require_env BASE_MAINNET_RPC_URL
   require_env REGISTRY_CONTRACT_ADDRESS
   require_env REGISTRY_WRITER_PRIVATE_KEY
-  require_env AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT
-  require_env AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN
-  require_env AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS
+  require_env AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT
+  require_env AUTOSKILL_BASE_MAINNET_USDC_TOKEN
+  require_env AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS
+}
+
+verify_mainnet_contracts() {
+  local chain_id
+  local registry_code
+  local settlement_code
+  local usdc_code
+  local writer_address
+  local writer_authorized
+  local writer_balance
+
+  chain_id="$("$CAST_BIN" chain-id --rpc-url "$BASE_MAINNET_RPC_URL")"
+  if [[ "$chain_id" != "8453" ]]; then
+    echo "BASE_MAINNET_RPC_URL resolved chain ${chain_id}; expected 8453"
+    exit 1
+  fi
+
+  registry_code="$("$CAST_BIN" code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL")"
+  if [[ -z "$registry_code" || "$registry_code" == "0x" ]]; then
+    echo "no contract code found at REGISTRY_CONTRACT_ADDRESS=${REGISTRY_CONTRACT_ADDRESS}"
+    exit 1
+  fi
+
+  settlement_code="$("$CAST_BIN" code "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" --rpc-url "$BASE_MAINNET_RPC_URL")"
+  if [[ -z "$settlement_code" || "$settlement_code" == "0x" ]]; then
+    echo "no contract code found at AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT=${AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT}"
+    exit 1
+  fi
+
+  usdc_code="$("$CAST_BIN" code "$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" --rpc-url "$BASE_MAINNET_RPC_URL")"
+  if [[ -z "$usdc_code" || "$usdc_code" == "0x" ]]; then
+    echo "no token code found at AUTOSKILL_BASE_MAINNET_USDC_TOKEN=${AUTOSKILL_BASE_MAINNET_USDC_TOKEN}"
+    exit 1
+  fi
+
+  writer_address="$("$CAST_BIN" wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")"
+  writer_balance="$("$CAST_BIN" balance "$writer_address" --wei --rpc-url "$BASE_MAINNET_RPC_URL")"
+  if ! [[ "$writer_balance" =~ ^[0-9]+$ ]] || (( writer_balance <= 0 )); then
+    echo "registry writer ${writer_address} needs Base ETH for gas"
+    exit 1
+  fi
+
+  writer_authorized="$(
+    "$CAST_BIN" call \
+      "$REGISTRY_CONTRACT_ADDRESS" \
+      "publishers(address)(bool)" \
+      "$writer_address" \
+      --rpc-url "$BASE_MAINNET_RPC_URL"
+  )"
+  if [[ "$writer_authorized" != "true" ]]; then
+    echo "registry writer ${writer_address} is not authorized on ${REGISTRY_CONTRACT_ADDRESS}"
+    exit 1
+  fi
 }
 
 set_phoenix_secrets() {
@@ -167,12 +229,14 @@ set_phoenix_secrets() {
     TECHTREE_ETHEREUM_MODE=rpc \
     TECHTREE_CHAIN_ID="$TECHTREE_CHAIN_ID" \
     TECHTREE_P2P_ENABLED="$TECHTREE_P2P_ENABLED" \
-    BASE_SEPOLIA_RPC_URL="$BASE_SEPOLIA_RPC_URL" \
+    TECHTREE_HOME_UNICORN_HERO_ENABLED="$TECHTREE_HOME_UNICORN_HERO_ENABLED" \
+    PROMEX_METRICS_ENABLED="$PROMEX_METRICS_ENABLED" \
+    BASE_MAINNET_RPC_URL="$BASE_MAINNET_RPC_URL" \
     REGISTRY_CONTRACT_ADDRESS="$REGISTRY_CONTRACT_ADDRESS" \
     REGISTRY_WRITER_PRIVATE_KEY="$REGISTRY_WRITER_PRIVATE_KEY" \
-    AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT="$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" \
-    AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN="$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" \
-    AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS="$AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS"
+    AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT="$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" \
+    AUTOSKILL_BASE_MAINNET_USDC_TOKEN="$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" \
+    AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS="$AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS"
 }
 
 set_siwa_secrets() {
@@ -200,6 +264,7 @@ ensure_private_ip "$SIWA_APP"
 ensure_postgres
 attach_postgres
 require_prod_env
+verify_mainnet_contracts
 
 set_siwa_secrets
 set_phoenix_secrets

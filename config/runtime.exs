@@ -116,6 +116,26 @@ config :tech_tree, :privy,
   app_id: env_or_dotenv.("PRIVY_APP_ID", ""),
   verification_key: env_or_dotenv.("PRIVY_VERIFICATION_KEY", "")
 
+existing_home_unicorn_hero_cfg = Application.get_env(:tech_tree, :home_unicorn_hero, [])
+
+config :tech_tree, :home_unicorn_hero,
+  enabled?:
+    env_or_dotenv_bool.(
+      "TECHTREE_HOME_UNICORN_HERO_ENABLED",
+      cfg_fetch.(existing_home_unicorn_hero_cfg, :enabled?) || false
+    ),
+  project_id:
+    env_or_dotenv.(
+      "TECHTREE_HOME_UNICORN_HERO_PROJECT_ID",
+      cfg_fetch.(existing_home_unicorn_hero_cfg, :project_id) || "eN0PH49tZnxMuJvuRExK"
+    ),
+  script_url:
+    env_or_dotenv.(
+      "TECHTREE_HOME_UNICORN_HERO_SCRIPT_URL",
+      cfg_fetch.(existing_home_unicorn_hero_cfg, :script_url) ||
+        "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.1.11/dist/unicornStudio.umd.js"
+    )
+
 config :tech_tree, :internal_shared_secret, env_or_dotenv.("INTERNAL_SHARED_SECRET", "")
 
 config :tech_tree, :siwa,
@@ -334,23 +354,30 @@ if config_env() == :prod do
     "Set the production Privy verification key before browser signoff or deploy."
   )
 
-  if ethereum_chain_id == "84532" do
+  if ethereum_chain_id != "8453" do
+    raise """
+    environment variable TECHTREE_CHAIN_ID must be 8453 for the public beta deploy.
+    Use local or staging configuration for Base Sepolia rehearsal.
+    """
+  end
+
+  if ethereum_chain_id == "8453" do
     required_runtime_value.(
-      "BASE_SEPOLIA_RPC_URL",
-      ethereum_rpc_url,
-      "Base Sepolia publishing needs a reachable RPC URL."
+      "BASE_MAINNET_RPC_URL",
+      env_or_dotenv.("BASE_MAINNET_RPC_URL", ""),
+      "Base mainnet publishing needs a reachable RPC URL."
     )
 
     required_runtime_value.(
       "REGISTRY_CONTRACT_ADDRESS",
       registry_address,
-      "Set the Base Sepolia registry contract address for launch publishing."
+      "Set the Base mainnet registry contract address for launch publishing."
     )
 
     required_runtime_value.(
       "REGISTRY_WRITER_PRIVATE_KEY",
       registry_writer_private_key,
-      "Set the funded Base Sepolia registry writer key for launch publishing."
+      "Set the funded Base mainnet registry writer key for launch publishing."
     )
 
     required_runtime_value.(
@@ -360,21 +387,21 @@ if config_env() == :prod do
     )
 
     required_runtime_value.(
-      "AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT",
-      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT", ""),
-      "Set the Base Sepolia paid payload settlement contract before deploy."
+      "AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT",
+      env_or_dotenv.("AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT", ""),
+      "Set the Base mainnet paid payload settlement contract before deploy."
     )
 
     required_runtime_value.(
-      "AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN",
-      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", ""),
-      "Set the Base Sepolia paid payload USDC token before deploy."
+      "AUTOSKILL_BASE_MAINNET_USDC_TOKEN",
+      env_or_dotenv.("AUTOSKILL_BASE_MAINNET_USDC_TOKEN", ""),
+      "Set the Base mainnet paid payload USDC token before deploy."
     )
 
     required_runtime_value.(
-      "AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS",
-      env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", ""),
-      "Set the Base Sepolia paid payload treasury address before deploy."
+      "AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS",
+      env_or_dotenv.("AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS", ""),
+      "Set the Base mainnet paid payload treasury address before deploy."
     )
   end
 

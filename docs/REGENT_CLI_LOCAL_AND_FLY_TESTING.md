@@ -4,14 +4,14 @@ This guide is step 2 of the canonical launch path in [docs/VALIDATION.md](VALIDA
 
 This is the real local operator flow for the current Base setup:
 
-- agent identity login uses Base Sepolia
-- Techtree registry publishing runs on Base Sepolia
+- agent identity login uses Base mainnet
+- Techtree registry publishing runs on Base mainnet
 
 For v0.1 launch scope:
 
 - local-only Regent transport is in scope
 - CLI tail of the `webapp` and `agent` chatboxes is in scope
-- paid node unlocks use Base Sepolia settlement with server-verified entitlement
+- paid node unlocks use Base mainnet settlement with server-verified entitlement
 - BBH local solve is in scope through `regents techtree bbh run solve`
 
 ## Quick run sheet
@@ -19,30 +19,30 @@ For v0.1 launch scope:
 Use this when you already know the pieces and want the shortest safe path:
 
 1. Validate the Techtree contracts.
-2. Deploy the registry contract to Base Sepolia.
-3. Deploy the content settlement contract to Base Sepolia.
+2. Deploy the registry contract to Base mainnet.
+3. Deploy the content settlement contract to Base mainnet.
 4. Put the resulting addresses into the Techtree local environment.
 5. Run full local setup and smoke checks.
 6. Validate Regents CLI against the local Techtree server.
-7. Export the same Base Sepolia values in your deploy shell.
+7. Export the same Base mainnet values in your deploy shell.
 8. Run the Fly stack deploy script.
 9. Point Regents CLI at Fly and repeat the live checks.
 
 Keep these three chain facts separate:
 
-- Base Sepolia identity proves the agent identity used for SIWA login.
-- Base Sepolia registry publishing anchors Techtree nodes.
-- Base Sepolia content settlement verifies paid node access for this first launch.
+- Base mainnet identity proves the agent identity used for SIWA login.
+- Base mainnet registry publishing anchors Techtree nodes.
+- Base mainnet content settlement verifies paid node access for this first launch.
 
 ## Done checklist
 
 Deployment is ready only when every line below is true:
 
 - `forge test --offline` passes from `/Users/sean/Documents/regent/techtree/contracts`.
-- The Base Sepolia registry address has bytecode.
-- The Base Sepolia settlement address has bytecode.
-- The configured USDC or test-USDC address has bytecode.
-- The registry writer wallet has Base Sepolia ETH for gas.
+- The Base mainnet registry address has bytecode.
+- The Base mainnet settlement address has bytecode.
+- The configured USDC address has bytecode.
+- The registry writer wallet has Base mainnet ETH for gas.
 - `./scripts/dev_full_setup.sh` passes.
 - `bash scripts/smoke_full_local.sh` passes while the local stack is running.
 - Regents CLI can log in with SIWA, read public data, and create one test node locally.
@@ -56,13 +56,13 @@ Keep a local launch note outside git with these values. Do not paste private key
 
 | Name | Source | Used by |
 | --- | --- | --- |
-| `BASE_SEPOLIA_RPC_URL` | RPC provider | Foundry, Phoenix, smoke checks |
-| `BASE_SEPOLIA_PRIVATE_KEY` | deploy wallet | Foundry deploy only |
+| `BASE_MAINNET_RPC_URL` | RPC provider | Foundry, Phoenix, smoke checks |
+| `BASE_MAINNET_PRIVATE_KEY` | deploy wallet | Foundry deploy only |
 | `REGISTRY_CONTRACT_ADDRESS` | registry deploy result | Phoenix, smoke checks, Fly |
 | `REGISTRY_WRITER_PRIVATE_KEY` | funded writer wallet | Phoenix registry publishing |
-| `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT` | settlement deploy result | paid node verification |
-| `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN` | Base Sepolia USDC or test-USDC | settlement deploy and verification |
-| `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS` | treasury wallet | settlement deploy and verification |
+| `AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT` | settlement deploy result | paid node verification |
+| `AUTOSKILL_BASE_MAINNET_USDC_TOKEN` | Base mainnet USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`) | settlement deploy and verification |
+| `AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS` | treasury wallet | settlement deploy and verification |
 | `PRIVY_APP_ID` | Privy dashboard | browser auth |
 | `PRIVY_VERIFICATION_KEY` | Privy dashboard | browser auth |
 | `LIGHTHOUSE_API_KEY` | Lighthouse | notebook and payload upload |
@@ -70,12 +70,12 @@ Keep a local launch note outside git with these values. Do not paste private key
 Helpful shell checks:
 
 ```bash
-cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast wallet address --private-key "$BASE_SEPOLIA_PRIVATE_KEY"
+cast chain-id --rpc-url "$BASE_MAINNET_RPC_URL"
+cast wallet address --private-key "$BASE_MAINNET_PRIVATE_KEY"
 cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY"
 ```
 
-The first command must print `84532`.
+The first command must print `8453`.
 
 ## What has to be running
 
@@ -86,14 +86,14 @@ Techtree is one Phoenix app for both the frontend and backend API. To work end t
 - the SIWA sidecar
 - Privy keys
 - Lighthouse API access
-- a live Base Sepolia registry contract and funded registry writer
+- a live Base mainnet registry contract and funded registry writer
 
 On the CLI side:
 
 - public reads hit Phoenix directly
 - protected reads and writes need a SIWA login first
-- SIWA login uses a Base Sepolia ERC-8004 identity
-- node publishing then uses the Techtree app's Base Sepolia registry path
+- SIWA login uses a Base mainnet ERC-8004 identity
+- node publishing then uses the Techtree app's Base mainnet registry path
 
 ## Canonical agent path
 
@@ -101,7 +101,7 @@ For an agent working with Techtree, the normal path is:
 
 1. start the local Techtree stack
 2. start `regents run`
-3. list or mint the Base Sepolia identity with `regents techtree identities ...`
+3. list or mint the Base mainnet identity with `regents techtree identities ...`
 4. bind that identity with `regents auth siwa login --registry-address ... --token-id ...`
 5. run `regents doctor techtree`
 6. use the protected Techtree commands you actually need
@@ -136,28 +136,28 @@ forge fmt --check
 forge test --offline
 ```
 
-Dry-run the Base Sepolia deploys before broadcasting:
+Dry-run the Base mainnet deploys before broadcasting:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree/contracts
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=...
-export BASE_SEPOLIA_PRIVATE_KEY=...
+export DEPLOY_TARGET=base-mainnet
+export BASE_MAINNET_RPC_URL=...
+export BASE_MAINNET_PRIVATE_KEY=...
 
 forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL"
+  --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
-Deploy the Base Sepolia registry:
+Deploy the Base mainnet registry:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree/contracts
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=...
-export BASE_SEPOLIA_PRIVATE_KEY=...
+export DEPLOY_TARGET=base-mainnet
+export BASE_MAINNET_RPC_URL=...
+export BASE_MAINNET_PRIVATE_KEY=...
 
 forge script script/DeployTechTreeRegistry.s.sol:DeployTechTreeRegistry \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --rpc-url "$BASE_MAINNET_RPC_URL" \
   --broadcast
 ```
 
@@ -169,10 +169,10 @@ export REGISTRY_CONTRACT_ADDRESS="$(
     .transactions[]
     | select(.contractName == "TechTreeRegistry")
     | .contractAddress
-  ' broadcast/DeployTechTreeRegistry.s.sol/84532/run-latest.json
+  ' broadcast/DeployTechTreeRegistry.s.sol/8453/run-latest.json
 )"
 
-cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 The `cast code` result must not be `0x`.
@@ -182,54 +182,69 @@ Save these values for the app:
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
 
-Deploy the Base Sepolia content settlement contract when you want paid node unlocks enabled:
+If the deploy wallet is not the same wallet as `REGISTRY_WRITER_PRIVATE_KEY`, authorize the writer before any app publish flow:
+
+```bash
+export REGISTRY_WRITER_ADDRESS="$(cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")"
+cast send "$REGISTRY_CONTRACT_ADDRESS" \
+  "setPublisher(address,bool)" \
+  "$REGISTRY_WRITER_ADDRESS" \
+  true \
+  --rpc-url "$BASE_MAINNET_RPC_URL" \
+  --private-key "$BASE_MAINNET_PRIVATE_KEY"
+cast call "$REGISTRY_CONTRACT_ADDRESS" "publishers(address)(bool)" "$REGISTRY_WRITER_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL"
+```
+
+The final command must print `true`.
+
+Deploy the Base mainnet content settlement contract when you want paid node unlocks enabled:
 
 ```bash
 cd /Users/sean/Documents/regent/techtree/contracts
-export DEPLOY_TARGET=base-sepolia
-export BASE_SEPOLIA_RPC_URL=...
-export BASE_SEPOLIA_PRIVATE_KEY=...
-export AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN=0x...
-export AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS=0x...
+export DEPLOY_TARGET=base-mainnet
+export BASE_MAINNET_RPC_URL=...
+export BASE_MAINNET_PRIVATE_KEY=...
+export AUTOSKILL_BASE_MAINNET_USDC_TOKEN=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+export AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS=0x...
 
 forge script script/DeployTechTreeContentSettlement.s.sol:DeployTechTreeContentSettlement \
-  --rpc-url "$BASE_SEPOLIA_RPC_URL" \
+  --rpc-url "$BASE_MAINNET_RPC_URL" \
   --broadcast
 ```
 
 Capture and check the settlement address:
 
 ```bash
-export AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT="$(
+export AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT="$(
   jq -r '
     .transactions[]
     | select(.contractName == "TechTreeContentSettlement")
     | .contractAddress
-  ' broadcast/DeployTechTreeContentSettlement.s.sol/84532/run-latest.json
+  ' broadcast/DeployTechTreeContentSettlement.s.sol/8453/run-latest.json
 )"
 
-cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 Both `cast code` calls must return bytecode, not `0x`.
 
 Save these values too:
 
-- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
-- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
-- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
+- `AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_MAINNET_USDC_TOKEN`
+- `AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS`
 
 Optional Blockscout links:
 
 ```bash
-printf 'Registry:   https://base-sepolia.blockscout.com/address/%s\n' "$REGISTRY_CONTRACT_ADDRESS"
-printf 'Settlement: https://base-sepolia.blockscout.com/address/%s\n' "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT"
+printf 'Registry:   https://basescan.org/address/%s\n' "$REGISTRY_CONTRACT_ADDRESS"
+printf 'Settlement: https://basescan.org/address/%s\n' "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT"
 ```
 
 ## Local Anvil rehearsal
 
-Use this only as a quick deploy-script rehearsal. The real launch path remains Base Sepolia.
+Use this only as a quick deploy-script rehearsal. The real launch path remains Base mainnet.
 
 In shell 1:
 
@@ -289,15 +304,15 @@ Fill the required app values:
 - `SIWA_HMAC_SECRET`
 - `SIWA_RECEIPT_SECRET`
 - `LIGHTHOUSE_API_KEY`
-- `TECHTREE_CHAIN_ID=84532`
-- `BASE_SEPOLIA_RPC_URL`
+- `TECHTREE_CHAIN_ID=8453`
+- `BASE_MAINNET_RPC_URL`
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
-- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
-- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
-- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
+- `AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_MAINNET_USDC_TOKEN`
+- `AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS`
 
-The app uses Base Sepolia for both identity binding and registry publishing in this release.
+The app uses Base mainnet for both identity binding and registry publishing in this release.
 
 Generate local-only secrets with:
 
@@ -314,11 +329,12 @@ Use one generated value for `SECRET_KEY_BASE`, one for `INTERNAL_SHARED_SECRET`,
 Quick preflight before boot:
 
 ```bash
-cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast balance "$(cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast chain-id --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast balance "$(cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast call "$REGISTRY_CONTRACT_ADDRESS" "publishers(address)(bool)" "$(cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")" --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 ## Local app boot steps
@@ -331,7 +347,7 @@ cd /Users/sean/Documents/regent/techtree
 ./scripts/dev_full_start.sh
 ```
 
-That path now checks the Base Sepolia registry contract and writer wallet before it starts the local app stack.
+That path now checks the Base mainnet registry contract and writer wallet before it starts the local app stack.
 
 Run the local smoke check:
 
@@ -347,10 +363,11 @@ That verifies:
 - Phoenix `/health`
 - SIWA `/health`
 - Phoenix to SIWA nonce flow
-- the configured Base Sepolia registry contract
-- the configured Base Sepolia content settlement contract
-- the configured Base Sepolia USDC or test-USDC token
+- the configured Base mainnet registry contract
+- the configured Base mainnet content settlement contract
+- the configured Base mainnet USDC token
 - the configured registry writer balance
+- registry writer authorization
 - Lighthouse upload access
 
 ## Local Regents CLI setup
@@ -379,9 +396,9 @@ pnpm --filter @regentslabs/cli exec regents create init
 The important Techtree config values are:
 
 - `techtree.baseUrl = http://127.0.0.1:4001`
-- `techtree.defaultChainId = 84532`
+- `techtree.defaultChainId = 8453`
 
-That default chain ID is for SIWA identity login, not the Base Sepolia publishing path.
+That default chain ID is for SIWA identity login, not the Base mainnet publishing path.
 
 Start the local runtime:
 
@@ -398,18 +415,18 @@ pnpm --filter @regentslabs/cli exec regents techtree start
 
 ## Local CLI testing steps
 
-List or mint the Base Sepolia identity used for SIWA:
+List or mint the Base mainnet identity used for SIWA:
 
 ```bash
-pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-sepolia
-pnpm --filter @regentslabs/cli exec regents techtree identities mint --chain base-sepolia
+pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-mainnet
+pnpm --filter @regentslabs/cli exec regents techtree identities mint --chain base-mainnet
 ```
 
 Log in:
 
 ```bash
 pnpm --filter @regentslabs/cli exec regents auth siwa login \
-  --registry-address 0xYOUR_SEPOLIA_ERC8004_REGISTRY \
+  --registry-address 0xYOUR_BASE_MAINNET_ERC8004_REGISTRY \
   --token-id 123
 ```
 
@@ -426,12 +443,12 @@ pnpm --filter @regentslabs/cli exec regents techtree opportunities --limit 10
 pnpm --filter @regentslabs/cli exec regents techtree node create \
   --seed ML \
   --kind hypothesis \
-  --title "Base Sepolia test node" \
+  --title "Base mainnet test node" \
   --parent-id 1 \
   --notebook-source "# local test"
 pnpm --filter @regentslabs/cli exec regents techtree comment add \
   --node-id 1 \
-  --body-markdown "Base Sepolia launch flow comment"
+  --body-markdown "Base mainnet launch flow comment"
 pnpm --filter @regentslabs/cli exec regents chatbox tail --webapp
 pnpm --filter @regentslabs/cli exec regents chatbox tail --agent
 pnpm --filter @regentslabs/cli exec regents techtree autoskill buy 42
@@ -563,7 +580,7 @@ Success looks like this:
 - node creation returns a node id plus pending anchor data
 - comment creation succeeds against the same authenticated identity
 - inbox and opportunities reads return without auth-envelope errors
-- the app writes the chain receipt against the Base Sepolia registry path
+- the app writes the chain receipt against the Base mainnet registry path
 - CLI tail works against both the `webapp` and `agent` chatbox rooms
 - paid bundle pull succeeds only after the onchain purchase is verified
 
@@ -584,15 +601,15 @@ Before you run it, export the required values:
 - `PRIVY_VERIFICATION_KEY`
 - `DATABASE_DIRECT_URL`
 - `LIGHTHOUSE_API_KEY`
-- `TECHTREE_CHAIN_ID=84532`
-- `BASE_SEPOLIA_RPC_URL`
+- `TECHTREE_CHAIN_ID=8453`
+- `BASE_MAINNET_RPC_URL`
 - `REGISTRY_CONTRACT_ADDRESS`
 - `REGISTRY_WRITER_PRIVATE_KEY`
-- `AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT`
-- `AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN`
-- `AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS`
+- `AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT`
+- `AUTOSKILL_BASE_MAINNET_USDC_TOKEN`
+- `AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS`
 
-The script now treats the first deploy path as Base Sepolia only.
+The script now treats the first deploy path as Base mainnet only.
 
 The script requires the content settlement values. Direct buyer-held key delivery remains out of scope; this guide assumes server-verified entitlement.
 
@@ -611,10 +628,11 @@ Run a shell-only preflight before the Fly deploy:
 
 ```bash
 flyctl auth whoami
-cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT" --rpc-url "$BASE_SEPOLIA_RPC_URL"
-cast code "$AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN" --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast chain-id --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$REGISTRY_CONTRACT_ADDRESS" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast code "$AUTOSKILL_BASE_MAINNET_USDC_TOKEN" --rpc-url "$BASE_MAINNET_RPC_URL"
+cast call "$REGISTRY_CONTRACT_ADDRESS" "publishers(address)(bool)" "$(cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY")" --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 It still expects the Fly app config files already referenced by the repo:
@@ -645,21 +663,21 @@ export REGENT_WALLET_PRIVATE_KEY=0xYOUR_PRIVATE_KEY
 Use a Regent config that targets the Fly server:
 
 - `techtree.baseUrl = https://techtree.fly.dev`
-- `techtree.defaultChainId = 84532`
+- `techtree.defaultChainId = 8453`
 
 Repeat the live tests:
 
 ```bash
 pnpm --filter @regentslabs/cli exec regents doctor techtree
-pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-sepolia
+pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-mainnet
 pnpm --filter @regentslabs/cli exec regents auth siwa login \
-  --registry-address 0xYOUR_SEPOLIA_ERC8004_REGISTRY \
+  --registry-address 0xYOUR_BASE_MAINNET_ERC8004_REGISTRY \
   --token-id 123
 pnpm --filter @regentslabs/cli exec regents techtree inbox --limit 10
 pnpm --filter @regentslabs/cli exec regents techtree node create \
   --seed ML \
   --kind hypothesis \
-  --title "Fly Base Sepolia test node" \
+  --title "Fly Base mainnet test node" \
   --parent-id 1 \
   --notebook-source "# fly test"
 ```
@@ -667,17 +685,17 @@ pnpm --filter @regentslabs/cli exec regents techtree node create \
 Server verification is complete when:
 
 - Fly health checks pass
-- SIWA login works with the Base Sepolia identity path
+- SIWA login works with the Base mainnet identity path
 - protected CLI reads work against Fly
-- a new node publish goes through with the Base Sepolia registry settings
-- paid-node settlement config is visible in new paid listings and settlement verification accepts a real Base Sepolia payment
+- a new node publish goes through with the Base mainnet registry settings
+- paid-node settlement config is visible in new paid listings and settlement verification accepts a real Base mainnet payment
 
 ## Troubleshooting
 
 If `forge script` fails with `UnexpectedChainId`, the RPC URL is pointed at the wrong network. Run:
 
 ```bash
-cast chain-id --rpc-url "$BASE_SEPOLIA_RPC_URL"
+cast chain-id --rpc-url "$BASE_MAINNET_RPC_URL"
 ```
 
 If `cast code` returns `0x`, the address is empty on the selected chain. Re-check the broadcast JSON and the RPC URL.
@@ -688,7 +706,7 @@ If local setup says the writer wallet has zero balance, fund the wallet printed 
 cast wallet address --private-key "$REGISTRY_WRITER_PRIVATE_KEY"
 ```
 
-If SIWA login fails, check that the CLI config uses `techtree.defaultChainId = 84532` and that the selected identity is on Base Sepolia.
+If SIWA login fails, check that the CLI config uses `techtree.defaultChainId = 8453` and that the selected identity is on Base mainnet.
 
 If Fly deploy succeeds but protected writes fail, compare the Fly secrets with the local launch note:
 

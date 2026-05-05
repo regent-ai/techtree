@@ -5,6 +5,19 @@ command_groups:
     interface: http
     auth_mode: mixed
     output_envelope: tree-envelopes
+    agent_metadata:
+      category: tree
+      prompt_behavior: never_prompt_for_reads
+      json_support: supported
+      mutation_class: read-or-tree-write
+      retry_behavior: retry_reads_only
+      pagination: cursor
+      async_behavior: synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree search "alignment"
+        - regents techtree node get <id>
+        - regents techtree inbox
     commands:
       - techtree status
       - techtree start
@@ -60,6 +73,18 @@ command_groups:
     interface: mixed
     auth_mode: agent-siwa
     output_envelope: autoskill-envelopes
+    agent_metadata:
+      category: autoskill
+      prompt_behavior: confirm_before_publish_or_purchase
+      json_support: supported
+      mutation_class: local-and-http-write
+      retry_behavior: retry_reads_and_local_packaging
+      pagination: bounded
+      async_behavior: synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree autoskill init skill
+        - regents techtree autoskill publish skill
     commands:
       - techtree autoskill init skill
       - techtree autoskill init eval
@@ -87,6 +112,18 @@ command_groups:
     interface: mixed
     auth_mode: agent-siwa
     output_envelope: science-task-envelopes
+    agent_metadata:
+      category: science-tasks
+      prompt_behavior: confirm_before_submit
+      json_support: supported
+      mutation_class: local-and-http-write
+      retry_behavior: retry_reads_and_exports
+      pagination: cursor
+      async_behavior: synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree science-tasks list
+        - regents techtree science-tasks get <id>
     commands:
       - techtree science-tasks list
       - techtree science-tasks get
@@ -119,6 +156,18 @@ command_groups:
     interface: mixed
     auth_mode: mixed
     output_envelope: benchmark-capsule-envelopes
+    agent_metadata:
+      category: benchmarks
+      prompt_behavior: confirm_before_submit
+      json_support: supported
+      mutation_class: local-and-http-write
+      retry_behavior: retry_reads_and_local_packaging
+      pagination: cursor
+      async_behavior: synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree benchmarks list
+        - regents techtree benchmarks get <capsule_id>
     commands:
       - techtree benchmarks list
       - techtree benchmarks get <capsule_id>
@@ -166,6 +215,18 @@ command_groups:
     interface: runtime
     auth_mode: mixed
     output_envelope: chatbox-list-or-stream
+    agent_metadata:
+      category: messaging
+      prompt_behavior: never_prompt
+      json_support: supported
+      mutation_class: read-or-message-write
+      retry_behavior: retry_history_only
+      pagination: cursor
+      async_behavior: stream_or_synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents chatbox history --room <room_key>
+        - regents chatbox post --room <room_key> --message "Ready"
     room_contract:
       owner: techtree
       room_key_authority: Techtree product contract
@@ -188,6 +249,19 @@ command_groups:
     interface: mixed
     auth_mode: mixed
     output_envelope: bbh-and-review-envelopes
+    agent_metadata:
+      category: review
+      prompt_behavior: confirm_before_submit
+      json_support: supported
+      mutation_class: local-and-http-write
+      retry_behavior: retry_reads_and_local_runs
+      pagination: cursor
+      async_behavior: synchronous_or_local_run
+      input_mode: args-and-flags
+      examples:
+        - regents techtree review list
+        - regents techtree bbh capsules list
+        - regents techtree bbh run solve
     commands:
       - techtree reviewer orcid link
       - techtree reviewer apply
@@ -251,6 +325,18 @@ command_groups:
     interface: mixed
     auth_mode: local-or-http
     output_envelope: runtime-workspace-envelopes
+    agent_metadata:
+      category: runtime-workspace
+      prompt_behavior: confirm_before_publish
+      json_support: supported
+      mutation_class: local-and-http-write
+      retry_behavior: retry_local_builds_and_reads
+      pagination: bounded
+      async_behavior: local_run_or_synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree main artifact init
+        - regents techtree main run exec
     commands:
       - techtree main artifact init
       - techtree main artifact compile

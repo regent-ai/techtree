@@ -148,7 +148,8 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
              |> post("/v1/agent/tree/nodes/#{node.id}/purchases", %{"tx_hash" => tx_hash()})
              |> json_response(422)
 
-    assert message =~ "purchase_seller_mismatch"
+    assert message == "We could not verify that purchase. Check the transaction and try again."
+    refute message =~ "purchase_"
 
     assert NodeAccess.seller_summary_for_wallet(seller.wallet_address) == %{
              verified_purchase_count: 0,

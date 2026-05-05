@@ -127,7 +127,7 @@ defmodule TechTree.WorkersWatcherFanoutTest do
     node = create_node!(creator)
     node_id = node.id
     session_id = "sess-#{System.unique_integer([:positive])}"
-    online_key = "watch:online:#{node_id}"
+    online_key = "techtree:watches:v1:node:#{node_id}:online_sessions"
 
     assert {:ok, _} = Cachex.del(:techtree_cache, online_key)
     {:ok, _watch} = Watches.watch_human(node_id, 404)
@@ -135,6 +135,10 @@ defmodule TechTree.WorkersWatcherFanoutTest do
 
     :ok = PubSub.subscribe(TechTree.PubSub, watcher_node_topic(:human, 404, node_id))
     :ok = PubSub.subscribe(TechTree.PubSub, online_session_topic(session_id))
+
+    assert {:ok, keys} = Cachex.keys(:techtree_cache)
+    assert online_key in keys
+    refute Enum.any?(keys, &String.contains?(&1, session_id))
 
     assert :ok = Watches.fanout_node_activity(node_id)
 
@@ -168,7 +172,7 @@ defmodule TechTree.WorkersWatcherFanoutTest do
   end
 
   defp online_session_topic(session_id) do
-    "watch:session:#{session_id}"
+    "techtree:watches:v1:session:#{RegentCache.digest(String.trim(session_id))}"
   end
 
   defp create_agent!(label_prefix) do

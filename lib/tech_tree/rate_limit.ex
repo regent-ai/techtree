@@ -12,6 +12,7 @@ defmodule TechTree.RateLimit do
   @chatbox_post_cooldown_policy %{capacity: 1, refill_tokens: 1, refill_interval_ms: 1_000}
   @chatbox_post_burst_policy %{capacity: 10, refill_tokens: 10, refill_interval_ms: 60_000}
   @duplicate_cooldown_ms 30_000
+  @cache_prefix "techtree:rate-limit:v1"
 
   @type limit_error_code :: :rate_limited | :duplicate_message
   @type limit_error :: %{code: limit_error_code(), retry_after_ms: pos_integer()}
@@ -81,7 +82,7 @@ defmodule TechTree.RateLimit do
   @spec check_node_create!(String.t() | nil) :: :ok | {:error, :rate_limited}
   def check_node_create!(wallet_address) when is_binary(wallet_address) do
     strict_consume_bucket(
-      "watch:node:create:#{String.trim(wallet_address)}",
+      rate_limit_key(["agent", "node", "create", "wallet", cache_ref(wallet_address)]),
       @node_create_policy
     )
   end
@@ -93,7 +94,15 @@ defmodule TechTree.RateLimit do
   def check_comment_create!(wallet_address, node_id)
       when is_binary(wallet_address) and not is_nil(node_id) do
     strict_consume_bucket(
-      "watch:comment:create:#{String.trim(wallet_address)}:#{QueryHelpers.normalize_id(node_id)}",
+      rate_limit_key([
+        "agent",
+        "comment",
+        "create",
+        "wallet",
+        cache_ref(wallet_address),
+        "node",
+        QueryHelpers.normalize_id(node_id)
+      ]),
       @comment_create_policy
     )
   rescue
@@ -104,15 +113,15 @@ defmodule TechTree.RateLimit do
 
   @spec check_chatbox_post!(String.t() | nil) :: :ok | {:error, :rate_limited}
   def check_chatbox_post!(identity) when is_binary(identity) do
-    normalized_identity = String.trim(identity)
+    identity_ref = cache_ref(identity)
 
     with :ok <-
            strict_consume_bucket(
-             "rl:chatbox:post:#{normalized_identity}",
+             rate_limit_key(["chatbox", "post", "cooldown", identity_ref]),
              @chatbox_post_cooldown_policy
            ) do
       strict_consume_bucket(
-        "rl:chatbox:burst:#{normalized_identity}",
+        rate_limit_key(["chatbox", "post", "burst", identity_ref]),
         @chatbox_post_burst_policy
       )
     end
@@ -169,7 +178,7 @@ defmodule TechTree.RateLimit do
     opts
     |> scopes()
     |> Enum.reduce_while(:ok, fn scope, :ok ->
-      case consume_bucket("#{namespace}:#{scope}", policy) do
+      case consume_bucket(rate_limit_key([namespace, scope]), policy) do
         :ok -> {:cont, :ok}
         {:error, _limit_error} = error -> {:halt, error}
       end
@@ -192,7 +201,7 @@ defmodule TechTree.RateLimit do
       {:ip, Keyword.get(opts, :ip_scope)}
     ]
     |> Enum.flat_map(fn
-      {prefix, value} when is_binary(value) and value != "" -> ["#{prefix}:#{value}"]
+      {prefix, value} when is_binary(value) and value != "" -> ["#{prefix}:#{cache_ref(value)}"]
       _ -> []
     end)
     |> Enum.uniq()
@@ -236,7 +245,15 @@ defmodule TechTree.RateLimit do
         :ok
 
       {_, actor_scope, body} when is_binary(actor_scope) and is_binary(body) ->
-        key = "chatbox:duplicate:#{actor_scope}:#{hash_body(body)}"
+        key =
+          rate_limit_key([
+            "chatbox",
+            "duplicate",
+            "actor",
+            cache_ref(actor_scope),
+            "body",
+            hash_body(body)
+          ])
 
         check_duplicate_message_in_cache(key)
 
@@ -287,5 +304,16 @@ defmodule TechTree.RateLimit do
 
   defp bucket_ttl_ms(policy) do
     ceil(policy.capacity * policy.refill_interval_ms / policy.refill_tokens) * 2
+  end
+
+  defp rate_limit_key(parts) do
+    Enum.join([@cache_prefix | parts], ":")
+  end
+
+  defp cache_ref(value) do
+    value
+    |> String.trim()
+    |> String.downcase()
+    |> RegentCache.digest()
   end
 end

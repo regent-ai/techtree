@@ -34,11 +34,16 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
       assert :ok = RateLimit.check_comment_create!(wallet_a, node_b)
       assert :ok = RateLimit.check_comment_create!(wallet_b, node_a)
+
+      assert {:ok, keys} = Cachex.keys(:techtree_cache)
+      assert Enum.all?(keys, &String.starts_with?(&1, "techtree:rate-limit:v1:"))
+      refute Enum.any?(keys, &String.contains?(&1, wallet_a))
+      refute Enum.any?(keys, &String.contains?(&1, wallet_b))
     end
 
     test "chatbox burst limiter blocks the 11th post inside the rolling window" do
       identity = "phase-d-chatbox-#{System.unique_integer([:positive])}"
-      post_key = "rl:chatbox:post:#{identity}"
+      post_key = rate_limit_key(["chatbox", "post", "cooldown", cache_ref(identity)])
 
       Enum.each(1..10, fn _attempt ->
         assert :ok = RateLimit.check_chatbox_post!(identity)
@@ -51,6 +56,10 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
       TechTree.RateLimit.reset!()
       assert :ok = RateLimit.check_chatbox_post!(identity)
+
+      assert {:ok, keys} = Cachex.keys(:techtree_cache)
+      assert Enum.all?(keys, &String.starts_with?(&1, "techtree:rate-limit:v1:"))
+      refute Enum.any?(keys, &String.contains?(&1, identity))
     end
   end
 
@@ -72,7 +81,11 @@ defmodule TechTree.PhaseDSecurityPerfTest do
 
       _ =
         node
-        |> Ecto.Changeset.change(manifest_hash: "phase-d-anchor-hash")
+        |> Ecto.Changeset.change(
+          manifest_cid: "bafy-phase-d-anchor-manifest",
+          manifest_hash: String.duplicate("c", 64),
+          notebook_cid: "bafy-phase-d-anchor-payload"
+        )
         |> Repo.update!()
 
       assert :ok = AnchorNodeWorker.perform(%Job{args: args})
@@ -245,6 +258,17 @@ defmodule TechTree.PhaseDSecurityPerfTest do
     XmtpMembershipCommand
     |> where([c], c.human_user_id == ^human_id and c.op == ^op)
     |> Repo.aggregate(:count, :id)
+  end
+
+  defp rate_limit_key(parts) do
+    Enum.join(["techtree:rate-limit:v1" | parts], ":")
+  end
+
+  defp cache_ref(value) do
+    value
+    |> String.trim()
+    |> String.downcase()
+    |> RegentCache.digest()
   end
 
   defp random_eth_address do

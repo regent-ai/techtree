@@ -13,6 +13,7 @@ defmodule TechTree.Watches do
   alias TechTree.Watches.NodeWatcher
 
   @online_session_ttl_seconds 120
+  @cache_prefix "techtree:watches:v1"
   @fanout_telemetry_event [:tech_tree, :watches, :fanout]
 
   @spec watch_human(integer() | String.t(), integer()) ::
@@ -59,14 +60,15 @@ defmodule TechTree.Watches do
       :ok
     else
       key = online_sessions_key(normalized_node_id)
+      session_ref = online_session_ref(normalized_session_id)
 
-      case TechTree.LocalCache.set_add(key, normalized_session_id, @online_session_ttl_seconds) do
+      case TechTree.LocalCache.set_add(key, session_ref, @online_session_ttl_seconds) do
         :ok ->
           :ok
 
         {:error, reason} ->
           Logger.debug(
-            "local cache online-session add failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
+            "local cache online-session add failed node_id=#{normalized_node_id} session_ref=#{session_ref}: #{inspect(reason)}"
           )
 
           :ok
@@ -83,14 +85,15 @@ defmodule TechTree.Watches do
       :ok
     else
       key = online_sessions_key(normalized_node_id)
+      session_ref = online_session_ref(normalized_session_id)
 
-      case TechTree.LocalCache.set_remove(key, normalized_session_id, @online_session_ttl_seconds) do
+      case TechTree.LocalCache.set_remove(key, session_ref, @online_session_ttl_seconds) do
         :ok ->
           :ok
 
         {:error, reason} ->
           Logger.debug(
-            "local cache online-session remove failed node_id=#{normalized_node_id} session_id=#{normalized_session_id}: #{inspect(reason)}"
+            "local cache online-session remove failed node_id=#{normalized_node_id} session_ref=#{session_ref}: #{inspect(reason)}"
           )
 
           :ok
@@ -235,10 +238,17 @@ defmodule TechTree.Watches do
   defp maybe_before_cursor(query, cursor), do: where(query, [w], w.id < ^cursor)
 
   @spec online_sessions_key(integer()) :: String.t()
-  defp online_sessions_key(node_id), do: "watch:online:#{node_id}"
+  defp online_sessions_key(node_id), do: "#{@cache_prefix}:node:#{node_id}:online_sessions"
 
   @spec online_session_topic(String.t()) :: String.t()
-  defp online_session_topic(session_id), do: "watch:session:#{session_id}"
+  defp online_session_topic(session_ref), do: "#{@cache_prefix}:session:#{session_ref}"
+
+  @spec online_session_ref(String.t()) :: String.t()
+  defp online_session_ref(session_id) do
+    session_id
+    |> String.trim()
+    |> RegentCache.digest()
+  end
 
   @spec watcher_node_topic(atom(), integer(), integer()) :: String.t()
   defp watcher_node_topic(watcher_type, watcher_ref, node_id) do

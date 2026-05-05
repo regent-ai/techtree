@@ -8,7 +8,8 @@ defmodule TechTreeWeb.Endpoint do
     store: :cookie,
     key: "_tech_tree_key",
     signing_salt: "3CnFxLUB",
-    same_site: "Lax"
+    same_site: "Lax",
+    secure: Application.compile_env(:tech_tree, :runtime_env, :dev) == :prod
   ]
 
   socket "/live", Phoenix.LiveView.Socket,

@@ -24,12 +24,12 @@ defmodule TechTreeWeb.AgentNodeAccessController do
       {:error, :payment_required} ->
         ApiError.render(conn, 402, %{"code" => "paid_payload_payment_required"})
 
-      {:error, reason} ->
-        AgentApiResult.render_reason(
+      {:error, _reason} ->
+        AgentApiResult.render_message(
           conn,
           :unprocessable_entity,
           "paid_payload_fetch_failed",
-          reason
+          "We could not open this payload. Try again."
         )
     end
   end
@@ -65,13 +65,16 @@ defmodule TechTreeWeb.AgentNodeAccessController do
       {:error, :paid_payload_not_active} ->
         ApiError.render(conn, :unprocessable_entity, %{"code" => "paid_payload_not_active"})
 
-      {:error, reason} ->
-        AgentApiResult.render_reason(
+      {:error, _reason} ->
+        AgentApiResult.render_message(
           conn,
           :unprocessable_entity,
           "purchase_verification_failed",
-          reason
+          purchase_verification_error_message()
         )
     end
   end
+
+  defp purchase_verification_error_message,
+    do: "We could not verify that purchase. Check the transaction and try again."
 end

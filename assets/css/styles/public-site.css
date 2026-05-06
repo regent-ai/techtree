@@ -302,7 +302,7 @@ a.tt-public-signal-value:focus-visible,
   max-width: 13ch;
   font-size: clamp(3rem, 6vw, 5.3rem);
   line-height: 0.92;
-  letter-spacing: -0.05em;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -383,6 +383,10 @@ a.tt-public-signal-value:focus-visible,
     background-color 160ms ease,
     opacity 160ms ease,
     transform 160ms var(--tt-public-ease-out);
+}
+
+.tt-public-copy-feedback:empty {
+  display: none;
 }
 
 .tt-public-copy-feedback[data-copy-state="success"],
@@ -559,7 +563,7 @@ a.tt-public-signal-value:focus-visible,
   margin: 0 0 12px;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1.03;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .tt-public-hero-video-copy p {
@@ -585,7 +589,7 @@ a.tt-public-signal-value:focus-visible,
   margin: 0;
   font-size: clamp(1.8rem, 3vw, 2.55rem);
   line-height: 1.04;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .tt-public-signal-strip {
@@ -607,6 +611,15 @@ a.tt-public-signal-value:focus-visible,
       180deg,
       color-mix(in srgb, var(--color-bg-primary) 10%, white) 0%,
       color-mix(in srgb, var(--color-bg) 86%, white) 100%
+    );
+}
+
+html[data-theme="dark"] .tt-public-signal-card:first-child {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg-primary) 14%, var(--color-bg-alt)) 0%,
+      color-mix(in srgb, var(--color-bg) 92%, var(--color-bg-alt)) 100%
     );
 }
 
@@ -688,7 +701,7 @@ a.tt-public-signal-value {
   font-family: var(--font-family-title);
   font-size: clamp(1.75rem, 3vw, 2.65rem);
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .tt-public-loop-head p:not(.tt-public-kicker) {
@@ -1369,14 +1382,14 @@ a.tt-public-room-chip {
   .tt-public-topbar-actions,
   .tt-public-tree-canvas > .tt-public-chip-row {
     max-width: 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 0 12px 8px;
-    margin-inline: -12px;
-    scroll-snap-type: x proximity;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding: 0;
+    margin-inline: 0;
+    scroll-snap-type: none;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    mask-image: linear-gradient(to right, transparent 0, black 18px, black calc(100% - 18px), transparent 100%);
+    mask-image: none;
   }
 
   .tt-public-nav::-webkit-scrollbar,
@@ -1388,9 +1401,9 @@ a.tt-public-room-chip {
   .tt-public-nav > *,
   .tt-public-topbar-actions > *,
   .tt-public-tree-canvas > .tt-public-chip-row > * {
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-    white-space: nowrap;
+    flex: 0 1 auto;
+    scroll-snap-align: none;
+    white-space: normal;
   }
 
   .tt-public-hero,

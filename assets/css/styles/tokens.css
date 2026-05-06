@@ -17,6 +17,17 @@
 :root {
   --tt-font-title: "GeistPixelCircle", "Times New Roman", serif;
   --tt-font-body: "GeistPixelSquare", "Trebuchet MS", sans-serif;
+  --font-family-title: var(--tt-font-title);
+  --font-family-ui: var(--tt-font-body);
+  --font-family-mono: var(--tt-font-body);
+  --color-bg: #eef2ee;
+  --color-bg-alt: #dce7ee;
+  --color-bg-primary: #075778;
+  --color-bg-secondary: #b5c4bd;
+  --color-fg: #15171b;
+  --color-fg-muted: rgba(21, 23, 27, 0.64);
+  --color-fg-primary: #064864;
+  --color-fg-on-primary: #fffdf6;
 
   --fp-light-bg:
     linear-gradient(180deg, #f6efd8 0%, #f4ecd2 52%, #fbf6e6 100%),
@@ -75,4 +86,15 @@
   --fp-dark-graph-hover: #ffffff;
   --fp-dark-graph-selected: #d6a94b;
   --fp-dark-graph-background: #07111f;
+}
+
+html[data-theme="dark"] {
+  --color-bg: #10151a;
+  --color-bg-alt: #1b2126;
+  --color-bg-primary: #8bc8b2;
+  --color-bg-secondary: #31413c;
+  --color-fg: #eef3ea;
+  --color-fg-muted: rgba(238, 243, 234, 0.68);
+  --color-fg-primary: #d8eadb;
+  --color-fg-on-primary: #09130f;
 }

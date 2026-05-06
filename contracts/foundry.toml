@@ -4,12 +4,26 @@ test = "test"
 script = "script"
 out = "out"
 libs = ["lib"]
-solc_version = "0.8.24"
+allow_paths = ["../../autolaunch/contracts/lib"]
+solc_version = "0.8.26"
 optimizer = true
 optimizer_runs = 200
+via_ir = true
+
+remappings = [
+  "forge-std/=lib/forge-std/src/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  "@uniswap/v4-core/=../../autolaunch/contracts/lib/v4-core/",
+  "@uniswap/v4-periphery/=../../autolaunch/contracts/lib/v4-periphery/",
+  "permit2/=../../autolaunch/contracts/lib/permit2/",
+  "@solady/=../../autolaunch/contracts/lib/solady/",
+  "solmate/=../../autolaunch/contracts/lib/solmate/",
+]
 
 [fmt]
 line_length = 100
 tab_width = 4
 bracket_spacing = true
 
+[lint]
+lint_on_build = false

@@ -224,6 +224,36 @@ config :tech_tree, :ethereum,
   chain_id: ethereum_chain_id,
   cast_bin: cast_bin
 
+existing_tech_cfg = Application.get_env(:tech_tree, :tech, [])
+
+config :tech_tree, :tech,
+  chain_id:
+    env_or_dotenv.("TECH_CHAIN_ID", cfg_fetch.(existing_tech_cfg, :chain_id) || ethereum_chain_id),
+  token_address:
+    env_or_dotenv.("TECH_TOKEN_ADDRESS", cfg_fetch.(existing_tech_cfg, :token_address)),
+  reward_router_address:
+    env_or_dotenv.(
+      "TECH_REWARD_ROUTER_ADDRESS",
+      cfg_fetch.(existing_tech_cfg, :reward_router_address)
+    ),
+  agent_reward_vault_address:
+    env_or_dotenv.(
+      "TECH_AGENT_REWARD_VAULT_ADDRESS",
+      cfg_fetch.(existing_tech_cfg, :agent_reward_vault_address)
+    ),
+  emission_controller_address:
+    env_or_dotenv.(
+      "TECH_EMISSION_CONTROLLER_ADDRESS",
+      cfg_fetch.(existing_tech_cfg, :emission_controller_address)
+    ),
+  leaderboard_registry_address:
+    env_or_dotenv.(
+      "TECH_LEADERBOARD_REGISTRY_ADDRESS",
+      cfg_fetch.(existing_tech_cfg, :leaderboard_registry_address)
+    ),
+  exit_swap_address:
+    env_or_dotenv.("TECH_EXIT_SWAP_ADDRESS", cfg_fetch.(existing_tech_cfg, :exit_swap_address))
+
 lighthouse_api_key = env_or_dotenv.("LIGHTHOUSE_API_KEY", "")
 
 config :tech_tree, TechTree.IPFS.LighthouseClient,

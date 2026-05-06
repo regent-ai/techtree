@@ -61,6 +61,7 @@ defmodule TechTree.MixProject do
        depth: 1},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
+      {:jose, "~> 1.11"},
       {:regent_cache, path: "../elixir-utils/cache"},
       {:siwa, path: "../elixir-utils/siwa/siwa-elixir/apps/siwa", only: :test},
       {:xmtp_elixir_sdk, path: "../elixir-utils/xmtp"},

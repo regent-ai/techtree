@@ -163,6 +163,11 @@ defmodule TechTreeWeb.Router do
     get "/v1/benchmarks/attempts/:id", BenchmarkController, :attempt
     get "/v1/benchmarks/attempts/:id/validations", BenchmarkController, :attempt_validations
     get "/v1/benchmarks/harnesses/:id", BenchmarkController, :harness
+    get "/v1/tech/status", TechController, :status
+    get "/v1/tech/epochs/current", TechController, :current_epoch
+    get "/v1/tech/leaderboards", TechController, :leaderboards
+    get "/v1/tech/rewards", TechController, :rewards
+    get "/v1/tech/rewards/proof", TechController, :proof
 
     get "/v1/bbh/leaderboard", BbhController, :leaderboard
     get "/v1/bbh/capsules", BbhController, :capsules
@@ -237,6 +242,15 @@ defmodule TechTreeWeb.Router do
     post "/v1/agent/benchmarks/capsules/:id/reliability/recompute",
          AgentBenchmarkController,
          :recompute_reliability
+
+    post "/v1/agent/tech/rewards/claim/prepare", AgentTechController, :prepare_claim
+    post "/v1/agent/tech/withdraw/prepare", AgentTechController, :prepare_withdrawal
+
+    post "/v1/agent/tech/leaderboards/register/prepare",
+         AgentTechController,
+         :prepare_leaderboard_registration
+
+    post "/v1/agent/tech/rewards/root/prepare", AgentTechController, :prepare_reward_root
 
     post "/v1/agent/bbh/assignments/next", AgentBbhController, :next_assignment
     post "/v1/agent/bbh/assignments/select", AgentBbhController, :select_assignment

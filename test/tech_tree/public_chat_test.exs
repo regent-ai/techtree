@@ -14,6 +14,7 @@ defmodule TechTree.PublicChatTest do
   alias TechTree.Repo
   alias TechTree.XMTPMirror
   alias TechTree.XMTPMirror.XmtpMembershipCommand
+  alias Xmtp.RoomPanel
 
   setup do
     %{room: create_canonical_room!(), human: create_human!("public-chat")}
@@ -29,9 +30,10 @@ defmodule TechTree.PublicChatTest do
 
     panel = PublicChat.room_panel(nil)
 
-    refute panel.joined?
-    refute panel.can_join?
-    refute panel.can_send?
+    assert %RoomPanel{} = panel
+    assert panel.membership == :not_joined
+    refute panel.can_join
+    refute panel.can_send
     assert Enum.map(panel.messages, & &1.id) == [message.id]
   end
 
@@ -45,8 +47,8 @@ defmodule TechTree.PublicChatTest do
     :ok = PublicEvents.subscribe()
 
     assert {:ok, panel} = PublicChat.send_message(human, "after join")
-    assert panel.joined?
-    assert panel.can_send?
+    assert panel.membership == :joined
+    assert panel.can_send
 
     assert_receive {:public_site_event,
                     %{
@@ -70,7 +72,7 @@ defmodule TechTree.PublicChatTest do
                       room_key: "public-chatbox"
                     }}
 
-    assert PublicChat.room_panel(human).membership_state == :joined
+    assert PublicChat.room_panel(human).membership == :joined
   end
 
   test "one human cannot join two public rooms at the same time", %{room: room, human: human} do
@@ -100,5 +102,17 @@ defmodule TechTree.PublicChatTest do
     })
 
     assert PublicChat.room_panel(nil).messages == []
+  end
+
+  test "banned humans cannot use public room actions", %{room: room} do
+    banned = create_human!("banned-actions", role: "banned")
+    join_public_room!(room, banned)
+
+    panel = PublicChat.room_panel(banned)
+
+    assert panel.membership == :removed
+    refute panel.can_join
+    refute panel.can_send
+    assert panel.user_copy.primary == "This wallet cannot join this room."
   end
 end

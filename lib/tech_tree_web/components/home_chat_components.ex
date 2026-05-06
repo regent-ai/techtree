@@ -75,10 +75,10 @@ defmodule TechTreeWeb.HomeChatComponents do
           phx-hook="HomeChatbox"
           data-privy-app-id={@privy_app_id}
           data-session-url="/api/auth/privy/session"
-          data-room-joined={to_string(@public_chat.joined?)}
-          data-room-can-join={to_string(@public_chat.can_join?)}
-          data-room-can-send={to_string(@public_chat.can_send?)}
-          data-room-pending={to_string(@public_chat.membership_state == :join_pending)}
+          data-room-joined={to_string(@public_chat.membership == :joined)}
+          data-room-can-join={to_string(@public_chat.can_join)}
+          data-room-can-send={to_string(@public_chat.can_send)}
+          data-room-pending={to_string(@public_chat.membership == :pending_signature)}
           data-server-signed-in={to_string(@server_signed_in?)}
         >
           <div class="fp-chat-section-head">
@@ -96,7 +96,7 @@ defmodule TechTreeWeb.HomeChatComponents do
             <div class="flex items-center gap-2">
               <span class="badge badge-outline font-body">{length(@human_messages)} recent</span>
               <span class="badge badge-outline font-body">
-                {@public_chat.member_count}/{@public_chat.seat_count} seats
+                {@public_chat.member_count}/{@public_chat.capacity} seats
               </span>
               <span class="badge badge-outline font-body">
                 {room_state_label(@public_chat)}
@@ -146,12 +146,12 @@ defmodule TechTreeWeb.HomeChatComponents do
                 placeholder="Share an update in the public room"
                 class="grow bg-transparent"
                 data-chatbox-input
-                disabled={!@public_chat.can_send?}
+                disabled={!@public_chat.can_send}
               />
             </label>
             <button
               type="button"
-              disabled={!@public_chat.can_send?}
+              disabled={!@public_chat.can_send}
               class="btn border-0 bg-[var(--fp-accent)] text-black disabled:bg-[var(--fp-accent-soft)] disabled:text-[var(--fp-muted)]"
               data-chatbox-send
             >
@@ -254,15 +254,16 @@ defmodule TechTreeWeb.HomeChatComponents do
     """
   end
 
-  defp room_state_label(%{joined?: true}), do: "Joined"
-  defp room_state_label(%{membership_state: :join_pending}), do: "Joining"
-  defp room_state_label(%{membership_state: :full}), do: "Full"
-  defp room_state_label(%{ready?: false}), do: "Opening soon"
+  defp room_state_label(%{membership: :joined}), do: "Joined"
+  defp room_state_label(%{membership: :pending_signature}), do: "Joining"
+  defp room_state_label(%{membership: :blocked}), do: "Full"
+  defp room_state_label(%{membership: :removed}), do: "Removed"
+  defp room_state_label(%{status: :disabled}), do: "Opening soon"
   defp room_state_label(_room), do: "Open to read"
 
-  defp room_status_copy(%{status: status}) when is_binary(status) and status != "", do: status
-  defp room_status_copy(%{joined?: true}), do: "You can post in the public room."
-  defp room_status_copy(%{can_join?: true}), do: "Sign in, then join when you want to post."
-  defp room_status_copy(%{ready?: false}), do: "The room is not open yet."
+  defp room_status_copy(%{user_copy: %{primary: message}}) when is_binary(message), do: message
+  defp room_status_copy(%{membership: :joined}), do: "You can post in the public room."
+  defp room_status_copy(%{can_join: true}), do: "Sign in, then join when you want to post."
+  defp room_status_copy(%{status: :disabled}), do: "The room is not open yet."
   defp room_status_copy(_room), do: "Read along now. Sign in before you post."
 end

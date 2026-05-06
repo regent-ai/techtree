@@ -343,8 +343,13 @@ defmodule TechTreeWeb.HomeLive do
   end
 
   defp put_public_chatbox_status(socket, message) do
-    assign(socket, :public_chat, Map.put(socket.assigns.public_chat, :status, message))
+    assign(socket, :public_chat, put_public_chatbox_copy(socket.assigns.public_chat, message))
   end
+
+  defp put_public_chatbox_copy(%Xmtp.RoomPanel{} = panel, message) when is_binary(message),
+    do: %{panel | user_copy: Xmtp.RoomPanel.copy(message)}
+
+  defp put_public_chatbox_copy(panel, _message), do: panel
 
   defp assign_grid_view(socket, view_stack) do
     children_by_parent = socket.assigns.graph_children_by_parent

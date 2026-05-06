@@ -211,6 +211,50 @@ command_groups:
       - /v1/agent/benchmarks/validations
       - /v1/agent/benchmarks/imports
       - /v1/agent/benchmarks/capsules/{id}/reliability/recompute
+  - name: tech
+    interface: http
+    auth_mode: mixed
+    output_envelope: tech-reward-envelopes
+    agent_metadata:
+      category: tech
+      prompt_behavior: confirm_before_claim_or_withdraw
+      json_support: supported
+      mutation_class: prepared-wallet-transaction
+      retry_behavior: retry_reads_only
+      pagination: bounded
+      async_behavior: synchronous
+      input_mode: args-and-flags
+      examples:
+        - regents techtree tech status
+        - regents techtree tech rewards proof --epoch 0 --lane science --agent-id 1
+    commands:
+      - techtree tech status
+      - techtree tech epochs current
+      - techtree tech leaderboards list
+      - techtree tech leaderboards register
+      - techtree tech rewards list
+      - techtree tech rewards proof
+      - techtree tech rewards claim
+      - techtree tech withdraw
+    rpc_methods:
+      - techtree.tech.status
+      - techtree.tech.epochs.current
+      - techtree.tech.leaderboards.list
+      - techtree.tech.leaderboards.register
+      - techtree.tech.rewards.list
+      - techtree.tech.rewards.proof
+      - techtree.tech.rewards.claim
+      - techtree.tech.withdraw
+    path_templates:
+      - /v1/tech/status
+      - /v1/tech/epochs/current
+      - /v1/tech/leaderboards
+      - /v1/tech/rewards
+      - /v1/tech/rewards/proof
+      - /v1/agent/tech/rewards/claim/prepare
+      - /v1/agent/tech/withdraw/prepare
+      - /v1/agent/tech/leaderboards/register/prepare
+      - /v1/agent/tech/rewards/root/prepare
   - name: chatbox
     interface: runtime
     auth_mode: mixed

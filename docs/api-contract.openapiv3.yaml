@@ -21,6 +21,7 @@ tags:
   - name: autoskill
   - name: science-tasks
   - name: benchmarks
+  - name: tech
   - name: chatbox
   - name: bbh
   - name: reviewer
@@ -1763,6 +1764,152 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/BenchmarkReliabilityListResponse" }
+
+  /v1/tech/status:
+    get:
+      operationId: getTechStatus
+      tags: [tech]
+      responses:
+        "200":
+          description: TECH reward status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechStatusResponse" }
+  /v1/tech/epochs/current:
+    get:
+      operationId: getCurrentTechEpoch
+      tags: [tech]
+      responses:
+        "200":
+          description: Current TECH reward epoch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechEpochResponse" }
+  /v1/tech/leaderboards:
+    get:
+      operationId: listTechLeaderboards
+      tags: [tech]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, inactive] }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: TECH leaderboard sources
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechLeaderboardListResponse" }
+  /v1/tech/rewards:
+    get:
+      operationId: listTechRewards
+      tags: [tech]
+      parameters:
+        - name: epoch
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: lane
+          in: query
+          schema: { $ref: "#/components/schemas/TechRewardLane" }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: TECH reward manifests
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechRewardsResponse" }
+  /v1/tech/rewards/proof:
+    get:
+      operationId: getTechRewardProof
+      tags: [tech]
+      parameters:
+        - name: epoch
+          in: query
+          required: true
+          schema: { type: integer, minimum: 0 }
+        - name: lane
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/TechRewardLane" }
+        - name: agent_id
+          in: query
+          required: true
+          schema: { type: string, pattern: "^[0-9]+$" }
+      responses:
+        "200":
+          description: TECH reward Merkle proof
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechRewardProofResponse" }
+        "404":
+          description: TECH reward proof not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorEnvelope" }
+  /v1/agent/tech/rewards/claim/prepare:
+    post:
+      operationId: prepareTechRewardClaim
+      tags: [tech]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TechRewardClaimPrepareRequest" }
+      responses:
+        "200":
+          description: Prepared TECH reward claim transaction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechPreparedTransactionResponse" }
+  /v1/agent/tech/withdraw/prepare:
+    post:
+      operationId: prepareTechWithdrawal
+      tags: [tech]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TechWithdrawPrepareRequest" }
+      responses:
+        "200":
+          description: Prepared TECH withdrawal transaction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechPreparedTransactionResponse" }
+  /v1/agent/tech/leaderboards/register/prepare:
+    post:
+      operationId: prepareTechLeaderboardRegistration
+      tags: [tech]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TechLeaderboardRegisterPrepareRequest" }
+      responses:
+        "200":
+          description: Prepared TECH leaderboard registration transaction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechPreparedTransactionResponse" }
+  /v1/agent/tech/rewards/root/prepare:
+    post:
+      operationId: prepareTechRewardRoot
+      tags: [tech]
+      security: [{ AgentSiwaHeaders: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TechRewardRootPrepareRequest" }
+      responses:
+        "200":
+          description: Prepared TECH reward-root transaction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TechPreparedTransactionResponse" }
 
   /v1/bbh/leaderboard:
     get:
@@ -3546,6 +3693,223 @@ components:
               items: { $ref: "#/components/schemas/BenchmarkReliabilitySummary" }
           additionalProperties: true
       additionalProperties: true
+    TechRewardLane:
+      type: string
+      enum: [science, usdc_input]
+    TechContractStatus:
+      type: object
+      required:
+        [
+          chain_id,
+          token,
+          reward_router,
+          agent_reward_vault,
+          emission_controller,
+          leaderboard_registry,
+          exit_swap,
+        ]
+      properties:
+        chain_id: { type: integer, enum: [8453] }
+        token: { $ref: "#/components/schemas/Address" }
+        reward_router: { $ref: "#/components/schemas/Address" }
+        agent_reward_vault: { $ref: "#/components/schemas/Address" }
+        emission_controller: { $ref: "#/components/schemas/Address" }
+        leaderboard_registry: { $ref: "#/components/schemas/Address" }
+        exit_swap: { $ref: "#/components/schemas/Address" }
+      additionalProperties: false
+    TechStatusResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [contracts, current_epoch]
+          properties:
+            contracts: { $ref: "#/components/schemas/TechContractStatus" }
+            current_epoch:
+              oneOf:
+                - $ref: "#/components/schemas/TechRewardEpoch"
+                - type: "null"
+          additionalProperties: true
+      additionalProperties: true
+    TechRewardEpoch:
+      type: object
+      required: [epoch, status, total_emission_amount, science_budget_amount, input_budget_amount]
+      properties:
+        epoch: { type: integer, minimum: 0 }
+        status: { type: string, enum: [planned, open, sealed, posted] }
+        starts_at: { type: string, format: date-time, nullable: true }
+        ends_at: { type: string, format: date-time, nullable: true }
+        total_emission_amount: { type: string, pattern: "^[0-9]+$" }
+        science_budget_amount: { type: string, pattern: "^[0-9]+$" }
+        input_budget_amount: { type: string, pattern: "^[0-9]+$" }
+      additionalProperties: false
+    TechEpochResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/TechRewardEpoch"
+            - type: "null"
+      additionalProperties: true
+    TechLeaderboard:
+      type: object
+      required: [leaderboard_id, kind, title, weight_bps, active, config_hash, uri]
+      properties:
+        leaderboard_id: { type: string }
+        kind: { type: string }
+        title: { type: string }
+        weight_bps: { type: integer, minimum: 0, maximum: 10000 }
+        starts_epoch: { type: integer, minimum: 0, nullable: true }
+        ends_epoch: { type: integer, minimum: 0, nullable: true }
+        config_hash: { $ref: "#/components/schemas/Bytes32Hex" }
+        uri: { type: string }
+        active: { type: boolean }
+      additionalProperties: true
+    TechLeaderboardListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/TechLeaderboard" }
+      additionalProperties: true
+    TechRewardManifest:
+      type: object
+      required: [manifest_id, epoch, lane, merkle_root, manifest_hash, total_allocated_amount]
+      properties:
+        manifest_id: { type: string }
+        epoch: { type: integer, minimum: 0 }
+        lane: { $ref: "#/components/schemas/TechRewardLane" }
+        merkle_root: { $ref: "#/components/schemas/Bytes32Hex" }
+        manifest_hash: { $ref: "#/components/schemas/Bytes32Hex" }
+        total_allocated_amount: { type: string, pattern: "^[0-9]+$" }
+        allocation_count: { type: integer, minimum: 0 }
+        policy_version: { type: string }
+        leaderboard_ids:
+          type: array
+          items: { type: string }
+      additionalProperties: true
+    TechRewardsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: { $ref: "#/components/schemas/TechRewardManifest" }
+      additionalProperties: true
+    TechRewardProof:
+      type: object
+      required: [epoch, lane, agent_id, amount, allocation_ref, proof, merkle_root]
+      properties:
+        epoch: { type: integer, minimum: 0 }
+        lane: { $ref: "#/components/schemas/TechRewardLane" }
+        agent_id: { type: string, pattern: "^[0-9]+$" }
+        amount: { type: string, pattern: "^[0-9]+$" }
+        allocation_ref: { $ref: "#/components/schemas/Bytes32Hex" }
+        proof:
+          type: array
+          items: { $ref: "#/components/schemas/Bytes32Hex" }
+        merkle_root: { $ref: "#/components/schemas/Bytes32Hex" }
+      additionalProperties: true
+    TechRewardProofResponse:
+      type: object
+      required: [data]
+      properties:
+        data: { $ref: "#/components/schemas/TechRewardProof" }
+      additionalProperties: true
+    Bytes32Hex:
+      type: string
+      pattern: "^0x[a-fA-F0-9]{64}$"
+    TechUnsignedTransaction:
+      type: object
+      required: [chain_id, to, value, function_signature, args]
+      properties:
+        chain_id: { type: integer, enum: [8453] }
+        to: { $ref: "#/components/schemas/Address" }
+        value: { type: string, pattern: "^[0-9]+$" }
+        function_signature: { type: string }
+        args:
+          type: array
+          items: {}
+        data:
+          oneOf:
+            - type: string
+              pattern: "^0x[a-fA-F0-9]*$"
+            - type: "null"
+      additionalProperties: false
+    TechPreparedTransactionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [transaction]
+          properties:
+            transaction: { $ref: "#/components/schemas/TechUnsignedTransaction" }
+            proof: { $ref: "#/components/schemas/TechRewardProof" }
+            manifest: { $ref: "#/components/schemas/TechRewardManifest" }
+          additionalProperties: true
+      additionalProperties: true
+    TechRewardClaimPrepareRequest:
+      type: object
+      required: [epoch, lane, agent_id]
+      properties:
+        epoch: { type: integer, minimum: 0 }
+        lane: { $ref: "#/components/schemas/TechRewardLane" }
+        agent_id: { type: string, pattern: "^[0-9]+$" }
+      additionalProperties: false
+    TechWithdrawPrepareRequest:
+      type: object
+      required: [agent_id, amount, tech_recipient, regent_recipient, min_regent_out, deadline]
+      properties:
+        agent_id: { type: string, pattern: "^[0-9]+$" }
+        amount: { type: string, pattern: "^[0-9]+$" }
+        tech_recipient: { $ref: "#/components/schemas/Address" }
+        regent_recipient: { $ref: "#/components/schemas/Address" }
+        min_regent_out: { type: string, pattern: "^[1-9][0-9]*$" }
+        deadline: { type: integer, minimum: 1 }
+      additionalProperties: false
+    TechLeaderboardRegisterPrepareRequest:
+      type: object
+      required: [leaderboard_id, kind, title, weight_bps, config_hash, uri]
+      properties:
+        leaderboard_id: { type: string, minLength: 1 }
+        kind: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1 }
+        weight_bps: { type: integer, minimum: 0, maximum: 10000 }
+        starts_epoch: { type: integer, minimum: 0, nullable: true }
+        ends_epoch: { type: integer, minimum: 0, nullable: true }
+        config_hash: { $ref: "#/components/schemas/Bytes32Hex" }
+        uri: { type: string, minLength: 1 }
+        active: { type: boolean }
+      additionalProperties: false
+    TechRewardRootAllocationInput:
+      type: object
+      required: [agent_id, score]
+      properties:
+        agent_id: { type: string, pattern: "^[0-9]+$" }
+        wallet_address: { $ref: "#/components/schemas/Address" }
+        score: { type: string, pattern: "^-?[0-9]+(\\.[0-9]+)?$" }
+        leaderboard_id: { type: string }
+      additionalProperties: false
+    TechRewardRootPrepareRequest:
+      type: object
+      required: [epoch, lane, total_budget_amount, allocations]
+      properties:
+        epoch: { type: integer, minimum: 0 }
+        lane: { $ref: "#/components/schemas/TechRewardLane" }
+        total_budget_amount: { type: string, pattern: "^[0-9]+$" }
+        challenge_ends_at: { type: integer, minimum: 0, nullable: true }
+        leaderboard_ids:
+          type: array
+          items: { type: string }
+        allocations:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/TechRewardRootAllocationInput" }
+      additionalProperties: false
     ChatboxMessage:
       type: object
       properties:

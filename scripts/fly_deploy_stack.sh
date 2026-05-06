@@ -46,7 +46,6 @@ require_env() {
 
 STACK_PREFIX="${FLY_STACK_PREFIX:-techtree}"
 PHOENIX_APP="${FLY_PHOENIX_APP:-$STACK_PREFIX}"
-SIWA_APP="${FLY_SIWA_APP:-${STACK_PREFIX}-siwa}"
 DB_NAME="${FLY_MPG_NAME:-${STACK_PREFIX}-db}"
 REGION="${FLY_REGION:-sjc}"
 PLAN="${FLY_MPG_PLAN:-development}"
@@ -54,16 +53,14 @@ ORG="${FLY_ORG:-regent}"
 
 PHOENIX_HOST="${FLY_PHOENIX_HOST:-${PHOENIX_APP}.fly.dev}"
 SECRET_KEY_BASE="${SECRET_KEY_BASE:-$(mix phx.gen.secret)}"
-SIWA_SHARED_SECRET="${SIWA_SHARED_SECRET:-$(openssl rand -hex 32)}"
-SIWA_RECEIPT_SECRET="${SIWA_RECEIPT_SECRET:-$(openssl rand -hex 32)}"
 INTERNAL_SHARED_SECRET="${INTERNAL_SHARED_SECRET:-$(openssl rand -hex 32)}"
-SIWA_HMAC_KEY_ID="${SIWA_HMAC_KEY_ID:-sidecar-internal-v1}"
 SIWA_PORT="${SIWA_PORT:-4100}"
+SIWA_SERVER_APP="${FLY_SIWA_SERVER_APP:-siwa-server}"
+SIWA_INTERNAL_URL="${SIWA_INTERNAL_URL:-http://${SIWA_SERVER_APP}.flycast:${SIWA_PORT}}"
 TECHTREE_CHAIN_ID="${TECHTREE_CHAIN_ID:-8453}"
 TECHTREE_P2P_ENABLED="${TECHTREE_P2P_ENABLED:-false}"
 TECHTREE_HOME_UNICORN_HERO_ENABLED="${TECHTREE_HOME_UNICORN_HERO_ENABLED:-false}"
 PROMEX_METRICS_ENABLED="${PROMEX_METRICS_ENABLED:-false}"
-SIWA_INTERNAL_URL="http://${SIWA_APP}.flycast:${SIWA_PORT}"
 
 if [[ "$TECHTREE_CHAIN_ID" != "8453" ]]; then
   echo "public beta deploy is Base mainnet only; set TECHTREE_CHAIN_ID=8453"
@@ -88,15 +85,6 @@ ensure_app() {
   if ! flyctl status --app "$app_name" >/dev/null 2>&1; then
     echo "Creating Fly app: $app_name"
     flyctl apps create "$app_name" --yes "${apps_org_args[@]}"
-  fi
-}
-
-ensure_private_ip() {
-  local app_name="$1"
-
-  if ! flyctl ips list --app "$app_name" 2>/dev/null | grep -Eq '[[:space:]]private[[:space:]]'; then
-    echo "Allocating private Flycast IPv6 for $app_name"
-    flyctl ips allocate-v6 --private --app "$app_name"
   fi
 }
 
@@ -148,6 +136,7 @@ attach_postgres() {
 
 require_prod_env() {
   require_env DATABASE_DIRECT_URL
+  require_env SIWA_INTERNAL_URL
   require_env PRIVY_APP_ID
   require_env PRIVY_VERIFICATION_KEY
   require_env LIGHTHOUSE_API_KEY
@@ -222,7 +211,6 @@ set_phoenix_secrets() {
     PORT=8080 \
     INTERNAL_SHARED_SECRET="$INTERNAL_SHARED_SECRET" \
     SIWA_INTERNAL_URL="$SIWA_INTERNAL_URL" \
-    SIWA_SHARED_SECRET="$SIWA_SHARED_SECRET" \
     PRIVY_APP_ID="$PRIVY_APP_ID" \
     PRIVY_VERIFICATION_KEY="$PRIVY_VERIFICATION_KEY" \
     LIGHTHOUSE_API_KEY="$LIGHTHOUSE_API_KEY" \
@@ -239,15 +227,6 @@ set_phoenix_secrets() {
     AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS="$AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS"
 }
 
-set_siwa_secrets() {
-  flyctl secrets set \
-    --app "$SIWA_APP" \
-    SIWA_PORT="$SIWA_PORT" \
-    SIWA_HMAC_SECRET="$SIWA_SHARED_SECRET" \
-    SIWA_RECEIPT_SECRET="$SIWA_RECEIPT_SECRET" \
-    SIWA_HMAC_KEY_ID="$SIWA_HMAC_KEY_ID"
-}
-
 deploy_app() {
   local app_name="$1"
   local config_path="$2"
@@ -257,23 +236,18 @@ deploy_app() {
 }
 
 ensure_app "$PHOENIX_APP"
-ensure_app "$SIWA_APP"
-
-ensure_private_ip "$SIWA_APP"
 
 ensure_postgres
 attach_postgres
 require_prod_env
 verify_mainnet_contracts
 
-set_siwa_secrets
 set_phoenix_secrets
 
-deploy_app "$SIWA_APP" "fly.siwa.toml"
 prepare_phoenix_build_context
 deploy_app "$PHOENIX_APP" "fly.phoenix.toml"
 
 echo
 echo "Fly stack deployed."
 echo "Phoenix:   https://${PHOENIX_HOST}"
-echo "SIWA:      ${SIWA_INTERNAL_URL}"
+echo "Shared SIWA: ${SIWA_INTERNAL_URL}"

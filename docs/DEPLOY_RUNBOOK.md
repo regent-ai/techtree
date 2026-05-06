@@ -1,10 +1,10 @@
 # Main Deploy Runbook
 
-This is the shortest path to deploy `main` on Fly with the Phoenix app, SIWA sidecar, in-app Cachex, and managed Postgres.
+This is the shortest path to deploy `main` on Fly with the Phoenix app, shared `siwa-server`, in-app Cachex, and managed Postgres.
 
 This runbook is for the first production cut:
 
-- Fly apps: `techtree`, `techtree-siwa`
+- Fly apps: `techtree` plus the shared `siwa-server` app owned by the shared SIWA repo
 - region: `sjc`
 - org: `regent`
 - host: `techtree.fly.dev`
@@ -16,7 +16,7 @@ This runbook is for the first production cut:
 ## Stack shape
 
 - Phoenix app: `fly.phoenix.toml`
-- SIWA sidecar: `fly.siwa.toml`
+- shared SIWA service: configured through `SIWA_INTERNAL_URL`
 - in-app Cachex: runs inside the Phoenix app
 - Managed Postgres: attached by `scripts/fly_deploy_stack.sh`
 
@@ -55,7 +55,6 @@ These must exist in Fly for the Phoenix app:
 - `DATABASE_DIRECT_URL`
 - `INTERNAL_SHARED_SECRET`
 - `SIWA_INTERNAL_URL`
-- `SIWA_SHARED_SECRET`
 
 Important runtime env also used by Phoenix:
 
@@ -101,16 +100,9 @@ cast send "$REGISTRY_CONTRACT_ADDRESS" \
   --private-key "$BASE_MAINNET_PRIVATE_KEY"
 ```
 
-## Required SIWA sidecar secrets
+## Required Shared SIWA Service
 
-These must exist in Fly for the SIWA sidecar:
-
-- `SIWA_HMAC_SECRET`
-- `SIWA_RECEIPT_SECRET`
-- `SIWA_HMAC_KEY_ID`
-- `SIWA_PORT`
-
-`SIWA_HMAC_SECRET` and Phoenix `SIWA_SHARED_SECRET` must match.
+The shared `siwa-server` must already be running and reachable from the Phoenix app through `SIWA_INTERNAL_URL`. Techtree does not own the SIWA receipt secret or HMAC secret.
 
 ## First deploy
 
@@ -124,29 +116,24 @@ Before deploy approval, complete the manual browser signoff and live Base mainne
 
 The stack deploy script will:
 
-1. create the Phoenix and SIWA apps if missing
-2. allocate a Flycast IP for SIWA
-3. create managed Postgres if missing
-4. attach Postgres to Phoenix
-5. require first-prod secrets for Privy, Lighthouse, and Base mainnet chain publishing
-6. require the Base mainnet content settlement values used by paid node verification
-7. generate or reuse the required shared secrets
-8. require a direct database URL for release migrations
-9. verify contract bytecode, writer gas, and registry writer authorization
-10. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=8453` for Phoenix
-11. stage `../elixir-utils` and `../design-system` into `.fly-build/`
-12. deploy SIWA, then Phoenix
+1. create the Phoenix app if missing
+2. create managed Postgres if missing
+3. attach Postgres to Phoenix
+4. require first-prod secrets for Privy, Lighthouse, shared SIWA, and Base mainnet chain publishing
+5. require the Base mainnet content settlement values used by paid node verification
+6. require a direct database URL for release migrations
+7. verify contract bytecode, writer gas, and registry writer authorization
+8. set `TECHTREE_P2P_ENABLED=false` and `TECHTREE_CHAIN_ID=8453` for Phoenix
+9. stage `../elixir-utils` and `../design-system` into `.fly-build/`
+10. deploy Phoenix
 
 ## Manual secret rotation
 
-Rotate these together:
+Rotate these from the Techtree deploy path:
 
 - Phoenix `INTERNAL_SHARED_SECRET`
-- Phoenix `SIWA_SHARED_SECRET`
-- SIWA `SIWA_HMAC_SECRET`
-- SIWA `SIWA_RECEIPT_SECRET`
 
-After rotating, redeploy SIWA first, then Phoenix.
+SIWA receipt and key material is rotated from the shared SIWA deployment, not from this repo.
 
 ## Post-deploy checks
 
@@ -154,9 +141,7 @@ Run:
 
 ```bash
 flyctl status --app techtree
-flyctl status --app techtree-siwa
 flyctl logs --app techtree --no-tail
-flyctl logs --app techtree-siwa --no-tail
 curl -fsS https://techtree.fly.dev/health
 mix test test/tech_tree_web/controllers/require_agent_siwa_http_verify_integration_test.exs
 ```
@@ -166,7 +151,7 @@ Then manually verify:
 - homepage route `/`
 - platform route `/platform`
 - public chatbox feed `/v1/chatbox/messages`
-- SIWA nonce endpoint `/v1/agent/siwa/nonce`
+- shared SIWA health endpoint from `SIWA_INTERNAL_URL`
 - one authenticated agent write path on Base mainnet-backed config
 
 Still deferred from this first prod deploy:
@@ -183,9 +168,4 @@ flyctl releases --app techtree
 flyctl releases revert <release-id> --app techtree
 ```
 
-If SIWA auth is failing after rotation:
-
-1. restore the prior `SIWA_HMAC_SECRET` and `SIWA_RECEIPT_SECRET`
-2. restore Phoenix `SIWA_SHARED_SECRET`
-3. redeploy SIWA
-4. redeploy Phoenix
+If SIWA auth is failing after rotation, verify the shared `siwa-server` deployment first, then redeploy Phoenix with the correct `SIWA_INTERNAL_URL`.

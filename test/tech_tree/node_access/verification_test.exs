@@ -69,9 +69,23 @@ defmodule TechTree.NodeAccess.VerificationTest do
 
   test "verify_settlement_tx rejects paid payload purchase receipts from the wrong chain" do
     payload = paid_payload()
-    install_rpc!(chain_id: 8_453, receipt: purchase_receipt(payload, @buyer_wallet))
+    install_rpc!(chain_id: 1, receipt: purchase_receipt(payload, @buyer_wallet))
 
     assert {:error, :purchase_chain_mismatch} =
+             Verification.verify_settlement_tx(payload, @tx_hash, @buyer_wallet)
+  end
+
+  test "verify_settlement_tx rejects paid payload purchase receipts from the wrong settlement contract" do
+    payload = paid_payload()
+
+    receipt =
+      purchase_receipt(payload, @buyer_wallet,
+        settlement_contract_address: "0x0000000000000000000000000000000000009999"
+      )
+
+    install_rpc!(chain_id: payload.chain_id, receipt: receipt)
+
+    assert {:error, :purchase_event_not_found} =
              Verification.verify_settlement_tx(payload, @tx_hash, @buyer_wallet)
   end
 
@@ -127,7 +141,7 @@ defmodule TechTree.NodeAccess.VerificationTest do
     receipt = Keyword.fetch!(opts, :receipt)
 
     Application.put_env(:tech_tree, :autoskill,
-      chains: %{84_532 => %{rpc_url: @rpc_url}},
+      chains: %{8_453 => %{rpc_url: @rpc_url}},
       rpc_client: fn
         @rpc_url, %{"method" => "eth_chainId"} ->
           {:ok, %{"result" => "0x" <> Integer.to_string(chain_id, 16)}}
@@ -140,7 +154,7 @@ defmodule TechTree.NodeAccess.VerificationTest do
 
   defp paid_payload do
     %NodePaidPayload{
-      chain_id: 84_532,
+      chain_id: 8_453,
       settlement_contract_address: @settlement_contract,
       seller_payout_address: @seller_wallet,
       price_usdc: D.new("25.000000"),
@@ -157,7 +171,8 @@ defmodule TechTree.NodeAccess.VerificationTest do
       "status" => "0x1",
       "logs" => [
         %{
-          "address" => payload.settlement_contract_address,
+          "address" =>
+            Keyword.get(opts, :settlement_contract_address, payload.settlement_contract_address),
           "topics" => [
             @purchase_settled_event_topic0,
             payload.listing_ref,

@@ -97,7 +97,6 @@ bash scripts/smoke_full_local.sh
 ## Repo Map
 
 - `lib/`, `config/`, `priv/`, `test/`, `assets/`: Techtree app, data model, pages, workers, and tests
-- `services/`: support services used by the app
 - `qa/`: browser smoke tests and release evidence
 - `contracts/`: Foundry workspace for Techtree contracts
 - `docs/`: operator notes, validation guides, security notes, and CLI boundary docs
@@ -110,7 +109,6 @@ Use [docs/VALIDATION.md](docs/VALIDATION.md) as the release path. Common checks 
 
 ```bash
 mix precommit
-cd services && bun run build && bun run typecheck
 cd /Users/sean/Documents/regent/regents-cli && pnpm build && pnpm typecheck && pnpm test
 cd /Users/sean/Documents/regent/regents-cli && pnpm test:pack-smoke
 cd /Users/sean/Documents/regent/techtree/contracts && forge test --offline

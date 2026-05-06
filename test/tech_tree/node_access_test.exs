@@ -90,7 +90,7 @@ defmodule TechTree.NodeAccessTest do
                "status" => "active",
                "encrypted_payload_uri" => "https://example.invalid/payload",
                "payload_hash" => "payload-hash",
-               "chain_id" => 84_532,
+               "chain_id" => 8_453,
                "settlement_contract_address" => "not-an-address",
                "usdc_token_address" => "0x0000000000000000000000000000000000008454",
                "treasury_address" => "0x0000000000000000000000000000000000008455",
@@ -123,7 +123,7 @@ defmodule TechTree.NodeAccessTest do
         "encrypted_payload_uri" => "ipfs://bafy-paid-bundle",
         "encrypted_payload_cid" => "bafy-paid-bundle",
         "payload_hash" => "paid-bundle-hash",
-        "chain_id" => 84_532,
+        "chain_id" => 8_453,
         "settlement_contract_address" => "0x0000000000000000000000000000000000008453",
         "usdc_token_address" => "0x0000000000000000000000000000000000008454",
         "treasury_address" => "0x0000000000000000000000000000000000008455",
@@ -141,7 +141,7 @@ defmodule TechTree.NodeAccessTest do
     suffix = Integer.to_string(token)
 
     Repo.insert!(%AgentIdentity{
-      chain_id: 84_532,
+      chain_id: 8_453,
       registry_address: "0x0000000000000000000000000000000000000001",
       token_id: D.new(token),
       wallet_address: random_eth_address(),

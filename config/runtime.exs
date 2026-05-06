@@ -44,7 +44,7 @@ required_runtime_value = fn key, value, hint ->
 end
 
 validate_chain_id = fn chain_id ->
-  supported_chain_ids = ["31337", "84532", "8453"]
+  supported_chain_ids = ["31337", "8453"]
 
   normalized =
     cond do
@@ -139,8 +139,11 @@ config :tech_tree, :home_unicorn_hero,
 config :tech_tree, :internal_shared_secret, env_or_dotenv.("INTERNAL_SHARED_SECRET", "")
 
 config :tech_tree, :siwa,
-  internal_url: env_or_dotenv.("SIWA_INTERNAL_URL", "http://siwa-sidecar:4100"),
-  shared_secret: env_or_dotenv.("SIWA_SHARED_SECRET", ""),
+  internal_url:
+    env_or_dotenv.(
+      "SIWA_INTERNAL_URL",
+      if(config_env() == :prod, do: "", else: "http://localhost:4100")
+    ),
   http_connect_timeout_ms:
     String.to_integer(env_or_dotenv.("SIWA_HTTP_CONNECT_TIMEOUT_MS", "2000")),
   http_receive_timeout_ms:
@@ -169,25 +172,19 @@ existing_ethereum_cfg = Application.get_env(:tech_tree, :ethereum, [])
 
     ethereum_rpc_url =
       case ethereum_chain_id do
-        "84532" ->
-          env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", nil))
-
         "31337" ->
           env_or_dotenv.("ANVIL_RPC_URL", nil)
 
-        _ ->
+        "8453" ->
           env_or_dotenv.("BASE_MAINNET_RPC_URL", env_or_dotenv.("BASE_RPC_URL", nil))
       end
 
     ethereum_writer_private_key =
       case ethereum_chain_id do
-        "84532" ->
-          env_or_dotenv.("BASE_SEPOLIA_PRIVATE_KEY", env_or_dotenv.("ANVIL_PRIVATE_KEY", nil))
-
         "31337" ->
           env_or_dotenv.("ANVIL_PRIVATE_KEY", nil)
 
-        _ ->
+        "8453" ->
           env_or_dotenv.("BASE_MAINNET_PRIVATE_KEY", env_or_dotenv.("BASE_PRIVATE_KEY", nil))
       end
 
@@ -243,13 +240,6 @@ config :tech_tree, TechTree.IPFS.LighthouseClient,
 
 config :tech_tree, :autoskill,
   chains: %{
-    84_532 => %{
-      rpc_url: env_or_dotenv.("BASE_SEPOLIA_RPC_URL", env_or_dotenv.("ANVIL_RPC_URL", "")),
-      settlement_contract_address:
-        env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT", ""),
-      usdc_token_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN", ""),
-      treasury_address: env_or_dotenv.("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS", "")
-    },
     8_453 => %{
       rpc_url: env_or_dotenv.("BASE_MAINNET_RPC_URL", env_or_dotenv.("BASE_RPC_URL", "")),
       settlement_contract_address:
@@ -337,12 +327,6 @@ if config_env() == :prod do
   )
 
   required_runtime_value.(
-    "SIWA_SHARED_SECRET",
-    env_or_dotenv.("SIWA_SHARED_SECRET", ""),
-    "Set SIWA_SHARED_SECRET to the same value as the sidecar SIWA_HMAC_SECRET."
-  )
-
-  required_runtime_value.(
     "PRIVY_APP_ID",
     env_or_dotenv.("PRIVY_APP_ID", ""),
     "Set the production Privy app id before browser signoff or deploy."
@@ -357,7 +341,6 @@ if config_env() == :prod do
   if ethereum_chain_id != "8453" do
     raise """
     environment variable TECHTREE_CHAIN_ID must be 8453 for the public beta deploy.
-    Use local or staging configuration for Base Sepolia rehearsal.
     """
   end
 

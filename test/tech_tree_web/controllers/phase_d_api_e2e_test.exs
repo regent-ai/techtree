@@ -39,7 +39,7 @@ defmodule TechTreeWeb.PhaseDApiE2ETest do
       Phoenix.ConnTest.build_conn()
       |> with_siwa_headers(
         wallet: writer_wallet,
-        chain_id: "84532",
+        chain_id: "8453",
         registry_address: writer_registry,
         token_id: writer_token_id
       )

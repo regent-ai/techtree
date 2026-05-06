@@ -31,26 +31,20 @@ require_env() {
 
 resolve_chain_rpc_url() {
   case "${TECHTREE_CHAIN_ID}" in
-    84532)
-      printf '%s\n' "${BASE_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
-      ;;
     31337)
       printf '%s\n' "${ANVIL_RPC_URL:-}"
       ;;
-    *)
+    8453)
       printf '%s\n' "${BASE_MAINNET_RPC_URL:-${BASE_RPC_URL:-}}"
+      ;;
+    *)
+      fail "TECHTREE_CHAIN_ID must be 8453 for Techtree mainnet smoke"
       ;;
   esac
 }
 
 autoskill_env_names() {
   case "${TECHTREE_CHAIN_ID}" in
-    84532)
-      printf '%s %s %s\n' \
-        AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT \
-        AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN \
-        AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS
-      ;;
     8453)
       printf '%s %s %s\n' \
         AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT \
@@ -58,7 +52,7 @@ autoskill_env_names() {
         AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS
       ;;
     *)
-      fail "paid settlement checks require TECHTREE_CHAIN_ID=8453 or 84532"
+      fail "paid settlement checks require TECHTREE_CHAIN_ID=8453"
       ;;
   esac
 }
@@ -83,6 +77,16 @@ assert_http_ok() {
   [[ "${response}" == *'"ok":true'* ]] || fail "${name} did not return ok=true"
 }
 
+assert_http_text() {
+  local name="$1"
+  local url="$2"
+  local expected="$3"
+  local response
+
+  response="$(curl -fsS "${url}")"
+  [[ "${response}" == "${expected}" ]] || fail "${name} did not return ${expected}"
+}
+
 check_compose_service() {
   local service="$1"
   local running
@@ -90,23 +94,6 @@ check_compose_service() {
   running="$(docker compose -f "${COMPOSE_FILE}" ps --services --status running)"
   printf '%s\n' "${running}" | grep -qx "${service}" || {
     fail "docker compose service ${service} is not running"
-  }
-}
-
-check_siwa_nonce() {
-  local response
-  local port="${PORT:-4001}"
-
-  response="$(
-    curl -fsS \
-      -X POST \
-      "http://127.0.0.1:${port}/v1/agent/siwa/nonce" \
-      -H 'content-type: application/json' \
-      -d "{\"walletAddress\":\"0x1111111111111111111111111111111111111111\",\"chainId\":${TECHTREE_CHAIN_ID},\"audience\":\"techtree\"}"
-  )"
-
-  [[ "${response}" == *'"ok":true'* && "${response}" == *'"code":"nonce_issued"'* ]] || {
-    fail "phoenix to SIWA nonce flow did not return nonce_issued"
   }
 }
 
@@ -211,6 +198,7 @@ command -v "${CAST_BIN:-cast}" >/dev/null 2>&1 || {
   fail "missing required command: ${CAST_BIN:-cast}"
 }
 require_env TECHTREE_CHAIN_ID
+require_env SIWA_INTERNAL_URL
 require_env REGISTRY_CONTRACT_ADDRESS
 require_env REGISTRY_WRITER_PRIVATE_KEY
 [[ "${TECHTREE_CHAIN_ID}" =~ ^[0-9]+$ ]] || fail "TECHTREE_CHAIN_ID must be a positive integer"
@@ -229,10 +217,7 @@ log "checking phoenix health"
 assert_http_ok "phoenix /health" "http://127.0.0.1:${PORT:-4001}/health"
 
 log "checking SIWA health"
-assert_http_ok "siwa /health" "http://127.0.0.1:${SIWA_PORT:-4100}/health"
-
-log "checking phoenix to SIWA nonce flow"
-check_siwa_nonce
+assert_http_text "shared siwa /healthz" "${SIWA_INTERNAL_URL%/}/healthz" "ok"
 
 log "checking chain RPC and registry contract"
 check_chain_contract

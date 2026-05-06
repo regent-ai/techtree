@@ -171,30 +171,6 @@ jobs:
             techtree/qa/artifacts
             /tmp/tech_tree_browser.log
 
-  services:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: techtree
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: "1.2.21"
-
-      - name: Install services deps
-        working-directory: techtree/services
-        run: bun install --frozen-lockfile
-
-      - name: Run services validation
-        working-directory: techtree/services
-        run: |
-          bun run build
-          bun run typecheck
-          bun run validate:siwa-hardening
-          bun run validate:siwa-vectors
-
   regents-cli:
     runs-on: ubuntu-latest
 

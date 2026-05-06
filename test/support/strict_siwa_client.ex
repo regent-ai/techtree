@@ -1,17 +1,16 @@
-defmodule TechTreeWeb.TestSupport.StrictSiwaSidecarClient do
+defmodule TechTreeWeb.TestSupport.StrictSiwaClient do
   @moduledoc false
 
-  @behaviour TechTree.SiwaSidecarClient
+  @behaviour TechTree.SiwaClient
 
   @impl true
   def verify_http_request(conn, normalized_headers) do
     siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
-    secret = Keyword.fetch!(siwa_cfg, :shared_secret)
     body = conn.assigns[:raw_body]
 
     request = %{
       method: conn.method,
-      path: conn.request_path,
+      path: signed_path(conn),
       headers: normalized_headers,
       body: body
     }
@@ -21,7 +20,7 @@ defmodule TechTreeWeb.TestSupport.StrictSiwaSidecarClient do
 
     case Siwa.verify_authenticated_request(request,
            audience: "techtree",
-           receipt_secret: secret,
+           receipt_secret: TechTreeWeb.TestSupport.SiwaIntegrationSupport.siwa_receipt_secret!(),
            replay_store: replay_store
          ) do
       {:ok, verified} ->
@@ -36,6 +35,12 @@ defmodule TechTreeWeb.TestSupport.StrictSiwaSidecarClient do
                "walletAddress" => verified.claims["sub"],
                "chainId" => verified.claims["chain_id"],
                "keyId" => verified.claims["key_id"],
+               "agent_claims" => %{
+                 "wallet_address" => verified.claims["sub"],
+                 "chain_id" => Integer.to_string(verified.claims["chain_id"]),
+                 "registry_address" => verified.claims["registry_address"],
+                 "token_id" => verified.claims["token_id"]
+               },
                "receiptExpiresAt" => DateTime.utc_now() |> DateTime.to_iso8601(),
                "requiredHeaders" => Siwa.required_authenticated_request_headers(body),
                "requiredCoveredComponents" =>
@@ -56,4 +61,7 @@ defmodule TechTreeWeb.TestSupport.StrictSiwaSidecarClient do
          }}
     end
   end
+
+  defp signed_path(%{request_path: path, query_string: ""}), do: path
+  defp signed_path(%{request_path: path, query_string: query}), do: path <> "?" <> query
 end

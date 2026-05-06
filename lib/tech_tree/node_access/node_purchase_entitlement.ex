@@ -49,7 +49,7 @@ defmodule TechTree.NodeAccess.NodePurchaseEntitlement do
       :bundle_ref
     ])
     |> validate_number(:amount_usdc, greater_than: 0)
-    |> validate_inclusion(:chain_id, [84_532, 8_453])
+    |> validate_inclusion(:chain_id, [8_453])
     |> validate_format(:buyer_wallet_address, @address_regex)
     |> validate_format(:tx_hash, @tx_hash_regex)
     |> validate_format(:listing_ref, @tx_hash_regex)

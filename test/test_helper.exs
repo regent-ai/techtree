@@ -9,18 +9,15 @@ Ecto.Adapters.SQL.Sandbox.mode(TechTree.Repo, :manual)
 
 {:ok, _} =
   Agent.start_link(
-    fn -> %{status: 200, last_request: nil} end,
-    name: TechTreeWeb.TestSupport.SiwaSidecarState
+    fn -> %{status: 200, last_request: nil, last_audience: nil} end,
+    name: TechTreeWeb.TestSupport.SiwaServerState
   )
 
 {:ok, _} =
   Bandit.start_link(
-    plug: TechTreeWeb.TestSupport.SiwaSidecarStub,
+    plug: TechTreeWeb.TestSupport.SiwaServerStub,
     ip: {127, 0, 0, 1},
     port: siwa_port
   )
 
-Application.put_env(:tech_tree, :siwa,
-  internal_url: "http://127.0.0.1:#{siwa_port}",
-  shared_secret: "techtree-test-shared-secret"
-)
+Application.put_env(:tech_tree, :siwa, internal_url: "http://127.0.0.1:#{siwa_port}")

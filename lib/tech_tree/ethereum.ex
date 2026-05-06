@@ -36,7 +36,7 @@ defmodule TechTree.Ethereum do
           log_index: non_neg_integer()
         }
 
-  @default_chain_id 84_532
+  @default_chain_id 8_453
   @default_contract_address "0x0000000000000000000000000000000000000000"
   @publish_node_signature "publishNode((bytes32,bytes32,bytes32,bytes32,uint8,uint16,uint32,address),bytes,bytes)"
   @tx_hash_exact_regex ~r/^0x[0-9a-fA-F]{64}$/

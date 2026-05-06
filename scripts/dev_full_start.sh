@@ -67,17 +67,6 @@ start_processes() {
     exec mix phx.server
   ) &
   PIDS+=("$!")
-
-  log "starting SIWA sidecar"
-  (
-    cd "${ROOT_DIR}/services"
-    set -a
-    # shellcheck source=/dev/null
-    source "${ROOT_DIR}/.env.local"
-    set +a
-    exec bun run dev:siwa
-  ) &
-  PIDS+=("$!")
 }
 
 watch_processes() {
@@ -105,7 +94,6 @@ cd "${ROOT_DIR}"
 
 command -v docker >/dev/null 2>&1 || fail "missing required command: docker"
 command -v mix >/dev/null 2>&1 || fail "missing required command: mix"
-command -v bun >/dev/null 2>&1 || fail "missing required command: bun"
 docker compose version >/dev/null 2>&1 || fail "docker compose is required"
 
 source_env

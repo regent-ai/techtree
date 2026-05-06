@@ -705,7 +705,7 @@ defmodule TechTree.Nodes.Publishing do
   defp configured_registry_chain_id do
     :tech_tree
     |> Application.get_env(:ethereum, [])
-    |> Keyword.get(:chain_id, 84_532)
+    |> Keyword.get(:chain_id, 8_453)
     |> case do
       value when is_integer(value) -> value
       value when is_binary(value) -> String.to_integer(value)

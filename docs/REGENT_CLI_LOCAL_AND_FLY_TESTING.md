@@ -83,7 +83,7 @@ Techtree is one Phoenix app for both the frontend and backend API. To work end t
 
 - Postgres
 - in-app Cachex
-- the SIWA sidecar
+- the shared `siwa-server`
 - Privy keys
 - Lighthouse API access
 - a live Base mainnet registry contract and funded registry writer
@@ -300,9 +300,7 @@ Fill the required app values:
 - `INTERNAL_SHARED_SECRET`
 - `PRIVY_APP_ID`
 - `PRIVY_VERIFICATION_KEY`
-- `SIWA_SHARED_SECRET`
-- `SIWA_HMAC_SECRET`
-- `SIWA_RECEIPT_SECRET`
+- `SIWA_INTERNAL_URL`
 - `LIGHTHOUSE_API_KEY`
 - `TECHTREE_CHAIN_ID=8453`
 - `BASE_MAINNET_RPC_URL`
@@ -320,11 +318,9 @@ Generate local-only secrets with:
 cd /Users/sean/Documents/regent/techtree
 mix phx.gen.secret
 openssl rand -hex 32
-openssl rand -hex 32
-openssl rand -hex 32
 ```
 
-Use one generated value for `SECRET_KEY_BASE`, one for `INTERNAL_SHARED_SECRET`, one for `SIWA_SHARED_SECRET`, and one for `SIWA_RECEIPT_SECRET`. Keep `SIWA_HMAC_SECRET="${SIWA_SHARED_SECRET}"`.
+Use one generated value for `SECRET_KEY_BASE` and one for `INTERNAL_SHARED_SECRET`. The SIWA receipt secret belongs to the shared `siwa-server`, not Techtree.
 
 Quick preflight before boot:
 
@@ -361,8 +357,7 @@ That verifies:
 - Postgres
 - in-app Cachex
 - Phoenix `/health`
-- SIWA `/health`
-- Phoenix to SIWA nonce flow
+- shared SIWA `/healthz`
 - the configured Base mainnet registry contract
 - the configured Base mainnet content settlement contract
 - the configured Base mainnet USDC token
@@ -618,7 +613,7 @@ Optional Fly naming overrides:
 ```bash
 export FLY_STACK_PREFIX=techtree
 export FLY_PHOENIX_APP=techtree
-export FLY_SIWA_APP=techtree-siwa
+export FLY_SIWA_SERVER_APP=siwa-server
 export FLY_MPG_NAME=techtree-db
 export FLY_REGION=sjc
 export FLY_ORG=regent
@@ -638,9 +633,8 @@ cast call "$REGISTRY_CONTRACT_ADDRESS" "publishers(address)(bool)" "$(cast walle
 It still expects the Fly app config files already referenced by the repo:
 
 - `fly.phoenix.toml`
-- `fly.siwa.toml`
 
-If those files are not present in your checkout, stop there and add them before relying on the script for a real deploy.
+If that file is not present in your checkout, stop there and add it before relying on the script for a real deploy.
 
 ## Server testing steps
 
@@ -648,10 +642,8 @@ After Fly deploy, check the services:
 
 ```bash
 flyctl status --app techtree
-flyctl status --app techtree-siwa
 curl -fsS https://techtree.fly.dev/health
 flyctl logs --app techtree --no-tail
-flyctl logs --app techtree-siwa --no-tail
 ```
 
 Then point the CLI at Fly:
@@ -712,15 +704,14 @@ If Fly deploy succeeds but protected writes fail, compare the Fly secrets with t
 
 ```bash
 flyctl secrets list --app techtree
-flyctl secrets list --app techtree-siwa
 ```
 
 The lists only show names, not secret values. Check that all required names are present, then rotate and redeploy if a value was wrong.
 
-If Phoenix cannot reach SIWA on Fly, confirm the SIWA app has a private Flycast address:
+If Phoenix cannot reach SIWA on Fly, confirm the shared SIWA app has a private Flycast address:
 
 ```bash
-flyctl ips list --app techtree-siwa
+flyctl ips list --app siwa-server
 ```
 
 If Lighthouse upload fails during local smoke, check `LIGHTHOUSE_API_KEY`, `LIGHTHOUSE_BASE_URL`, and `LIGHTHOUSE_STORAGE_TYPE`.

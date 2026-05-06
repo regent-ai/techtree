@@ -334,12 +334,12 @@ defmodule TechTree.BenchmarksTest do
       :ok =
         Benchmarks.sync_publication_anchor!(result.publication_node.node_id, %{
           tx_hash: tx_hash,
-          chain_id: 84_532
+          chain_id: 8_453
         })
 
       anchored_version = Repo.get!(CapsuleVersion, version.version_id)
       assert anchored_version.chain_tx_hash == tx_hash
-      assert anchored_version.chain_id == 84_532
+      assert anchored_version.chain_id == 8_453
       assert %DateTime{} = anchored_version.anchored_at
     end
 
@@ -377,7 +377,7 @@ defmodule TechTree.BenchmarksTest do
     token_id = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => 84_532,
+      "chain_id" => 8_453,
       "registry_address" => "0x0000000000000000000000000000000000009999",
       "token_id" => token_id,
       "wallet_address" => wallet_address,

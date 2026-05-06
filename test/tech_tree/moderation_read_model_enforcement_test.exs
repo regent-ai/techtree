@@ -268,7 +268,7 @@ defmodule TechTree.ModerationReadModelEnforcementTest do
     unique = unique_suffix()
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "84532",
+      "chain_id" => "8453",
       "registry_address" => "0x#{prefix}-registry-#{unique}",
       "token_id" => Integer.to_string(unique),
       "wallet_address" => "0x#{prefix}-wallet-#{unique}",

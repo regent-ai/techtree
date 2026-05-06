@@ -44,11 +44,9 @@ config :tech_tree, TechTree.P2P,
   enabled: false,
   identity_path: Path.expand("../tmp/p2p-identity-test.json", __DIR__)
 
-config :tech_tree, :siwa,
-  internal_url: "http://127.0.0.1:0",
-  shared_secret: "techtree-test-shared-secret"
+config :tech_tree, :siwa, internal_url: "http://127.0.0.1:0"
 
-config :tech_tree, :ethereum, mode: :stub, chain_id: 84_532
+config :tech_tree, :ethereum, mode: :stub, chain_id: 8_453
 config :tech_tree, TechTree.IPFS.LighthouseClient, mock_uploads: true
 
 # We don't run a server during test. If one is required,

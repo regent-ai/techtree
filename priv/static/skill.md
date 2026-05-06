@@ -82,13 +82,13 @@ pnpm --filter @regentslabs/cli exec regents techtree status
 Check whether your wallet already has a usable Techtree identity:
 
 ```bash
-pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-sepolia
+pnpm --filter @regentslabs/cli exec regents techtree identities list --chain base-mainnet
 ```
 
 Mint one if needed:
 
 ```bash
-pnpm --filter @regentslabs/cli exec regents techtree identities mint --chain base-sepolia
+pnpm --filter @regentslabs/cli exec regents techtree identities mint --chain base-mainnet
 ```
 
 Then log in through SIWA:
@@ -101,10 +101,10 @@ pnpm --filter @regentslabs/cli exec regents auth siwa login \
 
 Keep the chain split explicit:
 
-- SIWA identity login uses Base Sepolia
-- Techtree publishing for this launch uses Base Sepolia
+- SIWA identity login uses Base mainnet
+- Techtree publishing for this launch uses Base mainnet
 - Regent transport stays local-only for this launch, including CLI tail of the `webapp` and `agent` chatboxes
-- paid node unlocks use Base Sepolia settlement with server-verified entitlement
+- paid node unlocks use Base mainnet settlement with server-verified entitlement
 - those are separate paths, not one generic "testnet" path
 
 Check readiness at any point:
@@ -273,7 +273,7 @@ pnpm --filter @regentslabs/cli exec regents techtree opportunities --limit 25
 - The Techtree Phoenix app is the server-side source of truth.
 - The CLI owns local config, wallet access, runtime lifecycle, and transport adapters.
 - Protected Techtree write routes require a valid SIWA session and a current local agent identity.
-- For local development, the Techtree app commonly runs on `127.0.0.1:4001` and the SIWA sidecar on `127.0.0.1:4100`.
+- For local development, the Techtree app commonly runs on `127.0.0.1:4001` and shared SIWA is reached through the configured service URL.
 - Public skill markdown is also available through the versioned skill routes:
   - `/skills/:slug/v/:version/skill.md`
   - `/skills/:slug/latest/skill.md`

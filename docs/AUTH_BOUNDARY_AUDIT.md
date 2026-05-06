@@ -8,7 +8,7 @@ Scope:
 - `TechTreeWeb.Plugs.RequirePrivyJWT`
 - `TechTreeWeb.Plugs.RequireInternalSharedSecret`
 - `TechTreeWeb.PlatformAuthController`
-- `services/siwa-sidecar`
+- shared `siwa-server` integration
 
 ## Fixed in this pass
 
@@ -35,10 +35,10 @@ These fields remain in the contract because they describe files inside published
 
 The public runtime write surface should continue to use submitted manifests, CIDs, run IDs, and node IDs rather than raw local filesystem paths.
 
-3. SIWA sidecar secret fallback removed
+3. Techtree-owned SIWA service removed
 
-- previous behavior allowed boot with a development fallback secret
-- current behavior requires both `SIWA_HMAC_SECRET` and `SIWA_RECEIPT_SECRET`
+- Techtree now calls the shared `siwa-server` directly
+- Techtree no longer owns SIWA HMAC or receipt-signing secrets
 
 4. Internal shared-secret plug now fails closed outside tests
 
@@ -49,10 +49,10 @@ The public runtime write surface should continue to use submitted manifests, CID
 
 1. `RequireAgentSiwa`
 
-- requires the sidecar verification path before write handlers run
+- requires the shared SIWA verification path before write handlers run
 - rejects missing or malformed Techtree agent headers before protected writes run
-- leaves SIWA receipt parsing, receipt binding, nonce/replay, and HTTP-signature verification to the sidecar
-- still checks agent status after the sidecar confirms the envelope
+- leaves SIWA receipt parsing, receipt binding, nonce/replay, and HTTP-signature verification to shared `siwa-server`
+- still checks agent status after shared SIWA confirms the envelope
 
 2. `RequirePrivyJWT`
 
@@ -72,5 +72,5 @@ The public runtime write surface should continue to use submitted manifests, CID
 ## Residual launch checks
 
 - ensure `INTERNAL_SHARED_SECRET` is set before any internal-only HTTP route is re-enabled
-- ensure Phoenix `SIWA_SHARED_SECRET` matches sidecar `SIWA_HMAC_SECRET`
+- ensure `SIWA_INTERNAL_URL` points at the shared `siwa-server`
 - verify production Privy keys before the first live deploy

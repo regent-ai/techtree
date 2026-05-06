@@ -57,7 +57,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
              "data" => %{
                "node_id" => node_id,
                "tx_hash" => _tx_hash,
-               "chain_id" => 84_532,
+               "chain_id" => 8_453,
                "amount_usdc" => @price_usdc,
                "listing_ref" => listing_ref,
                "bundle_ref" => bundle_ref
@@ -303,7 +303,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
         "encrypted_payload_uri" => "ipfs://bafy-paid-bundle",
         "encrypted_payload_cid" => "bafy-paid-bundle",
         "payload_hash" => "paid-bundle-hash",
-        "chain_id" => 84_532,
+        "chain_id" => 8_453,
         "settlement_contract_address" => settlement_contract(),
         "usdc_token_address" => usdc_token(),
         "treasury_address" => treasury_address(),
@@ -318,7 +318,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
   defp configure_autoskill_rpc!(%NodePaidPayload{} = payload, buyer_wallet, seller_wallet) do
     Application.put_env(:tech_tree, :autoskill,
       chains: %{
-        84_532 => %{
+        8_453 => %{
           rpc_url: "http://rpc.test",
           settlement_contract_address: payload.settlement_contract_address,
           usdc_token_address: payload.usdc_token_address,
@@ -328,7 +328,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
       rpc_client: fn _rpc_url, rpc_payload ->
         case rpc_payload["method"] do
           "eth_chainId" ->
-            {:ok, %{"jsonrpc" => "2.0", "id" => rpc_payload["id"], "result" => "0x14a34"}}
+            {:ok, %{"jsonrpc" => "2.0", "id" => rpc_payload["id"], "result" => "0x2105"}}
 
           "eth_getTransactionReceipt" ->
             {:ok,
@@ -364,7 +364,7 @@ defmodule TechTreeWeb.AgentNodeAccessControllerTest do
 
   defp insert_agent!(label) do
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "84532",
+      "chain_id" => "8453",
       "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique_suffix()),
       "wallet_address" => random_eth_address(),

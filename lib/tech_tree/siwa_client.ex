@@ -1,31 +1,22 @@
-defmodule TechTree.SiwaSidecarClient do
+defmodule TechTree.SiwaClient do
   @moduledoc false
 
   @callback verify_http_request(Plug.Conn.t(), map()) ::
               {:ok, Req.Response.t()} | {:error, term()}
 
   @http_verify_path "/v1/agent/siwa/http-verify"
-  @default_key_id "sidecar-internal-v1"
+  @audience "techtree"
   @default_connect_timeout_ms 2_000
   @default_receive_timeout_ms 5_000
 
   @spec verify_http_request(Plug.Conn.t(), map()) ::
           {:ok, Req.Response.t()} | {:error, term()} | {:error, :missing_siwa_internal_url}
   def verify_http_request(conn, normalized_headers) do
-    with {:ok, config} <- fetch_config(),
-         payload <- build_http_verify_payload(conn, normalized_headers),
-         {:ok, payload_json} <- Jason.encode(payload) do
-      timestamp = Integer.to_string(System.system_time(:second))
-
+    with {:ok, config} <- fetch_config() do
       Req.post(
         url: "#{config.internal_url}#{@http_verify_path}",
-        body: payload_json,
-        headers: [
-          {"content-type", "application/json"},
-          {"x-sidecar-key-id", config.key_id},
-          {"x-sidecar-timestamp", timestamp},
-          {"x-sidecar-signature", signature(config.secret, timestamp, payload_json)}
-        ],
+        json: build_http_verify_payload(conn, normalized_headers),
+        headers: [{"x-siwa-audience", @audience}],
         connect_options: [timeout: config.connect_timeout_ms],
         receive_timeout: config.receive_timeout_ms
       )
@@ -36,23 +27,17 @@ defmodule TechTree.SiwaSidecarClient do
           {:ok,
            %{
              internal_url: String.t(),
-             secret: String.t(),
-             key_id: String.t(),
              connect_timeout_ms: pos_integer(),
              receive_timeout_ms: pos_integer()
            }}
           | {:error, :missing_siwa_internal_url}
-          | {:error, :missing_siwa_shared_secret}
   defp fetch_config do
     siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
 
-    with {:ok, internal_url} <- fetch_required_trimmed(siwa_cfg, :internal_url),
-         {:ok, secret} <- fetch_required_trimmed(siwa_cfg, :shared_secret) do
+    with {:ok, internal_url} <- fetch_required_trimmed(siwa_cfg, :internal_url) do
       {:ok,
        %{
          internal_url: internal_url,
-         secret: secret,
-         key_id: fetch_key_id(siwa_cfg),
          connect_timeout_ms:
            normalize_positive_timeout_ms(
              Keyword.get(siwa_cfg, :http_connect_timeout_ms),
@@ -66,7 +51,6 @@ defmodule TechTree.SiwaSidecarClient do
        }}
     else
       {:error, :internal_url} -> {:error, :missing_siwa_internal_url}
-      {:error, :shared_secret} -> {:error, :missing_siwa_shared_secret}
     end
   end
 
@@ -81,20 +65,6 @@ defmodule TechTree.SiwaSidecarClient do
 
       _ ->
         {:error, key}
-    end
-  end
-
-  @spec fetch_key_id(keyword()) :: String.t()
-  defp fetch_key_id(config) do
-    case Keyword.get(config, :hmac_key_id) do
-      value when is_binary(value) ->
-        case String.trim(value) do
-          "" -> @default_key_id
-          trimmed -> trimmed
-        end
-
-      _ ->
-        @default_key_id
     end
   end
 
@@ -114,9 +84,8 @@ defmodule TechTree.SiwaSidecarClient do
   @spec build_http_verify_payload(Plug.Conn.t(), map()) :: map()
   defp build_http_verify_payload(conn, normalized_headers) do
     base_payload = %{
-      "kind" => "http_verify_request",
       "method" => conn.method,
-      "path" => conn.request_path,
+      "path" => signed_path(conn),
       "headers" => normalized_headers
     }
 
@@ -126,12 +95,7 @@ defmodule TechTree.SiwaSidecarClient do
     end
   end
 
-  @spec signature(String.t(), String.t(), String.t()) :: String.t()
-  defp signature(secret, timestamp, payload_json) do
-    signed_payload = "POST\n#{@http_verify_path}\n#{timestamp}\n#{payload_json}"
-
-    "sha256=" <>
-      (:crypto.mac(:hmac, :sha256, secret, signed_payload)
-       |> Base.encode16(case: :lower))
-  end
+  @spec signed_path(Plug.Conn.t()) :: String.t()
+  defp signed_path(%{request_path: path, query_string: ""}), do: path
+  defp signed_path(%{request_path: path, query_string: query}), do: path <> "?" <> query
 end

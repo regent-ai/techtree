@@ -10,7 +10,7 @@
 
 ## 1. Product thesis
 
-Techtree already has the ingredients for an agent-native benchmark product: BBH capsules, local run folders, marimo notebooks, Hypotest-style replay, Science Tasks, Autoskill, IPFS pinning, paid payloads, Base Sepolia registry anchoring, and agent-authenticated API routes. The next implementation pass should consolidate those ingredients into one first-class product primitive:
+Techtree already has the ingredients for an agent-native benchmark product: BBH capsules, local run folders, marimo notebooks, Hypotest-style replay, Science Tasks, Autoskill, IPFS pinning, paid payloads, Base mainnet registry anchoring, and agent-authenticated API routes. The next implementation pass should consolidate those ingredients into one first-class product primitive:
 
 > A **benchmark capsule** is a versioned, content-addressed, reviewable research task bundle with a controlled ground truth policy, reproducible input bundle, validation notebook, allowed-tool policy, agent harness policy, solver attempts, validations, reliability metrics, and provenance trail.
 
@@ -740,7 +740,7 @@ Manifest schema v1:
   "created_by": {
     "agent_id": 123,
     "wallet_address": "0x...",
-    "chain_id": 84532
+    "chain_id": 8453
   },
   "files": [
     {
@@ -1288,7 +1288,7 @@ If the contract is not changed in this implementation slice, then the benchmark 
 
 Use the existing Techtree launch story:
 
-- Base Sepolia for current Techtree publishing and paid settlement paths.
+- Base mainnet for current Techtree publishing and paid settlement paths.
 - Base mainnet for production `$TECH`/emission story, not benchmark capsule v1 provenance unless explicitly cut over.
 
 ---
@@ -1495,7 +1495,7 @@ Implement capsule/attempt/validation anchoring and paid payload support.
 
 Acceptance:
 
-- Capsule version manifest can anchor to Base Sepolia through existing publish worker or a dedicated benchmark anchor worker.
+- Capsule version manifest can anchor to Base mainnet through existing publish worker or a dedicated benchmark anchor worker.
 - Chain receipt is stored and visible.
 - Paid payload listing can gate a large data/report/skill artifact.
 - Hidden truth is never anchored or paid-unlocked accidentally.
@@ -1711,7 +1711,7 @@ This proves the core idea without requiring importers, paid payloads, or full Ba
 
 Use this prompt for the implementing agent:
 
-> You are implementing Techtree Benchmark Capsules. Read `AGENTS.md`, `README.md`, `docs/CODEBASE_MAP.md`, `docs/MARIMO_WORKSPACES.md`, and `docs/BBH_LOCAL_AGENT_RUNBOOK.md` first. This is a hard-cutover task. Start with `docs/api-contract.openapiv3.yaml` and `docs/cli-contract.yaml`; do not implement routes or CLI commands before the contracts. Add a generic `TechTree.Benchmarks` context with capsule, version, harness, attempt, validation, reliability, artifact, and bundle modules. BBH and Science Tasks become domain adapters. Agents must solve locally through Regents CLI workspaces; Phoenix must not execute arbitrary notebooks. Use marimo notebooks as evidence artifacts, Lighthouse/IPFS for content-addressed bundles, and Base Sepolia only for provenance manifests when node type mapping is safe. Hidden ground truth must never leak into public bundles or onchain payloads. Reliability from repeated attempts is a first-class feature. Update Regents CLI in the same pass for all HTTP-backed commands. Run contract, compile, test, and CLI validation before claiming completion.
+> You are implementing Techtree Benchmark Capsules. Read `AGENTS.md`, `README.md`, `docs/CODEBASE_MAP.md`, `docs/MARIMO_WORKSPACES.md`, and `docs/BBH_LOCAL_AGENT_RUNBOOK.md` first. This is a hard-cutover task. Start with `docs/api-contract.openapiv3.yaml` and `docs/cli-contract.yaml`; do not implement routes or CLI commands before the contracts. Add a generic `TechTree.Benchmarks` context with capsule, version, harness, attempt, validation, reliability, artifact, and bundle modules. BBH and Science Tasks become domain adapters. Agents must solve locally through Regents CLI workspaces; Phoenix must not execute arbitrary notebooks. Use marimo notebooks as evidence artifacts, Lighthouse/IPFS for content-addressed bundles, and Base mainnet only for provenance manifests when node type mapping is safe. Hidden ground truth must never leak into public bundles or onchain payloads. Reliability from repeated attempts is a first-class feature. Update Regents CLI in the same pass for all HTTP-backed commands. Run contract, compile, test, and CLI validation before claiming completion.
 
 ---
 

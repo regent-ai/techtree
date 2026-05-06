@@ -6,8 +6,7 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
       assert :ok =
                TechTree.Application.validate_siwa_runtime_config!(
                  :prod,
-                 internal_url: "http://siwa-sidecar:4100",
-                 shared_secret: "secret"
+                 internal_url: "http://siwa-server:4100"
                )
     end
 
@@ -17,18 +16,7 @@ defmodule TechTree.ApplicationRuntimeConfigTest do
                    fn ->
                      TechTree.Application.validate_siwa_runtime_config!(
                        :prod,
-                       shared_secret: "secret"
-                     )
-                   end
-    end
-
-    test "raises in prod when shared_secret is missing" do
-      assert_raise RuntimeError,
-                   ~r/shared_secret must be configured in :prod/,
-                   fn ->
-                     TechTree.Application.validate_siwa_runtime_config!(
-                       :prod,
-                       internal_url: "http://siwa-sidecar:4100"
+                       []
                      )
                    end
     end

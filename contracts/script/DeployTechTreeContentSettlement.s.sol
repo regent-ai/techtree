@@ -14,15 +14,13 @@ interface Vm {
 }
 
 /// @notice Deploys TechTreeContentSettlement for Base-first autoskill settlement.
-///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-mainnet)
+///         DEPLOY_TARGET: anvil | base-mainnet (default: base-mainnet)
 ///         Uses *_PRIVATE_KEY plus target-specific USDC and treasury address env vars.
 contract DeployTechTreeContentSettlement {
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
     bytes32 internal constant ANVIL_TARGET_HASH = keccak256(bytes("anvil"));
-    bytes32 internal constant BASE_SEPOLIA_TARGET_HASH = keccak256(bytes("base-sepolia"));
     bytes32 internal constant BASE_MAINNET_TARGET_HASH = keccak256(bytes("base-mainnet"));
     uint256 internal constant ANVIL_CHAIN_ID = 31_337;
-    uint256 internal constant BASE_SEPOLIA_CHAIN_ID = 84_532;
     uint256 internal constant BASE_MAINNET_CHAIN_ID = 8_453;
 
     error InvalidDeployTarget(string target);
@@ -35,10 +33,6 @@ contract DeployTechTreeContentSettlement {
 
     function runAnvil() external returns (TechTreeContentSettlement deployed) {
         deployed = _runTarget("anvil");
-    }
-
-    function runBaseSepolia() external returns (TechTreeContentSettlement deployed) {
-        deployed = _runTarget("base-sepolia");
     }
 
     function runBaseMainnet() external returns (TechTreeContentSettlement deployed) {
@@ -66,10 +60,6 @@ contract DeployTechTreeContentSettlement {
             return vm.envUint("ANVIL_PRIVATE_KEY");
         }
 
-        if (targetHash == BASE_SEPOLIA_TARGET_HASH) {
-            return vm.envUint("BASE_SEPOLIA_PRIVATE_KEY");
-        }
-
         if (targetHash == BASE_MAINNET_TARGET_HASH) {
             return vm.envUint("BASE_MAINNET_PRIVATE_KEY");
         }
@@ -90,13 +80,6 @@ contract DeployTechTreeContentSettlement {
             );
         }
 
-        if (targetHash == BASE_SEPOLIA_TARGET_HASH) {
-            return (
-                vm.envAddress("AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN"),
-                vm.envAddress("AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS")
-            );
-        }
-
         if (targetHash == BASE_MAINNET_TARGET_HASH) {
             return (
                 vm.envAddress("AUTOSKILL_BASE_MAINNET_USDC_TOKEN"),
@@ -113,13 +96,6 @@ contract DeployTechTreeContentSettlement {
         if (targetHash == ANVIL_TARGET_HASH) {
             if (block.chainid != ANVIL_CHAIN_ID) {
                 revert UnexpectedChainId(ANVIL_CHAIN_ID, block.chainid);
-            }
-            return;
-        }
-
-        if (targetHash == BASE_SEPOLIA_TARGET_HASH) {
-            if (block.chainid != BASE_SEPOLIA_CHAIN_ID) {
-                revert UnexpectedChainId(BASE_SEPOLIA_CHAIN_ID, block.chainid);
             }
             return;
         }

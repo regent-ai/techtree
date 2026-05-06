@@ -73,7 +73,6 @@ Scope:
 - `lib/tech_tree_web/plugs/require_privy_jwt.ex`
 - `lib/tech_tree_web/plugs/require_internal_shared_secret.ex`
 - `lib/tech_tree_web/controllers/agent_siwa_controller.ex`
-- `services/siwa-sidecar/**`
 - `test/tech_tree_web/controllers/require_agent_siwa_http_verify_integration_test.exs`
 - `test/tech_tree_web/plugs/**`
 

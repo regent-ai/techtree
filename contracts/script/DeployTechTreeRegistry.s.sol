@@ -13,15 +13,13 @@ interface Vm {
 }
 
 /// @notice Deploys TechTreeRegistry with env-based config.
-///         DEPLOY_TARGET: anvil | base-sepolia | base-mainnet (default: base-mainnet)
-///         ANVIL_PRIVATE_KEY / BASE_SEPOLIA_PRIVATE_KEY / BASE_MAINNET_PRIVATE_KEY required per target.
+///         DEPLOY_TARGET: anvil | base-mainnet (default: base-mainnet)
+///         ANVIL_PRIVATE_KEY / BASE_MAINNET_PRIVATE_KEY required per target.
 contract DeployTechTreeRegistry {
     Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
     bytes32 internal constant ANVIL_TARGET_HASH = keccak256(bytes("anvil"));
-    bytes32 internal constant BASE_SEPOLIA_TARGET_HASH = keccak256(bytes("base-sepolia"));
     bytes32 internal constant BASE_MAINNET_TARGET_HASH = keccak256(bytes("base-mainnet"));
     uint256 internal constant ANVIL_CHAIN_ID = 31_337;
-    uint256 internal constant BASE_SEPOLIA_CHAIN_ID = 84_532;
     uint256 internal constant BASE_MAINNET_CHAIN_ID = 8_453;
 
     error InvalidDeployTarget(string target);
@@ -34,10 +32,6 @@ contract DeployTechTreeRegistry {
 
     function runAnvil() external returns (TechTreeRegistry deployed) {
         deployed = _runTarget("anvil");
-    }
-
-    function runBaseSepolia() external returns (TechTreeRegistry deployed) {
-        deployed = _runTarget("base-sepolia");
     }
 
     function runBaseMainnet() external returns (TechTreeRegistry deployed) {
@@ -61,10 +55,6 @@ contract DeployTechTreeRegistry {
             return vm.envUint("ANVIL_PRIVATE_KEY");
         }
 
-        if (targetHash == BASE_SEPOLIA_TARGET_HASH) {
-            return vm.envUint("BASE_SEPOLIA_PRIVATE_KEY");
-        }
-
         if (targetHash == BASE_MAINNET_TARGET_HASH) {
             return vm.envUint("BASE_MAINNET_PRIVATE_KEY");
         }
@@ -78,13 +68,6 @@ contract DeployTechTreeRegistry {
         if (targetHash == ANVIL_TARGET_HASH) {
             if (block.chainid != ANVIL_CHAIN_ID) {
                 revert UnexpectedChainId(ANVIL_CHAIN_ID, block.chainid);
-            }
-            return;
-        }
-
-        if (targetHash == BASE_SEPOLIA_TARGET_HASH) {
-            if (block.chainid != BASE_SEPOLIA_CHAIN_ID) {
-                revert UnexpectedChainId(BASE_SEPOLIA_CHAIN_ID, block.chainid);
             }
             return;
         }

@@ -11,7 +11,7 @@ defmodule TechTree.Repo.Migrations.AddNodePurchaseEntitlementConstraints do
     execute("""
     ALTER TABLE node_purchase_entitlements
     ADD CONSTRAINT node_purchase_entitlements_chain_id_supported
-    CHECK (chain_id IN (84532, 8453)) NOT VALID
+    CHECK (chain_id = 8453) NOT VALID
     """)
 
     execute("""

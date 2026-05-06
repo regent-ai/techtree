@@ -2,8 +2,7 @@ defmodule TechTree.Chains do
   @moduledoc false
 
   @supported %{
-    8453 => "Base Mainnet",
-    84_532 => "Base Sepolia"
+    8453 => "Base Mainnet"
   }
 
   @spec supported_chain_ids() :: [integer()]

@@ -33,14 +33,14 @@ defmodule TechTreeWeb.ConnCase do
 
   setup tags do
     TechTree.DataCase.setup_sandbox(tags)
-    reset_siwa_sidecar_state()
+    reset_siwa_server_state()
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
-  defp reset_siwa_sidecar_state do
-    if Process.whereis(TechTreeWeb.TestSupport.SiwaSidecarState) do
-      Agent.update(TechTreeWeb.TestSupport.SiwaSidecarState, fn _state ->
-        %{status: 200, last_request: nil, last_trusted_headers: nil}
+  defp reset_siwa_server_state do
+    if Process.whereis(TechTreeWeb.TestSupport.SiwaServerState) do
+      Agent.update(TechTreeWeb.TestSupport.SiwaServerState, fn _state ->
+        %{status: 200, last_request: nil, last_audience: nil}
       end)
     end
   end

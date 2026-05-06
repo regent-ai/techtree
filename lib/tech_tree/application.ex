@@ -32,18 +32,11 @@ defmodule TechTree.Application do
   @spec validate_siwa_runtime_config!(atom(), keyword() | term()) :: :ok
   def validate_siwa_runtime_config!(runtime_env, siwa_cfg) when is_list(siwa_cfg) do
     internal_url = Keyword.get(siwa_cfg, :internal_url)
-    shared_secret = Keyword.get(siwa_cfg, :shared_secret)
 
     if runtime_env == :prod do
       unless is_binary(internal_url) and String.trim(internal_url) != "" do
         raise """
         invalid SIWA configuration: :siwa, internal_url must be configured in :prod.
-        """
-      end
-
-      unless is_binary(shared_secret) and String.trim(shared_secret) != "" do
-        raise """
-        invalid SIWA configuration: :siwa, shared_secret must be configured in :prod.
         """
       end
     end

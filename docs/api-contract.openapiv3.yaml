@@ -2441,7 +2441,7 @@ components:
       pattern: "^0x[a-fA-F0-9]{40}$"
     TechtreeIdentityChainId:
       type: integer
-      enum: [84532, 8453]
+      enum: [8453]
     TransactionHash:
       type: string
       pattern: "^0x[a-fA-F0-9]{64}$"

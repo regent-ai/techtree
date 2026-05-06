@@ -19,12 +19,12 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
   end
 
   setup do
-    SiwaSupport.reset_sidecar_state()
+    SiwaSupport.reset_siwa_server_state()
     :ok
   end
 
-  test "allows request when sidecar returns 200", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(200)
+  test "allows request when shared SIWA server returns 200", %{conn: conn} do
+    SiwaSupport.put_siwa_status(200)
 
     wallet = SiwaSupport.random_eth_address()
     registry = SiwaSupport.random_eth_address()
@@ -53,37 +53,28 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert Repo.exists?(
              from(a in AgentIdentity,
                where:
-                 a.wallet_address == ^wallet and a.chain_id == 84_532 and
+                 a.wallet_address == ^wallet and a.chain_id == 8_453 and
                    a.registry_address == ^registry
              )
            )
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/v1/tree/nodes",
              "body" => raw_body
-           } = SiwaSupport.sidecar_last_request()
+           } = SiwaSupport.siwa_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
-    assert headers["x-agent-chain-id"] == "84532"
+    assert headers["x-agent-chain-id"] == "8453"
     assert headers["x-agent-registry-address"] == registry
     assert headers["x-agent-token-id"] == "101"
     assert raw_body =~ "SIWA integration"
-
-    assert %{
-             "x-sidecar-key-id" => "sidecar-internal-v1",
-             "x-sidecar-timestamp" => timestamp,
-             "x-sidecar-signature" => "sha256=" <> signature
-           } = SiwaSupport.sidecar_last_trusted_headers()
-
-    assert {_timestamp, ""} = Integer.parse(timestamp)
-    assert byte_size(signature) == 64
+    assert SiwaSupport.siwa_last_audience() == "techtree"
   end
 
   test "protects runtime write routes with agent SIWA", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(200)
+    SiwaSupport.put_siwa_status(200)
 
     wallet = SiwaSupport.random_eth_address()
     registry = SiwaSupport.random_eth_address()
@@ -103,21 +94,20 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert Repo.exists?(
              from(a in AgentIdentity,
                where:
-                 a.wallet_address == ^wallet and a.chain_id == 84_532 and
+                 a.wallet_address == ^wallet and a.chain_id == 8_453 and
                    a.registry_address == ^registry
              )
            )
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/v1/agent/runtime/publish/submit",
              "body" => "{}"
-           } = SiwaSupport.sidecar_last_request()
+           } = SiwaSupport.siwa_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
-    assert headers["x-agent-chain-id"] == "84532"
+    assert headers["x-agent-chain-id"] == "8453"
     assert headers["x-agent-registry-address"] == registry
     assert headers["x-agent-token-id"] == "111"
   end
@@ -147,7 +137,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert Repo.exists?(
              from(a in AgentIdentity,
-               where: a.token_id == ^Decimal.new("515") and a.chain_id == 84_532
+               where: a.token_id == ^Decimal.new("515") and a.chain_id == 8_453
              )
            )
   end
@@ -227,13 +217,14 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     refute Repo.exists?(from(a in AgentIdentity, where: a.token_id == ^Decimal.new("717")))
   end
 
-  test "shared SIWA verifier denies mutated wallet registry and token headers" do
+  test "shared SIWA verifier denies mutated wallet registry chain and token headers" do
     with_strict_shared_siwa_client()
 
     for {header, value, token_id} <- [
           {"x-agent-wallet-address", SiwaSupport.random_eth_address(), "818"},
           {"x-agent-registry-address", SiwaSupport.random_eth_address(), "819"},
-          {"x-agent-token-id", "999999", "820"}
+          {"x-agent-chain-id", "1", "820"},
+          {"x-agent-token-id", "999999", "821"}
         ] do
       body = Jason.encode!(%{"seed" => "ML", "title" => "Mutated #{header}"})
 
@@ -252,8 +243,8 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     end
   end
 
-  test "denies request when sidecar returns 401", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(401)
+  test "denies request when shared SIWA server returns 401", %{conn: conn} do
+    SiwaSupport.put_siwa_status(401)
 
     wallet = SiwaSupport.random_eth_address()
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
@@ -273,12 +264,11 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
     refute Repo.exists?(from(a in AgentIdentity, where: a.wallet_address == ^wallet))
 
-    assert_receive {:siwa_deny,
-                    %{reason: :sidecar_http_401, sidecar_status: 401, source: :sidecar_http}}
+    assert_receive {:siwa_deny, %{reason: :siwa_http_401, siwa_status: 401, source: :siwa_http}}
   end
 
-  test "denies request when sidecar returns 422 and emits deny metadata", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(422)
+  test "denies request when shared SIWA server returns 422 and emits deny metadata", %{conn: conn} do
+    SiwaSupport.put_siwa_status(422)
 
     wallet = SiwaSupport.random_eth_address()
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
@@ -298,14 +288,13 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
     refute Repo.exists?(from(a in AgentIdentity, where: a.wallet_address == ^wallet))
 
-    assert_receive {:siwa_deny,
-                    %{reason: :sidecar_http_422, sidecar_status: 422, source: :sidecar_http}}
+    assert_receive {:siwa_deny, %{reason: :siwa_http_422, siwa_status: 422, source: :siwa_http}}
   end
 
-  test "lets the sidecar decide when the signed receipt no longer matches the request headers", %{
+  test "lets shared SIWA decide when the signed receipt no longer matches request headers", %{
     conn: conn
   } do
-    SiwaSupport.put_sidecar_status(401)
+    SiwaSupport.put_siwa_status(401)
 
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
     on_exit(fn -> :telemetry.detach(telemetry_ref) end)
@@ -317,12 +306,12 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       conn
       |> put_req_header("accept", "application/json")
       |> put_req_header("x-agent-wallet-address", wallet)
-      |> put_req_header("x-agent-chain-id", "84532")
+      |> put_req_header("x-agent-chain-id", "8453")
       |> put_req_header("x-agent-registry-address", registry)
       |> put_req_header("x-agent-token-id", "202")
       |> put_req_header(
         "x-siwa-receipt",
-        receipt_token(wallet, "84532", registry, "101", "techtree")
+        receipt_token(wallet, "8453", registry, "101", "techtree")
       )
       |> post("/v1/tree/nodes", %{
         "seed" => "ML",
@@ -335,29 +324,26 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/v1/tree/nodes"
-           } = SiwaSupport.sidecar_last_request()
+           } = SiwaSupport.siwa_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
     assert headers["x-agent-registry-address"] == registry
 
-    assert_receive {:siwa_deny,
-                    %{reason: :sidecar_http_401, sidecar_status: 401, source: :sidecar_http}}
+    assert_receive {:siwa_deny, %{reason: :siwa_http_401, siwa_status: 401, source: :siwa_http}}
   end
 
-  test "denies request when sidecar is unavailable and emits transport metadata", %{conn: conn} do
+  test "denies request when shared SIWA server is unavailable and emits transport metadata", %{
+    conn: conn
+  } do
     telemetry_ref = SiwaSupport.attach_siwa_deny_handler()
     on_exit(fn -> :telemetry.detach(telemetry_ref) end)
 
     original_siwa_cfg = Application.get_env(:tech_tree, :siwa, [])
 
-    Application.put_env(:tech_tree, :siwa,
-      internal_url: "http://127.0.0.1:1",
-      shared_secret: Keyword.fetch!(original_siwa_cfg, :shared_secret)
-    )
+    Application.put_env(:tech_tree, :siwa, internal_url: "http://127.0.0.1:1")
 
     on_exit(fn -> Application.put_env(:tech_tree, :siwa, original_siwa_cfg) end)
 
@@ -367,25 +353,25 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       |> post("/v1/tree/nodes", %{
         "seed" => "ML",
         "kind" => "hypothesis",
-        "title" => "SIWA sidecar down",
+        "title" => "SIWA server down",
         "parent_id" => 999_999,
         "notebook_source" => "print('ok')"
       })
 
     assert %{"error" => %{"code" => "siwa_unavailable"}} = json_response(conn, 503)
 
-    assert_receive {:siwa_deny, %{reason: :sidecar_request_failed, source: :sidecar_http}}
+    assert_receive {:siwa_deny, %{reason: :siwa_request_failed, source: :siwa_http}}
   end
 
   test "denies banned agent even when SIWA envelope is valid", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(200)
+    SiwaSupport.put_siwa_status(200)
 
     wallet = SiwaSupport.random_eth_address()
     registry = SiwaSupport.random_eth_address()
     token_id = "808"
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "84532",
+      "chain_id" => "8453",
       "registry_address" => registry,
       "token_id" => token_id,
       "wallet_address" => wallet
@@ -395,7 +381,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       Repo.update_all(
         from(a in AgentIdentity,
           where:
-            a.wallet_address == ^wallet and a.chain_id == 84_532 and
+            a.wallet_address == ^wallet and a.chain_id == 8_453 and
               a.registry_address == ^registry
         ),
         set: [status: "banned"]
@@ -422,14 +408,14 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
 
     assert %AgentIdentity{status: "banned"} =
              Repo.get_by!(AgentIdentity,
-               chain_id: 84_532,
+               chain_id: 8_453,
                registry_address: registry,
                token_id: Decimal.new(token_id)
              )
   end
 
   test "denies banned agent when the request registry header only differs by case", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(200)
+    SiwaSupport.put_siwa_status(200)
 
     wallet = SiwaSupport.random_eth_address()
     registry = SiwaSupport.random_eth_address()
@@ -438,7 +424,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
     token_id = "909"
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "84532",
+      "chain_id" => "8453",
       "registry_address" => mixed_case_registry,
       "token_id" => token_id,
       "wallet_address" => mixed_case_wallet
@@ -448,7 +434,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       Repo.update_all(
         from(a in AgentIdentity,
           where:
-            a.wallet_address == ^wallet and a.chain_id == 84_532 and
+            a.wallet_address == ^wallet and a.chain_id == 8_453 and
               a.registry_address == ^registry
         ),
         set: [status: "banned"]
@@ -475,10 +461,6 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
   end
 
   defp receipt_token(wallet, chain_id, registry, token_id, audience) do
-    secret =
-      Application.get_env(:tech_tree, :siwa, [])
-      |> Keyword.fetch!(:shared_secret)
-
     now_ms = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
 
     payload =
@@ -500,7 +482,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       |> Base.url_encode64(padding: false)
 
     signature =
-      :crypto.mac(:hmac, :sha256, secret, payload)
+      :crypto.mac(:hmac, :sha256, SiwaSupport.siwa_receipt_secret!(), payload)
       |> Base.url_encode64(padding: false)
 
     "#{payload}.#{signature}"
@@ -513,7 +495,7 @@ defmodule TechTreeWeb.RequireAgentSiwaHttpVerifyIntegrationTest do
       :tech_tree,
       :siwa,
       original_siwa_cfg
-      |> Keyword.put(:client, TechTreeWeb.TestSupport.StrictSiwaSidecarClient)
+      |> Keyword.put(:client, TechTreeWeb.TestSupport.StrictSiwaClient)
       |> Keyword.merge(opts)
     )
 

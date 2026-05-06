@@ -3,8 +3,8 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
 
   alias TechTreeWeb.TestSupport.SiwaIntegrationSupport, as: SiwaSupport
 
-  defmodule FakeSiwaSidecarClient do
-    @behaviour TechTree.SiwaSidecarClient
+  defmodule FakeSiwaClient do
+    @behaviour TechTree.SiwaClient
 
     @impl true
     def verify_http_request(conn, normalized_headers) do
@@ -26,6 +26,12 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
              "walletAddress" => normalized_headers["x-agent-wallet-address"],
              "chainId" => String.to_integer(normalized_headers["x-agent-chain-id"]),
              "keyId" => normalized_headers["x-key-id"],
+             "agent_claims" => %{
+               "wallet_address" => normalized_headers["x-agent-wallet-address"],
+               "chain_id" => normalized_headers["x-agent-chain-id"],
+               "registry_address" => normalized_headers["x-agent-registry-address"],
+               "token_id" => normalized_headers["x-agent-token-id"]
+             },
              "receiptExpiresAt" => "2026-04-28T00:00:00.000Z",
              "requiredHeaders" => ["x-siwa-receipt"],
              "requiredCoveredComponents" => ["@method", "@path", "x-siwa-receipt"],
@@ -37,7 +43,7 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
   end
 
   setup do
-    SiwaSupport.reset_sidecar_state()
+    SiwaSupport.reset_siwa_server_state()
     :ok
   end
 
@@ -64,7 +70,7 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
     assert created["ok"] == true
     assert created["session"]["audience"] == "techtree"
     assert created["session"]["wallet_address"] == wallet
-    assert created["session"]["chain_id"] == "84532"
+    assert created["session"]["chain_id"] == "8453"
     assert created["session"]["registry_address"] == registry
     assert created["session"]["token_id"] == token_id
     assert is_binary(created["session"]["session_id"])
@@ -119,25 +125,15 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
     assert response["session"]["token_id"] == token_id
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/api/auth/agent/session"
-           } =
-             SiwaSupport.sidecar_last_request()
+           } = SiwaSupport.siwa_last_request()
 
     assert headers["x-agent-wallet-address"] == wallet
     assert headers["x-agent-registry-address"] == registry
     assert headers["x-agent-token-id"] == token_id
-
-    assert %{
-             "x-sidecar-key-id" => "sidecar-internal-v1",
-             "x-sidecar-timestamp" => timestamp,
-             "x-sidecar-signature" => "sha256=" <> signature
-           } = SiwaSupport.sidecar_last_trusted_headers()
-
-    assert {_timestamp, ""} = Integer.parse(timestamp)
-    assert byte_size(signature) == 64
+    assert SiwaSupport.siwa_last_audience() == "techtree"
   end
 
   test "session creation can use the configured SIWA client behavior", %{conn: conn} do
@@ -147,7 +143,7 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
       :tech_tree,
       :siwa,
       original_siwa_cfg
-      |> Keyword.put(:client, FakeSiwaSidecarClient)
+      |> Keyword.put(:client, FakeSiwaClient)
       |> Keyword.put(:test_pid, self())
     )
 
@@ -178,11 +174,11 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
     assert headers["x-agent-wallet-address"] == wallet
     assert headers["x-agent-registry-address"] == registry
     assert raw_body == "{}"
-    assert SiwaSupport.sidecar_last_request() == nil
+    assert SiwaSupport.siwa_last_request() == nil
   end
 
   test "session creation rejects a receipt minted for another app", %{conn: conn} do
-    SiwaSupport.put_sidecar_status(401)
+    SiwaSupport.put_siwa_status(401)
 
     wallet = SiwaSupport.random_eth_address()
     registry = SiwaSupport.random_eth_address()
@@ -201,11 +197,10 @@ defmodule TechTreeWeb.AgentSessionControllerTest do
     assert %{"error" => %{"code" => "agent_auth_required"}} = json_response(conn, 401)
 
     assert %{
-             "kind" => "http_verify_request",
              "headers" => headers,
              "method" => "POST",
              "path" => "/api/auth/agent/session"
-           } = SiwaSupport.sidecar_last_request()
+           } = SiwaSupport.siwa_last_request()
 
     assert headers["x-siwa-receipt"]
   end

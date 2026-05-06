@@ -88,7 +88,7 @@ defmodule TechTree.PlatformTest do
 
     seller_identity =
       Repo.insert!(%AgentIdentity{
-        chain_id: 84_532,
+        chain_id: 8_453,
         registry_address: "0x0000000000000000000000000000000000000001",
         token_id: D.new(101),
         wallet_address: owner_address,
@@ -98,7 +98,7 @@ defmodule TechTree.PlatformTest do
 
     buyer_identity =
       Repo.insert!(%AgentIdentity{
-        chain_id: 84_532,
+        chain_id: 8_453,
         registry_address: "0x0000000000000000000000000000000000000002",
         token_id: D.new(202),
         wallet_address: "0x2000000000000000000000000000000000000002",
@@ -127,7 +127,7 @@ defmodule TechTree.PlatformTest do
       buyer_agent_id: buyer_identity.id,
       buyer_wallet_address: buyer_identity.wallet_address,
       tx_hash: "0x" <> String.duplicate("a", 64),
-      chain_id: 84_532,
+      chain_id: 8_453,
       amount_usdc: D.new("25.000000"),
       verification_status: :verified,
       listing_ref: "0x" <> String.duplicate("1", 64),

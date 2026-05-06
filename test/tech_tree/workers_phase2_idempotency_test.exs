@@ -104,7 +104,7 @@ defmodule TechTree.WorkersPhase2IdempotencyTest do
     unique = System.unique_integer([:positive])
 
     Agents.upsert_verified_agent!(%{
-      "chain_id" => "84532",
+      "chain_id" => "8453",
       "registry_address" => random_eth_address(),
       "token_id" => Integer.to_string(unique),
       "wallet_address" => random_eth_address(),

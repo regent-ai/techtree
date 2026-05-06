@@ -46,26 +46,20 @@ require_env() {
 
 resolve_chain_rpc_url() {
   case "${TECHTREE_CHAIN_ID}" in
-    84532)
-      printf '%s\n' "${BASE_SEPOLIA_RPC_URL:-${ANVIL_RPC_URL:-}}"
-      ;;
     31337)
       printf '%s\n' "${ANVIL_RPC_URL:-}"
       ;;
-    *)
+    8453)
       printf '%s\n' "${BASE_MAINNET_RPC_URL:-${BASE_RPC_URL:-}}"
+      ;;
+    *)
+      fail "TECHTREE_CHAIN_ID must be 8453 for Techtree mainnet checks"
       ;;
   esac
 }
 
 autoskill_env_names() {
   case "${TECHTREE_CHAIN_ID}" in
-    84532)
-      printf '%s %s %s\n' \
-        AUTOSKILL_BASE_SEPOLIA_SETTLEMENT_CONTRACT \
-        AUTOSKILL_BASE_SEPOLIA_USDC_TOKEN \
-        AUTOSKILL_BASE_SEPOLIA_TREASURY_ADDRESS
-      ;;
     8453)
       printf '%s %s %s\n' \
         AUTOSKILL_BASE_MAINNET_SETTLEMENT_CONTRACT \
@@ -73,7 +67,7 @@ autoskill_env_names() {
         AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS
       ;;
     *)
-      fail "paid settlement checks require TECHTREE_CHAIN_ID=8453 or 84532"
+      fail "paid settlement checks require TECHTREE_CHAIN_ID=8453"
       ;;
   esac
 }
@@ -173,7 +167,6 @@ cd "${ROOT_DIR}"
 
 require_command docker
 require_command mix
-require_command bun
 require_command curl
 docker compose version >/dev/null 2>&1 || fail "docker compose is required"
 
@@ -184,18 +177,13 @@ require_env SECRET_KEY_BASE
 require_env INTERNAL_SHARED_SECRET
 require_env PRIVY_APP_ID
 require_env PRIVY_VERIFICATION_KEY
-require_env SIWA_SHARED_SECRET
-require_env SIWA_RECEIPT_SECRET
+require_env SIWA_INTERNAL_URL
 require_env LIGHTHOUSE_API_KEY
 require_env TECHTREE_CHAIN_ID
 require_env REGISTRY_CONTRACT_ADDRESS
 require_env REGISTRY_WRITER_PRIVATE_KEY
 [[ "${TECHTREE_CHAIN_ID}" =~ ^[0-9]+$ ]] || fail "TECHTREE_CHAIN_ID must be a positive integer"
 require_autoskill_env
-
-[[ "${SIWA_SHARED_SECRET}" == "${SIWA_HMAC_SECRET:-}" ]] || {
-  fail "SIWA_SHARED_SECRET and SIWA_HMAC_SECRET must match in .env.local"
-}
 
 log "starting local infra"
 docker compose -f "${COMPOSE_FILE}" up -d postgres
@@ -209,17 +197,11 @@ check_chain_contract
 log "running mix setup"
 mix setup
 
-log "running services typecheck"
-(
-  cd services
-  bun run typecheck
-)
-
 cat <<'EOF'
 
 Full local parity setup is ready.
 
-Start the full local stack with:
+Start the shared siwa-server separately, then start Techtree with:
   ./scripts/dev_full_start.sh
 
 Then verify the stack with:

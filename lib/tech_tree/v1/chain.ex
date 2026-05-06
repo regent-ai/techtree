@@ -216,12 +216,11 @@ defmodule TechTree.V1.Chain do
   defp normalize_expected_header(header) do
     %{
       "id" => fetch_value(header, "id"),
-      "subject_id" => fetch_value(header, "subject_id") || fetch_value(header, "subjectId"),
-      "aux_id" => fetch_value(header, "aux_id") || fetch_value(header, "auxId"),
-      "payload_hash" => fetch_value(header, "payload_hash") || fetch_value(header, "payloadHash"),
-      "node_type" => fetch_value(header, "node_type") || fetch_value(header, "nodeType"),
-      "schema_version" =>
-        fetch_value(header, "schema_version") || fetch_value(header, "schemaVersion"),
+      "subject_id" => fetch_value(header, "subject_id"),
+      "aux_id" => fetch_value(header, "aux_id"),
+      "payload_hash" => fetch_value(header, "payload_hash"),
+      "node_type" => fetch_value(header, "node_type"),
+      "schema_version" => fetch_value(header, "schema_version"),
       "flags" => fetch_value(header, "flags"),
       "author" => fetch_value(header, "author")
     }
@@ -495,15 +494,10 @@ defmodule TechTree.V1.Chain do
         "header" -> Map.get(map, :header)
         "id" -> Map.get(map, :id)
         "subject_id" -> Map.get(map, :subject_id)
-        "subjectId" -> Map.get(map, :subjectId)
         "aux_id" -> Map.get(map, :aux_id)
-        "auxId" -> Map.get(map, :auxId)
         "payload_hash" -> Map.get(map, :payload_hash)
-        "payloadHash" -> Map.get(map, :payloadHash)
         "node_type" -> Map.get(map, :node_type)
-        "nodeType" -> Map.get(map, :nodeType)
         "schema_version" -> Map.get(map, :schema_version)
-        "schemaVersion" -> Map.get(map, :schemaVersion)
         "flags" -> Map.get(map, :flags)
         _ -> nil
       end

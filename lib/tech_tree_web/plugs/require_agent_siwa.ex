@@ -25,7 +25,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   def call(conn, _opts) do
     normalized_headers = downcase_headers(conn.req_headers)
 
-    with {:ok, agent_claims} <- verify_with_sidecar(conn, normalized_headers),
+    with {:ok, agent_claims} <- verify_with_siwa_server(conn, normalized_headers),
          {:ok, agent} <- upsert_current_agent(agent_claims),
          :ok <- ensure_agent_status_allowed(agent) do
       conn
@@ -37,15 +37,15 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
     end
   end
 
-  @spec verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
-  defp verify_with_sidecar(conn, normalized_headers) do
-    do_verify_with_sidecar(conn, normalized_headers)
+  @spec verify_with_siwa_server(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
+  defp verify_with_siwa_server(conn, normalized_headers) do
+    do_verify_with_siwa_server(conn, normalized_headers)
   end
 
-  @spec do_verify_with_sidecar(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
-  defp do_verify_with_sidecar(conn, normalized_headers) do
+  @spec do_verify_with_siwa_server(Plug.Conn.t(), map()) :: {:ok, map()} | {:error, map()}
+  defp do_verify_with_siwa_server(conn, normalized_headers) do
     with {:ok, request_agent_claims} <- normalize_request_agent_claims(normalized_headers) do
-      case siwa_sidecar_client().verify_http_request(conn, normalized_headers) do
+      case siwa_client().verify_http_request(conn, normalized_headers) do
         {:ok,
          %{
            status: 200,
@@ -58,19 +58,16 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
           normalize_verified_agent_claims(data, request_agent_claims)
 
         {:ok, %{status: status, body: body}} when is_integer(status) ->
-          {:error, sidecar_deny_meta(status, body)}
+          {:error, siwa_server_deny_meta(status, body)}
 
         {:error, :missing_siwa_internal_url} ->
           {:error, %{reason: :missing_siwa_internal_url, source: :siwa_config}}
 
-        {:error, :missing_siwa_shared_secret} ->
-          {:error, %{reason: :missing_siwa_shared_secret, source: :siwa_config}}
-
         {:error, reason} ->
           {:error,
            %{
-             reason: :sidecar_request_failed,
-             source: :sidecar_http,
+             reason: :siwa_request_failed,
+             source: :siwa_http,
              transport_error: normalize_transport_error(reason)
            }}
       end
@@ -78,36 +75,33 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       {:error, :missing_siwa_internal_url} ->
         {:error, %{reason: :missing_siwa_internal_url, source: :siwa_config}}
 
-      {:error, :missing_siwa_shared_secret} ->
-        {:error, %{reason: :missing_siwa_shared_secret, source: :siwa_config}}
-
       {:error, deny_meta} when is_map(deny_meta) ->
         {:error, deny_meta}
 
       _ ->
-        {:error, %{reason: :siwa_invalid_response, source: :sidecar_http}}
+        {:error, %{reason: :siwa_invalid_response, source: :siwa_http}}
     end
   end
 
-  @spec siwa_sidecar_client() :: module()
-  defp siwa_sidecar_client do
+  @spec siwa_client() :: module()
+  defp siwa_client do
     :tech_tree
     |> Application.get_env(:siwa, [])
-    |> Keyword.get(:client, TechTree.SiwaSidecarClient)
+    |> Keyword.get(:client, TechTree.SiwaClient)
   end
 
-  @spec sidecar_deny_meta(integer(), term()) :: map()
-  defp sidecar_deny_meta(status, body) do
-    %{reason: :"sidecar_http_#{status}", source: :sidecar_http, sidecar_status: status}
-    |> maybe_put_sidecar_code(body)
+  @spec siwa_server_deny_meta(integer(), term()) :: map()
+  defp siwa_server_deny_meta(status, body) do
+    %{reason: :"siwa_http_#{status}", source: :siwa_http, siwa_status: status}
+    |> maybe_put_siwa_code(body)
   end
 
-  @spec maybe_put_sidecar_code(map(), term()) :: map()
-  defp maybe_put_sidecar_code(metadata, %{"code" => code}) when is_binary(code) and code != "" do
-    Map.put(metadata, :sidecar_code, code)
+  @spec maybe_put_siwa_code(map(), term()) :: map()
+  defp maybe_put_siwa_code(metadata, %{"code" => code}) when is_binary(code) and code != "" do
+    Map.put(metadata, :siwa_code, code)
   end
 
-  defp maybe_put_sidecar_code(metadata, _body), do: metadata
+  defp maybe_put_siwa_code(metadata, _body), do: metadata
 
   @spec normalize_transport_error(term()) :: atom()
   defp normalize_transport_error(error) do
@@ -160,27 +154,36 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
   end
 
   @spec normalize_verified_agent_claims(map(), map()) :: {:ok, map()} | {:error, map()}
-  defp normalize_verified_agent_claims(data, request_agent_claims) when is_map(data) do
-    with {:ok, wallet_value} <- fetch_required_value(data, "walletAddress", :sidecar_claims),
-         {:ok, chain_id_value} <- fetch_required_value(data, "chainId", :sidecar_claims),
-         {:ok, wallet} <- validate_hex_address(wallet_value, "walletAddress", :sidecar_claims),
-         {:ok, chain_id} <- validate_positive_int(chain_id_value, "chainId", :sidecar_claims),
+  defp normalize_verified_agent_claims(%{"agent_claims" => claims}, request_agent_claims)
+       when is_map(claims) do
+    with {:ok, wallet_value} <- fetch_required_value(claims, "wallet_address", :siwa_claims),
+         {:ok, chain_id_value} <- fetch_required_value(claims, "chain_id", :siwa_claims),
+         {:ok, registry_value} <- fetch_required_value(claims, "registry_address", :siwa_claims),
+         {:ok, token_id_value} <- fetch_required_value(claims, "token_id", :siwa_claims),
+         {:ok, wallet} <- validate_hex_address(wallet_value, "wallet_address", :siwa_claims),
+         {:ok, chain_id} <- validate_positive_int(chain_id_value, "chain_id", :siwa_claims),
+         {:ok, registry} <-
+           validate_hex_address(registry_value, "registry_address", :siwa_claims),
+         {:ok, token_id} <- validate_positive_int(token_id_value, "token_id", :siwa_claims),
          :ok <- ensure_verified_binding("wallet_address", wallet, request_agent_claims),
          :ok <-
-           ensure_verified_binding("chain_id", Integer.to_string(chain_id), request_agent_claims) do
+           ensure_verified_binding("chain_id", Integer.to_string(chain_id), request_agent_claims),
+         :ok <- ensure_verified_binding("registry_address", registry, request_agent_claims),
+         :ok <-
+           ensure_verified_binding("token_id", Integer.to_string(token_id), request_agent_claims) do
       {:ok, request_agent_claims}
     end
   end
 
   defp normalize_verified_agent_claims(_data, _request_agent_claims),
-    do: {:error, %{reason: :siwa_invalid_response, source: :sidecar_http}}
+    do: {:error, %{reason: :siwa_invalid_response, source: :siwa_http}}
 
   @spec ensure_verified_binding(String.t(), String.t(), map()) :: :ok | {:error, map()}
   defp ensure_verified_binding(key, value, request_agent_claims) do
     if Map.fetch!(request_agent_claims, key) == value do
       :ok
     else
-      {:error, %{reason: :receipt_binding_mismatch, source: :sidecar_claims}}
+      {:error, %{reason: :receipt_binding_mismatch, source: :siwa_claims}}
     end
   end
 
@@ -296,7 +299,7 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
 
       reason
       when reason in [
-             :sidecar_request_failed,
+             :siwa_request_failed,
              :siwa_invalid_response,
              :agent_status_lookup_failed
            ] ->
@@ -306,12 +309,6 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
         })
 
       :missing_siwa_internal_url ->
-        ApiError.render_halted(conn, :internal_server_error, %{
-          "code" => "siwa_unavailable",
-          "message" => "Agent sign-in is temporarily unavailable"
-        })
-
-      :missing_siwa_shared_secret ->
         ApiError.render_halted(conn, :internal_server_error, %{
           "code" => "siwa_unavailable",
           "message" => "Agent sign-in is temporarily unavailable"
@@ -344,8 +341,8 @@ defmodule TechTreeWeb.Plugs.RequireAgentSiwa do
       method: conn.method,
       request_path: conn.request_path
     }
-    |> maybe_put(:sidecar_status, Map.get(deny_meta, :sidecar_status))
-    |> maybe_put(:sidecar_code, Map.get(deny_meta, :sidecar_code))
+    |> maybe_put(:siwa_status, Map.get(deny_meta, :siwa_status))
+    |> maybe_put(:siwa_code, Map.get(deny_meta, :siwa_code))
     |> maybe_put(:transport_error, Map.get(deny_meta, :transport_error))
     |> maybe_put(:missing_headers, Map.get(deny_meta, :missing_headers))
     |> maybe_put(:invalid_header, Map.get(deny_meta, :invalid_header))

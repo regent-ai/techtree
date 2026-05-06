@@ -55,7 +55,6 @@ The TECH staking and emissions tests include unit, fuzz, and invariant coverage.
 This repo's current registry and settlement deploy helpers are Base-targeted. For the current v0.1 launch path, both the registry deploy and the paid-node settlement deploy are in scope. Use `forge script` with `DEPLOY_TARGET` to pick key env vars:
 
 - `DEPLOY_TARGET=anvil` uses `ANVIL_PRIVATE_KEY`
-- `DEPLOY_TARGET=base-sepolia` uses `BASE_SEPOLIA_PRIVATE_KEY` for rehearsals
 - `DEPLOY_TARGET=base-mainnet` uses `BASE_MAINNET_PRIVATE_KEY`
 
 `DeployTechTreeContentSettlement.s.sol` is the settlement deploy helper for paid node unlocks on Base-targeted environments.

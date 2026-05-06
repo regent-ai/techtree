@@ -15,15 +15,10 @@ Keep the launch split explicit all the way through:
 
 Run the full cross-repo gate before any launch signoff:
 
-### Techtree app and services
+### Techtree app
 
 ```bash
 mix precommit
-cd services
-bun run build
-bun run typecheck
-bun run validate:siwa-hardening
-bun run validate:siwa-vectors
 ```
 
 ### Regents CLI
@@ -97,5 +92,5 @@ Before deploy approval, verify the live values separately from repo validation:
 - `AUTOSKILL_BASE_MAINNET_USDC_TOKEN=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 - `AUTOSKILL_BASE_MAINNET_TREASURY_ADDRESS`
 - `LIGHTHOUSE_API_KEY`
-- Phoenix `SIWA_SHARED_SECRET` matches sidecar `SIWA_HMAC_SECRET`
+- `SIWA_INTERNAL_URL` points at the shared `siwa-server`
 - `INTERNAL_SHARED_SECRET` is set for internal-only routes

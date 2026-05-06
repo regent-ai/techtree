@@ -7,7 +7,7 @@ This repository uses the root workflow as the canonical agent orchestration laye
 The Regent dependency skills are installed in `/Users/sean/Documents/regent/.agents/skills` and `/Users/sean/.codex/skills`. Open the matching skill before touching these areas:
 
 - `contract-first-cli-api`: Techtree API routes, CLI command surfaces, OpenAPI files, CLI YAML, generated clients, and CLI/backend alignment.
-- `shared-siwa`: SIWA sidecar behavior, receipts, signed request envelopes, nonce/replay rules, and protected agent routes.
+- `shared-siwa`: shared `siwa-server` integration, receipts, signed request envelopes, nonce/replay rules, and protected agent routes.
 - `xmtp-rooms`: public rooms, agent rooms, XMTP group mirrors, membership, presence, moderation, and room sync shared with Autolaunch.
 - `oban-workers`: background jobs, queues, retries, idempotency, job args, and DB-backed lifecycle work.
 - `cachex-regent-cache`: cache keys, TTLs, invalidation, hot reads, and any cached public or paid payload view.
@@ -29,14 +29,14 @@ The Regent dependency skills are installed in `/Users/sean/Documents/regent/.age
 
 ## Product And Chain Story
 
-- The current launch target is the first public Base Sepolia Techtree release.
-- SIWA agent identity login uses Base Sepolia for this launch.
-- Techtree publishing uses the Base Sepolia registry path for this launch.
+- The current launch target is the first public Base mainnet Techtree release.
+- SIWA agent identity login uses Base mainnet for this launch.
+- Techtree publishing uses the Base mainnet registry path for this launch.
 - `$TECH` lives on Base mainnet.
 - TECH emissions start on Base mainnet only.
-- Paid node unlocks use the Base Sepolia content settlement rail for this launch.
+- Paid node unlocks use the Base mainnet content settlement rail for this launch.
 - Regent live tail is in scope for this launch through the daemon-owned `webapp` and `agent` chatbox rooms.
-- Do not flatten these into one vague “testnet” or “mainnet” story. Base Sepolia publishing, Base Sepolia identity, and Base mainnet TECH emissions are related but not interchangeable.
+- Do not flatten these into one vague “testnet” or “mainnet” story. Base mainnet publishing, Base mainnet identity, and Base mainnet TECH emissions are related but not interchangeable.
 - Keep Techtree chain language separate from Autolaunch chain language. Both products now use the Base chain for contract-linked work, but they still have different operator stories.
 - Treat the mirrored XMTP room model as shared with Autolaunch. If you change room identity, membership command leasing, shard allocation, or internal sync semantics here, check the matching Autolaunch flow in the same pass.
 
@@ -47,7 +47,7 @@ The Regent dependency skills are installed in `/Users/sean/Documents/regent/.age
 - For Techtree API or CLI work, start from the Techtree-owned contract files: `docs/api-contract.openapiv3.yaml` for HTTP behavior and `docs/cli-contract.yaml` for shipped command behavior. Then update Techtree and `/Users/sean/Documents/regent/regents-cli` to match.
 - When a concept or process changes, keep these surfaces aligned in the same pass: `README.md`, `AGENTS.md`, homepage/app copy, and the adjacent Regents CLI help and operator docs.
 - For supported Techtree workflows, agents should use Regents CLI as the normal entry path into Techtree backend records and Base contract-backed publishing:
-  1. run `regents techtree identities list --chain base-sepolia` or mint if needed
+  1. run `regents techtree identities list --chain base-mainnet` or mint if needed
   2. run `regents identity ensure`
   3. run `regents doctor techtree`
   4. only then use protected Techtree commands such as `node create`, `comment add`, `inbox`, `opportunities`, `autoskill buy`, and `autoskill pull`
@@ -180,21 +180,20 @@ Open these files first:
 Main risk:
 - LiveView templates and browser-side hooks are tightly coupled. UI changes often require matching hook updates.
 
-### 2. Techtree Backend + DB + SIWA Sidecar
+### 2. Techtree Backend + DB + Shared SIWA
 
-Hand work here when the task is mainly Phoenix routes, controllers, contexts, database shape, auth/session handling, protected routes, internal APIs, or the SIWA sidecar trust boundary.
+Hand work here when the task is mainly Phoenix routes, controllers, contexts, database shape, auth/session handling, protected routes, internal APIs, or the shared SIWA trust boundary.
 
 Open these files first:
 - `lib/tech_tree/application.ex`
+- `lib/tech_tree/siwa_client.ex`
 - `lib/tech_tree_web/router.ex`
-- `lib/tech_tree_web/controllers/agent_siwa_controller.ex`
 - `lib/tech_tree_web/controllers/platform_auth_controller.ex`
 - `lib/tech_tree_web/plugs/require_agent_siwa.ex`
 - `lib/tech_tree_web/plugs/load_current_human.ex`
 - `lib/tech_tree/accounts.ex`
 - `lib/tech_tree/agents.ex`
 - `priv/repo/migrations/20260304020000_create_techtree_schema.exs`
-- `services/siwa-sidecar/src/server.ts`
 
 Main risks:
 - Privy browser auth and SIWA agent auth are different paths with different failure modes.

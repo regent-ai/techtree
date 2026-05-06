@@ -44,7 +44,7 @@ defmodule TechTreeWeb.Public.ScienceTasksLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Evals branch</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Evals branch</p>
             <h1>Build science tasks that can survive review.</h1>
             <p class="tt-public-hero-copy-text">
               This branch gathers real scientific workflows into Harbor-ready tasks with files,

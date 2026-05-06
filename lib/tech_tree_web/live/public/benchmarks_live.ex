@@ -35,7 +35,7 @@ defmodule TechTreeWeb.Public.BenchmarksLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Benchmark capsules</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Benchmark capsules</p>
             <h1>Tasks, attempts, reviews, and reliability in one place.</h1>
             <p class="tt-public-hero-copy-text">
               Browse capsules by field, inspect the evidence trail, and see whether a method

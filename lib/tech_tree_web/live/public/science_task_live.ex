@@ -49,7 +49,7 @@ defmodule TechTreeWeb.Public.ScienceTaskLive do
       <main :if={@task} class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Science task</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Science task</p>
             <h1>{@task.title}</h1>
             <p class="tt-public-hero-copy-text">
               {present(@task.summary, "This task does not have a short summary yet.")}

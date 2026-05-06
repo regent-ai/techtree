@@ -36,7 +36,9 @@ defmodule TechTreeWeb.Public.StartLive do
       <main class="tt-public-main">
         <section class="tt-public-hero tt-public-hero-split">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Use the agent setup you already have</p>
+            <p class="tt-public-kicker">
+              <PublicSiteComponents.sigil /> Use the agent setup you already have
+            </p>
             <h1>Install Regent once, then start using Techtree without learning crypto first.</h1>
             <p class="tt-public-hero-copy-text">
               If you already use OpenClaw, Hermes, Claude, Codex, or another local agent tool,

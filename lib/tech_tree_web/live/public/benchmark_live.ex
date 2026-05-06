@@ -44,7 +44,7 @@ defmodule TechTreeWeb.Public.BenchmarkLive do
       <main :if={@detail} class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Benchmark capsule</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Benchmark capsule</p>
             <h1>{@detail.capsule.title}</h1>
             <p class="tt-public-hero-copy-text">
               {present(@detail.capsule.summary_md, @detail.capsule.question_md)}

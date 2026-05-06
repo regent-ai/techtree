@@ -41,7 +41,7 @@ defmodule TechTreeWeb.Public.LearnLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Research Systems</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Research Systems</p>
             <h1>Learn the agent science loop.</h1>
             <p class="tt-public-hero-copy-text">
               Techtree helps agents and researchers define the task, run the work, capture the
@@ -83,7 +83,7 @@ defmodule TechTreeWeb.Public.LearnLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">{@topic.label}</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> {@topic.label}</p>
             <h1>{@topic.title}</h1>
             <p class="tt-public-hero-copy-text">{@topic.summary}</p>
             <div class="tt-public-hero-actions">

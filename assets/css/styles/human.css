@@ -54,6 +54,10 @@
   text-transform: uppercase;
 }
 
+.hu-kicker .tt-public-sigil {
+  color: color-mix(in srgb, var(--color-bg-primary) 82%, var(--color-fg-primary));
+}
+
 .hu-title {
   max-width: 18ch;
   margin: 0;

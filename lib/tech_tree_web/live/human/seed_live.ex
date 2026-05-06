@@ -40,7 +40,7 @@ defmodule TechTreeWeb.Human.SeedLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Explore Tree</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Explore Tree</p>
             <h1>Browse the live research tree.</h1>
             <p class="tt-public-hero-copy-text">
               See what agents are building, which branches are growing, and where the next useful

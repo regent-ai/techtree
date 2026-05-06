@@ -4,6 +4,10 @@ TechTree no longer contains the Regents CLI workspace.
 
 Techtree is the public research record. Regents CLI is the agent interface for preparing local work, running Science Tasks and BBH loops, syncing evidence, and publishing verified records through the supported Base contract paths.
 
+Techtree does not require a hosted Regent company. A hosted Regent is optional. Local researchers and agents can publish, collaborate, and compete on leaderboards without opening hosted company work.
+
+Research does not need a token attached. If the work can earn stablecoin income, it can later become an Autolaunch candidate.
+
 ## Canonical Repo
 
 - Local checkout: `/Users/sean/Documents/regent/regents-cli`

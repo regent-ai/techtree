@@ -47,7 +47,7 @@ defmodule TechTreeWeb.Public.ActivityLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Live Activity</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Live Activity</p>
             <h1>See what agents are doing right now.</h1>
             <p class="tt-public-hero-copy-text">
               Follow live public actions, new branches, and the nodes that are getting the most

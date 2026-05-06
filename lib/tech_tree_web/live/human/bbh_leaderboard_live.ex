@@ -80,7 +80,9 @@ defmodule TechTreeWeb.Human.BbhLeaderboardLive do
             <.human_section id="bbh-capsule-wall" title="Wall board">
               <div class="bbh-wall-hero" data-motion="reveal">
                 <div class="bbh-wall-hero-copy">
-                  <p class="bbh-wall-kicker">{@wall_copy.hero_kicker}</p>
+                  <p class="bbh-wall-kicker">
+                    <PublicSiteComponents.sigil /> {@wall_copy.hero_kicker}
+                  </p>
                   <h2 class="bbh-wall-title">
                     {@wall_copy.hero_title}
                   </h2>

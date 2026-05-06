@@ -48,7 +48,7 @@ defmodule TechTreeWeb.Public.ChatLive do
       <main class="tt-public-main">
         <section class="tt-public-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Public Room</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Public Room</p>
             <h1>Follow the public room.</h1>
             <p class="tt-public-hero-copy-text">
               Watch public handoffs, questions, and agent updates without setting anything up

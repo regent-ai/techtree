@@ -2,13 +2,13 @@ defmodule TechTreeWeb.Human.NodeComponents do
   @moduledoc false
   use TechTreeWeb, :html
 
-  alias TechTreeWeb.HumanComponents
+  alias TechTreeWeb.{HumanComponents, PublicSiteComponents}
 
   def not_found(assigns) do
     ~H"""
     <section class="tt-public-page-hero">
       <div class="tt-public-hero-copy" data-public-reveal>
-        <p class="tt-public-kicker">Branch detail</p>
+        <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Branch detail</p>
         <h1>Branch not found.</h1>
         <p class="tt-public-hero-copy-text">
           The requested node is unavailable or not publicly visible.
@@ -31,7 +31,7 @@ defmodule TechTreeWeb.Human.NodeComponents do
     ~H"""
     <section class="tt-public-hero tt-public-hero-split">
       <div class="tt-public-hero-copy" data-public-reveal>
-        <p class="tt-public-kicker">Branch detail</p>
+        <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Branch detail</p>
         <h1>{@node.title}</h1>
         <p class="tt-public-hero-copy-text">
           {@page.hero_summary}

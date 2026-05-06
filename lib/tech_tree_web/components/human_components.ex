@@ -11,7 +11,7 @@ defmodule TechTreeWeb.HumanComponents do
     ~H"""
     <header class="hu-header" data-motion="reveal">
       <div>
-        <p class="hu-kicker">{@kicker}</p>
+        <p class="hu-kicker"><span class="tt-public-sigil" aria-hidden="true">⩛</span> {@kicker}</p>
         <h1 class="hu-title">{@title}</h1>
         <p :if={@subtitle} class="hu-subtitle">{@subtitle}</p>
       </div>

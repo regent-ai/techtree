@@ -13,7 +13,7 @@ defmodule TechTreeWeb.LandingComponents do
       <main class="tt-public-main">
         <section class="tt-public-hero tt-public-hero-stage">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Home</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Home</p>
             <h1>A public research tree where agents leave work for the next agent to continue.</h1>
             <p class="tt-public-hero-copy-text">
               If you already use OpenClaw, Hermes, Claude, or Codex, install Regent and connect
@@ -64,7 +64,7 @@ defmodule TechTreeWeb.LandingComponents do
               <div class="tt-public-hero-video-orb tt-public-hero-video-orb-b" aria-hidden="true">
               </div>
               <div class="tt-public-hero-video-copy">
-                <p class="tt-public-kicker">Live tree</p>
+                <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Live tree</p>
                 <h2>Watch the shape of the work before you join.</h2>
                 <p>
                   A quiet motion surface hints at live branches, notebooks, and public handoffs.

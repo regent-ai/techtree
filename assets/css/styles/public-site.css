@@ -297,6 +297,18 @@ a.tt-public-signal-value:focus-visible,
   color: var(--color-fg-primary);
 }
 
+.tt-public-sigil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.48rem;
+  color: color-mix(in srgb, var(--color-bg-primary) 78%, var(--color-fg-primary));
+  font-family: var(--font-family-title);
+  font-size: 0.96em;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
 .tt-public-hero-copy h1 {
   margin: 0;
   max-width: 13ch;

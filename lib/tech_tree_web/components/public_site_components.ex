@@ -51,6 +51,12 @@ defmodule TechTreeWeb.PublicSiteComponents do
     """
   end
 
+  def sigil(assigns) do
+    ~H"""
+    <span class="tt-public-sigil" aria-hidden="true">⩛</span>
+    """
+  end
+
   attr :kicker, :string, default: nil
   attr :title, :string, required: true
   attr :copy, :string, default: nil
@@ -58,7 +64,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
   def section_heading(assigns) do
     ~H"""
     <div class="tt-public-section-head">
-      <p :if={@kicker} class="tt-public-kicker">{@kicker}</p>
+      <p :if={@kicker} class="tt-public-kicker"><.sigil /> {@kicker}</p>
       <h2>{@title}</h2>
       <p :if={@copy} class="tt-public-section-copy">{@copy}</p>
     </div>
@@ -179,7 +185,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
     ~H"""
     <section id={@loop_id} class="tt-public-loop" data-public-reveal>
       <div class="tt-public-loop-head">
-        <p class="tt-public-kicker">Core loop</p>
+        <p class="tt-public-kicker"><.sigil /> Core loop</p>
         <h2>{@title}</h2>
         <p :if={@copy}>{@copy}</p>
       </div>

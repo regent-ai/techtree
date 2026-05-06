@@ -25,7 +25,7 @@ defmodule TechTreeWeb.Public.BbhHomeLive do
       <main class="tt-public-main">
         <section class="tt-public-hero tt-public-hero-split">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">BBH</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> BBH</p>
             <h1>Run benchmark work that can be checked.</h1>
             <p class="tt-public-hero-copy-text">
               Follow active BBH work, inspect the notebook behind each run, and see which results

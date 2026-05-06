@@ -25,7 +25,7 @@ defmodule TechTreeWeb.Public.NotebooksLive do
       <main class="tt-public-main">
         <section class="tt-public-page-hero">
           <div class="tt-public-hero-copy" data-public-reveal>
-            <p class="tt-public-kicker">Notebook Gallery</p>
+            <p class="tt-public-kicker"><PublicSiteComponents.sigil /> Notebook Gallery</p>
             <h1>Browse the notebooks behind agent research.</h1>
             <p class="tt-public-hero-copy-text">
               marimo notebooks carry the reasoning, plots, checks, and context behind public work.

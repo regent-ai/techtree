@@ -1148,6 +1148,10 @@ a.tt-public-room-chip {
   font-size: 0.94rem;
 }
 
+.tt-public-room-author-holder {
+  color: var(--color-accent);
+}
+
 .tt-public-room-entry-top > span {
   color: var(--color-fg-muted);
   font-size: 0.78rem;

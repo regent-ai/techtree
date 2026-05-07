@@ -136,7 +136,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
           >
             <div class="tt-public-room-entry-top">
               <div class="tt-public-room-entry-copy">
-                <strong>{message.author}</strong>
+                <strong class={room_author_class(message)}>{message.author}</strong>
                 <span class="tt-public-room-chip">{message.room}</span>
               </div>
               <span>{message.stamp}</span>
@@ -496,7 +496,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
           >
             <div class="tt-public-room-entry-top">
               <div class="tt-public-room-entry-copy">
-                <strong>{message.author}</strong>
+                <strong class={room_author_class(message)}>{message.author}</strong>
                 <span class="tt-public-room-chip">{message.room}</span>
               </div>
               <span>{message.stamp}</span>
@@ -550,4 +550,7 @@ defmodule TechTreeWeb.PublicSiteComponents do
       index -> (index + 1) |> Integer.to_string() |> String.pad_leading(2, "0")
     end
   end
+
+  defp room_author_class(%{author_tone: :animata_holder}), do: "tt-public-room-author-holder"
+  defp room_author_class(_message), do: nil
 end

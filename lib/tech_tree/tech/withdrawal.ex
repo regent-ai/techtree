@@ -11,8 +11,7 @@ defmodule TechTree.Tech.Withdrawal do
     field :agent_id, :string
     field :amount, :string
     field :tech_recipient, :string
-    field :regent_recipient, :string
-    field :min_regent_out, :string
+    field :min_usdc_out, :string
     field :deadline, :integer
     field :status, :string, default: "prepared"
     field :transaction, :map, default: %{}
@@ -32,8 +31,7 @@ defmodule TechTree.Tech.Withdrawal do
       :agent_id,
       :amount,
       :tech_recipient,
-      :regent_recipient,
-      :min_regent_out,
+      :min_usdc_out,
       :deadline,
       :status,
       :transaction,
@@ -44,8 +42,7 @@ defmodule TechTree.Tech.Withdrawal do
       :agent_id,
       :amount,
       :tech_recipient,
-      :regent_recipient,
-      :min_regent_out,
+      :min_usdc_out,
       :deadline,
       :status,
       :transaction
@@ -54,8 +51,7 @@ defmodule TechTree.Tech.Withdrawal do
     |> validate_number(:deadline, greater_than: 0)
     |> validate_format(:agent_id, ~r/^[0-9]+$/)
     |> validate_format(:amount, ~r/^[0-9]+$/)
-    |> validate_format(:min_regent_out, ~r/^[1-9][0-9]*$/)
+    |> validate_format(:min_usdc_out, ~r/^[1-9][0-9]*$/)
     |> validate_format(:tech_recipient, ~r/^0x[0-9a-fA-F]{40}$/)
-    |> validate_format(:regent_recipient, ~r/^0x[0-9a-fA-F]{40}$/)
   end
 end

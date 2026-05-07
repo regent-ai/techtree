@@ -5,6 +5,14 @@ import { Test } from "forge-std/Test.sol";
 
 import { DeployTechStack } from "../script/DeployTechStack.s.sol";
 
+contract MockRegentRevenueStakingConfig {
+    address public immutable usdc;
+
+    constructor(address usdc_) {
+        usdc = usdc_;
+    }
+}
+
 contract DeployTechStackHarness is DeployTechStack {
     function exposedCheckChainId(string memory target) external view {
         _checkChainId(target);
@@ -64,9 +72,9 @@ contract DeployTechStackTest is Test {
         assertEq(deployed.tech.hasRole(deployed.tech.DEFAULT_ADMIN_ROLE(), deployer), false);
 
         assertEq(address(deployed.vault.TECH()), address(deployed.tech));
-        assertEq(address(deployed.vault.exitSwap()), address(deployed.exitSwap));
-        assertEq(deployed.exitSwap.vault(), address(deployed.vault));
-        assertEq(deployed.exitSwap.owner(), OWNER);
+        assertEq(address(deployed.vault.exitFeeSplitter()), address(deployed.exitFeeSplitter));
+        assertEq(deployed.exitFeeSplitter.vault(), address(deployed.vault));
+        assertEq(deployed.exitFeeSplitter.owner(), OWNER);
         assertEq(deployed.vault.votingActivated(), true);
         assertEq(
             deployed.vault.hasRole(deployed.vault.REWARD_CREDITOR_ROLE(), address(deployed.router)),
@@ -116,8 +124,12 @@ contract DeployTechStackTest is Test {
         _setAddressEnv("TECH_LEADERBOARD_MANAGER_ADDRESS", LEADERBOARD_MANAGER);
         _setAddressEnv("TECH_PAUSER_ADDRESS", PAUSER);
         _setAddressEnv("TECH_AGENT_REGISTRY_ADDRESS", address(0x1001));
+        address usdc = address(0x3003);
         _setAddressEnv("TECH_WETH_TOKEN", address(0x2002));
-        _setAddressEnv("TECH_REGENT_TOKEN", address(0x3003));
+        _setAddressEnv("TECH_USDC_TOKEN", usdc);
+        _setAddressEnv(
+            "TECH_REGENT_REVENUE_STAKING", address(new MockRegentRevenueStakingConfig(usdc))
+        );
         _setAddressEnv("TECH_UNISWAP_V4_POOL_MANAGER", address(0x4004));
         _setAddressEnv("TECH_UNIVERSAL_ROUTER", address(0x5005));
         _setAddressEnv("TECH_PERMIT2", address(0x6006));
@@ -133,11 +145,11 @@ contract DeployTechStackTest is Test {
         vm.setEnv("TECH_WETH_POOL_FEE", "3000");
         vm.setEnv("TECH_WETH_POOL_TICK_SPACING", "60");
         _setAddressEnv("TECH_WETH_POOL_HOOKS", address(0));
-        vm.setEnv("WETH_REGENT_POOL_FEE", "3000");
-        vm.setEnv("WETH_REGENT_POOL_TICK_SPACING", "60");
-        _setAddressEnv("WETH_REGENT_POOL_HOOKS", address(0));
+        vm.setEnv("WETH_USDC_POOL_FEE", "3000");
+        vm.setEnv("WETH_USDC_POOL_TICK_SPACING", "60");
+        _setAddressEnv("WETH_USDC_POOL_HOOKS", address(0));
         vm.setEnv("TECH_WETH_MIN_LIQUIDITY", "1");
-        vm.setEnv("WETH_REGENT_MIN_LIQUIDITY", "1");
+        vm.setEnv("WETH_USDC_MIN_LIQUIDITY", "1");
         vm.setEnv("TECH_ETH_USD_MAX_STALENESS_SECONDS", "3600");
         vm.setEnv("TECH_SEQUENCER_GRACE_PERIOD_SECONDS", "3600");
     }

@@ -8,19 +8,18 @@ import { TechEmissionControllerV2 } from "../src/TechEmissionControllerV2.sol";
 import { TechRewardRouter } from "../src/TechRewardRouter.sol";
 import { TechToken } from "../src/TechToken.sol";
 import { MockAgentRegistry } from "./mocks/MockAgentRegistry.sol";
-import { MockExitSwap } from "./mocks/MockExitSwap.sol";
+import { MockExitFeeSplitter } from "./mocks/MockExitFeeSplitter.sol";
 
 contract TechRewardStackTest is Test {
     address internal constant ADMIN = address(0xA11CE);
     address internal constant ALICE = address(0xA11CE1);
     address internal constant BOB = address(0xB0B);
-    address internal constant REGENT_RECIPIENT = address(0x7777);
     uint64 internal constant EPOCH_DURATION = 1 days;
     bytes32 internal constant ALLOCATION_REF = keccak256("allocation");
 
     TechToken internal tech;
     MockAgentRegistry internal registry;
-    MockExitSwap internal exitSwap;
+    MockExitFeeSplitter internal exitFeeSplitter;
     TechAgentRewardVault internal vault;
     TechRewardRouter internal router;
     TechEmissionControllerV2 internal controller;
@@ -30,8 +29,10 @@ contract TechRewardStackTest is Test {
         registry = new MockAgentRegistry();
         registry.setOwner(1, ALICE);
         registry.setOwner(2, BOB);
-        exitSwap = new MockExitSwap();
-        vault = new TechAgentRewardVault(address(tech), address(registry), address(exitSwap), ADMIN);
+        exitFeeSplitter = new MockExitFeeSplitter();
+        vault = new TechAgentRewardVault(
+            address(tech), address(registry), address(exitFeeSplitter), ADMIN
+        );
         router = new TechRewardRouter(address(tech), address(vault), ADMIN);
         controller = new TechEmissionControllerV2(
             address(tech),
@@ -119,14 +120,14 @@ contract TechRewardStackTest is Test {
         assertEq(vault.currentScienceShareWad(), 0);
 
         vm.prank(ALICE);
-        vault.withdraw(1, 100 ether, ALICE, REGENT_RECIPIENT, 1 ether, block.timestamp + 1);
+        vault.withdraw(1, 100 ether, ALICE, 1 ether, block.timestamp + 1);
 
         assertEq(vault.lockedBalance(1), 0);
         assertEq(tech.balanceOf(ALICE), 90 ether);
-        assertEq(tech.balanceOf(address(exitSwap)), 10 ether);
-        assertEq(exitSwap.lastTechAmount(), 10 ether);
-        assertEq(exitSwap.lastMinRegentOut(), 1 ether);
-        assertEq(exitSwap.lastRegentRecipient(), REGENT_RECIPIENT);
+        assertEq(tech.balanceOf(address(exitFeeSplitter)), 10 ether);
+        assertEq(exitFeeSplitter.lastTechAmount(), 10 ether);
+        assertEq(exitFeeSplitter.lastMinUsdcOut(), 1 ether);
+        assertEq(exitFeeSplitter.lastSourceRef() != bytes32(0), true);
     }
 
     function testOwnershipTransferChangesWithdrawalAuthority() public {
@@ -135,20 +136,20 @@ contract TechRewardStackTest is Test {
 
         vm.prank(ALICE);
         vm.expectRevert(TechAgentRewardVault.OnlyAgentOwner.selector);
-        vault.withdraw(1, 10 ether, ALICE, REGENT_RECIPIENT, 1 ether, block.timestamp + 1);
+        vault.withdraw(1, 10 ether, ALICE, 1 ether, block.timestamp + 1);
 
         vm.prank(BOB);
-        vault.withdraw(1, 10 ether, BOB, REGENT_RECIPIENT, 1 ether, block.timestamp + 1);
+        vault.withdraw(1, 10 ether, BOB, 1 ether, block.timestamp + 1);
         assertEq(tech.balanceOf(BOB), 9 ether);
     }
 
     function testSwapFailureRevertsWithoutLosingLockedBalance() public {
         _postAndClaim(1, 100 ether);
-        exitSwap.setShouldRevert(true);
+        exitFeeSplitter.setShouldRevert(true);
 
         vm.prank(ALICE);
-        vm.expectRevert(bytes("SWAP_FAILED"));
-        vault.withdraw(1, 100 ether, ALICE, REGENT_RECIPIENT, 1 ether, block.timestamp + 1);
+        vm.expectRevert(bytes("SPLITTER_FAILED"));
+        vault.withdraw(1, 100 ether, ALICE, 1 ether, block.timestamp + 1);
 
         assertEq(vault.lockedBalance(1), 100 ether);
         assertEq(tech.balanceOf(address(vault)), 100 ether);

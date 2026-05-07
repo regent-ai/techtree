@@ -14,7 +14,7 @@ defmodule TechTree.TechTest do
       agent_reward_vault_address: "0x0000000000000000000000000000000000001003",
       emission_controller_address: "0x0000000000000000000000000000000000001004",
       leaderboard_registry_address: "0x0000000000000000000000000000000000001005",
-      exit_swap_address: "0x0000000000000000000000000000000000001006"
+      exit_fee_splitter_address: "0x0000000000000000000000000000000000001006"
     )
 
     :ok
@@ -122,15 +122,14 @@ defmodule TechTree.TechTest do
     assert epoch.total_emission_amount == "100"
   end
 
-  test "withdraw prepare requires a nonzero REGENT minimum" do
+  test "withdraw prepare requires a nonzero USDC minimum" do
     agent = agent!("withdrawer", 42)
 
     attrs = %{
       "agent_id" => "42",
       "amount" => "1000000000000000000",
       "tech_recipient" => "0x0000000000000000000000000000000000000042",
-      "regent_recipient" => "0x0000000000000000000000000000000000000043",
-      "min_regent_out" => "1",
+      "min_usdc_out" => "1",
       "deadline" => 1_900_000_000
     }
 
@@ -139,11 +138,11 @@ defmodule TechTree.TechTest do
 
     assert withdrawal.status == "prepared"
     assert tx.to == "0x0000000000000000000000000000000000001003"
-    assert tx.function_signature == "withdraw(uint256,uint256,address,address,uint256,uint256)"
-    assert ["42", "1000000000000000000", _, _, "1", 1_900_000_000] = tx.args
+    assert tx.function_signature == "withdraw(uint256,uint256,address,uint256,uint256)"
+    assert ["42", "1000000000000000000", _, "1", 1_900_000_000] = tx.args
 
     assert {:error, :amount_zero} =
-             Tech.prepare_withdrawal(agent, %{attrs | "min_regent_out" => "0"})
+             Tech.prepare_withdrawal(agent, %{attrs | "min_usdc_out" => "0"})
   end
 
   defp agent!(label, token_id) do

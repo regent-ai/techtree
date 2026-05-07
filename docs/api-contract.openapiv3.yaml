@@ -3706,7 +3706,7 @@ components:
           agent_reward_vault,
           emission_controller,
           leaderboard_registry,
-          exit_swap,
+          exit_fee_splitter,
         ]
       properties:
         chain_id: { type: integer, enum: [8453] }
@@ -3715,7 +3715,7 @@ components:
         agent_reward_vault: { $ref: "#/components/schemas/Address" }
         emission_controller: { $ref: "#/components/schemas/Address" }
         leaderboard_registry: { $ref: "#/components/schemas/Address" }
-        exit_swap: { $ref: "#/components/schemas/Address" }
+        exit_fee_splitter: { $ref: "#/components/schemas/Address" }
       additionalProperties: false
     TechStatusResponse:
       type: object
@@ -3862,13 +3862,12 @@ components:
       additionalProperties: false
     TechWithdrawPrepareRequest:
       type: object
-      required: [agent_id, amount, tech_recipient, regent_recipient, min_regent_out, deadline]
+      required: [agent_id, amount, tech_recipient, min_usdc_out, deadline]
       properties:
         agent_id: { type: string, pattern: "^[0-9]+$" }
         amount: { type: string, pattern: "^[0-9]+$" }
         tech_recipient: { $ref: "#/components/schemas/Address" }
-        regent_recipient: { $ref: "#/components/schemas/Address" }
-        min_regent_out: { type: string, pattern: "^[1-9][0-9]*$" }
+        min_usdc_out: { type: string, pattern: "^[1-9][0-9]*$" }
         deadline: { type: integer, minimum: 1 }
       additionalProperties: false
     TechLeaderboardRegisterPrepareRequest:

@@ -93,8 +93,7 @@ defmodule TechTree.Repo.Migrations.CreateTechRewards do
       add :agent_id, :text, null: false
       add :amount, :text, null: false
       add :tech_recipient, :text, null: false
-      add :regent_recipient, :text, null: false
-      add :min_regent_out, :text, null: false
+      add :min_usdc_out, :text, null: false
       add :deadline, :bigint, null: false
       add :status, :text, null: false, default: "prepared"
       add :transaction, :map, null: false, default: %{}
@@ -133,7 +132,7 @@ defmodule TechTree.Repo.Migrations.CreateTechRewards do
           {:tech_reward_manifests, :total_allocated_amount},
           {:tech_reward_allocations, :amount},
           {:tech_withdrawals, :amount},
-          {:tech_withdrawals, :min_regent_out}
+          {:tech_withdrawals, :min_usdc_out}
         ] do
       create constraint(table, :"#{table}_#{field}_check",
                check: String.replace(amount_check, "VALUE", Atom.to_string(field))
@@ -172,10 +171,6 @@ defmodule TechTree.Repo.Migrations.CreateTechRewards do
 
     create constraint(:tech_withdrawals, :tech_withdrawals_tech_recipient_check,
              check: String.replace(address_check, "VALUE", "tech_recipient")
-           )
-
-    create constraint(:tech_withdrawals, :tech_withdrawals_regent_recipient_check,
-             check: String.replace(address_check, "VALUE", "regent_recipient")
            )
   end
 end

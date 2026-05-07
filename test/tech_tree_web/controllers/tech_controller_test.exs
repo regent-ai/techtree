@@ -14,7 +14,7 @@ defmodule TechTreeWeb.TechControllerTest do
       agent_reward_vault_address: "0x0000000000000000000000000000000000001003",
       emission_controller_address: "0x0000000000000000000000000000000000001004",
       leaderboard_registry_address: "0x0000000000000000000000000000000000001005",
-      exit_swap_address: "0x0000000000000000000000000000000000001006"
+      exit_fee_splitter_address: "0x0000000000000000000000000000000000001006"
     )
 
     :ok
@@ -28,7 +28,8 @@ defmodule TechTreeWeb.TechControllerTest do
                "contracts" => %{
                  "chain_id" => 8453,
                  "token" => "0x0000000000000000000000000000000000001001",
-                 "reward_router" => "0x0000000000000000000000000000000000001002"
+                 "reward_router" => "0x0000000000000000000000000000000000001002",
+                 "exit_fee_splitter" => "0x0000000000000000000000000000000000001006"
                }
              }
            } = json_response(conn, 200)

@@ -10,7 +10,7 @@ import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
 
 import { TechAgentRewardVault } from "../src/TechAgentRewardVault.sol";
 import { TechEmissionControllerV2 } from "../src/TechEmissionControllerV2.sol";
-import { TechExitFeeLotSwap } from "../src/TechExitFeeLotSwap.sol";
+import { TechExitFeeUsdcSplitter } from "../src/TechExitFeeUsdcSplitter.sol";
 import { TechLeaderboardRegistry } from "../src/TechLeaderboardRegistry.sol";
 import { TechRewardRouter } from "../src/TechRewardRouter.sol";
 import { TechToken } from "../src/TechToken.sol";
@@ -34,7 +34,8 @@ contract DeployTechStack is Script {
         address pauser;
         address agentRegistry;
         address weth;
-        address regent;
+        address usdc;
+        address regentRevenueStaking;
         address poolManager;
         address universalRouter;
         address permit2;
@@ -50,18 +51,18 @@ contract DeployTechStack is Script {
         uint24 techWethPoolFee;
         int24 techWethTickSpacing;
         address techWethHooks;
-        uint24 wethRegentPoolFee;
-        int24 wethRegentTickSpacing;
-        address wethRegentHooks;
+        uint24 wethUsdcPoolFee;
+        int24 wethUsdcTickSpacing;
+        address wethUsdcHooks;
         uint128 minTechWethLiquidity;
-        uint128 minWethRegentLiquidity;
+        uint128 minWethUsdcLiquidity;
         uint256 maxEthUsdStalenessSeconds;
         uint256 sequencerGracePeriodSeconds;
     }
 
     struct DeployedContracts {
         TechToken tech;
-        TechExitFeeLotSwap exitSwap;
+        TechExitFeeUsdcSplitter exitFeeSplitter;
         TechAgentRewardVault vault;
         TechRewardRouter router;
         TechEmissionControllerV2 controller;
@@ -117,39 +118,49 @@ contract DeployTechStack is Script {
             config.techWethTickSpacing,
             config.techWethHooks
         );
-        PoolKey memory wethRegentPoolKey = _sortedPoolKey(
+        PoolKey memory wethUsdcPoolKey = _sortedPoolKey(
             config.weth,
-            config.regent,
-            config.wethRegentPoolFee,
-            config.wethRegentTickSpacing,
-            config.wethRegentHooks
+            config.usdc,
+            config.wethUsdcPoolFee,
+            config.wethUsdcTickSpacing,
+            config.wethUsdcHooks
         );
 
-        deployed.exitSwap = new TechExitFeeLotSwap(
-            deployer,
-            address(deployed.tech),
-            config.weth,
-            config.regent,
-            address(0),
-            config.poolManager,
-            config.universalRouter,
-            config.permit2,
-            config.ethUsdFeed,
-            config.sequencerUptimeFeed,
-            techWethPoolKey,
-            wethRegentPoolKey,
-            PoolId.unwrap(techWethPoolKey.toId()),
-            PoolId.unwrap(wethRegentPoolKey.toId()),
-            config.minTechWethLiquidity,
-            config.minWethRegentLiquidity,
-            config.maxEthUsdStalenessSeconds,
-            config.sequencerGracePeriodSeconds
+        deployed.exitFeeSplitter = new TechExitFeeUsdcSplitter(
+            TechExitFeeUsdcSplitter.Addresses({
+                owner: deployer,
+                tech: address(deployed.tech),
+                weth: config.weth,
+                usdc: config.usdc,
+                vault: address(0),
+                poolManager: config.poolManager,
+                universalRouter: config.universalRouter,
+                permit2: config.permit2,
+                ethUsdFeed: config.ethUsdFeed,
+                sequencerUptimeFeed: config.sequencerUptimeFeed,
+                regentRevenueStaking: config.regentRevenueStaking
+            }),
+            TechExitFeeUsdcSplitter.Pools({
+                techWethPoolKey: techWethPoolKey,
+                wethUsdcPoolKey: wethUsdcPoolKey,
+                techWethPoolId: PoolId.unwrap(techWethPoolKey.toId()),
+                wethUsdcPoolId: PoolId.unwrap(wethUsdcPoolKey.toId()),
+                minTechWethLiquidity: config.minTechWethLiquidity,
+                minWethUsdcLiquidity: config.minWethUsdcLiquidity
+            }),
+            TechExitFeeUsdcSplitter.Guards({
+                maxEthUsdStalenessSeconds: config.maxEthUsdStalenessSeconds,
+                sequencerGracePeriodSeconds: config.sequencerGracePeriodSeconds
+            })
         );
 
         deployed.vault = new TechAgentRewardVault(
-            address(deployed.tech), config.agentRegistry, address(deployed.exitSwap), deployer
+            address(deployed.tech),
+            config.agentRegistry,
+            address(deployed.exitFeeSplitter),
+            deployer
         );
-        deployed.exitSwap.setVault(address(deployed.vault));
+        deployed.exitFeeSplitter.setVault(address(deployed.vault));
 
         deployed.router =
             new TechRewardRouter(address(deployed.tech), address(deployed.vault), deployer);
@@ -216,7 +227,7 @@ contract DeployTechStack is Script {
         );
 
         if (config.owner != deployer) {
-            deployed.exitSwap.transferOwnership(config.owner);
+            deployed.exitFeeSplitter.transferOwnership(config.owner);
         }
     }
 
@@ -228,7 +239,8 @@ contract DeployTechStack is Script {
         config.pauser = _requiredAddress("TECH_PAUSER_ADDRESS");
         config.agentRegistry = _requiredAddress("TECH_AGENT_REGISTRY_ADDRESS");
         config.weth = _requiredAddress("TECH_WETH_TOKEN");
-        config.regent = _requiredAddress("TECH_REGENT_TOKEN");
+        config.usdc = _requiredAddress("TECH_USDC_TOKEN");
+        config.regentRevenueStaking = _requiredAddress("TECH_REGENT_REVENUE_STAKING");
         config.poolManager = _requiredAddress("TECH_UNISWAP_V4_POOL_MANAGER");
         config.universalRouter = _requiredAddress("TECH_UNIVERSAL_ROUTER");
         config.permit2 = _requiredAddress("TECH_PERMIT2");
@@ -244,11 +256,11 @@ contract DeployTechStack is Script {
         config.techWethPoolFee = _envUint24("TECH_WETH_POOL_FEE");
         config.techWethTickSpacing = _envInt24("TECH_WETH_POOL_TICK_SPACING");
         config.techWethHooks = vm.envOr("TECH_WETH_POOL_HOOKS", address(0));
-        config.wethRegentPoolFee = _envUint24("WETH_REGENT_POOL_FEE");
-        config.wethRegentTickSpacing = _envInt24("WETH_REGENT_POOL_TICK_SPACING");
-        config.wethRegentHooks = vm.envOr("WETH_REGENT_POOL_HOOKS", address(0));
+        config.wethUsdcPoolFee = _envUint24("WETH_USDC_POOL_FEE");
+        config.wethUsdcTickSpacing = _envInt24("WETH_USDC_POOL_TICK_SPACING");
+        config.wethUsdcHooks = vm.envOr("WETH_USDC_POOL_HOOKS", address(0));
         config.minTechWethLiquidity = _envUint128("TECH_WETH_MIN_LIQUIDITY");
-        config.minWethRegentLiquidity = _envUint128("WETH_REGENT_MIN_LIQUIDITY");
+        config.minWethUsdcLiquidity = _envUint128("WETH_USDC_MIN_LIQUIDITY");
         config.maxEthUsdStalenessSeconds = vm.envUint("TECH_ETH_USD_MAX_STALENESS_SECONDS");
         config.sequencerGracePeriodSeconds = vm.envUint("TECH_SEQUENCER_GRACE_PERIOD_SECONDS");
     }
@@ -371,8 +383,8 @@ contract DeployTechStack is Script {
             "TECH_STACK_RESULT_JSON:{",
             '"tech":"',
             vm.toString(address(deployed.tech)),
-            '","exit_swap":"',
-            vm.toString(address(deployed.exitSwap)),
+            '","exit_fee_splitter":"',
+            vm.toString(address(deployed.exitFeeSplitter)),
             '","agent_reward_vault":"',
             vm.toString(address(deployed.vault)),
             '","reward_router":"',

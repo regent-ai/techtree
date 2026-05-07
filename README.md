@@ -16,7 +16,7 @@ Techtree does not require a hosted Regent company. A hosted Regent is optional. 
 
 Research does not need a token attached. A token only matters when the work has an economic surface. If a Techtree artifact, skill, benchmark, or other body of work can earn stablecoin income, it can later become an Autolaunch candidate.
 
-TECH rewards are separate from Autolaunch. Agents that earn TECH can claim rewards through Techtree. When locked TECH is withdrawn, the current Techtree reward path sends 90% as liquid TECH and routes the required 10% exit sale into REGENT for the agent's chosen recipient.
+TECH rewards are separate from Autolaunch. Agents that earn TECH can claim rewards through Techtree. When locked TECH is withdrawn, the current Techtree reward path sends 90% as liquid TECH and routes the required 10% exit sale into USDC for the Regent staker revenue splitter.
 
 ## What Techtree Supports
 

@@ -5,7 +5,7 @@ import { Script, console2 } from "forge-std/Script.sol";
 
 import { TechAgentRewardVault } from "../src/TechAgentRewardVault.sol";
 import { TechEmissionControllerV2 } from "../src/TechEmissionControllerV2.sol";
-import { TechExitFeeLotSwap } from "../src/TechExitFeeLotSwap.sol";
+import { TechExitFeeUsdcSplitter } from "../src/TechExitFeeUsdcSplitter.sol";
 import { TechLeaderboardRegistry } from "../src/TechLeaderboardRegistry.sol";
 import { TechRewardRouter } from "../src/TechRewardRouter.sol";
 import { TechToken } from "../src/TechToken.sol";
@@ -19,7 +19,8 @@ contract VerifyTechStack is Script {
 
     function run() external view {
         TechToken tech = TechToken(_contractAddress("TECH_TOKEN_ADDRESS"));
-        TechExitFeeLotSwap exitSwap = TechExitFeeLotSwap(_contractAddress("TECH_EXIT_SWAP_ADDRESS"));
+        TechExitFeeUsdcSplitter exitFeeSplitter =
+            TechExitFeeUsdcSplitter(_contractAddress("TECH_EXIT_FEE_SPLITTER_ADDRESS"));
         TechAgentRewardVault vault =
             TechAgentRewardVault(_contractAddress("TECH_AGENT_REWARD_VAULT_ADDRESS"));
         TechRewardRouter router = TechRewardRouter(_contractAddress("TECH_REWARD_ROUTER_ADDRESS"));
@@ -31,15 +32,25 @@ contract VerifyTechStack is Script {
         address admin = vm.envAddress("TECH_ADMIN_ADDRESS");
         address owner = vm.envAddress("TECH_OWNER_ADDRESS");
         address agentRegistry = vm.envAddress("TECH_AGENT_REGISTRY_ADDRESS");
+        address usdc = vm.envAddress("TECH_USDC_TOKEN");
+        address regentRevenueStaking = vm.envAddress("TECH_REGENT_REVENUE_STAKING");
         address rootManager = vm.envAddress("TECH_ROOT_MANAGER_ADDRESS");
         address leaderboardManager = vm.envAddress("TECH_LEADERBOARD_MANAGER_ADDRESS");
         address pauser = vm.envAddress("TECH_PAUSER_ADDRESS");
 
         _assertAddress("vault.TECH", address(tech), address(vault.TECH()));
         _assertAddress("vault.agentRegistry", agentRegistry, address(vault.agentRegistry()));
-        _assertAddress("vault.exitSwap", address(exitSwap), address(vault.exitSwap()));
-        _assertAddress("exitSwap.vault", address(vault), exitSwap.vault());
-        _assertAddress("exitSwap.owner", owner, exitSwap.owner());
+        _assertAddress(
+            "vault.exitFeeSplitter", address(exitFeeSplitter), address(vault.exitFeeSplitter())
+        );
+        _assertAddress("exitFeeSplitter.vault", address(vault), exitFeeSplitter.vault());
+        _assertAddress("exitFeeSplitter.owner", owner, exitFeeSplitter.owner());
+        _assertAddress("exitFeeSplitter.USDC", usdc, address(exitFeeSplitter.USDC()));
+        _assertAddress(
+            "exitFeeSplitter.regentRevenueStaking",
+            regentRevenueStaking,
+            address(exitFeeSplitter.regentRevenueStaking())
+        );
         _assertAddress("router.TECH", address(tech), address(router.TECH()));
         _assertAddress("router.vault", address(vault), address(router.vault()));
         _assertAddress("controller.TECH", address(tech), address(controller.TECH()));

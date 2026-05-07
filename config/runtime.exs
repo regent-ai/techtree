@@ -251,8 +251,11 @@ config :tech_tree, :tech,
       "TECH_LEADERBOARD_REGISTRY_ADDRESS",
       cfg_fetch.(existing_tech_cfg, :leaderboard_registry_address)
     ),
-  exit_swap_address:
-    env_or_dotenv.("TECH_EXIT_SWAP_ADDRESS", cfg_fetch.(existing_tech_cfg, :exit_swap_address))
+  exit_fee_splitter_address:
+    env_or_dotenv.(
+      "TECH_EXIT_FEE_SPLITTER_ADDRESS",
+      cfg_fetch.(existing_tech_cfg, :exit_fee_splitter_address)
+    )
 
 lighthouse_api_key = env_or_dotenv.("LIGHTHOUSE_API_KEY", "")
 

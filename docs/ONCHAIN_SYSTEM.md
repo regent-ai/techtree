@@ -16,7 +16,7 @@ facts, paid settlement events, locked agent rewards, and withdrawal accounting.
 | Reward router | [`TechRewardRouter`](../contracts/src/TechRewardRouter.sol) | Stores epoch/lane Merkle roots and credits locked TECH claims into the vault. | v0.2 deploy helper exists. |
 | Emissions | [`TechEmissionControllerV2`](../contracts/src/TechEmissionControllerV2.sol) | Mints a smooth decaying per-epoch TECH budget into the router. | v0.2 deploy helper exists. |
 | Leaderboards | [`TechLeaderboardRegistry`](../contracts/src/TechLeaderboardRegistry.sol) | Records active reward leaderboard sources and config hashes. | v0.2 deploy helper exists. |
-| Exit fee swap | [`TechExitFeeLotSwap`](../contracts/src/TechExitFeeLotSwap.sol) | Sells the 10% withdrawal fee from TECH to REGENT through an oracle-guarded Uniswap v4 route. | v0.2 deploy helper exists. |
+| Exit fee splitter | [`TechExitFeeUsdcSplitter`](../contracts/src/TechExitFeeUsdcSplitter.sol) | Sells the 10% withdrawal fee from TECH to USDC and deposits it into the Regent revenue staker splitter. | v0.2 deploy helper exists. |
 
 ## System Map
 
@@ -36,7 +36,8 @@ flowchart LR
   Vault --> AgentOwner["ownerOf(agentId)"]
   AgentOwner --> Withdraw["Withdraw locked TECH"]
   Withdraw --> Liquid["90% liquid TECH"]
-  Withdraw --> ExitSwap["10% TECH to REGENT swap"]
+  Withdraw --> ExitFee["10% TECH to USDC"]
+  ExitFee --> Splitter["Regent revenue staker splitter"]
 ```
 
 ## TECH Tokenomics
@@ -58,9 +59,10 @@ The model is:
   a withdrawal.
 - Withdrawal sends exactly 90% of the withdrawn TECH to the agent's TECH
   recipient.
-- Withdrawal sends exactly 10% of the withdrawn TECH through `TechExitFeeLotSwap`
-  to buy REGENT for the agent's REGENT recipient.
-- `minRegentOut` must be nonzero for real withdrawal preparation.
+- Withdrawal sends exactly 10% of the withdrawn TECH through
+  `TechExitFeeUsdcSplitter`, converts it to USDC, and deposits that USDC into
+  the Regent revenue staker splitter.
+- `minUsdcOut` must be nonzero for real withdrawal preparation.
 
 The old transferable staked TECH path is not part of v0.2. `TechStakingVote` and
 the first `TechEmissionController` are removed from the deploy path.
@@ -188,7 +190,7 @@ addresses, and max supply/emission parameters.
 - [`contracts/src/TechRewardRouter.sol`](../contracts/src/TechRewardRouter.sol)
 - [`contracts/src/TechEmissionControllerV2.sol`](../contracts/src/TechEmissionControllerV2.sol)
 - [`contracts/src/TechLeaderboardRegistry.sol`](../contracts/src/TechLeaderboardRegistry.sol)
-- [`contracts/src/TechExitFeeLotSwap.sol`](../contracts/src/TechExitFeeLotSwap.sol)
+- [`contracts/src/TechExitFeeUsdcSplitter.sol`](../contracts/src/TechExitFeeUsdcSplitter.sol)
 - [`contracts/src/TechTreeContentSettlement.sol`](../contracts/src/TechTreeContentSettlement.sol)
 - [`contracts/src/TechTreeRegistry.sol`](../contracts/src/TechTreeRegistry.sol)
 - [`lib/tech_tree/tech.ex`](../lib/tech_tree/tech.ex)

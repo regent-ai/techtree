@@ -8,7 +8,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import { IAgentRegistryLike } from "./interfaces/IAgentRegistryLike.sol";
-import { ITechExitSwap } from "./interfaces/ITechExitSwap.sol";
+import { ITechExitFeeSplitter } from "./interfaces/ITechExitFeeSplitter.sol";
 
 contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -18,10 +18,11 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
     uint256 public constant WAD = 1e18;
     uint256 public constant BPS_DENOMINATOR = 10_000;
     uint256 public constant EXIT_SALE_BPS = 1_000;
+    bytes32 public constant EXIT_FEE_SOURCE_TAG = keccak256("techtree.tech.exit_fee.v0.2");
 
     IERC20 public immutable TECH;
     IAgentRegistryLike public immutable agentRegistry;
-    ITechExitSwap public exitSwap;
+    ITechExitFeeSplitter public exitFeeSplitter;
 
     bool public paused;
     bool public votingActivated;
@@ -37,18 +38,20 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
         uint256 indexed agentId,
         address indexed owner,
         address indexed techRecipient,
-        address regentRecipient,
+        address revenueSplitter,
         uint256 amount,
         uint256 liquidTechAmount,
         uint256 soldTechAmount,
-        uint256 techToWethOut,
-        uint256 regentOut
+        uint256 usdcOut,
+        uint256 splitterReceived
     );
     event SciencePreferenceSet(
         uint256 indexed agentId, uint256 oldPreferenceWad, uint256 newPreferenceWad
     );
     event VotingActivated();
-    event ExitSwapSet(address indexed previousExitSwap, address indexed newExitSwap);
+    event ExitFeeSplitterSet(
+        address indexed previousExitFeeSplitter, address indexed newExitFeeSplitter
+    );
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
@@ -66,9 +69,9 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
         _;
     }
 
-    constructor(address tech_, address agentRegistry_, address exitSwap_, address admin_) {
+    constructor(address tech_, address agentRegistry_, address exitFeeSplitter_, address admin_) {
         if (
-            tech_ == address(0) || agentRegistry_ == address(0) || exitSwap_ == address(0)
+            tech_ == address(0) || agentRegistry_ == address(0) || exitFeeSplitter_ == address(0)
                 || admin_ == address(0)
         ) {
             revert ZeroAddress();
@@ -76,16 +79,16 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
 
         TECH = IERC20(tech_);
         agentRegistry = IAgentRegistryLike(agentRegistry_);
-        exitSwap = ITechExitSwap(exitSwap_);
+        exitFeeSplitter = ITechExitFeeSplitter(exitFeeSplitter_);
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _grantRole(PAUSER_ROLE, admin_);
     }
 
-    function setExitSwap(address exitSwap_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (exitSwap_ == address(0)) revert ZeroAddress();
-        address previous = address(exitSwap);
-        exitSwap = ITechExitSwap(exitSwap_);
-        emit ExitSwapSet(previous, exitSwap_);
+    function setExitFeeSplitter(address exitFeeSplitter_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (exitFeeSplitter_ == address(0)) revert ZeroAddress();
+        address previous = address(exitFeeSplitter);
+        exitFeeSplitter = ITechExitFeeSplitter(exitFeeSplitter_);
+        emit ExitFeeSplitterSet(previous, exitFeeSplitter_);
     }
 
     function pause() external onlyRole(PAUSER_ROLE) {
@@ -125,12 +128,11 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
         uint256 agentId,
         uint256 amount,
         address techRecipient,
-        address regentRecipient,
-        uint256 minRegentOut,
+        uint256 minUsdcOut,
         uint256 deadline
     ) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
-        if (techRecipient == address(0) || regentRecipient == address(0)) revert ZeroAddress();
+        if (techRecipient == address(0)) revert ZeroAddress();
         if (agentRegistry.ownerOf(agentId) != msg.sender) revert OnlyAgentOwner();
 
         uint256 currentLocked = lockedBalance[agentId];
@@ -143,21 +145,24 @@ contract TechAgentRewardVault is AccessControl, ReentrancyGuard {
         _setLockedBalance(agentId, currentLocked - amount);
         totalLockedTech -= amount;
 
-        TECH.safeTransfer(address(exitSwap), saleAmount);
-        (uint256 techToWethOut, uint256 regentOut) =
-            exitSwap.sellTechForRegent(saleAmount, minRegentOut, deadline, regentRecipient);
+        bytes32 sourceRef =
+            keccak256(abi.encode(EXIT_FEE_SOURCE_TAG, agentId, amount, msg.sender, techRecipient));
+
+        TECH.safeTransfer(address(exitFeeSplitter), saleAmount);
+        (uint256 usdcOut, uint256 splitterReceived) =
+            exitFeeSplitter.sellTechForUsdcAndDeposit(saleAmount, minUsdcOut, deadline, sourceRef);
         TECH.safeTransfer(techRecipient, liquidAmount);
 
         emit LockedTechWithdrawn(
             agentId,
             msg.sender,
             techRecipient,
-            regentRecipient,
+            address(exitFeeSplitter),
             amount,
             liquidAmount,
             saleAmount,
-            techToWethOut,
-            regentOut
+            usdcOut,
+            splitterReceived
         );
     }
 

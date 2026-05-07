@@ -22,7 +22,7 @@ defmodule TechTree.Tech do
   @reputation_filter_version "product-agent-reputation-v1"
   @dust_policy %{"strategy" => "rank_order_remainder"}
   @claim_signature "claim(uint64,uint8,uint256,uint256,bytes32,bytes32[])"
-  @withdraw_signature "withdraw(uint256,uint256,address,address,uint256,uint256)"
+  @withdraw_signature "withdraw(uint256,uint256,address,uint256,uint256)"
   @post_root_signature "postAllocationRoot(uint64,uint8,bytes32,uint256,bytes32,uint64)"
   @register_leaderboard_signature "registerLeaderboard((bytes32,uint8,uint16,uint64,uint64,bytes32,string,bool))"
   @zero_address "0x0000000000000000000000000000000000000000"
@@ -115,8 +115,7 @@ defmodule TechTree.Tech do
     with {:ok, agent_id} <- ensure_agent_id(agent, Map.get(attrs, "agent_id")),
          {:ok, amount} <- required_amount(attrs, "amount"),
          {:ok, tech_recipient} <- required_address(attrs, "tech_recipient"),
-         {:ok, regent_recipient} <- required_address(attrs, "regent_recipient"),
-         {:ok, min_regent_out} <- required_nonzero_amount(attrs, "min_regent_out"),
+         {:ok, min_usdc_out} <- required_nonzero_amount(attrs, "min_usdc_out"),
          {:ok, deadline} <- required_positive_integer(attrs, "deadline") do
       transaction = %{
         chain_id: contract_config().chain_id,
@@ -124,7 +123,7 @@ defmodule TechTree.Tech do
         value: "0",
         function_signature: @withdraw_signature,
         data: nil,
-        args: [agent_id, amount, tech_recipient, regent_recipient, min_regent_out, deadline]
+        args: [agent_id, amount, tech_recipient, min_usdc_out, deadline]
       }
 
       attrs = %{
@@ -133,8 +132,7 @@ defmodule TechTree.Tech do
         "agent_id" => agent_id,
         "amount" => amount,
         "tech_recipient" => tech_recipient,
-        "regent_recipient" => regent_recipient,
-        "min_regent_out" => min_regent_out,
+        "min_usdc_out" => min_usdc_out,
         "deadline" => deadline,
         "transaction" => atom_to_string_map(transaction)
       }
@@ -854,7 +852,7 @@ defmodule TechTree.Tech do
       agent_reward_vault: Keyword.get(cfg, :agent_reward_vault_address, @zero_address),
       emission_controller: Keyword.get(cfg, :emission_controller_address, @zero_address),
       leaderboard_registry: Keyword.get(cfg, :leaderboard_registry_address, @zero_address),
-      exit_swap: Keyword.get(cfg, :exit_swap_address, @zero_address)
+      exit_fee_splitter: Keyword.get(cfg, :exit_fee_splitter_address, @zero_address)
     }
   end
 

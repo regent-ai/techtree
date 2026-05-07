@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { PoolId, PoolIdLibrary } from "@uniswap/v4-core/src/types/PoolId.sol";
 import { PoolKey } from "@uniswap/v4-core/src/types/PoolKey.sol";
 import { Currency } from "@uniswap/v4-core/src/types/Currency.sol";
@@ -34,14 +35,23 @@ interface ITechAggregatorV3 {
         );
 }
 
-contract TechExitFeeLotSwap is Ownable {
+interface ITechRegentRevenueStaking {
+    function usdc() external view returns (address);
+
+    function depositUSDC(uint256 amount, bytes32 sourceTag, bytes32 sourceRef)
+        external
+        returns (uint256 received);
+}
+
+contract TechExitFeeUsdcSplitter is Ownable, ReentrancyGuard {
     using PoolIdLibrary for PoolKey;
     using SafeERC20 for IERC20;
 
     bytes1 internal constant COMMAND_V4_SWAP = 0x10;
+    bytes32 public constant SOURCE_TAG = keccak256("techtree.tech.exit_fee.v0.2");
 
     IERC20 public immutable TECH;
-    IERC20 public immutable REGENT;
+    IERC20 public immutable USDC;
     address public immutable weth;
     address public vault;
     IPoolManager public immutable poolManager;
@@ -49,23 +59,57 @@ contract TechExitFeeLotSwap is Ownable {
     ITechPermit2Allowance public immutable permit2;
     ITechAggregatorV3 public immutable ethUsdFeed;
     ITechAggregatorV3 public immutable sequencerUptimeFeed;
+    ITechRegentRevenueStaking public immutable regentRevenueStaking;
 
     PoolKey public techWethPoolKey;
-    PoolKey public wethRegentPoolKey;
+    PoolKey public wethUsdcPoolKey;
     bytes32 public immutable techWethPoolId;
-    bytes32 public immutable wethRegentPoolId;
+    bytes32 public immutable wethUsdcPoolId;
     uint128 public minTechWethLiquidity;
-    uint128 public minWethRegentLiquidity;
+    uint128 public minWethUsdcLiquidity;
     uint256 public maxEthUsdStalenessSeconds;
     uint256 public sequencerGracePeriodSeconds;
 
-    event ExitSwapExecuted(
-        uint256 techAmount, uint256 minRegentOut, address indexed regentRecipient, uint256 regentOut
+    struct Addresses {
+        address owner;
+        address tech;
+        address weth;
+        address usdc;
+        address vault;
+        address poolManager;
+        address universalRouter;
+        address permit2;
+        address ethUsdFeed;
+        address sequencerUptimeFeed;
+        address regentRevenueStaking;
+    }
+
+    struct Pools {
+        PoolKey techWethPoolKey;
+        PoolKey wethUsdcPoolKey;
+        bytes32 techWethPoolId;
+        bytes32 wethUsdcPoolId;
+        uint128 minTechWethLiquidity;
+        uint128 minWethUsdcLiquidity;
+    }
+
+    struct Guards {
+        uint256 maxEthUsdStalenessSeconds;
+        uint256 sequencerGracePeriodSeconds;
+    }
+
+    event ExitFeeDeposited(
+        uint256 techAmount,
+        uint256 minUsdcOut,
+        address indexed regentRevenueStaking,
+        uint256 usdcOut,
+        uint256 splitterReceived,
+        bytes32 indexed sourceRef
     );
     event VaultSet(address indexed vault);
     event GuardConfigSet(
         uint128 minTechWethLiquidity,
-        uint128 minWethRegentLiquidity,
+        uint128 minWethUsdcLiquidity,
         uint256 maxEthUsdStalenessSeconds,
         uint256 sequencerGracePeriodSeconds
     );
@@ -73,6 +117,7 @@ contract TechExitFeeLotSwap is Ownable {
     error ZeroAddress();
     error AmountZero();
     error MinOutZero();
+    error SourceRefZero();
     error DeadlineExpired();
     error OnlyVault();
     error VaultAlreadySet();
@@ -87,72 +132,69 @@ contract TechExitFeeLotSwap is Ownable {
     error EthUsdIncomplete();
     error EthUsdMissing();
     error EthUsdStale();
-    error RegentOutLow();
+    error UsdcOutLow();
     error InsufficientTech();
+    error StakingUsdcMismatch();
+    error SplitterReceivedMismatch();
 
     modifier onlyVault() {
         if (msg.sender != vault) revert OnlyVault();
         _;
     }
 
-    constructor(
-        address owner_,
-        address tech_,
-        address weth_,
-        address regent_,
-        address vault_,
-        address poolManager_,
-        address universalRouter_,
-        address permit2_,
-        address ethUsdFeed_,
-        address sequencerUptimeFeed_,
-        PoolKey memory techWethPoolKey_,
-        PoolKey memory wethRegentPoolKey_,
-        bytes32 techWethPoolId_,
-        bytes32 wethRegentPoolId_,
-        uint128 minTechWethLiquidity_,
-        uint128 minWethRegentLiquidity_,
-        uint256 maxEthUsdStalenessSeconds_,
-        uint256 sequencerGracePeriodSeconds_
-    ) Ownable(owner_) {
+    constructor(Addresses memory addresses, Pools memory pools, Guards memory guards)
+        Ownable(addresses.owner)
+    {
         if (
-            owner_ == address(0) || tech_ == address(0) || weth_ == address(0)
-                || regent_ == address(0) || poolManager_ == address(0)
-                || universalRouter_ == address(0) || permit2_ == address(0)
-                || ethUsdFeed_ == address(0) || sequencerUptimeFeed_ == address(0)
+            addresses.owner == address(0) || addresses.tech == address(0)
+                || addresses.weth == address(0) || addresses.usdc == address(0)
+                || addresses.poolManager == address(0) || addresses.universalRouter == address(0)
+                || addresses.permit2 == address(0) || addresses.ethUsdFeed == address(0)
+                || addresses.sequencerUptimeFeed == address(0)
+                || addresses.regentRevenueStaking == address(0)
         ) {
             revert ZeroAddress();
         }
-        if (maxEthUsdStalenessSeconds_ == 0) revert AmountZero();
-        if (PoolId.unwrap(techWethPoolKey_.toId()) != techWethPoolId_) revert PoolIdMismatch();
-        if (PoolId.unwrap(wethRegentPoolKey_.toId()) != wethRegentPoolId_) {
+        if (guards.maxEthUsdStalenessSeconds == 0) revert AmountZero();
+        if (PoolId.unwrap(pools.techWethPoolKey.toId()) != pools.techWethPoolId) {
             revert PoolIdMismatch();
         }
-        if (!_poolContains(techWethPoolKey_, tech_, weth_)) revert PoolRouteInvalid();
-        if (!_poolContains(wethRegentPoolKey_, weth_, regent_)) revert PoolRouteInvalid();
+        if (PoolId.unwrap(pools.wethUsdcPoolKey.toId()) != pools.wethUsdcPoolId) {
+            revert PoolIdMismatch();
+        }
+        if (!_poolContains(pools.techWethPoolKey, addresses.tech, addresses.weth)) {
+            revert PoolRouteInvalid();
+        }
+        if (!_poolContains(pools.wethUsdcPoolKey, addresses.weth, addresses.usdc)) {
+            revert PoolRouteInvalid();
+        }
+        if (ITechRegentRevenueStaking(addresses.regentRevenueStaking).usdc() != addresses.usdc) {
+            revert StakingUsdcMismatch();
+        }
 
-        TECH = IERC20(tech_);
-        REGENT = IERC20(regent_);
-        weth = weth_;
-        vault = vault_;
-        poolManager = IPoolManager(poolManager_);
-        universalRouter = ITechUniversalRouter(universalRouter_);
-        permit2 = ITechPermit2Allowance(permit2_);
-        ethUsdFeed = ITechAggregatorV3(ethUsdFeed_);
-        sequencerUptimeFeed = ITechAggregatorV3(sequencerUptimeFeed_);
-        techWethPoolKey = techWethPoolKey_;
-        wethRegentPoolKey = wethRegentPoolKey_;
-        techWethPoolId = techWethPoolId_;
-        wethRegentPoolId = wethRegentPoolId_;
+        TECH = IERC20(addresses.tech);
+        USDC = IERC20(addresses.usdc);
+        weth = addresses.weth;
+        vault = addresses.vault;
+        poolManager = IPoolManager(addresses.poolManager);
+        universalRouter = ITechUniversalRouter(addresses.universalRouter);
+        permit2 = ITechPermit2Allowance(addresses.permit2);
+        ethUsdFeed = ITechAggregatorV3(addresses.ethUsdFeed);
+        sequencerUptimeFeed = ITechAggregatorV3(addresses.sequencerUptimeFeed);
+        regentRevenueStaking = ITechRegentRevenueStaking(addresses.regentRevenueStaking);
+        techWethPoolKey = pools.techWethPoolKey;
+        wethUsdcPoolKey = pools.wethUsdcPoolKey;
+        techWethPoolId = pools.techWethPoolId;
+        wethUsdcPoolId = pools.wethUsdcPoolId;
         _setGuardConfig(
-            minTechWethLiquidity_,
-            minWethRegentLiquidity_,
-            maxEthUsdStalenessSeconds_,
-            sequencerGracePeriodSeconds_
+            pools.minTechWethLiquidity,
+            pools.minWethUsdcLiquidity,
+            guards.maxEthUsdStalenessSeconds,
+            guards.sequencerGracePeriodSeconds
         );
-        if (vault_ != address(0)) {
-            vault = vault_;
-            emit VaultSet(vault_);
+        if (addresses.vault != address(0)) {
+            vault = addresses.vault;
+            emit VaultSet(addresses.vault);
         }
     }
 
@@ -163,46 +205,56 @@ contract TechExitFeeLotSwap is Ownable {
         emit VaultSet(vault_);
     }
 
-    function sellTechForRegent(
+    function sellTechForUsdcAndDeposit(
         uint256 techAmount,
-        uint256 minRegentOut,
+        uint256 minUsdcOut,
         uint256 deadline,
-        address regentRecipient
-    ) external onlyVault returns (uint256 wethOut, uint256 regentOut) {
+        bytes32 sourceRef
+    ) external onlyVault nonReentrant returns (uint256 usdcOut, uint256 splitterReceived) {
         if (techAmount == 0) revert AmountZero();
-        if (minRegentOut == 0) revert MinOutZero();
-        if (techAmount > type(uint128).max || minRegentOut > type(uint128).max) {
+        if (minUsdcOut == 0) revert MinOutZero();
+        if (sourceRef == bytes32(0)) revert SourceRefZero();
+        if (techAmount > type(uint128).max || minUsdcOut > type(uint128).max) {
             revert AmountTooLarge();
         }
+        if (deadline > type(uint48).max) revert AmountTooLarge();
         if (deadline < block.timestamp) revert DeadlineExpired();
-        if (regentRecipient == address(0)) revert ZeroAddress();
         if (TECH.balanceOf(address(this)) < techAmount) revert InsufficientTech();
 
         _checkOracle();
         _checkPoolLiquidity(techWethPoolKey.toId(), minTechWethLiquidity);
-        _checkPoolLiquidity(wethRegentPoolKey.toId(), minWethRegentLiquidity);
+        _checkPoolLiquidity(wethUsdcPoolKey.toId(), minWethUsdcLiquidity);
 
-        uint256 beforeBalance = REGENT.balanceOf(regentRecipient);
+        uint256 beforeBalance = USDC.balanceOf(address(this));
         _approveRouter(techAmount, deadline);
-        _executeConfiguredSwap(
-            uint128(techAmount), uint128(minRegentOut), deadline, regentRecipient
-        );
-        regentOut = REGENT.balanceOf(regentRecipient) - beforeBalance;
-        if (regentOut < minRegentOut) revert RegentOutLow();
+        _executeConfiguredSwap(uint128(techAmount), uint128(minUsdcOut), deadline, address(this));
+        usdcOut = USDC.balanceOf(address(this)) - beforeBalance;
+        if (usdcOut < minUsdcOut) revert UsdcOutLow();
 
-        emit ExitSwapExecuted(techAmount, minRegentOut, regentRecipient, regentOut);
-        return (wethOut, regentOut);
+        USDC.forceApprove(address(regentRevenueStaking), usdcOut);
+        splitterReceived = regentRevenueStaking.depositUSDC(usdcOut, SOURCE_TAG, sourceRef);
+        if (splitterReceived != usdcOut) revert SplitterReceivedMismatch();
+        USDC.forceApprove(address(regentRevenueStaking), 0);
+
+        emit ExitFeeDeposited(
+            techAmount,
+            minUsdcOut,
+            address(regentRevenueStaking),
+            usdcOut,
+            splitterReceived,
+            sourceRef
+        );
     }
 
     function setGuardConfig(
         uint128 minTechWethLiquidity_,
-        uint128 minWethRegentLiquidity_,
+        uint128 minWethUsdcLiquidity_,
         uint256 maxEthUsdStalenessSeconds_,
         uint256 sequencerGracePeriodSeconds_
     ) external onlyOwner {
         _setGuardConfig(
             minTechWethLiquidity_,
-            minWethRegentLiquidity_,
+            minWethUsdcLiquidity_,
             maxEthUsdStalenessSeconds_,
             sequencerGracePeriodSeconds_
         );
@@ -210,7 +262,7 @@ contract TechExitFeeLotSwap is Ownable {
 
     function _setGuardConfig(
         uint128 minTechWethLiquidity_,
-        uint128 minWethRegentLiquidity_,
+        uint128 minWethUsdcLiquidity_,
         uint256 maxEthUsdStalenessSeconds_,
         uint256 sequencerGracePeriodSeconds_
     ) internal {
@@ -218,12 +270,12 @@ contract TechExitFeeLotSwap is Ownable {
             revert AmountZero();
         }
         minTechWethLiquidity = minTechWethLiquidity_;
-        minWethRegentLiquidity = minWethRegentLiquidity_;
+        minWethUsdcLiquidity = minWethUsdcLiquidity_;
         maxEthUsdStalenessSeconds = maxEthUsdStalenessSeconds_;
         sequencerGracePeriodSeconds = sequencerGracePeriodSeconds_;
         emit GuardConfigSet(
             minTechWethLiquidity_,
-            minWethRegentLiquidity_,
+            minWethUsdcLiquidity_,
             maxEthUsdStalenessSeconds_,
             sequencerGracePeriodSeconds_
         );
@@ -238,7 +290,7 @@ contract TechExitFeeLotSwap is Ownable {
 
     function _executeConfiguredSwap(
         uint128 techAmount,
-        uint128 minRegentOut,
+        uint128 minUsdcOut,
         uint256 deadline,
         address recipient
     ) internal {
@@ -251,10 +303,10 @@ contract TechExitFeeLotSwap is Ownable {
             hookData: bytes("")
         });
         path[1] = PathKey({
-            intermediateCurrency: Currency.wrap(address(REGENT)),
-            fee: wethRegentPoolKey.fee,
-            tickSpacing: wethRegentPoolKey.tickSpacing,
-            hooks: wethRegentPoolKey.hooks,
+            intermediateCurrency: Currency.wrap(address(USDC)),
+            fee: wethUsdcPoolKey.fee,
+            tickSpacing: wethUsdcPoolKey.tickSpacing,
+            hooks: wethUsdcPoolKey.hooks,
             hookData: bytes("")
         });
 
@@ -264,7 +316,7 @@ contract TechExitFeeLotSwap is Ownable {
             path: path,
             minHopPriceX36: minHopPriceX36,
             amountIn: techAmount,
-            amountOutMinimum: minRegentOut
+            amountOutMinimum: minUsdcOut
         });
 
         bytes memory actions = abi.encodePacked(
@@ -273,8 +325,7 @@ contract TechExitFeeLotSwap is Ownable {
         bytes[] memory actionParams = new bytes[](3);
         actionParams[0] = abi.encode(exactInput);
         actionParams[1] = abi.encode(Currency.wrap(address(TECH)), uint256(techAmount));
-        actionParams[2] =
-            abi.encode(Currency.wrap(address(REGENT)), recipient, uint256(minRegentOut));
+        actionParams[2] = abi.encode(Currency.wrap(address(USDC)), recipient, uint256(minUsdcOut));
 
         bytes[] memory inputs = new bytes[](1);
         inputs[0] = abi.encode(actions, actionParams);
